@@ -26,7 +26,7 @@
  */</template><template autoinsert="false" context="typecomment_context" deleted="false" description="Comment for created types" enabled="true" id="org.eclipse.jdt.ui.text.codetemplates.typecomment" name="typecomment">/**
  * {@link ${type_name}}
  * 
- * @version $$Date$$
+ * @version $$Id$$
  * @author &lt;a href="mailto:rick.van.krevelen@rivm.nl"&gt;Rick van Krevelen&lt;/a&gt;
  *
  * ${tags}
