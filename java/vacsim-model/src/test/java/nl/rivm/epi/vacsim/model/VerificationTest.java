@@ -20,42 +20,13 @@
 package nl.rivm.epi.vacsim.model;
 
 /**
- * {@link Disease}
+ * {@link VerificationTest}
  * 
  * @version $Date$
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */
-public enum Disease
+public class VerificationTest
 {
-	/** see http://www.who.int/mediacentre/factsheets/fs286/en/ */
-	MEASLES(),
 
-	/** see http://www.who.int/mediacentre/factsheets/fs211/en/ */
-	SEASONAL_INFLUENZA(),
-
-	/** see http://www.who.int/mediacentre/factsheets/fs380/en/ */
-	HUMAN_PAPILLOMA_VIRUS(),
-	
-	/** see http://www.who.int/mediacentre/factsheets/fs360/en/ */
-	HUMAN_IMMUNODEFICIENCY_VIRUS
-
-	;
-
-	private final SimRate infectionRate;
-
-	private Disease()
-	{
-		this(null);
-	}
-
-	private Disease(final SimRate infectionRate)
-	{
-		this.infectionRate = infectionRate;
-	}
-
-	public SimRate getInfectionRate()
-	{
-		return this.infectionRate;
-	}
 }
