@@ -1,0 +1,16 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>nl.rivm.epi.mod</groupId>
+		<artifactId>vacsim</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>vacsim-import</artifactId>
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Import support for the RIVM Vaccination Acceptance Simulator
+		$Id$
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+</project>

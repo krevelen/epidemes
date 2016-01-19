@@ -6,6 +6,7 @@
   <packaging>pom</packaging>
   <modules>
   	<module>vacsim-model</module>
+  	<module>vacsim-import</module>
   </modules>
 
 	<name>${project.artifactId} ${project.version}</name>
