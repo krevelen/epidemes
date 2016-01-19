@@ -1,13 +1,14 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>nl.rivm.epi.mod</groupId>
-  <artifactId>vacsim</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <packaging>pom</packaging>
-  <modules>
-  	<module>vacsim-model</module>
-  	<module>vacsim-import</module>
-  </modules>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>nl.rivm.epi.mod</groupId>
+	<artifactId>vacsim</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<modules>
+		<module>vacsim-model</module>
+		<module>vacsim-import</module>
+	</modules>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
@@ -40,6 +41,8 @@
 		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
 
 		<coala.version>0.0.1</coala.version>
+		<httpcomponents.version>4.5.1</httpcomponents.version>
+		<jackson.version>2.7.0</jackson.version>
 
 		<!-- set reporting versions (e.g. unit test code coverage) -->
 		<cobertura-maven-plugin.version>2.6</cobertura-maven-plugin.version>
@@ -113,23 +116,49 @@
 				<artifactId>coala-time-api</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
-	
+
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>guice3-coala-adapter</artifactId>
 				<version>0.0.1</version>
 			</dependency>
-	
+
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>eve3-coala-adapter</artifactId>
 				<version>0.0.1</version>
 			</dependency>
-	
+
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>dsol2-coala-adapter</artifactId>
 				<version>0.0.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>fluent-hc</artifactId>
+				<version>${httpcomponents.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpclient</artifactId>
+				<version>${httpcomponents.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>${jackson.version}</version>
 			</dependency>
 
 			<dependency>

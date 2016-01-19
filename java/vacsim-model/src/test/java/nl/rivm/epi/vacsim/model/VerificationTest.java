@@ -39,8 +39,9 @@ public class VerificationTest
 	 */
 	public void verifyCopmleteness()
 	{
-		// :
-		//
-		//
+		// load parameters (model, experiment)
+		// import data (local/remote sources)
+		// for each replication: build and run model
+		// visualize result output
 	}
 }

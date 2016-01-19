@@ -17,27 +17,37 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.epi.vacsim.model;
+package nl.rivm.epi.vacsim.connect;
 
-import io.coala.name.AbstractIdentifiable;
-import io.coala.name.AbstractIdentifier;
+import java.io.IOException;
+
+import org.apache.http.client.ClientProtocolException;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.coala.log.LogUtil;
 
 /**
- * {@link Contact} represents a link between two {@link Subject}s in the physical contact network
+ * {@link CBSConnectorTest}
  * 
  * @version $Id$
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */
-@SuppressWarnings("serial")
-public class Contact extends AbstractIdentifiable<Contact.ID>
-{
-	static class ID extends AbstractIdentifier<String>
-	{
-		
-	}
-	
-	public ID id;
+public class CBSConnectorTest {
 
-	public Subject person;
+	/** */
+	private static final Logger LOG = LogUtil.getLogger(CBSConnectorTest.class);
+
+	@Test
+	public void testCBSOpenDataPortal() throws ClientProtocolException, IOException {
+
+		final String testURI = "http://opendata.cbs.nl/ODataApi/odata/81435ned";
+		final JsonNode result = CBSConnector.getJSON(testURI);
+		Assert.assertNotNull("Got null response for " + testURI, result);
+		LOG.trace("Got result: " + result);
+	}
 }
