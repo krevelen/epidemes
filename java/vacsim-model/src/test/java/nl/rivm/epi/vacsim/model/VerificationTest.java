@@ -29,4 +29,18 @@ package nl.rivm.epi.vacsim.model;
 public class VerificationTest
 {
 
+	/**
+	 * Model verification includes questions and characteristics:
+	 * <ul>Questions:
+	 * <li>which proportion of the individuals in the target group chooses not
+	 * to comply with the vaccination
+	 * </li>
+	 * </ul>
+	 */
+	public void verifyCopmleteness()
+	{
+		// :
+		//
+		//
+	}
 }
