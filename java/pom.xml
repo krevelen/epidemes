@@ -1,13 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>nl.rivm.epi.mod</groupId>
-	<artifactId>vacsim</artifactId>
+	
+	<groupId>nl.rivm.cib</groupId>
+	<artifactId>episim</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
+	
 	<modules>
-		<module>vacsim-model</module>
-		<module>vacsim-import</module>
+		<module>episim-model</module>
+		<module>episim-connect-cbs</module>
+		<module>episim-jsonrpc</module>
 	</modules>
 
 	<name>${project.artifactId} ${project.version}</name>
