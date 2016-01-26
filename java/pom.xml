@@ -105,19 +105,19 @@
 
 			<dependency>
 				<groupId>io.coala</groupId>
-				<artifactId>coala-binder-api</artifactId>
+				<artifactId>coala-api</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>io.coala</groupId>
-				<artifactId>coala-capability-api</artifactId>
+				<artifactId>coala-api-capability</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>io.coala</groupId>
-				<artifactId>coala-time-api</artifactId>
+				<artifactId>coala-api-time</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 

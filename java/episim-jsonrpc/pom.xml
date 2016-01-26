@@ -13,7 +13,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
-		$Id$
+		$Id: 6f1b92cb307030bc3e56ce8401a3352b431cfe4d $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
@@ -53,7 +53,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.coala</groupId>
-			<artifactId>coala-binder-api</artifactId>
+			<artifactId>coala-api</artifactId>
 		</dependency>
 		
 		<dependency>
