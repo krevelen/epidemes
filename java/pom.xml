@@ -60,7 +60,7 @@
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}/target/mvn-repo</github.repository.tmpdir>
+		<github.repository.tmpdir>${user.dir}/mvn-repo</github.repository.tmpdir>
 		<github.repository.url>https://raw.github.com/krevelen/coala/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
@@ -92,7 +92,7 @@
 	</properties>
 
 	<distributionManagement>
-		<downloadUrl>https://github.com/krevelen/rivm-vacsim/raw/mvn-repo/</downloadUrl>
+		<downloadUrl>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</downloadUrl>
 		<repository>
 			<id>${github.repository.localid}</id>
 			<name>Temporary Staging Repository</name>
