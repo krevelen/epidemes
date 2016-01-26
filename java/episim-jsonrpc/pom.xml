@@ -10,12 +10,52 @@
 	</parent>
 
 	<artifactId>episim-jsonrpc</artifactId>
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Modeling Components for the RIVM Epidemics Simulator
+		$Id$
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+		<log4j.version>2.5</log4j.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+		<repository>
+			<name>EPISIM Public Maven Repository</name>
+			<id>episim-public</id>
+			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>coala-binder-api</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -24,8 +64,18 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.5</version>
+			<version>${log4j.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+		</plugins>
+	</build>
 </project>

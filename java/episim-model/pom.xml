@@ -25,7 +25,6 @@
 	</properties>
 
 	<repositories>
-		<!-- COALA public Maven repository -->
 		<repository>
 			<name>COALA Public Maven Repository</name>
 			<id>coala-public</id>
@@ -39,11 +38,10 @@
 				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
-		<!-- VACSIM public Maven repository -->
 		<repository>
-			<name>COALA Public Maven Repository</name>
-			<id>coala-public</id>
-			<url>https://github.com/krevelen/rivm-vacsim/raw/mvn-repo/</url>
+			<name>EPISIM Public Maven Repository</name>
+			<id>episim-public</id>
+			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>daily</updatePolicy>
