@@ -1,4 +1,4 @@
-/* $Id: 80084a9ea609b54cdb6779c8a425c02c6601cb51 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * {@link CBSConnector}
  * 
- * @version $Id: 80084a9ea609b54cdb6779c8a425c02c6601cb51 $
+ * @version $Id$
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */
@@ -59,5 +59,7 @@ public class CBSConnector {
 			return om.readTree(stream);
 		}
 	}
+	
+	// TODO try using Apache Olingo (https://olingo.apache.org/doc/odata2/tutorials/OlingoV2BasicClientSample.html)
 
 }

@@ -1,4 +1,4 @@
-/* $Id: 192505588ec3ccef408e8a0454ae5b616b2618ca $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -36,7 +36,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link CBSConnectorTest}
  * 
- * @version $Id: 192505588ec3ccef408e8a0454ae5b616b2618ca $
+ * @version $Id$
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */

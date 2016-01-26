@@ -1,4 +1,4 @@
-/* $Id: 675be683fd2c2f931eb6f5ca5eed2b42a11cd895 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
