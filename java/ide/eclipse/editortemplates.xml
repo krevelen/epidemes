@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><templates><template autoinsert="true" context="java" deleted="false" description="Add Log4j2 logger" enabled="true" name="log2">${:import(org.apache.logging.log4j.Logger)}/** */
+private static final Logger LOG = LogManager.getLogger( ${enclosing_type}.class );
+</template></templates>
