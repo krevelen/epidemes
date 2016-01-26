@@ -23,11 +23,11 @@ import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import io.coala.json.JsonUtil;
-import io.coala.log.LogUtil;
 import nl.rivm.cib.episim.api.GenericAPI;
 import nl.rivm.cib.episim.api.GenericAPI.ID;
 
@@ -42,7 +42,7 @@ public class GenericAPITest
 {
 
 	/** */
-	private static final Logger LOG = LogUtil.getLogger( GenericAPITest.class );
+	private static final Logger LOG = LogManager.getLogger( GenericAPITest.class );
 
 	/**
 	 * {@link TestGenericAPI} implements {@link GenericAPI}
