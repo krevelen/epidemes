@@ -57,17 +57,20 @@
 
 		<dependency>
 			<groupId>io.coala</groupId>
+			<artifactId>coala-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
 			<artifactId>guice3-coala-adapter</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>io.coala</groupId>
-			<artifactId>dsol2-coala-adapter</artifactId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<version>${coala.version}</version>
 		</dependency>
 
 		<dependency>

@@ -2,3 +2,14 @@ krevelen
 vaccination
 unmarshalled
 deserializer
+deserialized
+polymorphic
+jackson
+deserialization
+arg
+config
+joda
+millis
+stringifiable
+schedulable
+callable

@@ -17,26 +17,43 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.location;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
+import io.coala.model.ModelComponentID;
 import io.coala.name.AbstractIdentifiable;
-import io.coala.name.AbstractIdentifier;
+import nl.rivm.cib.episim.model.disease.Individual;
+import nl.rivm.cib.episim.model.disease.InfectiveState;
 
 /**
  * {@link Location}
  * 
- * @version $Date$
- * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
- *
+ * @version $Id$
+ * @author Rick van Krevelen
  */
-@SuppressWarnings("serial")
+@SuppressWarnings( "serial" )
 public class Location extends AbstractIdentifiable<Location.ID>
 {
-	static class ID extends AbstractIdentifier<String>
+	public static class ID extends ModelComponentID<String>
+	{
+
+	}
+
+	public static class TypeID extends ModelComponentID<String>
 	{
 
 	}
 
 	public ID id;
+
+	public TypeID type;
+
+	public List<Individual> vectors = new ArrayList<>();
+
+	public Map<InfectiveState, Integer> infected = new EnumMap<>( InfectiveState.class );
 
 }

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 675be683fd2c2f931eb6f5ca5eed2b42a11cd895 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.disease;
 
 /**
  * {@link Disease}
@@ -28,6 +28,7 @@ package nl.rivm.cib.episim.model;
  */
 public interface Disease
 {
+	
 //	/** see http://www.who.int/mediacentre/factsheets/fs286/en/ */
 //	MEASLES(),
 //

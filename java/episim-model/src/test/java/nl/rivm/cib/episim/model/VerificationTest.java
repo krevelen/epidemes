@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: b0c73c80f287dcfc29f16bdbf53a7b609d683b75 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,18 +19,28 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.time.TimeUnit;
-
 /**
- * {@link SimRate}
+ * {@link VerificationTest}
  * 
  * @version $Date$
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */
-public interface SimRate
+public class VerificationTest
 {
 
-	Number getValue(TimeUnit unit);
-
+	/**
+	 * Model verification includes questions and characteristics:
+	 * <ul>Questions:
+	 * <li>which proportion of the individuals in the target group chooses not
+	 * to comply with the vaccination
+	 * </li>
+	 * </ul>
+	 */
+	public void verifyCopmleteness()
+	{
+		// 1. load parameters (model, experiment)
+		// 2. import data (local/remote sources)
+		// 3. run model 
+	}
 }

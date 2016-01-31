@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: cb08b056da27db5a480015849bd8dff2d15e7051 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,27 +17,24 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.disease;
 
-import io.coala.name.AbstractIdentifiable;
-import io.coala.name.AbstractIdentifier;
+import java.util.Collection;
 
 /**
- * {@link Contact} represents a link between two {@link Subject}s in the physical contact network
+ * {@link ContactEvent} represents a link between two {@link Individual}s in the
+ * physical contact network
  * 
- * @version $Id$
- * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
- *
+ * @version $Id: cb08b056da27db5a480015849bd8dff2d15e7051 $
+ * @author Rick van Krevelen
  */
-@SuppressWarnings("serial")
-public class Contact extends AbstractIdentifiable<Contact.ID>
+public class ContactEvent //extends DsolSimEvent.Builder<ContactEvent>
 {
-	static class ID extends AbstractIdentifier<String>
-	{
-		
-	}
-	
-	public ID id;
 
-	public Subject person;
+	/**
+	 * the {@link Collection} of {@link Individual}s participating in this
+	 * {@link ContactEvent}
+	 */
+	public Collection<Individual> partipants;
+
 }
