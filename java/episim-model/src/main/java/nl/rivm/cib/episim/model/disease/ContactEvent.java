@@ -1,4 +1,4 @@
-/* $Id: cb08b056da27db5a480015849bd8dff2d15e7051 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import java.util.Collection;
  * {@link ContactEvent} represents a link between two {@link Individual}s in the
  * physical contact network
  * 
- * @version $Id: cb08b056da27db5a480015849bd8dff2d15e7051 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class ContactEvent //extends DsolSimEvent.Builder<ContactEvent>
