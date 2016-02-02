@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 80084a9ea609b54cdb6779c8a425c02c6601cb51 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -32,11 +32,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * {@link CBSConnector}
  * 
- * @version $Id$
- * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
- *
+ * @version $Id: 80084a9ea609b54cdb6779c8a425c02c6601cb51 $
+ * @author Rick van Krevelen
  */
-public class CBSConnector {
+public class CBSConnector
+{
 
 	static final ObjectMapper om = new ObjectMapper();
 
@@ -44,22 +44,33 @@ public class CBSConnector {
 
 	static final int socketTimeoutMS = 1000;
 
-	public static JsonNode getJSON(final String url) throws ClientProtocolException, IOException {
-		return getJSON(Request.Get(url));
+	public static JsonNode getJSON( final String url )
+		throws ClientProtocolException, IOException
+	{
+		return getJSON( Request.Get( url ) );
 	}
 
-	public static JsonNode getJSON(final URI url) throws ClientProtocolException, IOException {
-		return getJSON(Request.Get(url));
+	public static JsonNode getJSON( final URI url )
+		throws ClientProtocolException, IOException
+	{
+		return getJSON( Request.Get( url ) );
 	}
 
-	public static JsonNode getJSON(final Request request) throws ClientProtocolException, IOException {
+	public static JsonNode getJSON( final Request request )
+		throws ClientProtocolException, IOException
+	{
 
-		try (final InputStream stream = request.connectTimeout(connectTimeoutMS).socketTimeout(socketTimeoutMS)
-				.execute().returnContent().asStream()) {
-			return om.readTree(stream);
+		try( final InputStream stream = request
+				.connectTimeout( connectTimeoutMS )
+				.socketTimeout( socketTimeoutMS ).execute().returnContent()
+				.asStream() )
+		{
+			return om.readTree( stream );
 		}
 	}
 	
-	// TODO try using Apache Olingo (https://olingo.apache.org/doc/odata2/tutorials/OlingoV2BasicClientSample.html)
+	public static void olingoTest(){
+		
+	}
 
 }

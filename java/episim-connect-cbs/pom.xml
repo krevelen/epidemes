@@ -17,6 +17,12 @@
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
+	<properties>
+		<!-- V4 api removed Edm.DateTime support -->
+		<!-- <olingo.version>4.1.0</olingo.version> -->
+		<olingo.version>4.0.0-beta-02</olingo.version>
+	</properties>
+
 	<repositories>
 		<repository>
 			<name>COALA Public Maven Repository</name>
@@ -55,9 +61,17 @@
 			<groupId>io.coala</groupId>
 			<artifactId>coala-api</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>fluent-hc</artifactId>
+		</dependency>
+
+		<!-- Apache Olingo V4 (https://olingo.apache.org) for CBS' OData portal -->
+		<dependency>
+			<groupId>org.apache.olingo</groupId>
+			<artifactId>odata-client-core</artifactId>
+			<version>${olingo.version}</version>
 		</dependency>
 
 		<dependency>
