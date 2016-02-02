@@ -24,8 +24,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-import io.coala.model.ModelComponentID;
-import io.coala.name.AbstractIdentifiable;
+import io.coala.name.x.Id;
 import nl.rivm.cib.episim.model.disease.Individual;
 import nl.rivm.cib.episim.model.disease.InfectiveState;
 
@@ -35,25 +34,59 @@ import nl.rivm.cib.episim.model.disease.InfectiveState;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@SuppressWarnings( "serial" )
-public class Location extends AbstractIdentifiable<Location.ID>
+public class Location //extends AbstractIdentifiable<Location.ID>
 {
-	public static class ID extends ModelComponentID<String>
+	public static class ID extends Id.Child<String>
 	{
-
+		ID setValue( final String value )
+		{
+			wrap( value );
+			return this;
+		}
 	}
 
-	public static class TypeID extends ModelComponentID<String>
+	public static class TypeID extends Id<String>
 	{
-
+		TypeID setValue( final String value )
+		{
+			wrap( value );
+			return this;
+		}
 	}
 
-	public ID id;
+	private ID id;
+
+	public Location parent;
 
 	public TypeID type;
 
 	public List<Individual> vectors = new ArrayList<>();
 
-	public Map<InfectiveState, Integer> infected = new EnumMap<>( InfectiveState.class );
+	public Map<InfectiveState, Integer> infected = new EnumMap<>(
+			InfectiveState.class );
+
+	/**
+	 * helper
+	 * 
+	 * @return this {@link Location}
+	 */
+	public Location setId( final String value )
+	{
+		return setId( new ID().setValue( value ) );
+	}
+
+	/**
+	 * @return this {@link Location}
+	 */
+	public Location setId( final ID id )
+	{
+		this.id = id;
+		return this;
+	}
+
+	public ID getId()
+	{
+		return this.id;
+	}
 
 }

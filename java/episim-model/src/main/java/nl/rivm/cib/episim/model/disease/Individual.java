@@ -21,8 +21,6 @@ package nl.rivm.cib.episim.model.disease;
 
 import io.coala.json.x.Wrapper;
 import io.coala.name.x.Id;
-import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.model.location.Location;
 
 /**
  * {@link Individual} represents an infective/infectious subject
@@ -42,7 +40,7 @@ public class Individual extends Wrapper.SimpleComparable<Individual.ID>
 		}
 	}
 
-	public ID id;
+	private ID id;
 
 //	public Instant birth;
 //
@@ -65,7 +63,7 @@ public class Individual extends Wrapper.SimpleComparable<Individual.ID>
 //	// social network dynamics: links change due to behavior types (e.g. risky)
 //	public Map<Subject, Rate> sexualContacts;
 
-	public Individual( final Instant birth, final InfectiveState state, final Location location )
+	public Individual()
 	{
 		this.id = ID.create();
 //		this.birth = birth;
@@ -75,5 +73,10 @@ public class Individual extends Wrapper.SimpleComparable<Individual.ID>
 //		this.directContacts = new HashMap<>();
 //		this.indirectContacts = new HashMap<>();
 //		this.sexualContacts = new HashMap<>();
+	}
+
+	public ID getId()
+	{
+		return this.id;
 	}
 }
