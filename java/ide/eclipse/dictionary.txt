@@ -13,3 +13,4 @@ millis
 stringifiable
 schedulable
 callable
+dimensionless
