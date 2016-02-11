@@ -19,35 +19,25 @@
  */
 package nl.rivm.cib.episim.model;
 
+import java.util.Map;
+
+import rx.Observable;
+import rx.Observer;
+
 /**
- * {@link Scenario}
+ * {@link Carrier}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class Scenario
+public interface Carrier extends Observer<ContagionEvent>
 {
 
-	/** the locationsURIs */
-//	protected final NavigableMap<Location.ID, URI> locationsURIs = new ConcurrentSkipListMap<>();
-
-	/** the householdURIs */
-//	protected final NavigableMap<Individual.ID, URI> householdURIs = new ConcurrentSkipListMap<>();
-
-//	public Scenario withLocations( final Iterable<Location> locations )
-//	{
-//		for( Location location : locations )
-//			this.locationsURIs.put( location.getId(),
-//					URI.create( location.getId().unwrap() ) );
-//		return this;
-//	}
-
-//	public Scenario withPopulation( final Iterable<Individual> individuals )
-//	{
-//		for( Individual individual : individuals )
-//			this.householdURIs.put( individual.getId(),
-//					URI.create( "ind" + individual.getId().unwrap() ) );
-//		return this;
-//	}
+	/**
+	 * @return a {@link Map mapping} of {@link Disease} to {@link Condition}
+	 */
+	Map<Disease, Condition> getDiseaseConditions();
+	
+	Observable<StageEvent> getInfections();
 
 }

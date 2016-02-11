@@ -17,14 +17,12 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.population;
+package nl.rivm.cib.episim.model;
 
-import java.util.Map;
+import javax.measure.Measurable;
+import javax.measure.quantity.Duration;
 
-import io.coala.json.x.Wrapper;
-import io.coala.name.x.Id;
-import nl.rivm.cib.episim.model.contagion.Carrier;
-import nl.rivm.cib.episim.model.contagion.Disease;
+import rx.Observable;
 
 /**
  * {@link Individual} represents an infective/infectious subject
@@ -32,32 +30,43 @@ import nl.rivm.cib.episim.model.contagion.Disease;
  * @version $Date$
  * @author Rick van Krevelen
  */
-public class Individual extends Wrapper.SimpleOrdinal<Individual.ID>
-	
-{
-	public static class ID extends Id.Ordinal<Long>
-	{
-		private static long COUNTER = 0L;
+public interface Individual extends Carrier
 
-		public static ID create()
-		{
-			final ID result = new ID();
-			result.wrap( COUNTER++ );
-			return result;
-		}
+{
+
+	enum Gender
+	{
+		MALE, FEMALE,;
 	}
-	
-	public Population population;
-	
-	public Map<Disease,Carrier> carrying;
+
+	enum Relation
+	{
+		PARENT, CHILD, COLLEAGUE, CLASSMATE, PARTNER, FAMILY, FRIEND;
+	}
+
+	Gender getGender();
+
+	/**
+	 * @return the current age or {@link Duration} of this {@link Individual}
+	 */
+	Measurable<Duration> getAge();
+
+	/**
+	 * @return the current {@link Location} of this {@link Individual}
+	 */
+	Location getLocation();
+
+	/**
+	 * @return the {@link Observable} stream of {@link TravelEvent}s generated
+	 *         by this {@link Individual} based on some travel behavior
+	 */
+	Observable<TravelEvent> getTravels();
 
 //	public Instant birth;
 //
 //	public Location currentLocation;
 //
 //	public TravelBehavior travelBehavior;
-//
-//	public Map<Disease, InfectiveState> diseaseStates;
 //
 //	// social network dynamics (incl self): links/rates change due to media
 //	// attention/campaigns, active search, medical consultations
@@ -72,7 +81,4 @@ public class Individual extends Wrapper.SimpleOrdinal<Individual.ID>
 //	// social network dynamics: links change due to behavior types (e.g. risky)
 //	public Map<Subject, Rate> sexualContacts;
 
-	public Individual()
-	{
-	}
 }

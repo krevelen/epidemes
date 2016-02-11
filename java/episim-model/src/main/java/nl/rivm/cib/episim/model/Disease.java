@@ -17,16 +17,27 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.contagion;
+package nl.rivm.cib.episim.model;
+
+import rx.Observable;
+import rx.Observer;
 
 /**
- * {@link Carrier} follows common
- * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic
- * models</a> and approaches for <a href=
+ * {@link Disease} or contagious illness is an {@link Observer} of
+ * {@link ContactEvent}s which in turn may trigger its transmission by
+ * generating {@link ContagionEvent}s.
+ * <p>
+ * Some terminology from
+ * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
+ * and approaches for <a href=
  * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
  * mathematical modelling of infectious disease</a>
  * 
  * <table>
+ * <tr>
+ * <th>R<sub>0</sub></th>
+ * <td>Basic reproduction number</td>
+ * </tr>
  * <tr>
  * <th>1 / &epsilon;</th>
  * <td>Average latent period</td>
@@ -34,10 +45,6 @@ package nl.rivm.cib.episim.model.contagion;
  * <tr>
  * <th>1 / &gamma;</th>
  * <td>Average infectious period</td>
- * </tr>
- * <tr>
- * <th>R<sub>0</sub></th>
- * <td>Basic reproduction number</td>
  * </tr>
  * <tr>
  * <th>f</th>
@@ -49,24 +56,26 @@ package nl.rivm.cib.episim.model.contagion;
  * </tr>
  * </table>
  * 
- * @version $Id$
- * @author Rick van Krevelen
+ * @version $Date$
+ * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
+ *
  */
-public interface Carrier
+public interface Disease extends Observer<ContactEvent>
 {
-	boolean isSusceptible();
 
-	boolean isExposed();
+	/**
+	 * @return an {@link Observable} stream of {@link ContagionEvent}s
+	 */
+	Observable<ContagionEvent> getTransmission();
 
-	boolean isInfective();
+	/** see http://www.who.int/mediacentre/factsheets/fs286/en/ */
+//	Disease MEASLES;
 
-	boolean isAsymptomaticInfective();
-
-	boolean isSymptomaticInfective();
-
-	boolean isImmune();
-
-	boolean isPassivelyMaternalImmune();
-
-	boolean isRecoveredImmune();
+//	/** see http://www.who.int/mediacentre/factsheets/fs211/en/ */
+//	SEASONAL_INFLUENZA(),
+//	
+//	/** see http://www.who.int/mediacentre/factsheets/fs360/en/ */
+//	HUMAN_IMMUNODEFICIENCY_VIRUS
+//
+//	;
 }

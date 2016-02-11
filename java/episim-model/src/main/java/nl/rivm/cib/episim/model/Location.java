@@ -17,26 +17,35 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.contagion;
+package nl.rivm.cib.episim.model;
 
 import java.util.Collection;
-import java.util.Comparator;
+
+import org.opengis.spatialschema.geometry.geometry.Position;
+
+import rx.Observable;
+import rx.Observer;
 
 /**
- * {@link CarrierInfectivenessComparator}
+ * {@link Location} is an {@link Observer} of {@link TravelEvent}s to and from
+ * itself which in turn cause it to generate {@link ContactEvent}s
  * 
- * @param <C> the concrete type of {@link Carrier} being compared
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface CarrierInfectivenessComparator<C extends Carrier>
-	extends Comparator<C>
+public interface Location extends Observer<TravelEvent>
 {
 
-	Collection<C> getSusceptibles( Collection<C> carriers );
+	Position getPosition();
 
-	Collection<C> getInfectives( Collection<C> carriers );
+	Collection<Medium> getMediums();
 
-	Collection<C> getRemoveds( Collection<C> carriers );
+	Observable<ContactEvent> getContacts();
+
+	Collection<Carrier> getSusceptibles();
+
+	Collection<Carrier> getInfectives();
+
+	Collection<Carrier> getRemoveds();
 
 }

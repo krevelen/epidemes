@@ -17,31 +17,28 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.population;
+package nl.rivm.cib.episim.model;
 
 /**
- * {@link Population} follows common
- * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
- * and approaches for <a href=
- * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
- * mathematical modelling of infectious disease</a>
+ * {@link StageEvent}
  * 
- * <table>
- * <tr>
- * <th>&mu;</th>
- * <td>Average death rate</td>
- * </tr>
- * <tr>
- * <th>B</th>
- * <td>Average birth rate</td>
- * </tr>
- * </table>
- * 
- * @version $Date$
- * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
- *
+ * @version $Id$
+ * @author Rick van Krevelen
  */
-public interface Population
+public interface StageEvent
 {
 
+	/**
+	 * @return the {@link Disease} that is progressing
+	 */
+	Disease getDisease();
+
+	/** */
+	Carrier getCarrier();
+
+	/** */
+	Condition fromCondition();
+
+	/** */
+	Condition toCondition();
 }

@@ -37,7 +37,7 @@
 	</developers>
 
 	<properties>
-		<source>1.7</source>
+		<source>1.8</source>
 		<encoding>UTF-8</encoding>
 		<skipTests>false</skipTests>
 

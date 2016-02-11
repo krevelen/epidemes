@@ -18,3 +18,8 @@ dutch
 namespace
 refactored
 polymorphism
+respiratory
+gonorrhea
+lyme
+nile
+papillomavirus
