@@ -52,7 +52,7 @@ public class ODataUtilTest
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( ODataUtilTest.class );
 
-	private static final String serviceUrl = "http://opendata.cbs.nl/ODataApi/OData/81435ned";
+	private static final String serviceUrl = "http://opendata.cbs.nl/ODataApi/OData/71071ned";
 
 	private static final String entity = "TypedDataSet";
 

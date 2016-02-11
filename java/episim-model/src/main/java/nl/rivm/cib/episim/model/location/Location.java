@@ -19,24 +19,54 @@
  */
 package nl.rivm.cib.episim.model.location;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 
+import org.opengis.spatialschema.geometry.geometry.Position;
+
 import io.coala.name.x.Id;
-import nl.rivm.cib.episim.model.disease.Individual;
-import nl.rivm.cib.episim.model.disease.InfectiveState;
+import nl.rivm.cib.episim.model.contagion.CarrierInfectivenessComparator;
+import nl.rivm.cib.episim.model.contagion.Disease;
 
 /**
  * {@link Location}
+ * 
+ * <table>
+ * <tr>
+ * <th>M</th>
+ * <td>Passively immune infants</td>
+ * </tr>
+ * <tr>
+ * <th>S</th>
+ * <td>Susceptibles</td>
+ * </tr>
+ * <tr>
+ * <th>E</th>
+ * <td>Exposed individuals in the latent period</td>
+ * </tr>
+ * <tr>
+ * <th>I</th>
+ * <td>Infectives</td>
+ * </tr>
+ * <tr>
+ * <th>R</th>
+ * <td>Recovered with immunity</td>
+ * </tr>
+ * <tr>
+ * <th>&beta;</th>
+ * <td>Effective contact rate (= effective contacts per unit time)</td>
+ * </tr>
+ * <tr>
+ * <th>N</th>
+ * <td>Total population</td>
+ * </tr>
+ * </table>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
 public class Location //extends AbstractIdentifiable<Location.ID>
 {
-	public static class ID extends Id.Child<String>
+	public static class ID extends Id.OrdinalChild<String, String>
 	{
 		ID setValue( final String value )
 		{
@@ -45,25 +75,44 @@ public class Location //extends AbstractIdentifiable<Location.ID>
 		}
 	}
 
-	public static class TypeID extends Id<String>
-	{
-		TypeID setValue( final String value )
-		{
-			wrap( value );
-			return this;
-		}
-	}
-
 	private ID id;
+
+	public Position position;
 
 	public Location parent;
 
-	public TypeID type;
+//	public static class Cluster
+//	{
+//		private final NavigableSet<Carrier> occupants;
+//
+//		public Cluster( final CarrierInfectivenessComparator<?> comparator )
+//		{
+//			this.occupants = new ConcurrentSkipListSet<>( comparator );
+//		}
+//
+//		public List<Individual> getSusceptibles()
+//		{
+//			return new ArrayList<>(
+//					this.occupants.headSet( Individual.INFECTIVE, false ) );
+//		}
+//
+//		public List<Individual> getInfectives()
+//		{
+//			return new ArrayList<>( this.occupants.subSet( Individual.INFECTIVE,
+//					true, Individual.REMOVED, false ) );
+//		}
+//
+//		public List<Individual> getRemoveds()
+//		{
+//			return new ArrayList<>(
+//					this.occupants.tailSet( Individual.REMOVED, true ) );
+//		}
+//	}
 
-	public List<Individual> vectors = new ArrayList<>();
+	public Map<Disease, CarrierInfectivenessComparator<?>> infectives;
 
-	public Map<InfectiveState, Integer> infected = new EnumMap<>(
-			InfectiveState.class );
+//	public Map<InfectiveState, Integer> infected = new EnumMap<>(
+//			InfectiveState.SimpleSIER.class );
 
 	/**
 	 * helper

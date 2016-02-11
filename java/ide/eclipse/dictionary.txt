@@ -14,3 +14,7 @@ stringifiable
 schedulable
 callable
 dimensionless
+dutch
+namespace
+refactored
+polymorphism

@@ -23,8 +23,8 @@ import java.net.URI;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import nl.rivm.cib.episim.model.disease.Individual;
 import nl.rivm.cib.episim.model.location.Location;
+import nl.rivm.cib.episim.model.population.Individual;
 
 /**
  * {@link Scenario}
@@ -49,12 +49,12 @@ public class Scenario
 		return this;
 	}
 
-	public Scenario withPopulation( final Iterable<Individual> individuals )
-	{
-		for( Individual individual : individuals )
-			this.householdURIs.put( individual.getId(),
-					URI.create( "ind" + individual.getId().unwrap() ) );
-		return this;
-	}
+//	public Scenario withPopulation( final Iterable<Individual> individuals )
+//	{
+//		for( Individual individual : individuals )
+//			this.householdURIs.put( individual.getId(),
+//					URI.create( "ind" + individual.getId().unwrap() ) );
+//		return this;
+//	}
 
 }
