@@ -34,16 +34,6 @@ public interface Individual extends Carrier
 
 {
 
-	enum Gender
-	{
-		MALE, FEMALE,;
-	}
-
-	enum Relation
-	{
-		PARENT, CHILD, COLLEAGUE, CLASSMATE, PARTNER, FAMILY, FRIEND;
-	}
-
 	Gender getGender();
 
 	/**

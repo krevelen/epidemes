@@ -26,24 +26,14 @@ import nl.rivm.cib.episim.model.Relation;
 import nl.rivm.cib.episim.model.Route;
 
 /**
- * {@link HPV} or the Human papillomavirus has a
- * <a href="http://www.who.int/mediacentre/factsheets/fs380/en/">WHO fact
- * sheet</a>, a
- * <a href="http://emedicine.medscape.com/article/219110-overview">eMedicine
- * description</a> and a
- * <a href="http://www.diseasesdatabase.com/ddb6032.htm">DiseaseDB entry</a>,
- * from <a href="https://en.wikipedia.org/wiki/Papillomaviridae">wikipedia</a>:
- * <ul>
- * <li>&ldquo;Papillomas caused by some [HPV] types ... such as human
- * papillomaviruses 16 and 18, carry a risk of becoming cancerous.&rdquo;</li>
- * <li>&ldquo;Over 170 human papillomavirus types have been completely
- * sequenced.&rdquo;</li>
- * </ul>
+ * {@link HIV} or the Human Immunodeficiency Virus has a
+ * <a href="http://www.who.int/mediacentre/factsheets/fs360/en/">WHO fact
+ * sheet</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class HPV extends SimpleInfection
+public class HIV extends SimpleInfection
 {
 
 	@Override
@@ -51,6 +41,15 @@ public class HPV extends SimpleInfection
 		final Duration duration, final Relation relation )
 	{
 		if(Route.SEXUAL.equals( route ))
+			return true;
+		
+		if(Route.SEXUAL_ORAL.equals( route ))
+			return true;
+		
+		if(Route.IATROGENIC.equals( route ))
+			return true;
+		
+		if(Route.VERTICAL.equals( route ))
 			return true;
 		
 		return false;

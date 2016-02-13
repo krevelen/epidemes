@@ -29,16 +29,16 @@ public interface StageEvent
 {
 
 	/**
-	 * @return the {@link Disease} that is progressing
+	 * @return the {@link Infection} that is progressing
 	 */
-	Disease getDisease();
+	Infection getDisease();
 
 	/** */
 	Carrier getCarrier();
 
 	/** */
-	Condition fromCondition();
+	Stage oldStage();
 
 	/** */
-	Condition toCondition();
+	Stage newStage();
 }

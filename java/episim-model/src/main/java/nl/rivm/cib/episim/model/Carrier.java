@@ -30,13 +30,13 @@ import rx.Observer;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Carrier extends Observer<ContagionEvent>
+public interface Carrier extends Observer<TransmissionEvent>
 {
 
 	/**
-	 * @return a {@link Map mapping} of {@link Disease} to {@link Condition}
+	 * @return a {@link Map mapping} of {@link Infection} to {@link Condition}
 	 */
-	Map<Disease, Condition> getDiseaseConditions();
+	Map<Infection, Condition> getDiseaseConditions();
 	
 	Observable<StageEvent> getInfections();
 

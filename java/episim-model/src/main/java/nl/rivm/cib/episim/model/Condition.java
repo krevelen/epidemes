@@ -31,12 +31,20 @@ import java.util.Comparator;
 public interface Condition
 {
 
-	boolean isSusceptible();
+	/**
+	 * @param stage the {@link Stage} to test
+	 * @return {@code true} if this {@link Condition} currently matches
+	 *         specified {@link Stage}, {@code false} otherwise
+	 */
+	boolean is( Stage stage );
 
-	boolean isInfective();
-
-	boolean isRemoved();
-	
+	/**
+	 * useful in behavior-driven transmission among symptom-observing humans
+	 * 
+	 * @return {@code true} if this {@link Condition} shows apparent noticeable
+	 *         symptoms, {@code false} otherwise (i.e. inapparent, silent,
+	 *         subclinical, occult)
+	 */
 	boolean isSymptomatic();
 
 	/**
@@ -51,23 +59,10 @@ public interface Condition
 
 		/**
 		 * @param carriers the {@link Collection} of {@link Carrier}s to filter
-		 * @return the subset of {@link Carrier}s with susceptible
-		 *         {@link Condition}
+		 * @return the subset of specified {@link Carrier}s with
+		 *         {@link Condition} in specified {@link Stage}
 		 */
-		Collection<Carrier> getSusceptibles( Collection<Carrier> carriers );
-
-		/**
-		 * @param carriers the {@link Collection} of {@link Carrier}s to filter
-		 * @return the subset of {@link Carrier}s with infective
-		 *         {@link Condition}
-		 */
-		Collection<Carrier> getInfectives( Collection<Carrier> carriers );
-
-		/**
-		 * @param carriers the {@link Collection} of {@link Carrier}s to filter
-		 * @return the subset of {@link Carrier}s with immune {@link Condition}
-		 */
-		Collection<Carrier> getRemoveds( Collection<Carrier> carriers );
+		Collection<Carrier> filter( Collection<Carrier> carriers, Stage stage );
 
 	}
 

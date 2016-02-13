@@ -19,40 +19,41 @@
  */
 package nl.rivm.cib.episim.model;
 
-import org.apache.log4j.Logger;
-import org.junit.Test;
-
-import io.coala.log.LogUtil;
-
 /**
- * {@link ScenarioTest}
+ * {@link Stage} follows common
+ * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
+ * and approaches for <a href=
+ * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
+ * mathematical modeling of infectious disease</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class ScenarioTest
+public enum Stage
 {
-	/** */
-	private static final Logger LOG = LogUtil.getLogger( ScenarioTest.class );
+	/**
+	 * a {@link Condition} where a {@link Carrier} is SUSCEPTIBLE to some
+	 * {@link Disease}
+	 */
+	SUSCEPTIBLE,
 
-	@Test
-	public void scenarioTest()
-	{
-		try
-		{
-//			final Scenario test = new Scenario()
-//					.withLocations(
-//							Arrays.asList( new Location().setId( "myLoc" ) ) )
-//					.withPopulation( Arrays.asList( new Individual() ) )
-//			;
-//			assertTrue( "no locations", 0 < test.locationsURIs.size() );
-//			LOG.trace( "Added locations: " + test.locationsURIs );
-//			assertTrue( "no individuals", 0 < test.householdURIs.size() );
-//			LOG.trace( "Added individuals: " + test.householdURIs );
-		} catch( final Throwable t )
-		{
-			LOG.error( "Problem", t );
-		}
-	}
+	/**
+	 * a {@link Condition} where a {@link Carrier} is EXPOSED to, LATENT
+	 * INFECTED by, or PRE-INFECTIVE of some {@link Disease}
+	 */
+	EXPOSED,
 
+	/**
+	 * a {@link Condition} where a {@link Carrier} is INFECTIVE of some
+	 * {@link Disease}
+	 */
+	INFECTIVE,
+
+	/**
+	 * a {@link Condition} where a {@link Carrier} is RECOVERED from and IMMUNE
+	 * to some {@link Disease}
+	 */
+	RECOVERED,
+
+	;
 }

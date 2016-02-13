@@ -24,28 +24,51 @@ import java.util.Collection;
 import org.opengis.spatialschema.geometry.geometry.Position;
 
 import rx.Observable;
-import rx.Observer;
 
 /**
- * {@link Location} is an {@link Observer} of {@link TravelEvent}s to and from
- * itself which in turn cause it to generate {@link ContactEvent}s
+ * {@link Location}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Location extends Observer<TravelEvent>
+public interface Location //extends Observer<TravelEvent>
 {
 
+	/** @return the global {@link Position} of this {@link Location} */
 	Position getPosition();
 
-	Collection<Medium> getMediums();
+	/** @return the current {@link Collection} of transmission {@link Route}s */
+	Collection<Route> getRoutes();
 
+	/** @return the current {@link Collection} of {@link Carrier} occupants */
+	Collection<Carrier> getOccupants();
+
+	/**
+	 * @return an {@link Observable} stream of {@link ContactEvent}s generated
+	 *         by {@link Carrier} occupants of this {@link Location}
+	 */
 	Observable<ContactEvent> getContacts();
 
-	Collection<Carrier> getSusceptibles();
+	/**
+	 * {@link Carrier}s arriving at this {@link Location} may cause it to
+	 * generate {@link ContactEvent}s or add/remove {@link Route}s (e.g.
+	 * contaminated objects, food, water, blood, ...)
+	 * 
+	 * @param event a {@link TravelEvent} with
+	 *            {@link TravelEvent#getDestination()} == this {@link Location}
+	 *            and {@link TravelEvent#getArrival()} == now
+	 */
+	void onArrival( TravelEvent event );
 
-	Collection<Carrier> getInfectives();
-
-	Collection<Carrier> getRemoveds();
+	/**
+	 * {@link Carrier}s departing from this {@link Location} may cause it to
+	 * generate {@link ContactEvent}s or add/remove {@link Route}s (e.g.
+	 * contaminated objects, food, water, blood, ...)
+	 * 
+	 * @param event a {@link TravelEvent} with {@link TravelEvent#getOrigin()}
+	 *            == this {@link Location} and
+	 *            {@link TravelEvent#getDeparture()} == now
+	 */
+	void onDeparture( TravelEvent event );
 
 }

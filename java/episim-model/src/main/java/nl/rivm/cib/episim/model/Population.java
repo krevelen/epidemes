@@ -19,13 +19,15 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.time.Instant;
 import java.util.Map;
 
-import javax.measure.Measurable;
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
 
+import org.jscience.physics.amount.Amount;
+
+import io.coala.time.x.Instant;
+import io.coala.time.x.TimeSpan;
 import rx.Observer;
 
 /**
@@ -79,31 +81,33 @@ public interface Population extends Observer<StageEvent>
 
 	// TODO apply yearly survival rates (per age category?)
 
-	Map<Disease, DiseaseMetrics> getDiseaseMetrics();
+	Map<Infection, DiseaseMetrics> getDiseaseMetrics();
+
+	Amount<Dimensionless> getTotalNumber();
 
 	interface DiseaseMetrics
 	{
-		Disease getDisease();
+		Infection getDisease();
 
 		Instant getTime();
 
-		Measurable<Dimensionless> getSusceptiblesNumber();
+		Outbreak getOccurrence();
 
-		Measurable<Dimensionless> getInfectivesNumber();
+		Amount<Dimensionless> getSusceptiblesNumber();
 
-		Measurable<Dimensionless> getRemovedsNumber();
+		Amount<Dimensionless> getInfectivesNumber();
 
-		Measurable<Dimensionless> getTotalNumber();
-
-		/**
-		 * @return the number of effective contacts or {@link ContagionEvent}s
-		 */
-		Measurable<Dimensionless> getEffectiveContactsNumber();
+		Amount<Dimensionless> getRemovedsNumber();
 
 		/**
-		 * @return &beta; = Effective contact rate (= effective contacts per
-		 *         unit time)
+		 * @return the number of {@link TransmissionEvent}s
 		 */
-		Measurable<Frequency> getEffectiveContactRate();
+		Amount<Dimensionless> getEffectiveContactsNumber();
+
+		/**
+		 * @return &beta; = Effective contact rate (=
+		 *         {@link #getEffectiveContactsNumber()} per {@link TimeSpan})
+		 */
+		Amount<Frequency> getEffectiveContactRate();
 	}
 }
