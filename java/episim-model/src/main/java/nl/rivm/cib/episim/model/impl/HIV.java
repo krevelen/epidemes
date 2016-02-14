@@ -19,9 +19,25 @@
  */
 package nl.rivm.cib.episim.model.impl;
 
-import io.coala.time.x.Duration;
-import nl.rivm.cib.episim.model.Infection.SimpleInfection;
-import nl.rivm.cib.episim.model.Location;
+import static org.aeonbits.owner.util.Collections.entry;
+import static org.aeonbits.owner.util.Collections.map;
+
+import java.util.Collection;
+import java.util.Map;
+
+import javax.inject.Inject;
+import javax.measure.quantity.Dimensionless;
+import javax.measure.quantity.Duration;
+import javax.measure.unit.NonSI;
+
+import org.jscience.physics.amount.Amount;
+
+import io.coala.bind.Binder;
+import io.coala.random.RandomDistribution;
+import io.coala.random.RandomNumberStream;
+import io.coala.random.x.RandomAmountDistribution;
+import nl.rivm.cib.episim.model.Condition;
+import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
 import nl.rivm.cib.episim.model.Route;
 
@@ -33,26 +49,87 @@ import nl.rivm.cib.episim.model.Route;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class HIV extends SimpleInfection
+public class HIV implements Infection
 {
 
-	@Override
-	public boolean transmit( final Location location, final Route route,
-		final Duration duration, final Relation relation )
+	@SuppressWarnings( "unchecked" )
+	private static final Map<Route, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
+			entry( Route.SEXUAL, Amount.ONE ),
+			entry( Route.SEXUAL_ORAL, Amount.ONE ),
+			entry( Route.IATROGENIC, Amount.ONE ),
+			entry( Route.VERTICAL, Amount.ONE ) );
+
+	private RandomDistribution<Amount<Duration>> latentPeriodDist;
+
+	private RandomDistribution<Amount<Duration>> infectiousPeriodDist;
+
+	private RandomDistribution<Amount<Duration>> immunizationPeriodDist;
+
+	private RandomDistribution<Amount<Duration>> onsetMonthsDist;
+
+	private RandomDistribution<Amount<Duration>> seroconversionPeriodDist;
+
+	@Inject
+	public HIV( final Binder binder )
 	{
-		if(Route.SEXUAL.equals( route ))
-			return true;
-		
-		if(Route.SEXUAL_ORAL.equals( route ))
-			return true;
-		
-		if(Route.IATROGENIC.equals( route ))
-			return true;
-		
-		if(Route.VERTICAL.equals( route ))
-			return true;
-		
-		return false;
+		final RandomNumberStream rng = binder
+				.inject( RandomNumberStream.class );
+		final RandomDistribution.Factory rdf = binder
+				.inject( RandomDistribution.Factory.class );
+		this.latentPeriodDist = rdf
+				.getConstant( Amount.valueOf( 1, NonSI.HOUR ) );
+		this.infectiousPeriodDist = rdf
+				.getConstant( Amount.valueOf( 100, NonSI.YEAR ) );
+		this.immunizationPeriodDist = rdf
+				.getConstant( Amount.valueOf( 0, NonSI.DAY ) );
+		this.onsetMonthsDist = RandomAmountDistribution
+				.of( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
+		this.seroconversionPeriodDist = rdf
+				.getConstant( Amount.valueOf( 28, NonSI.DAY ) );
 	}
 
+	@Override
+	public Collection<Route> getRoutes()
+	{
+		return ROUTE_LIKELIHOODS.keySet();
+	}
+
+	@Override
+	public Amount<Dimensionless> getTransmissionLikelihood( final Route route,
+		final Amount<Duration> duration, final Relation relation,
+		final Condition condition )
+	{
+		final Amount<Dimensionless> result = ROUTE_LIKELIHOODS.get( route );
+		return result == null ? Amount.ZERO : result;
+	}
+
+	@Override
+	public Amount<Duration> drawLatentPeriod()
+	{
+		return this.latentPeriodDist.draw();
+	}
+
+	@Override
+	public Amount<Duration> drawInfectiousPeriod()
+	{
+		return this.infectiousPeriodDist.draw();
+	}
+
+	@Override
+	public Amount<Duration> drawImmunizationPeriod()
+	{
+		return this.immunizationPeriodDist.draw();
+	}
+
+	@Override
+	public Amount<Duration> drawOnsetPeriod()
+	{
+		return this.onsetMonthsDist.draw();
+	}
+
+	@Override
+	public Amount<Duration> drawSeroconversionPeriod()
+	{
+		return this.seroconversionPeriodDist.draw();
+	}
 }

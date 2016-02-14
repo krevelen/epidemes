@@ -27,5 +27,17 @@ package nl.rivm.cib.episim.model;
  */
 public enum Gender
 {
-	MALE, FEMALE,;
+	/** the MALE {@link Gender} */
+	MALE,
+
+	/** the FEMALE {@link Gender} */
+	FEMALE,
+
+	/** the TRANSSEXUAL_MALE {@link Gender}, previously {@link #FEMALE} */
+	TRANSSEXUAL_MALE,
+
+	/** the TRANSSEXUAL_FEMALE {@link Gender}, previously {@link #MALE} */
+	TRANSSEXUAL_FEMALE,
+
+	;
 }

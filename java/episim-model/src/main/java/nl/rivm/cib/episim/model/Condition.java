@@ -23,7 +23,8 @@ import java.util.Collection;
 import java.util.Comparator;
 
 /**
- * {@link Condition}
+ * {@link Condition} represents the {@link Infection} dynamics of an individual
+ * {@link Carrier}
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -32,11 +33,30 @@ public interface Condition
 {
 
 	/**
+	 * @param event a observed {@link ContactEvent} that may change this
+	 *            {@link Condition}
+	 */
+	void on( ContactEvent event );
+
+	/**
 	 * @param stage the {@link Stage} to test
 	 * @return {@code true} if this {@link Condition} currently matches
 	 *         specified {@link Stage}, {@code false} otherwise
 	 */
 	boolean is( Stage stage );
+
+	/**
+	 * @return {@code true} iff this {@link Condition} is during prophylactic
+	 *         treatment (e.g. PrEP or PEP), {@code false} otherwise
+	 */
+	boolean isProphylactic();
+
+	/**
+	 * @return {@code true} iff this {@link Condition} yield seropositive blood
+	 *         tests (i.e. after seroconversion, where antibody &gt;&gt;
+	 *         antigen), {@code false} otherwise
+	 */
+	boolean isSeropositive();
 
 	/**
 	 * useful in behavior-driven transmission among symptom-observing humans

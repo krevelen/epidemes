@@ -19,15 +19,12 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.Map;
+import java.util.Collection;
 
-import io.coala.time.x.Duration;
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-import rx.functions.Func1;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
+import javax.measure.quantity.Dimensionless;
+import javax.measure.quantity.Duration;
+
+import org.jscience.physics.amount.Amount;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
@@ -41,7 +38,29 @@ import rx.subjects.Subject;
  * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
  * and approaches for <a href=
  * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
- * mathematical modeling of infectious disease</a>
+ * mathematical modeling of infectious disease</a>:
+ * <table>
+ * <tr>
+ * <th>R<sub>0</sub></th>
+ * <td>Basic reproduction number</td>
+ * </tr>
+ * <tr>
+ * <th>1 / &epsilon;</th>
+ * <td>Average latent period</td>
+ * </tr>
+ * <tr>
+ * <th>1 / &gamma;</th>
+ * <td>Average infectious period</td>
+ * </tr>
+ * <tr>
+ * <th>f</th>
+ * <td>Average loss of immunity rate of recovered individuals</td>
+ * </tr>
+ * <tr>
+ * <th>&delta;</th>
+ * <td>Average temporary immunity period</td>
+ * </tr>
+ * </table>
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -49,8 +68,16 @@ import rx.subjects.Subject;
 public interface Infection
 {
 
+//	Unit<Frequency> HOURLY = NonSI.HOUR.inverse().asType( Frequency.class );
+//
+//	Unit<Frequency> DAILY = NonSI.DAY.inverse().asType( Frequency.class );
+//
+//	Unit<Frequency> WEEKLY = NonSI.WEEK.inverse().asType( Frequency.class );
+//
+//	Unit<Frequency> ANNUALLY = NonSI.YEAR.inverse().asType( Frequency.class );
+
 	/**
-	 * spreads via animal-human contact, see
+	 * infection is transmitted via direct/indirect animal-human route, see
 	 * http://www.cdc.gov/onehealth/zoonotic-diseases.html
 	 */
 	//boolean isZoonotic();
@@ -63,7 +90,7 @@ public interface Infection
 	//boolean isOpportunistic();
 
 	/**
-	 * useful in behavior-driven transmission among symptom-observing humans
+	 * useful in behavior-driven transmission among symptom-avoiding hosts
 	 * 
 	 * @return {@code true} if this {@link Infection} is long-term or chronic,
 	 *         {@code false} otherwise (i.e. short-term or acute)
@@ -71,7 +98,7 @@ public interface Infection
 	//boolean isChronic();
 
 	/**
-	 * useful in behavior-driven transmission among symptom-observing humans
+	 * useful in behavior-driven transmission among symptom-avoiding hosts
 	 * 
 	 * @return {@code true} if this {@link Condition} is systemic, causing
 	 *         sepsis, {@code false} otherwise (i.e. short-term or acute)
@@ -79,125 +106,52 @@ public interface Infection
 	//boolean isSystemic();
 
 	/**
-	 * @return an {@link Observable} stream of {@link TransmissionEvent}s
+	 * @return a {@link Collection} of transmission {@link Route}s of this
+	 *         {@link Infection}
 	 */
-	Observable<TransmissionEvent> getTransmission();
+	Collection<Route> getRoutes();
 
 	/**
-	 * {@link SimpleInfection} is a {@link Infection} and {@link Observer} of
-	 * {@link ContactEvent}s which in turn may trigger its transmission by
-	 * generating {@link TransmissionEvent}s.
+	 * The empirical fraction {@link Amount} of transmissions occurring between
+	 * some susceptible and some infective {@link Carrier} of this
+	 * {@link Infection} under specific circumstances:
 	 * 
-	 * <table>
-	 * <tr>
-	 * <th>R<sub>0</sub></th>
-	 * <td>Basic reproduction number</td>
-	 * </tr>
-	 * <tr>
-	 * <th>1 / &epsilon;</th>
-	 * <td>Average latent period</td>
-	 * </tr>
-	 * <tr>
-	 * <th>1 / &gamma;</th>
-	 * <td>Average infectious period</td>
-	 * </tr>
-	 * <tr>
-	 * <th>f</th>
-	 * <td>Average loss of immunity rate of recovered individuals</td>
-	 * </tr>
-	 * <tr>
-	 * <th>&delta;</th>
-	 * <td>Average temporary immunity period</td>
-	 * </tr>
-	 * </table>
-	 * 
-	 * @version $Id$
-	 * @author Rick van Krevelen
+	 * @param route the {@link Route} of contact
+	 * @param duration the {@link Duration} of contact
+	 * @param relation the {@link Relation} between {@link Carrier}s
+	 * @param condition the {@link Condition} of the susceptible {@link Carrier}
+	 * @return the likelihood or fraction {@link Amount} of transmission
 	 */
-	public abstract class SimpleInfection
-		implements Infection, Observer<ContactEvent>
-	{
+	Amount<Dimensionless> getTransmissionLikelihood( Route route,
+		Amount<Duration> duration, Relation relation, Condition condition );
 
-		private Subject<TransmissionEvent, TransmissionEvent> transmission = PublishSubject
-				.create();
+	/**
+	 * @return the (random) period between {@link Stage#EXPOSED} and
+	 *         {@link Stage#INFECTIVE} (i.e. 1 / &epsilon;)
+	 */
+	Amount<Duration> drawLatentPeriod();
 
-		@Override
-		public Observable<TransmissionEvent> getTransmission()
-		{
-			return this.transmission.asObservable();
-		}
+	/**
+	 * @return the (random) period between {@link Stage#INFECTIVE} and
+	 *         {@link Stage#RECOVERED} conditions (i.e. 1 / &gamma;)
+	 */
+	Amount<Duration> drawInfectiousPeriod();
 
-		public Subscription
-			subscribeTo( final Observable<ContactEvent> contacts )
-		{
-			return contacts.filter( new Func1<ContactEvent, Boolean>()
-			{
-				@Override
-				public Boolean call( final ContactEvent contact )
-				{
-					return contact.getPrimaryInfectiveDiseases()
-							.containsKey( SimpleInfection.this );
-				}
-			} ).subscribe( this );
-		}
+	/**
+	 * @return the (random) period between {@link Stage#RECOVERED} and
+	 *         {@link Stage#SUSCEPTIBLE} (i.e. &delta;), or {@code null} for
+	 *         infinite (there is no loss of immunity)
+	 */
+	Amount<Duration> drawImmunizationPeriod();
 
-		@Override
-		public void onCompleted()
-		{
-			this.transmission.onCompleted();
-		}
+	/** @return the (random) period between exposure and first symptoms */
+	Amount<Duration> drawOnsetPeriod();
 
-		@Override
-		public void onError( final Throwable e )
-		{
-			this.transmission.onError( e );
-		}
-
-		@Override
-		public void onNext( final ContactEvent contact )
-		{
-			for( Map.Entry<Carrier, Relation> susceptible : contact
-					.getSecondarySusceptibles().entrySet() )
-				if( transmit( contact.getLocation(), contact.getMedium(),
-						contact.getDuration(), susceptible.getValue() ) )
-				{
-					final Carrier exposed = susceptible.getKey();
-					this.transmission.onNext( new TransmissionEvent()
-					{
-						@Override
-						public Infection getDisease()
-						{
-							return SimpleInfection.this;
-						}
-
-						@Override
-						public ContactEvent getContact()
-						{
-							return contact;
-						}
-
-						@Override
-						public Carrier getSecondaryExposed()
-						{
-							return exposed;
-						}
-					} );
-				}
-		}
-
-		/**
-		 * Decide whether transmission occurs between some susceptible and some
-		 * infective {@link Carrier} of this {@link Infection}
-		 * 
-		 * @param location the {@link Location} of contact
-		 * @param route the {@link Route} of contact
-		 * @param duration the {@link Duration} of contact
-		 * @param relation the {@link Relation} between {@link Carrier}s
-		 * @return {@code true} iff the transmission is likely, {@code false}
-		 *         otherwise
-		 */
-		public abstract boolean transmit( Location location, Route route,
-			Duration duration, Relation relation );
-
-	}
+	/**
+	 * @return the (random) window period between exposure and seropositive
+	 *         blood test results: immunoglobulin M (IgM) for recent primary
+	 *         infections; immunoglobulin G (IgG) for past infection or
+	 *         immunization
+	 */
+	Amount<Duration> drawSeroconversionPeriod();
 }

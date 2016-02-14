@@ -71,3 +71,11 @@ livestock
 pandemic
 nosocomial
 zoonotic
+prophylactic
+inapparent
+subclinical
+occult
+seropositive
+seroconversion
+immunoglobulin
+infectiveness

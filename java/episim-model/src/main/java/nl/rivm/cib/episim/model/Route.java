@@ -65,7 +65,8 @@ public interface Route extends Wrapper<String>
 	Route ORAL = Util.valueOf( "oral", Route.class );
 
 	/**
-	 * contaminated blood, medical procedures like injection, transplantation
+	 * contaminated blood, medical procedures like injection, transplantation,
+	 * e.g. HIV
 	 */
 	Route IATROGENIC = Util.valueOf( "iatrogenic", Route.class );
 
@@ -75,7 +76,10 @@ public interface Route extends Wrapper<String>
 	 */
 	Route ANIMAL = Util.valueOf( "animal", Route.class );
 
-	/** e.g. via placenta/in utero or at birth/perinatal (gonorrhea) */
+	/**
+	 * e.g. via placenta/in utero, at birth/perinatal (gonorrhea), or via breast
+	 * milk (HIV)
+	 */
 	Route VERTICAL = Util.valueOf( "vertical", Route.class );
 
 	/**
