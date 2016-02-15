@@ -21,6 +21,7 @@ package nl.rivm.cib.episim.time;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -39,6 +40,8 @@ import rx.Subscription;
 
 /**
  * {@link Timed}
+ * 
+ * {@link List#stream()}
  * 
  * @version $Id$
  * @author Rick van Krevelen
