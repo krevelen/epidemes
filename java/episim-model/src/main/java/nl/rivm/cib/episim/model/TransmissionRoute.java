@@ -22,33 +22,33 @@ package nl.rivm.cib.episim.model;
 import io.coala.json.x.Wrapper;
 
 /**
- * {@link Route} used in transmission models of pathogen microbes, see
+ * {@link TransmissionRoute} used in transmission models of pathogen microbes, see
  * <a href="https://en.wikipedia.org/wiki/Transmission_(medicine)">wikipedia</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Route extends Wrapper<String>
+public interface TransmissionRoute extends Wrapper<String>
 {
 
 	/** respiratory, e.g. measles */
-	Route AIRBORNE = Util.valueOf( "airborne", Route.class );
+	TransmissionRoute AIRBORNE = Util.valueOf( "airborne", TransmissionRoute.class );
 
 	/** close proximity spread, e.g. cough, sneeze */
-	Route DROPLET = Util.valueOf( "droplet", Route.class );
+	TransmissionRoute DROPLET = Util.valueOf( "droplet", TransmissionRoute.class );
 
 	/**
 	 * touch, shared towel, see
 	 * <a href="https://en.wikipedia.org/wiki/Contagious_disease">wikipedia</a>
 	 */
-	Route DIRECT = Util.valueOf( "direct", Route.class );
+	TransmissionRoute DIRECT = Util.valueOf( "direct", TransmissionRoute.class );
 
 	/**
 	 * contaminated objects, soil, waterborne, foodborne (meat, produce), e.g.
 	 * E. coli, C. botulinum, Legionnaires', Hookworm. See
 	 * <a href="https://en.wikipedia.org/wiki/Fecal-oral_route">wikipedia</a>
 	 */
-	Route FECAL_ORAL = Util.valueOf( "fecal-oral", Route.class );
+	TransmissionRoute FECAL_ORAL = Util.valueOf( "fecal-oral", TransmissionRoute.class );
 
 	/**
 	 * vaginal or anal sex, e.g. HIV, Chlamydia, Gonorrhea, Hepatitis B,
@@ -56,36 +56,36 @@ public interface Route extends Wrapper<String>
 	 * <a href="https://en.wikipedia.org/wiki/Sexually_transmitted_infection">
 	 * wikipedia</a>
 	 */
-	Route SEXUAL = Util.valueOf( "sexual", Route.class );
+	TransmissionRoute SEXUAL = Util.valueOf( "sexual", TransmissionRoute.class );
 
 	/** genital-to-mouth contact, e.g. HIV, Herpes simplex */
-	Route SEXUAL_ORAL = Util.valueOf( "sexual-oral", Route.class );
+	TransmissionRoute SEXUAL_ORAL = Util.valueOf( "sexual-oral", TransmissionRoute.class );
 
 	/** kissing, sharing drinking glass or cigarette */
-	Route ORAL = Util.valueOf( "oral", Route.class );
+	TransmissionRoute ORAL = Util.valueOf( "oral", TransmissionRoute.class );
 
 	/**
 	 * contaminated blood, medical procedures like injection, transplantation,
 	 * e.g. HIV
 	 */
-	Route IATROGENIC = Util.valueOf( "iatrogenic", Route.class );
+	TransmissionRoute IATROGENIC = Util.valueOf( "iatrogenic", TransmissionRoute.class );
 
 	/**
 	 * direct animal-to-person contact, e.g. bites, scratches, saliva, pus,
 	 * urine, faeces
 	 */
-	Route ANIMAL = Util.valueOf( "animal", Route.class );
+	TransmissionRoute ANIMAL = Util.valueOf( "animal", TransmissionRoute.class );
 
 	/**
 	 * e.g. via placenta/in utero, at birth/perinatal (gonorrhea), or via breast
 	 * milk (HIV)
 	 */
-	Route VERTICAL = Util.valueOf( "vertical", Route.class );
+	TransmissionRoute VERTICAL = Util.valueOf( "vertical", TransmissionRoute.class );
 
 	/**
 	 * insect bites like e.g. (blood-sucking) mosquitos, fleas, and ticks, e.g.
 	 * Malaria, Lyme, West-Nile virus
 	 */
-	Route VECTOR_BORNE = Util.valueOf( "vector-borne", Route.class );
+	TransmissionRoute VECTOR_BORNE = Util.valueOf( "vector-borne", TransmissionRoute.class );
 
 }

@@ -39,7 +39,7 @@ import io.coala.random.x.RandomAmountDistribution;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
-import nl.rivm.cib.episim.model.Route;
+import nl.rivm.cib.episim.model.TransmissionRoute;
 
 /**
  * {@link HPV} or the Human papillomavirus has a
@@ -63,8 +63,8 @@ public class HPV implements Infection
 {
 
 	@SuppressWarnings( "unchecked" )
-	private static final Map<Route, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
-			entry( Route.SEXUAL, Amount.ONE ) );
+	private static final Map<TransmissionRoute, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
+			entry( TransmissionRoute.SEXUAL, Amount.ONE ) );
 
 	private RandomDistribution<Amount<Duration>> latentPeriodDist;
 
@@ -96,13 +96,13 @@ public class HPV implements Infection
 	}
 
 	@Override
-	public Collection<Route> getRoutes()
+	public Collection<TransmissionRoute> getRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
 
 	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood( final Route route,
+	public Amount<Dimensionless> getTransmissionLikelihood( final TransmissionRoute route,
 		final Amount<Duration> duration, final Relation relation,
 		final Condition condition )
 	{

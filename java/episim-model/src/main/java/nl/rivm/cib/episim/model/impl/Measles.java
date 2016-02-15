@@ -39,7 +39,7 @@ import io.coala.random.x.RandomAmountDistribution;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
-import nl.rivm.cib.episim.model.Route;
+import nl.rivm.cib.episim.model.TransmissionRoute;
 
 /**
  * {@link Measles} has a
@@ -53,10 +53,10 @@ public class Measles implements Infection
 {
 
 	@SuppressWarnings( "unchecked" )
-	private static final Map<Route, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
-			entry( Route.AIRBORNE, Amount.ONE ),
-			entry( Route.DIRECT, Amount.ONE ),
-			entry( Route.ORAL, Amount.ONE ) );
+	private static final Map<TransmissionRoute, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
+			entry( TransmissionRoute.AIRBORNE, Amount.ONE ),
+			entry( TransmissionRoute.DIRECT, Amount.ONE ),
+			entry( TransmissionRoute.ORAL, Amount.ONE ) );
 
 	private RandomDistribution<Amount<Duration>> latentPeriodDist;
 
@@ -64,7 +64,7 @@ public class Measles implements Infection
 
 	private RandomDistribution<Amount<Duration>> immunizationPeriodDist;
 
-	private RandomDistribution<Amount<Duration>> onsetMonthsDist;
+	private RandomDistribution<Amount<Duration>> onsetPeriodDist;
 
 	private RandomDistribution<Amount<Duration>> seroconversionPeriodDist;
 
@@ -81,20 +81,20 @@ public class Measles implements Infection
 				.getConstant( Amount.valueOf( 100, NonSI.YEAR ) );
 		this.immunizationPeriodDist = rdf
 				.getConstant( Amount.valueOf( 0, NonSI.DAY ) );
-		this.onsetMonthsDist = RandomAmountDistribution
+		this.onsetPeriodDist = RandomAmountDistribution
 				.of( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
 		this.seroconversionPeriodDist = rdf
 				.getConstant( Amount.valueOf( 28, NonSI.DAY ) );
 	}
 
 	@Override
-	public Collection<Route> getRoutes()
+	public Collection<TransmissionRoute> getRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
 
 	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood( final Route route,
+	public Amount<Dimensionless> getTransmissionLikelihood( final TransmissionRoute route,
 		final Amount<Duration> duration, final Relation relation,
 		final Condition condition )
 	{
@@ -123,7 +123,7 @@ public class Measles implements Infection
 	@Override
 	public Amount<Duration> drawOnsetPeriod()
 	{
-		return this.onsetMonthsDist.draw();
+		return this.onsetPeriodDist.draw();
 	}
 
 	@Override

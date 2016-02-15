@@ -106,23 +106,23 @@ public interface Infection
 	//boolean isSystemic();
 
 	/**
-	 * @return a {@link Collection} of transmission {@link Route}s of this
+	 * @return a {@link Collection} of transmission {@link TransmissionRoute}s of this
 	 *         {@link Infection}
 	 */
-	Collection<Route> getRoutes();
+	Collection<TransmissionRoute> getRoutes();
 
 	/**
 	 * The empirical fraction {@link Amount} of transmissions occurring between
 	 * some susceptible and some infective {@link Carrier} of this
 	 * {@link Infection} under specific circumstances:
 	 * 
-	 * @param route the {@link Route} of contact
+	 * @param route the {@link TransmissionRoute} of contact
 	 * @param duration the {@link Duration} of contact
 	 * @param relation the {@link Relation} between {@link Carrier}s
 	 * @param condition the {@link Condition} of the susceptible {@link Carrier}
 	 * @return the likelihood or fraction {@link Amount} of transmission
 	 */
-	Amount<Dimensionless> getTransmissionLikelihood( Route route,
+	Amount<Dimensionless> getTransmissionLikelihood( TransmissionRoute route,
 		Amount<Duration> duration, Relation relation, Condition condition );
 
 	/**

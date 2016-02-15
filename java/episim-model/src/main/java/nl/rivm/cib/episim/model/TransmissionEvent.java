@@ -37,8 +37,8 @@ public abstract class TransmissionEvent
 	/** @return the transmission {@link Location} */
 	public abstract Location getLocation();
 
-	/** @return the transmission {@link Route} */
-	public abstract Route getRoute();
+	/** @return the transmission {@link TransmissionRoute} */
+	public abstract TransmissionRoute getRoute();
 
 	/** @return the transmitted {@link Infection} */
 	public abstract Infection getInfection();
@@ -67,7 +67,7 @@ public abstract class TransmissionEvent
 			}
 
 			@Override
-			public Route getRoute()
+			public TransmissionRoute getRoute()
 			{
 				return contact.getRoute();
 			}

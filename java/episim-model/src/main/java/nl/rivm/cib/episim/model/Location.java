@@ -20,13 +20,17 @@
 package nl.rivm.cib.episim.model;
 
 import java.util.Collection;
+import java.util.HashSet;
 
+import javax.measure.unit.NonSI;
+
+import org.jscience.geography.coordinates.LatLong;
 import org.opengis.spatialschema.geometry.geometry.Position;
 
+import io.coala.time.x.Instant;
+import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
 import rx.Observer;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -36,30 +40,29 @@ import rx.subjects.Subject;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Location
+public interface Location extends Timed
 {
 
-	/**
-	 * {@link Carrier}s arriving at or departing from this {@link Location} may
-	 * cause it to generate {@link ContactEvent}s or add/remove {@link Route}s
-	 * (e.g. contaminated objects, food, water, blood, ...)
-	 * 
-	 * @param event a {@link TravelEvent} with either (
-	 *            {@link TravelEvent#getDestination()} == this {@link Location}
-	 *            and {@link TravelEvent#getArrival()} == now) or (
-	 *            {@link TravelEvent#getOrigin()} == this {@link Location} and
-	 *            {@link TravelEvent#getDeparture()} == now)
-	 */
-	void on( TravelEvent event );
+	/** RIVM National Institute for Public Health and the Environment */
+	Position RIVM = LatLong.valueOf( 52.1185272, 5.1868699,
+			NonSI.DEGREE_ANGLE );
 
 	/** @return the global {@link Position} of this {@link Location} */
-	Position getPosition();
+	default Position getPosition()
+	{
+		return RIVM;
+	}
 
-	/** @return the current {@link Collection} of transmission {@link Route}s */
-	Collection<Route> getRoutes();
+	/**
+	 * @return a {@link Collection} of current {@link Individual} occupants
+	 */
+	Collection<Individual> getOccupants();
 
-	/** @return the current {@link Collection} of {@link Carrier} occupants */
-	Collection<Carrier> getOccupants();
+	/** @param visitor the {@link Individual} arriving */
+	void onArrival( Individual visitor );
+
+	/** @param visitor the {@link Individual} departing */
+	void onDeparture( Individual visitor );
 
 	/**
 	 * @return an {@link Observable} stream of {@link ContactEvent}s generated
@@ -74,6 +77,27 @@ public interface Location
 	Observable<TransmissionEvent> emitTransmissions();
 
 	/**
+	 * {@link Carrier}s staying at this {@link Location} may cause it to
+	 * generate {@link ContactEvent}s based on available
+	 * {@link TransmissionRoute}s (e.g. contaminated objects, food, water,
+	 * blood, ...)
+	 *
+	 * @param locatio the {@link Location} of stay
+	 * @param visitor the temporary occupant {@link Individual}
+	 * @param arrival the {@link Instant} of arrival
+	 * @param departure the {@link Instant} of departure
+	 */
+	public static void stay( final Location location, final Individual visitor,
+		final Instant arrival, final Instant departure )
+	{
+		location.onArrival( visitor );
+		// FIXME schedule later
+		// FIXME generate contact events from overlapping occupant stays
+		// FIXME generate transmission events
+		location.onDeparture( visitor );
+	}
+
+	/**
 	 * {@link SimpleInfection} is a {@link Infection} and {@link Observer} of
 	 * {@link ContactEvent}s which in turn may trigger its transmission by
 	 * generating {@link TransmissionEvent}s.
@@ -85,53 +109,45 @@ public interface Location
 	public abstract class SimpleLocation implements Location
 	{
 
-		private Subject<ContactEvent, ContactEvent> contact = PublishSubject
+		private static final long serialVersionUID = 1L;
+
+		private Collection<Individual> occupants = new HashSet<>();
+
+		private final transient Subject<ContactEvent, ContactEvent> contacts = PublishSubject
 				.create();
 
-		private Subject<TransmissionEvent, TransmissionEvent> transmission = PublishSubject
+		private final transient Subject<TransmissionEvent, TransmissionEvent> transmissions = PublishSubject
 				.create();
+
+		@Override
+		public void onArrival( final Individual visitor )
+		{
+			this.occupants.add( visitor );
+		}
+
+		@Override
+		public void onDeparture( final Individual visitor )
+		{
+			this.occupants.remove( visitor );
+		}
+
+		@Override
+		public Collection<Individual> getOccupants()
+		{
+			return this.occupants;
+		}
 
 		@Override
 		public Observable<ContactEvent> emitContacts()
 		{
-			return this.contact.asObservable();
+			return this.contacts.asObservable();
 		}
 
 		@Override
 		public Observable<TransmissionEvent> emitTransmissions()
 		{
-			return this.transmission.asObservable();
+			return this.transmissions.asObservable();
 		}
-
-		public void subscribeTo( final Individual traveler )
-		{
-			final Location here = this;
-			traveler.getTravels().filter( new Func1<TravelEvent, Boolean>()
-			{
-				@Override
-				public Boolean call( final TravelEvent travel )
-				{
-					return travel.getArrival().equals( here )
-							|| travel.getDeparture().equals( here );
-				}
-			} ).subscribe( new Action1<TravelEvent>()
-			{
-				@Override
-				public void call( final TravelEvent contact )
-				{
-//					for( Map.Entry<Carrier, Relation> susceptible : contact
-//							.getSecondarySusceptibles().entrySet() )
-//						if( transmit( contact.getLocation(), contact.getRoute(),
-//								contact.getDuration(), susceptible.getValue() ) )
-//						{
-//							final Carrier exposed = susceptible.getKey();
-//							this.transmission.onNext( TransmissionEvent
-//									.valueOf( contact, contact.getOnset(), exposed ) );
-//						}
-				}
-			} );
-		}
-
 	}
 
 }

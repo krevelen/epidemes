@@ -39,7 +39,7 @@ import io.coala.random.x.RandomAmountDistribution;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
-import nl.rivm.cib.episim.model.Route;
+import nl.rivm.cib.episim.model.TransmissionRoute;
 
 /**
  * {@link SeasonalInfluenza} has a
@@ -53,10 +53,10 @@ public class SeasonalInfluenza implements Infection
 {
 
 	@SuppressWarnings( "unchecked" )
-	private static final Map<Route, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
-			entry( Route.DROPLET, Amount.ONE ),
-			entry( Route.DIRECT, Amount.ONE ),
-			entry( Route.ORAL, Amount.ONE ) );
+	private static final Map<TransmissionRoute, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
+			entry( TransmissionRoute.DROPLET, Amount.ONE ),
+			entry( TransmissionRoute.DIRECT, Amount.ONE ),
+			entry( TransmissionRoute.ORAL, Amount.ONE ) );
 
 	private RandomDistribution<Amount<Duration>> latentPeriodDist;
 
@@ -88,13 +88,13 @@ public class SeasonalInfluenza implements Infection
 	}
 
 	@Override
-	public Collection<Route> getRoutes()
+	public Collection<TransmissionRoute> getRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
 
 	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood( final Route route,
+	public Amount<Dimensionless> getTransmissionLikelihood( final TransmissionRoute route,
 		final Amount<Duration> duration, final Relation relation,
 		final Condition condition )
 	{
