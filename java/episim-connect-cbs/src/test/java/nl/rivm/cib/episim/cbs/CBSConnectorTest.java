@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 192505588ec3ccef408e8a0454ae5b616b2618ca $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -24,7 +24,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.apache.http.client.ClientProtocolException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -36,16 +36,19 @@ import io.coala.log.LogUtil;
 /**
  * {@link CBSConnectorTest}
  * 
- * @version $Id$
- * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
- *
+ * @version $Id: 192505588ec3ccef408e8a0454ae5b616b2618ca $
+ * @author Rick van Krevelen
  */
-public class CBSConnectorTest {
+public class CBSConnectorTest
+{
 
 	/** */
-	private static final Logger LOG = LogUtil.getLogger(CBSConnectorTest.class);
+	private static final Logger LOG = LogUtil
+			.getLogger( CBSConnectorTest.class );
 
-	/** <pre>{
+	/**
+	 * <pre>
+	 * {
 	 * "odata.metadata":"http://opendata.cbs.nl/ODataApi/OData/81435ned/$metadata",
 	 * "value":[
 	 * 		{"name":"TableInfos","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/TableInfos"},
@@ -56,37 +59,42 @@ public class CBSConnectorTest {
 	 * 		{"name":"Regio","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/Regio"},
 	 * 		{"name":"Perioden","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/Perioden"}
 	 * ] }
+	 * </pre>
 	 */
 	public static class CBSMetaURL
 	{
 		private String name;
 		private URI url;
+
 		@Override
 		public String toString()
 		{
-			return this.name+":"+this.url;
+			return this.name + ":" + this.url;
 		}
 	}
-	
+
 	public static class CBSMetadata
 	{
-		@JsonProperty("odata.metadata")
+		@JsonProperty( "odata.metadata" )
 		private URI metadata;
 		private List<CBSMetaURL> value;
+
 		@Override
 		public String toString()
 		{
-			return this.metadata+":"+this.value;
+			return this.metadata + ":" + this.value;
 		}
 	}
-	
+
 	@Test
-	public void testCBSOpenDataPortal() throws ClientProtocolException, IOException {
+	public void testCBSOpenDataPortal()
+		throws ClientProtocolException, IOException
+	{
 
 		final String testURI = "http://opendata.cbs.nl/ODataApi/odata/81435ned";
-		final JsonNode result = CBSConnector.getJSON(testURI);
-		Assert.assertNotNull("Got null response for " + testURI, result);
+		final JsonNode result = CBSConnector.getJSON( testURI );
+		Assert.assertNotNull( "Got null response for " + testURI, result );
 //		final CBSMetadata data = JsonUtil.valueOf(result, CBSMetadata.class);
-		LOG.trace("Got result: " + result);
+		LOG.trace( "Got result: " + result );
 	}
 }

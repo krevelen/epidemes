@@ -109,8 +109,6 @@ public interface Location extends Timed
 	public abstract class SimpleLocation implements Location
 	{
 
-		private static final long serialVersionUID = 1L;
-
 		private Collection<Individual> occupants = new HashSet<>();
 
 		private final transient Subject<ContactEvent, ContactEvent> contacts = PublishSubject

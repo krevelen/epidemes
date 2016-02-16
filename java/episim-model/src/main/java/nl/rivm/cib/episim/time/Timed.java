@@ -32,11 +32,18 @@ import java.util.function.Supplier;
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.x.ExceptionBuilder;
 import io.coala.time.x.Instant;
+import io.coala.time.x.TimeSpan;
+import rx.Observable;
 import rx.Subscription;
+import rx.functions.Func1;
+import rx.subjects.BehaviorSubject;
+import rx.subjects.Subject;
 
 /**
  * {@link Timed}
@@ -50,6 +57,53 @@ public interface Timed
 {
 	Scheduler SCHEDULER_INSTANCE = new Scheduler()
 	{
+		/** */
+		private final Logger LOG = LogManager.getLogger( Timed.class );
+
+		private Instant now = Instant.ZERO;
+
+		private boolean run = false;
+
+		private final transient Subject<Instant, Instant> instants = BehaviorSubject
+				.create( this.now );
+
+		@Override
+		public Instant now()
+		{
+			return this.now;
+		}
+
+		@Override
+		public Observable<Instant> resume()
+		{
+			this.run = true;
+			return this.instants.map( new Func1<Instant, Instant>()
+			{
+				@Override
+				public Instant call( final Instant t )
+				{
+					while( !run )
+						try
+						{
+							System.err.println( "waiting to resume..." );
+							Thread.sleep( 10 );
+						} catch( final InterruptedException e )
+						{
+							LOG.error( "Problem", e );
+						}
+					now = t;
+					return t;
+				}
+			} ).asObservable();
+		}
+
+		@Override
+		public Expectation schedule( final Instant when,
+			final Callable<?> call )
+		{
+			final Subscription subscription = null; // FIXME
+			return Expectation.of( when, subscription );
+		}
 	};
 
 	/**
@@ -75,35 +129,32 @@ public interface Timed
 		return FutureSelf.of( this, when );
 	}
 
+//	TODO FutureSelf at( final TriggerPattern recurrent );
+
 	/**
-	 * @param delay the {@link Amount} of delay, as ({@link Duration} or
+	 * @param delay the {@link Amount} of delay, in ({@link Duration} or
 	 *            {@link Dimensionless} units
 	 * @return the {@link FutureSelf}
 	 */
-	default FutureSelf after( final Amount<Duration> delay )
+	default FutureSelf after( final TimeSpan delay )
 	{
-		return FutureSelf.of( this,
-				Instant.of( now().toAmount().plus( delay ) ) );
+		return FutureSelf.of( this, now().add( delay ) );
 	}
-
+	
 	interface Scheduler
 	{
-		default Instant now()
-		{
-			return Instant.ZERO;
-		}
+
+		Instant now();
+
+		/** */
+		Observable<Instant> resume();
 
 		/**
 		 * @param when the {@link Instant} of execution
 		 * @param call the {@link Callable}
 		 * @return the occurrence {@link Expectation}, for optional cancellation
 		 */
-		default <T> Expectation schedule( final Instant when,
-			final Callable<?> call )
-		{
-			final Subscription subscription = null; // FIXME
-			return Expectation.of( when, subscription );
-		}
+		Expectation schedule( Instant when, Callable<?> call );
 	}
 
 	/**

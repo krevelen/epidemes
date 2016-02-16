@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.model;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
