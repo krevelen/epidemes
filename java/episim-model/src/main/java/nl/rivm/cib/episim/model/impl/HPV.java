@@ -35,23 +35,26 @@ import org.jscience.physics.amount.Amount;
 import io.coala.bind.Binder;
 import io.coala.random.RandomDistribution;
 import io.coala.random.RandomNumberStream;
-import io.coala.random.x.RandomAmountDistribution;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
 import nl.rivm.cib.episim.model.TransmissionRoute;
 
 /**
- * {@link HPV} or the Human papillomavirus has a
+ * {@link HPV} or Human papillomavirus is transmitted through sexual contact.
+ * Its genital infections can cause anogenital cancers such as cervical cancer
+ * (baarmoederhalskanker), genital warts (papillomas), and head and neck
+ * cancers. It has a <a href="http://www.who.int/immunization/hpv/en/">WHO
+ * page</a> and
  * <a href="http://www.who.int/mediacentre/factsheets/fs380/en/">WHO fact
- * sheet</a>, a
+ * sheet</a>, an
  * <a href="http://emedicine.medscape.com/article/219110-overview">eMedicine
  * description</a> and a
  * <a href="http://www.diseasesdatabase.com/ddb6032.htm">DiseaseDB entry</a>,
  * from <a href="https://en.wikipedia.org/wiki/Papillomaviridae">wikipedia</a>:
  * <ul>
- * <li>&ldquo;Papillomas caused by some [HPV] types ... such as human
- * papillomaviruses 16 and 18, carry a risk of becoming cancerous.&rdquo;</li>
+ * <li>&ldquo;Papillomas caused by some types ... such as human papillomaviruses
+ * 16 and 18, carry a risk of becoming cancerous.&rdquo;</li>
  * <li>&ldquo;Over 170 human papillomavirus types have been completely
  * sequenced.&rdquo;</li>
  * </ul>
@@ -89,54 +92,25 @@ public class HPV implements Infection
 				.getConstant( Amount.valueOf( 100, NonSI.YEAR ) );
 		this.immunizationPeriodDist = rdf
 				.getConstant( Amount.valueOf( 0, NonSI.DAY ) );
-		this.onsetMonthsDist = RandomAmountDistribution
-				.of( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
+		this.onsetMonthsDist = RandomDistribution.Util
+				.asAmount( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
 		this.seroconversionPeriodDist = rdf
 				.getConstant( Amount.valueOf( 28, NonSI.DAY ) );
 	}
 
 	@Override
-	public Collection<TransmissionRoute> getRoutes()
+	public Collection<TransmissionRoute> getTransmissionRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
 
 	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood( final TransmissionRoute route,
-		final Amount<Duration> duration, final Relation relation,
-		final Condition condition )
+	public Amount<Dimensionless> getTransmissionLikelihood(
+		final TransmissionRoute route, final Amount<Duration> duration,
+		final Relation relation, final Condition condition )
 	{
 		final Amount<Dimensionless> result = ROUTE_LIKELIHOODS.get( route );
 		return result == null ? Amount.ZERO : result;
 	}
 
-	@Override
-	public Amount<Duration> drawLatentPeriod()
-	{
-		return this.latentPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawInfectiousPeriod()
-	{
-		return this.infectiousPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawImmunizationPeriod()
-	{
-		return this.immunizationPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawOnsetPeriod()
-	{
-		return this.onsetMonthsDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawSeroconversionPeriod()
-	{
-		return this.seroconversionPeriodDist.draw();
-	}
 }

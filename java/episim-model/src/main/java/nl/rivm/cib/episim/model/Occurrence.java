@@ -20,15 +20,15 @@
 package nl.rivm.cib.episim.model;
 
 /**
- * {@link Outbreak} characterizes occurrence {@link Infection} among people (=
- * <em>demos</em>) over time and space, similar to
+ * {@link Occurrence} characterizes incidence of an {@link Infection} among a
+ * {@link Population} (= <em>demos</em>) over time and space, similar to
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum Outbreak
+public enum Occurrence
 {
 	/** no more occurrence */
 	ERADICATED,
@@ -42,18 +42,19 @@ public enum Outbreak
 
 	/**
 	 * regular cases often occurring in a region, e.g. community-acquired
-	 * infections and livestock-acquired (zoonotic) infections (MRSA)
+	 * infections and livestock-acquired (zoonotic) infections (eg MRSA)
 	 */
 	ENDEMIC,
 
 	/**
-	 * an unusually high number of cases in a region, see
+	 * an unusually high number of cases in a region (regional outbreak), see
 	 * <a href="https://en.wikipedia.org/wiki/Epidemic">wikipedia</a>
 	 */
 	EPIDEMIC,
 
 	/**
-	 * a global epidemic: an unusually high number of cases globally, see
+	 * a global epidemic: an unusually high number of cases globally (global
+	 * outbreak), see
 	 * <a href="https://en.wikipedia.org/wiki/Pandemic">wikipedia</a>
 	 */
 	PANDEMIC,;

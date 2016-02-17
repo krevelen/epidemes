@@ -38,16 +38,13 @@ public abstract class TransmissionEvent
 	public abstract Location getLocation();
 
 	/** @return the transmission {@link TransmissionRoute} */
-	public abstract TransmissionRoute getRoute();
+	public abstract TransmissionRoute getTransmissionRoute();
 
-	/** @return the transmitted {@link Infection} */
-	public abstract Infection getInfection();
+	/** @return the (infective) {@link Condition} of primary {@link Carrier} */
+	public abstract Condition getPrimaryCondition();
 
-	/** @return the primary infective {@link Carrier} */
-	public abstract Carrier getPrimaryInfective();
-
-	/** @return the secondary exposed {@link Carrier} */
-	public abstract Carrier getSecondaryExposed();
+	/** @return the (exposed) {@link Condition} of secondary {@link Carrier} */
+	public abstract Condition getSecondaryCondition();
 
 	public static TransmissionEvent valueOf( final ContactEvent contact,
 		final Instant time, final Infection infection )
@@ -67,27 +64,21 @@ public abstract class TransmissionEvent
 			}
 
 			@Override
-			public TransmissionRoute getRoute()
+			public TransmissionRoute getTransmissionRoute()
 			{
-				return contact.getRoute();
+				return contact.getTransmissionRoute();
 			}
 
 			@Override
-			public Infection getInfection()
+			public Condition getPrimaryCondition()
 			{
-				return infection;
+				return contact.getPrimaryCondition();
 			}
 
 			@Override
-			public Carrier getPrimaryInfective()
+			public Condition getSecondaryCondition()
 			{
-				return contact.getPrimaryInfective();
-			}
-
-			@Override
-			public Carrier getSecondaryExposed()
-			{
-				return contact.getSecondarySusceptible();
+				return contact.getSecondaryCondition();
 			}
 		};
 	}

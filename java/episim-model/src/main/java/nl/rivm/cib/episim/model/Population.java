@@ -28,7 +28,8 @@ import org.jscience.physics.amount.Amount;
 
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
-import rx.Observer;
+import rx.Observable;
+import rx.Subscription;
 
 /**
  * {@link Population} follows common
@@ -75,23 +76,25 @@ import rx.Observer;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Population extends Observer<StageEvent>
+public interface Population
 {
 	// TODO apply yearly birth rates (per mother age category?)
 
 	// TODO apply yearly survival rates (per age category?)
 
-	Map<Infection, DiseaseMetrics> getDiseaseMetrics();
+	Subscription subscribeTo( Observable<TransitionEvent> stageStream );
+
+	Map<Infection, InfectionMetrics> getDiseaseMetrics();
 
 	Amount<Dimensionless> getTotalNumber();
 
-	interface DiseaseMetrics
+	interface InfectionMetrics
 	{
-		Infection getDisease();
+		Infection getInfection();
 
 		Instant getTime();
 
-		Outbreak getOccurrence();
+		Occurrence getOccurrence();
 
 		Amount<Dimensionless> getSusceptiblesNumber();
 

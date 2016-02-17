@@ -35,16 +35,20 @@ import org.jscience.physics.amount.Amount;
 import io.coala.bind.Binder;
 import io.coala.random.RandomDistribution;
 import io.coala.random.RandomNumberStream;
-import io.coala.random.x.RandomAmountDistribution;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
 import nl.rivm.cib.episim.model.TransmissionRoute;
 
 /**
- * {@link Measles} has a
- * <a href="http://www.who.int/mediacentre/factsheets/fs286/en/">WHO fact
- * sheet</a>
+ * {@link Measles} (morbilli, mazelen) is a highly contagious and potentially
+ * deadly disease caused by the measles virus (MeV) including respiratory system
+ * infections and a generalized rash. It is described at
+ * <a href="https://en.wikipedia.org/wiki/Measles">wikipedia</a> and has a
+ * <a href="http://rijksvaccinatieprogramma.nl/De_ziekten/Mazelen">RVP page</a>,
+ * a <A href="http://www.rivm.nl/Onderwerpen/M/Mazelen">RIVM page</a>, a
+ * <href="http://www.cdc.gov/measles/">US CDC page</a>, and a
+ * <a href="http://www.who.int/topics/measles/en/">WHO page</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -81,54 +85,25 @@ public class Measles implements Infection
 				.getConstant( Amount.valueOf( 100, NonSI.YEAR ) );
 		this.immunizationPeriodDist = rdf
 				.getConstant( Amount.valueOf( 0, NonSI.DAY ) );
-		this.onsetPeriodDist = RandomAmountDistribution
-				.of( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
+		this.onsetPeriodDist = RandomDistribution.Util
+				.asAmount( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
 		this.seroconversionPeriodDist = rdf
 				.getConstant( Amount.valueOf( 28, NonSI.DAY ) );
 	}
 
 	@Override
-	public Collection<TransmissionRoute> getRoutes()
+	public Collection<TransmissionRoute> getTransmissionRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
 
 	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood( final TransmissionRoute route,
-		final Amount<Duration> duration, final Relation relation,
-		final Condition condition )
+	public Amount<Dimensionless> getTransmissionLikelihood(
+		final TransmissionRoute route, final Amount<Duration> duration,
+		final Relation relation, final Condition condition )
 	{
 		final Amount<Dimensionless> result = ROUTE_LIKELIHOODS.get( route );
 		return result == null ? Amount.ZERO : result;
 	}
 
-	@Override
-	public Amount<Duration> drawLatentPeriod()
-	{
-		return this.latentPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawInfectiousPeriod()
-	{
-		return this.infectiousPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawImmunizationPeriod()
-	{
-		return this.immunizationPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawOnsetPeriod()
-	{
-		return this.onsetPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawSeroconversionPeriod()
-	{
-		return this.seroconversionPeriodDist.draw();
-	}
 }

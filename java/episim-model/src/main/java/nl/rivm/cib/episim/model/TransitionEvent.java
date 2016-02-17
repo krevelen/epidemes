@@ -20,21 +20,15 @@
 package nl.rivm.cib.episim.model;
 
 /**
- * {@link StageEvent}
+ * {@link TransitionEvent}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface StageEvent
+public interface TransitionEvent
 {
-
-	/**
-	 * @return the {@link Infection} that is progressing
-	 */
-	Infection getDisease();
-
-	/** */
-	Carrier getCarrier();
+	/** @return the {@link Condition} that is progressing */
+	Condition getCondition();
 
 	/** */
 	Stage oldStage();

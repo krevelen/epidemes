@@ -27,7 +27,8 @@ import io.coala.time.x.Instant;
  * interval ({@link #getStart()} and {@link #getDuration()}) at some
  * {@link Location} when a primary {@link Carrier} (e.g. carrying some
  * {@link Infection} at infective {@link Stage}) shared some transmission
- * {@link TransmissionRoute} with some secondary (possibly) susceptible {@link Carrier}
+ * {@link TransmissionRoute} with some secondary (possibly) susceptible
+ * {@link Carrier}
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -44,25 +45,17 @@ public interface ContactEvent
 	Location getLocation();
 
 	/** @return the contact transmission {@link TransmissionRoute} */
-	TransmissionRoute getRoute();
-
-	/** @return the primary (infective) {@link Carrier} */
-	Carrier getPrimaryInfective();
-
-	/** @return the secondary (susceptible) {@link Carrier} */
-	Carrier getSecondarySusceptible();
+	TransmissionRoute getTransmissionRoute();
 
 	/**
-	 * @return an {@link Infection} for which {@link #getPrimaryInfective()} has
-	 *         an infective condition and that can be transmitted via this
-	 *         contact {@link #getRoute()}
+	 * @return the {@link Condition} of the primary (infective) {@link Carrier}
 	 */
-//	Infection getInfection();
+	Condition getPrimaryCondition();
 
 	/**
 	 * @return the {@link Condition} of the secondary (susceptible)
 	 *         {@link Carrier}
 	 */
-//	Condition getSecondaryCondition();
+	Condition getSecondaryCondition();
 
 }

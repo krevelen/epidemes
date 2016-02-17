@@ -35,7 +35,6 @@ import org.jscience.physics.amount.Amount;
 import io.coala.bind.Binder;
 import io.coala.random.RandomDistribution;
 import io.coala.random.RandomNumberStream;
-import io.coala.random.x.RandomAmountDistribution;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
@@ -82,14 +81,14 @@ public class HIV implements Infection
 				.getConstant( Amount.valueOf( 100, NonSI.YEAR ) );
 		this.immunizationPeriodDist = rdf
 				.getConstant( Amount.valueOf( 0, NonSI.DAY ) );
-		this.onsetMonthsDist = RandomAmountDistribution
-				.of( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
+		this.onsetMonthsDist = RandomDistribution.Util
+				.asAmount( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
 		this.seroconversionPeriodDist = rdf
 				.getConstant( Amount.valueOf( 28, NonSI.DAY ) );
 	}
 
 	@Override
-	public Collection<TransmissionRoute> getRoutes()
+	public Collection<TransmissionRoute> getTransmissionRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
@@ -101,35 +100,5 @@ public class HIV implements Infection
 	{
 		final Amount<Dimensionless> result = ROUTE_LIKELIHOODS.get( route );
 		return result == null ? Amount.ZERO : result;
-	}
-
-	@Override
-	public Amount<Duration> drawLatentPeriod()
-	{
-		return this.latentPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawInfectiousPeriod()
-	{
-		return this.infectiousPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawImmunizationPeriod()
-	{
-		return this.immunizationPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawOnsetPeriod()
-	{
-		return this.onsetMonthsDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawSeroconversionPeriod()
-	{
-		return this.seroconversionPeriodDist.draw();
 	}
 }

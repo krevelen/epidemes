@@ -26,6 +26,8 @@ import javax.measure.quantity.Duration;
 
 import org.jscience.physics.amount.Amount;
 
+import nl.rivm.cib.episim.time.Timed;
+
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
  * disease and is caused by pathogen microbes like viruses, bacteria, fungi, and
@@ -65,7 +67,7 @@ import org.jscience.physics.amount.Amount;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Infection
+public interface Infection extends Timed
 {
 
 //	Unit<Frequency> HOURLY = NonSI.HOUR.inverse().asType( Frequency.class );
@@ -106,10 +108,10 @@ public interface Infection
 	//boolean isSystemic();
 
 	/**
-	 * @return a {@link Collection} of transmission {@link TransmissionRoute}s of this
-	 *         {@link Infection}
+	 * @return a {@link Collection} of transmission {@link TransmissionRoute}s
+	 *         of this {@link Infection}
 	 */
-	Collection<TransmissionRoute> getRoutes();
+	Collection<TransmissionRoute> getTransmissionRoutes();
 
 	/**
 	 * The empirical fraction {@link Amount} of transmissions occurring between
@@ -129,23 +131,23 @@ public interface Infection
 	 * @return the (random) period between {@link Stage#EXPOSED} and
 	 *         {@link Stage#INFECTIVE} (i.e. 1 / &epsilon;)
 	 */
-	Amount<Duration> drawLatentPeriod();
+//	Amount<Duration> drawLatentPeriod();
 
 	/**
 	 * @return the (random) period between {@link Stage#INFECTIVE} and
 	 *         {@link Stage#RECOVERED} conditions (i.e. 1 / &gamma;)
 	 */
-	Amount<Duration> drawInfectiousPeriod();
+//	Amount<Duration> drawInfectiousPeriod();
 
 	/**
 	 * @return the (random) period between {@link Stage#RECOVERED} and
 	 *         {@link Stage#SUSCEPTIBLE} (i.e. &delta;), or {@code null} for
 	 *         infinite (there is no loss of immunity)
 	 */
-	Amount<Duration> drawImmunizationPeriod();
+//	Amount<Duration> drawImmunizationPeriod();
 
 	/** @return the (random) period between exposure and first symptoms */
-	Amount<Duration> drawOnsetPeriod();
+//	Amount<Duration> drawOnsetPeriod();
 
 	/**
 	 * @return the (random) window period between exposure and seropositive
@@ -153,5 +155,5 @@ public interface Infection
 	 *         infections; immunoglobulin G (IgG) for past infection or
 	 *         immunization
 	 */
-	Amount<Duration> drawSeroconversionPeriod();
+//	Amount<Duration> drawSeroconversionPeriod();
 }

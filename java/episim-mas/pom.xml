@@ -18,6 +18,7 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<eve.version>3.1.1</eve.version>
 		<jetty.version>9.3.7.v20160115</jetty.version>
 		<wink.version>1.4</wink.version>
 		<cors.version>1.8</cors.version>
@@ -63,6 +64,66 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.almende.eve</groupId>
+			<artifactId>eve-transport-http-jetty</artifactId>
+			<version>${eve.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-maven-plugin</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-databind</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.datatype</groupId>
+					<artifactId>jackson-datatype-joda</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.dataformat</groupId>
+					<artifactId>jackson-dataformat-yaml</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-jdk14</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.almende.eve</groupId>
+			<artifactId>eve-scheduling-persistent</artifactId>
+			<version>${eve.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.almende.eve</groupId>
+			<artifactId>eve-deploy</artifactId>
+			<version>${eve.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-joda</artifactId>
+			<version>${jackson.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>joda-time</groupId>
+					<artifactId>joda-time</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.eclipse.jetty.websocket</groupId>
+			<artifactId>javax-websocket-server-impl</artifactId>
+			<version>${jetty.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>

@@ -92,7 +92,7 @@ public interface Location extends Timed
 	{
 		location.onArrival( visitor );
 		// FIXME schedule later
-		// FIXME generate contact events from overlapping occupant stays
+		// FIXME generate contact events from overlapping occupancy/vector infestation/contamination stays
 		// FIXME generate transmission events
 		location.onDeparture( visitor );
 	}

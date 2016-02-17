@@ -19,6 +19,7 @@
  */
 package nl.rivm.cib.episim.model.impl;
 
+import static io.coala.random.RandomDistribution.Util.asAmount;
 import static org.aeonbits.owner.util.Collections.entry;
 import static org.aeonbits.owner.util.Collections.map;
 
@@ -35,21 +36,29 @@ import org.jscience.physics.amount.Amount;
 import io.coala.bind.Binder;
 import io.coala.random.RandomDistribution;
 import io.coala.random.RandomNumberStream;
-import io.coala.random.x.RandomAmountDistribution;
+import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
+import nl.rivm.cib.episim.model.Stage;
+import nl.rivm.cib.episim.model.TransitionEvent;
+import nl.rivm.cib.episim.model.TransmissionEvent;
 import nl.rivm.cib.episim.model.TransmissionRoute;
 
 /**
- * {@link SeasonalInfluenza} has a
- * <a href="http://www.who.int/mediacentre/factsheets/fs211/en/">WHO fact
- * sheet</a>
+ * {@link HIB} is an invasive disease caused by the Hib bacteria residing in
+ * nose-throat cavity. It occasionally causes blood poisoning (sepsis), septic
+ * arthritis, pneumonia, epiglottis and meningitis. It has a
+ * <a href="http://rijksvaccinatieprogramma.nl/De_ziekten/HIb">RVP page</a>, a
+ * <a href="http://www.rivm.nl/Onderwerpen/H/Haemophilus_influenzae_type_b">RIVM
+ * page</a>, a <a href="http://www.cdc.gov/hi-disease/">US CDC page</a>, and a
+ * <a href="http://www.who.int/immunization/topics/hib/en/">WHO immunization
+ * page</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class SeasonalInfluenza implements Infection
+public class HIB implements Infection
 {
 
 	@SuppressWarnings( "unchecked" )
@@ -69,66 +78,63 @@ public class SeasonalInfluenza implements Infection
 	private RandomDistribution<Amount<Duration>> seroconversionPeriodDist;
 
 	@Inject
-	public SeasonalInfluenza( final Binder binder )
+	public HIB( final Binder binder )
 	{
 		final RandomNumberStream rng = binder
 				.inject( RandomNumberStream.class );
 		final RandomDistribution.Factory rdf = binder
 				.inject( RandomDistribution.Factory.class );
-		this.latentPeriodDist = rdf
-				.getConstant( Amount.valueOf( 1, NonSI.HOUR ) );
-		this.infectiousPeriodDist = rdf
-				.getConstant( Amount.valueOf( 100, NonSI.YEAR ) );
-		this.immunizationPeriodDist = rdf
-				.getConstant( Amount.valueOf( 0, NonSI.DAY ) );
-		this.onsetMonthsDist = RandomAmountDistribution
-				.of( rdf.getTriangular( rng, 1, 6, 30 ), NonSI.MONTH );
-		this.seroconversionPeriodDist = rdf
-				.getConstant( Amount.valueOf( 28, NonSI.DAY ) );
+		this.latentPeriodDist = asAmount( rdf.getConstant( 1 ), NonSI.HOUR );
+		this.infectiousPeriodDist = asAmount( rdf.getConstant( 100 ),
+				NonSI.YEAR );
+		this.immunizationPeriodDist = asAmount( rdf.getConstant( 0 ),
+				NonSI.DAY );
+		this.onsetMonthsDist = asAmount( rdf.getTriangular( rng, 1, 6, 30 ),
+				NonSI.MONTH );
+		this.seroconversionPeriodDist = asAmount( rdf.getConstant( 28 ),
+				NonSI.DAY );
 	}
 
 	@Override
-	public Collection<TransmissionRoute> getRoutes()
+	public Collection<TransmissionRoute> getTransmissionRoutes()
 	{
 		return ROUTE_LIKELIHOODS.keySet();
 	}
 
 	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood( final TransmissionRoute route,
-		final Amount<Duration> duration, final Relation relation,
-		final Condition condition )
+	public Amount<Dimensionless> getTransmissionLikelihood(
+		final TransmissionRoute route, final Amount<Duration> duration,
+		final Relation relation, final Condition condition )
 	{
 		final Amount<Dimensionless> result = ROUTE_LIKELIHOODS.get( route );
 		return result == null ? Amount.ZERO : result;
 	}
 
-	@Override
-	public Amount<Duration> drawLatentPeriod()
+	public void scheduleConditions( final TransmissionEvent transmission )
 	{
-		return this.latentPeriodDist.draw();
+		final Stage currentStage = transmission.getSecondaryCondition()
+				.getStage();
+		after( TimeSpan.of( this.latentPeriodDist.draw() ) )
+				.call( Condition::on, new TransitionEvent()
+				{
+					@Override
+					public Condition getCondition()
+					{
+						return transmission.getSecondaryCondition();
+					}
+
+					@Override
+					public Stage oldStage()
+					{
+						return currentStage;
+					}
+
+					@Override
+					public Stage newStage()
+					{
+						return Stage.INFECTIVE;
+					}
+				} );
 	}
 
-	@Override
-	public Amount<Duration> drawInfectiousPeriod()
-	{
-		return this.infectiousPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawImmunizationPeriod()
-	{
-		return this.immunizationPeriodDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawOnsetPeriod()
-	{
-		return this.onsetMonthsDist.draw();
-	}
-
-	@Override
-	public Amount<Duration> drawSeroconversionPeriod()
-	{
-		return this.seroconversionPeriodDist.draw();
-	}
 }
