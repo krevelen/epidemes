@@ -19,25 +19,25 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.json.x.Wrapper;
+
 /**
- * {@link Gender}
+ * {@link Gender} is an extensible identifier for gender classifications
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum Gender
+public interface Gender extends Wrapper<String>
 {
 	/** the MALE {@link Gender} */
-	MALE,
+	Gender MALE = Util.valueOf( "male", Gender.class );
 
 	/** the FEMALE {@link Gender} */
-	FEMALE,
+	Gender FEMALE = Util.valueOf( "female", Gender.class );
 
 	/** the TRANSSEXUAL_MALE {@link Gender}, previously {@link #FEMALE} */
-	TRANSSEXUAL_MALE,
+	Gender TRANSSEXUAL_MALE = Util.valueOf( "trans-male", Gender.class );
 
 	/** the TRANSSEXUAL_FEMALE {@link Gender}, previously {@link #MALE} */
-	TRANSSEXUAL_FEMALE,
-
-	;
+	Gender TRANSSEXUAL_FEMALE = Util.valueOf( "trans-female", Gender.class );
 }

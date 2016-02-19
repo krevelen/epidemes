@@ -19,43 +19,52 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.json.x.Wrapper;
+
 /**
- * {@link Occurrence} characterizes incidence of an {@link Infection} among a
- * {@link Population} (= <em>demos</em>) over time and space, similar to
+ * {@link EpidemicOccurrence} is an extensible classifier to characterize incidence of
+ * an {@link Infection} among a {@link Population} (= <em>demos</em>) over time
+ * and space, related but not similar to
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum Occurrence
+public interface EpidemicOccurrence extends Wrapper<String>
 {
-	/** no more occurrence */
-	ERADICATED,
 
 	/**
 	 * occasional occurrence, e.g.
 	 * <a href="https://en.wikipedia.org/wiki/Hospital-acquired_infection">
 	 * hospital-acquired or nosocomial infections</a>
 	 */
-	SPORADIC,
+	EpidemicOccurrence SPORADIC = Util.valueOf( "sporadic", EpidemicOccurrence.class );
 
 	/**
 	 * regular cases often occurring in a region, e.g. community-acquired
 	 * infections and livestock-acquired (zoonotic) infections (eg MRSA)
 	 */
-	ENDEMIC,
+	EpidemicOccurrence ENDEMIC = Util.valueOf( "endemic", EpidemicOccurrence.class );
 
 	/**
-	 * an unusually high number of cases in a region (regional outbreak), see
+	 * an unusually high number of cases in a (possibly international) region
+	 * (regional outbreak), see
 	 * <a href="https://en.wikipedia.org/wiki/Epidemic">wikipedia</a>
 	 */
-	EPIDEMIC,
+	EpidemicOccurrence EPIDEMIC = Util.valueOf( "epidemic", EpidemicOccurrence.class );
 
 	/**
 	 * a global epidemic: an unusually high number of cases globally (global
 	 * outbreak), see
 	 * <a href="https://en.wikipedia.org/wiki/Pandemic">wikipedia</a>
 	 */
-	PANDEMIC,;
+	EpidemicOccurrence PANDEMIC = Util.valueOf( "pandemic", EpidemicOccurrence.class );
+
+	/** immunization threshold reached, disease practically eliminated */
+	EpidemicOccurrence HERD_IMMUNITY = Util.valueOf( "herd-immunity",
+			EpidemicOccurrence.class );
+
+	/** no more occurrence, also in the ild worldwide */
+	EpidemicOccurrence ERADICATED = Util.valueOf( "eradicated", EpidemicOccurrence.class );
 }

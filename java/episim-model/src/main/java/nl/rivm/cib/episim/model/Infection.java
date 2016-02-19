@@ -27,6 +27,10 @@ import javax.measure.quantity.Duration;
 import org.jscience.physics.amount.Amount;
 
 import nl.rivm.cib.episim.time.Timed;
+import rx.Observable;
+import rx.functions.Func1;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
@@ -70,13 +74,28 @@ import nl.rivm.cib.episim.time.Timed;
 public interface Infection extends Timed
 {
 
-//	Unit<Frequency> HOURLY = NonSI.HOUR.inverse().asType( Frequency.class );
-//
-//	Unit<Frequency> DAILY = NonSI.DAY.inverse().asType( Frequency.class );
-//
-//	Unit<Frequency> WEEKLY = NonSI.WEEK.inverse().asType( Frequency.class );
-//
-//	Unit<Frequency> ANNUALLY = NonSI.YEAR.inverse().asType( Frequency.class );
+	// FIXME have a Subject mapped separately for each Infection ?
+	@SuppressWarnings( "rawtypes" )
+	Subject<TransitionEvent, TransitionEvent> transitions = PublishSubject
+			.create();
+
+	/**
+	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
+	 *            this {@link Infection}
+	 */
+	@SuppressWarnings( "rawtypes" )
+	default Observable<TransitionEvent> emitTransitions()
+	{
+		final Infection self = this;
+		return transitions.filter( new Func1<TransitionEvent, Boolean>()
+		{
+			@Override
+			public Boolean call( final TransitionEvent event )
+			{
+				return self.equals( event.getCondition().getInfection() );
+			}
+		} );
+	}
 
 	/**
 	 * infection is transmitted via direct/indirect animal-human route, see
@@ -98,14 +117,6 @@ public interface Infection extends Timed
 	 *         {@code false} otherwise (i.e. short-term or acute)
 	 */
 	//boolean isChronic();
-
-	/**
-	 * useful in behavior-driven transmission among symptom-avoiding hosts
-	 * 
-	 * @return {@code true} if this {@link Condition} is systemic, causing
-	 *         sepsis, {@code false} otherwise (i.e. short-term or acute)
-	 */
-	//boolean isSystemic();
 
 	/**
 	 * @return a {@link Collection} of transmission {@link TransmissionRoute}s

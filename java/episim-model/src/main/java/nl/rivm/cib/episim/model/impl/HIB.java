@@ -38,12 +38,14 @@ import io.coala.random.RandomDistribution;
 import io.coala.random.RandomNumberStream;
 import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.model.Condition;
+import nl.rivm.cib.episim.model.EpidemicCompartment;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Relation;
-import nl.rivm.cib.episim.model.Stage;
+import nl.rivm.cib.episim.model.SymptomPhase;
 import nl.rivm.cib.episim.model.TransitionEvent;
 import nl.rivm.cib.episim.model.TransmissionEvent;
 import nl.rivm.cib.episim.model.TransmissionRoute;
+import nl.rivm.cib.episim.model.TreatmentStage;
 
 /**
  * {@link HIB} is an invasive disease caused by the Hib bacteria residing in
@@ -67,15 +69,17 @@ public class HIB implements Infection
 			entry( TransmissionRoute.DIRECT, Amount.ONE ),
 			entry( TransmissionRoute.ORAL, Amount.ONE ) );
 
-	private RandomDistribution<Amount<Duration>> latentPeriodDist;
+	private RandomDistribution<Amount<Duration>> onsetPeriodDist;
 
-	private RandomDistribution<Amount<Duration>> infectiousPeriodDist;
-
-	private RandomDistribution<Amount<Duration>> immunizationPeriodDist;
-
-	private RandomDistribution<Amount<Duration>> onsetMonthsDist;
+	private RandomDistribution<Amount<Duration>> symptomPeriodDist;
 
 	private RandomDistribution<Amount<Duration>> seroconversionPeriodDist;
+
+	private RandomDistribution<Amount<Duration>> latentPeriodDist;
+
+	private RandomDistribution<Amount<Duration>> recoverPeriodDist;
+
+	private RandomDistribution<Amount<Duration>> wanePeriodDist;
 
 	@Inject
 	public HIB( final Binder binder )
@@ -84,15 +88,13 @@ public class HIB implements Infection
 				.inject( RandomNumberStream.class );
 		final RandomDistribution.Factory rdf = binder
 				.inject( RandomDistribution.Factory.class );
-		this.latentPeriodDist = asAmount( rdf.getConstant( 1 ), NonSI.HOUR );
-		this.infectiousPeriodDist = asAmount( rdf.getConstant( 100 ),
-				NonSI.YEAR );
-		this.immunizationPeriodDist = asAmount( rdf.getConstant( 0 ),
-				NonSI.DAY );
-		this.onsetMonthsDist = asAmount( rdf.getTriangular( rng, 1, 6, 30 ),
-				NonSI.MONTH );
 		this.seroconversionPeriodDist = asAmount( rdf.getConstant( 28 ),
 				NonSI.DAY );
+		this.latentPeriodDist = asAmount( rdf.getConstant( 1 ), NonSI.HOUR );
+		this.recoverPeriodDist = asAmount( rdf.getConstant( 100 ), NonSI.YEAR );
+		this.wanePeriodDist = asAmount( rdf.getConstant( 0 ), NonSI.DAY );
+		this.onsetPeriodDist = asAmount( rdf.getTriangular( rng, 1, 6, 30 ),
+				NonSI.MONTH );
 	}
 
 	@Override
@@ -110,31 +112,64 @@ public class HIB implements Infection
 		return result == null ? Amount.ZERO : result;
 	}
 
-	public void scheduleConditions( final TransmissionEvent transmission )
+	public void invade( final TransmissionEvent transmission )
 	{
-		final Stage currentStage = transmission.getSecondaryCondition()
-				.getStage();
-		after( TimeSpan.of( this.latentPeriodDist.draw() ) )
-				.call( Condition::on, new TransitionEvent()
-				{
-					@Override
-					public Condition getCondition()
-					{
-						return transmission.getSecondaryCondition();
-					}
+		after( TimeSpan.ZERO ).call( HIB::expose, this,
+				transmission.getSecondaryCondition() );
+	}
 
-					@Override
-					public Stage oldStage()
-					{
-						return currentStage;
-					}
+	public static void expose( final HIB self, final Condition condition )
+	{
+		transitions.onNext(
+				TransitionEvent.of( condition, EpidemicCompartment.EXPOSED ) );
+		self.after( TimeSpan.of( self.seroconversionPeriodDist.draw() ) )
+				.call( HIB::infect, self, condition );
+		self.after( TimeSpan.of( self.latentPeriodDist.draw() ) )
+				.call( HIB::infect, self, condition );
+		self.after( TimeSpan.of( self.onsetPeriodDist.draw() ) )
+				.call( HIB::infect, self, condition );
+	}
 
-					@Override
-					public Stage newStage()
-					{
-						return Stage.INFECTIVE;
-					}
-				} );
+	public static void symptomize( final HIB self, final Condition condition )
+	{
+		transitions.onNext(
+				TransitionEvent.of( condition, SymptomPhase.SYSTEMIC ) );
+		self.after( TimeSpan.of( self.symptomPeriodDist.draw() ) )
+				.call( HIB::asymptomize, self, condition );
+	}
+
+	public static void asymptomize( final HIB self, final Condition condition )
+	{
+		transitions.onNext(
+				TransitionEvent.of( condition, SymptomPhase.ASYMPTOMATIC ) );
+	}
+
+	public static void seroconvert( final HIB self, final Condition condition )
+	{
+		transitions.onNext( TransitionEvent.of( condition,
+				TreatmentStage.PRE_EXPOSURE_PROPHYLACTIC ) );
+	}
+
+	public static void infect( final HIB self, final Condition condition )
+	{
+		transitions.onNext( TransitionEvent.of( condition,
+				EpidemicCompartment.INFECTIVE ) );
+		self.after( TimeSpan.of( self.recoverPeriodDist.draw() ) )
+				.call( HIB::recover, self, condition );
+	}
+
+	public static void recover( final HIB self, final Condition condition )
+	{
+		transitions.onNext( TransitionEvent.of( condition,
+				EpidemicCompartment.RECOVERED ) );
+		self.after( TimeSpan.of( self.wanePeriodDist.draw() ) ).call( HIB::wane,
+				self, condition );
+	}
+
+	public static void wane( final HIB self, final Condition condition )
+	{
+		transitions.onNext( TransitionEvent.of( condition,
+				EpidemicCompartment.SUSCEPTIBLE ) );
 	}
 
 }

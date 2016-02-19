@@ -19,13 +19,34 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.json.x.Wrapper;
+
 /**
- * {@link Relation}
+ * {@link Relation} is an extensible identifier for relation types
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum Relation
+public interface Relation extends Wrapper<String>
 {
-	PARENT, CHILD, COLLEAGUE, CLASSMATE, PARTNER, FAMILY, FRIEND;
+	/** */
+	Relation PARENT = Util.valueOf( "parent", Relation.class );
+
+	/** */
+	Relation CHILD = Util.valueOf( "child", Relation.class );
+
+	/** */
+	Relation COLLEAGUE = Util.valueOf( "colleague", Relation.class );
+
+	/** */
+	Relation CLASSMATE = Util.valueOf( "classmate", Relation.class );
+
+	/** */
+	Relation PARTNER = Util.valueOf( "partner", Relation.class );
+
+	/** */
+	Relation FAMILY = Util.valueOf( "family", Relation.class );
+
+	/** */
+	Relation FRIEND = Util.valueOf( "friend", Relation.class );
 }

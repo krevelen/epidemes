@@ -25,14 +25,107 @@ package nl.rivm.cib.episim.model;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface TransitionEvent
+public class TransitionEvent<T>
 {
+	/** the {@link Condition} undergoing a {@link TransitionEvent} */
+	protected Condition condition;
+
+	/** */
+	protected T oldValue;
+
+	/** */
+	protected T newValue;
+
+	/**
+	 * {@link TransitionEvent} zero-arg bean constructor
+	 */
+	protected TransitionEvent()
+	{
+		//
+	}
+
 	/** @return the {@link Condition} that is progressing */
-	Condition getCondition();
+	public Condition getCondition()
+	{
+		return this.condition;
+	}
 
 	/** */
-	Stage oldStage();
+	public T getOldValue()
+	{
+		return this.oldValue;
+	}
 
 	/** */
-	Stage newStage();
+	public T getNewValue()
+	{
+		return this.newValue;
+	}
+
+	public static class CompartmentEvent
+		extends TransitionEvent<EpidemicCompartment>
+	{
+
+	}
+
+	public static class TreatmentEvent extends TransitionEvent<TreatmentStage>
+	{
+
+	}
+
+	public static class SymptomEvent extends TransitionEvent<SymptomPhase>
+	{
+
+	}
+
+	public static CompartmentEvent of( final TransmissionEvent transmission,
+		final EpidemicCompartment newStage )
+	{
+		return of( transmission.getSecondaryCondition(), newStage );
+	}
+
+	/**
+	 * @param condition
+	 * @param compartment
+	 * @return an {@link CompartmentEvent}
+	 */
+	public static CompartmentEvent of( final Condition condition,
+		final EpidemicCompartment compartment )
+	{
+		final CompartmentEvent result = new CompartmentEvent();
+		result.condition = condition;
+		result.oldValue = condition.getCompartment();
+		result.newValue = compartment;
+		return result;
+	}
+
+	/**
+	 * @param condition
+	 * @param treatment
+	 * @return a {@link TreatmentEvent}
+	 */
+	public static TreatmentEvent of( final Condition condition,
+		final TreatmentStage treatment )
+	{
+		final TreatmentEvent result = new TreatmentEvent();
+		result.condition = condition;
+		result.oldValue = condition.getTreatmentStage();
+		result.newValue = treatment;
+		return result;
+	}
+
+	/**
+	 * @param condition
+	 * @param phase
+	 * @return a {@link SymptomEvent}
+	 */
+	public static SymptomEvent of( final Condition condition,
+		final SymptomPhase phase )
+	{
+		final SymptomEvent result = new SymptomEvent();
+		result.condition = condition;
+		result.oldValue = condition.getSymptomPhase();
+		result.newValue = phase;
+		return result;
+	}
 }

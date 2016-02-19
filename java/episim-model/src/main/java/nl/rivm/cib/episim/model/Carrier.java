@@ -20,9 +20,8 @@
 package nl.rivm.cib.episim.model;
 
 /**
- * {@link Carrier} can be a secondary or even a primary host to multiple
- * (possibly asymptomatic) {@link Infection}s, each with their own
- * {@link Condition}, once invaded/exposed in {@link TransmissionEvent}s
+ * {@link Carrier} can be a (secondary or even primary) host to multiple
+ * {@link Infection}s, each with their own {@link Condition} dynamics
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -31,16 +30,9 @@ public interface Carrier
 {
 
 	/**
-	 * @param transmission the observed exposure {@link TransmissionEvent} where
-	 *            {@link TransmissionEvent#getSecondaryExposed()} == this
-	 *            {@link Carrier}
-	 */
-	void invade( TransmissionEvent transmission );
-
-	/**
 	 * @param infection the queried {@link Infection}
 	 * @return the {@link Condition} of this {@link Carrier} with respect to
-	 *         specified {@link Infection}
+	 *         specified {@link Infection}, or {@code null} if susceptible
 	 */
 	Condition getCondition( Infection infection );
 

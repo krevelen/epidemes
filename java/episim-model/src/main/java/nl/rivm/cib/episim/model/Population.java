@@ -28,6 +28,7 @@ import org.jscience.physics.amount.Amount;
 
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
+import nl.rivm.cib.episim.model.TransitionEvent.CompartmentEvent;
 import rx.Observable;
 import rx.Subscription;
 
@@ -82,7 +83,7 @@ public interface Population
 
 	// TODO apply yearly survival rates (per age category?)
 
-	Subscription subscribeTo( Observable<TransitionEvent> stageStream );
+	Subscription subscribeTo( Observable<CompartmentEvent> stageStream );
 
 	Map<Infection, InfectionMetrics> getDiseaseMetrics();
 
@@ -94,17 +95,11 @@ public interface Population
 
 		Instant getTime();
 
-		Occurrence getOccurrence();
+		EpidemicOccurrence getOccurrence();
 
-		Amount<Dimensionless> getSusceptiblesNumber();
+		Map<EpidemicCompartment, Amount<Dimensionless>> getCompartmentAmounts();
 
-		Amount<Dimensionless> getInfectivesNumber();
-
-		Amount<Dimensionless> getRemovedsNumber();
-
-		/**
-		 * @return the number of {@link TransmissionEvent}s
-		 */
+		/** @return the number of {@link TransmissionEvent}s */
 		Amount<Dimensionless> getEffectiveContactsNumber();
 
 		/**

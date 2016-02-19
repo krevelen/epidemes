@@ -19,41 +19,29 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.json.x.Wrapper;
+
 /**
- * {@link Stage} follows common
- * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
- * and approaches for <a href=
- * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
- * mathematical modeling of infectious disease</a>
+ * {@link TreatmentStage} is an extensible identifier for stages of treatment
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum Stage
+public interface TreatmentStage extends Wrapper<String>
 {
-	/**
-	 * a {@link Condition} where a {@link Carrier} is SUSCEPTIBLE to some
-	 * {@link Disease}
-	 */
-	SUSCEPTIBLE,
+	/** currently not receiving any treatment */
+	TreatmentStage UNTREATED = Util.valueOf( "untreated",
+			TreatmentStage.class );
 
-	/**
-	 * a {@link Condition} where a {@link Carrier} is EXPOSED to, LATENT
-	 * INFECTED by, or PRE-INFECTIVE of some {@link Disease}
-	 */
-	EXPOSED,
+	/** currently immunizing using vaccine/antiserum */
+	TreatmentStage VACCINATION = Util.valueOf( "vaccination",
+			TreatmentStage.class );
 
-	/**
-	 * a {@link Condition} where a {@link Carrier} is INFECTIVE of some
-	 * {@link Disease}
-	 */
-	INFECTIVE,
+	/** currently suppressing disease using PrEP treatment */
+	TreatmentStage PRE_EXPOSURE_PROPHYLACTIC = Util.valueOf( "prep",
+			TreatmentStage.class );
 
-	/**
-	 * a {@link Condition} where a {@link Carrier} is RECOVERED from and IMMUNE
-	 * to some {@link Disease}
-	 */
-	RECOVERED,
-
-	;
+	/** currently suppressing disease using PEP treatment */
+	TreatmentStage POST_EXPOSURE_PROPHYLACTIC = Util.valueOf( "pep",
+			TreatmentStage.class );
 }
