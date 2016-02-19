@@ -1,14 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	
+
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	
+
 	<artifactId>episim-model</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
@@ -23,6 +23,8 @@
 		<maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
 		<maven-surefire-plugin.version>2.15</maven-surefire-plugin.version>
 
+		<neo4j.version>2.3.2</neo4j.version>
+		<dsol.version>3.00.18</dsol.version>
 		<hamcrest.version>1.3</hamcrest.version>
 	</properties>
 
@@ -33,11 +35,10 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
 		<repository>
@@ -46,11 +47,25 @@
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
 			</snapshots>
 		</repository>
 	</repositories>
@@ -69,10 +84,25 @@
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
 		</dependency>
+
+		<!-- TODO use more specific dependencies rather than entire toolkit -->
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j</artifactId>
+			<version>${neo4j.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>dsol3-coala-adapter</artifactId>
 			<version>${coala.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>dsol</groupId>
+			<artifactId>dsol-core</artifactId>
+			<version>${dsol.version}</version>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
