@@ -28,26 +28,5 @@ package nl.rivm.cib.episim.model;
 public class Scenario
 {
 
-	/** the locationsURIs */
-//	protected final NavigableMap<Location.ID, URI> locationsURIs = new ConcurrentSkipListMap<>();
-
-	/** the householdURIs */
-//	protected final NavigableMap<Individual.ID, URI> householdURIs = new ConcurrentSkipListMap<>();
-
-//	public Scenario withLocations( final Iterable<Location> locations )
-//	{
-//		for( Location location : locations )
-//			this.locationsURIs.put( location.getId(),
-//					URI.create( location.getId().unwrap() ) );
-//		return this;
-//	}
-
-//	public Scenario withPopulation( final Iterable<Individual> individuals )
-//	{
-//		for( Individual individual : individuals )
-//			this.householdURIs.put( individual.getId(),
-//					URI.create( "ind" + individual.getId().unwrap() ) );
-//		return this;
-//	}
 
 }

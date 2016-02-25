@@ -21,8 +21,9 @@ package nl.rivm.cib.episim.model;
 
 import java.util.Collection;
 
-import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
+import javax.measure.quantity.Frequency;
+import javax.measure.unit.SI;
 
 import org.jscience.physics.amount.Amount;
 
@@ -122,21 +123,30 @@ public interface Infection extends Timed
 	 * @return a {@link Collection} of transmission {@link TransmissionRoute}s
 	 *         of this {@link Infection}
 	 */
-	Collection<TransmissionRoute> getTransmissionRoutes();
+	//Collection<TransmissionRoute> getTransmissionRoutes();
 
 	/**
-	 * The empirical fraction {@link Amount} of transmissions occurring between
-	 * some susceptible and some infective {@link Carrier} of this
-	 * {@link Infection} under specific circumstances:
+	 * The force of infection (denoted &lambda;) is the rate ({@link Frequency}
+	 * {@link Amount}) at which a secondary susceptible individual acquires this
+	 * infectious disease from primary infectives. It is directly proportional
+	 * to the effective transmission rate &beta; and gives the number of new
+	 * infections given a number of infectives and the average duration of
+	 * exposures (see
+	 * <a href="https://en.wikipedia.org/wiki/Force_of_infection">wikipedia</a>
+	 * ), here with calibration to specific circumstances:
 	 * 
-	 * @param route the {@link TransmissionRoute} of contact
-	 * @param duration the {@link Duration} of contact
-	 * @param relation the {@link Relation} between {@link Carrier}s
-	 * @param condition the {@link Condition} of the susceptible {@link Carrier}
-	 * @return the likelihood or fraction {@link Amount} of transmission
+	 * @param location the {@link Location} of contact
+	 * @param infectives the primary infective {@link Carrier}s
+	 * @param susceptible the secondary susceptible {@link Carrier}
+	 * @param duration the {@link Duration} {@link Amount} of contact
+	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	Amount<Dimensionless> getTransmissionLikelihood( TransmissionRoute route,
-		Amount<Duration> duration, Relation relation, Condition condition );
+	default Amount<Frequency> getForceOfInfection( Location location,
+		Collection<? extends Carrier> infectives, Carrier susceptible,
+		Amount<Duration> duration )
+	{
+		return Amount.valueOf( 0, SI.HERTZ );
+	}
 
 	/**
 	 * @return the (random) period between {@link Stage#EXPOSED} and

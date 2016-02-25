@@ -19,8 +19,6 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.x.Wrapper;
-
 /**
  * {@link EpidemicCompartment} is an extensible identifier for compartments in
  * SIR/SIS/SIRS/SEIS/SEIR/MSIR/MSEIR/MSEIRS models following terminology in
@@ -34,48 +32,77 @@ import io.coala.json.x.Wrapper;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface EpidemicCompartment extends Wrapper<String>
+public interface EpidemicCompartment
 {
 	/**
-	 * a {@link Condition} where a {@link Carrier} infant is MATERNALLY DERIVED
-	 * or PASSIVELY IMMUNE to some {@link Disease} (e.g. measles due to maternal
-	 * antibodies in placenta and colostrum)
+	 * @return {@code true} iff this compartment represents an INFECTIVE
+	 *         {@link Condition}
 	 */
-	EpidemicCompartment PASSIVE_IMMUNE = Util.valueOf( "passive-immune",
-			EpidemicCompartment.class );
+	boolean isInfective();
 
 	/**
-	 * a {@link Condition} where a {@link Carrier} is SUSCEPTIBLE to some
-	 * {@link Disease}
+	 * @return {@code true} iff this compartment represents a SUSCEPTIBLE
+	 *         {@link Condition}
 	 */
-	EpidemicCompartment SUSCEPTIBLE = Util.valueOf( "susceptible",
-			EpidemicCompartment.class );
+	boolean isSusceptible();
 
 	/**
-	 * a {@link Condition} where a {@link Carrier} is EXPOSED to, LATENT
-	 * INFECTED by, or PRE-INFECTIVE of some {@link Disease}
+	 * {@link Simple}
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
 	 */
-	EpidemicCompartment EXPOSED = Util.valueOf( "exposed",
-			EpidemicCompartment.class );
+	enum Simple implements EpidemicCompartment
+	{
+		/**
+		 * a {@link Condition} where a {@link Carrier} infant is MATERNALLY
+		 * DERIVED or PASSIVELY IMMUNE to some {@link Infection} (e.g. measles
+		 * due to maternal antibodies in placenta and colostrum)
+		 */
+		PASSIVE_IMMUNE,
 
-	/**
-	 * a {@link Condition} where a {@link Carrier} is INFECTIVE of some
-	 * {@link Disease}
-	 */
-	EpidemicCompartment INFECTIVE = Util.valueOf( "infective",
-			EpidemicCompartment.class );
+		/**
+		 * a {@link Condition} where a {@link Carrier} is SUSCEPTIBLE to some
+		 * {@link Infection}
+		 */
+		SUSCEPTIBLE,
 
-	/**
-	 * a {@link Condition} where a {@link Carrier} is RECOVERED from and IMMUNE
-	 * to some {@link Disease} or otherwise REMOVED (i.e. dead)
-	 */
-	EpidemicCompartment RECOVERED = Util.valueOf( "recovered",
-			EpidemicCompartment.class );
+		/**
+		 * a {@link Condition} where a {@link Carrier} is EXPOSED to, LATENT
+		 * INFECTED by, or PRE-INFECTIVE of some {@link Infection}
+		 */
+		EXPOSED,
 
-	/**
-	 * a {@link Condition} where a {@link Carrier} is CARRIER of some
-	 * {@link Disease}
-	 */
-	EpidemicCompartment CARRIER = Util.valueOf( "carrier",
-			EpidemicCompartment.class );
+		/**
+		 * a {@link Condition} where a {@link Carrier} is INFECTIVE of some
+		 * {@link Infection}
+		 */
+		INFECTIVE,
+
+		/**
+		 * a {@link Condition} where a {@link Carrier} is RECOVERED from and
+		 * IMMUNE to some {@link Infection} or otherwise REMOVED (i.e. dead)
+		 */
+		RECOVERED,
+
+		/**
+		 * a {@link Condition} where a {@link Carrier} is non-recovered CARRIER
+		 * of some {@link Infection}
+		 */
+		CARRIER,
+
+		;
+
+		@Override
+		public boolean isInfective()
+		{
+			return equals( INFECTIVE );
+		}
+
+		@Override
+		public boolean isSusceptible()
+		{
+			return equals( SUSCEPTIBLE );
+		}
+	}
 }

@@ -37,11 +37,11 @@ public interface TreatmentStage extends Wrapper<String>
 	TreatmentStage VACCINATION = Util.valueOf( "vaccination",
 			TreatmentStage.class );
 
-	/** currently suppressing disease using PrEP treatment */
+	/** currently suppressing disease using PrEP regime */
 	TreatmentStage PRE_EXPOSURE_PROPHYLACTIC = Util.valueOf( "prep",
 			TreatmentStage.class );
 
-	/** currently suppressing disease using PEP treatment */
+	/** currently suppressing disease using PEP regime */
 	TreatmentStage POST_EXPOSURE_PROPHYLACTIC = Util.valueOf( "pep",
 			TreatmentStage.class );
 }

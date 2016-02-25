@@ -19,39 +19,31 @@
  */
 package nl.rivm.cib.episim.model;
 
-import org.apache.logging.log4j.Logger;
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 
-import io.coala.log.LogUtil;
-
 /**
- * {@link ScenarioTest}
+ * {@link EpidemicCompartmentTest}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class ScenarioTest
+public class EpidemicCompartmentTest
 {
-	/** */
-	private static final Logger LOG = LogUtil.getLogger( ScenarioTest.class );
 
 	/**
-	 * This test should:
-	 * <ol>
-	 * <li>init (contact, transport, care) location networks</li>
-	 * <li>init (age, sex, opinion, birth/death) population networks</li>
-	 * <li>init (travel, contact, risk) behaviors</li>
-	 * <li>init disease conditions/compartments</li>
-	 * <li>run opinion-immunization\\contact-transmission events</li>
-	 * </ol>
-	 * 
-	 * @throws Throwable
+	 * Test method for
+	 * {@link nl.rivm.cib.episim.model.EpidemicCompartment#isInfective()}.
 	 */
 	@Test
-	public void scenarioTest() throws Throwable
+	public void testIsInfective()
 	{
-		LOG.trace( "Starting scenario..." );
-
+		assertTrue( EpidemicCompartment.Simple.INFECTIVE.isInfective() );
+		assertFalse( EpidemicCompartment.Simple.SUSCEPTIBLE.isInfective() );
+		assertFalse( EpidemicCompartment.Simple.EXPOSED.isInfective() );
+		assertFalse( EpidemicCompartment.Simple.RECOVERED.isInfective() );
+		assertFalse( EpidemicCompartment.Simple.PASSIVE_IMMUNE.isInfective() );
 	}
 
 }

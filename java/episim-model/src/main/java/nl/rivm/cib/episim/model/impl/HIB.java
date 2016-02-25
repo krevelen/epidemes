@@ -20,14 +20,8 @@
 package nl.rivm.cib.episim.model.impl;
 
 import static io.coala.random.RandomDistribution.Util.asAmount;
-import static org.aeonbits.owner.util.Collections.entry;
-import static org.aeonbits.owner.util.Collections.map;
-
-import java.util.Collection;
-import java.util.Map;
 
 import javax.inject.Inject;
-import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
 import javax.measure.unit.NonSI;
 
@@ -40,11 +34,9 @@ import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.EpidemicCompartment;
 import nl.rivm.cib.episim.model.Infection;
-import nl.rivm.cib.episim.model.Relation;
 import nl.rivm.cib.episim.model.SymptomPhase;
 import nl.rivm.cib.episim.model.TransitionEvent;
 import nl.rivm.cib.episim.model.TransmissionEvent;
-import nl.rivm.cib.episim.model.TransmissionRoute;
 import nl.rivm.cib.episim.model.TreatmentStage;
 
 /**
@@ -60,14 +52,14 @@ import nl.rivm.cib.episim.model.TreatmentStage;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class HIB implements Infection
+public abstract class HIB implements Infection
 {
 
-	@SuppressWarnings( "unchecked" )
-	private static final Map<TransmissionRoute, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
-			entry( TransmissionRoute.DROPLET, Amount.ONE ),
-			entry( TransmissionRoute.DIRECT, Amount.ONE ),
-			entry( TransmissionRoute.ORAL, Amount.ONE ) );
+//	@SuppressWarnings( "unchecked" )
+//	private static final Map<TransmissionRoute, Amount<Dimensionless>> ROUTE_LIKELIHOODS = map(
+//			entry( TransmissionRoute.DROPLET, Amount.ONE ),
+//			entry( TransmissionRoute.DIRECT, Amount.ONE ),
+//			entry( TransmissionRoute.ORAL, Amount.ONE ) );
 
 	private RandomDistribution<Amount<Duration>> onsetPeriodDist;
 
@@ -97,21 +89,6 @@ public class HIB implements Infection
 				NonSI.MONTH );
 	}
 
-	@Override
-	public Collection<TransmissionRoute> getTransmissionRoutes()
-	{
-		return ROUTE_LIKELIHOODS.keySet();
-	}
-
-	@Override
-	public Amount<Dimensionless> getTransmissionLikelihood(
-		final TransmissionRoute route, final Amount<Duration> duration,
-		final Relation relation, final Condition condition )
-	{
-		final Amount<Dimensionless> result = ROUTE_LIKELIHOODS.get( route );
-		return result == null ? Amount.ZERO : result;
-	}
-
 	public void invade( final TransmissionEvent transmission )
 	{
 		after( TimeSpan.ZERO ).call( HIB::expose, this,
@@ -121,7 +98,7 @@ public class HIB implements Infection
 	public static void expose( final HIB self, final Condition condition )
 	{
 		transitions.onNext(
-				TransitionEvent.of( condition, EpidemicCompartment.EXPOSED ) );
+				TransitionEvent.of( condition, EpidemicCompartment.Simple.EXPOSED ) );
 		self.after( TimeSpan.of( self.seroconversionPeriodDist.draw() ) )
 				.call( HIB::infect, self, condition );
 		self.after( TimeSpan.of( self.latentPeriodDist.draw() ) )
@@ -153,7 +130,7 @@ public class HIB implements Infection
 	public static void infect( final HIB self, final Condition condition )
 	{
 		transitions.onNext( TransitionEvent.of( condition,
-				EpidemicCompartment.INFECTIVE ) );
+				EpidemicCompartment.Simple.INFECTIVE ) );
 		self.after( TimeSpan.of( self.recoverPeriodDist.draw() ) )
 				.call( HIB::recover, self, condition );
 	}
@@ -161,7 +138,7 @@ public class HIB implements Infection
 	public static void recover( final HIB self, final Condition condition )
 	{
 		transitions.onNext( TransitionEvent.of( condition,
-				EpidemicCompartment.RECOVERED ) );
+				EpidemicCompartment.Simple.RECOVERED ) );
 		self.after( TimeSpan.of( self.wanePeriodDist.draw() ) ).call( HIB::wane,
 				self, condition );
 	}
@@ -169,7 +146,6 @@ public class HIB implements Infection
 	public static void wane( final HIB self, final Condition condition )
 	{
 		transitions.onNext( TransitionEvent.of( condition,
-				EpidemicCompartment.SUSCEPTIBLE ) );
+				EpidemicCompartment.Simple.SUSCEPTIBLE ) );
 	}
-
 }

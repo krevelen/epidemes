@@ -57,11 +57,11 @@ public class DataSourceNeo4J
 					.newEmbeddedDatabaseBuilder( DB_PATH );
 			if( CONFIG_PATH.exists() )
 			{
-				LOG.trace( "loading " + CONFIG_PATH );
+				LOG.trace( "loading config from path: {}", CONFIG_PATH );
 				builder.loadPropertiesFromFile( CONFIG_PATH.getAbsolutePath() );
 			} else
 			{
-				LOG.trace( "skipping " + CONFIG_PATH );
+				LOG.trace( "Not found: {}, skipping...", CONFIG_PATH );
 				builder.setConfig( GraphDatabaseSettings.pagecache_memory,
 						"512M" )
 						.setConfig( GraphDatabaseSettings.string_block_size,
@@ -79,6 +79,7 @@ public class DataSourceNeo4J
 				@Override
 				public void run()
 				{
+					LOG.trace( "Shutting down Neo4J" );
 					INSTANCE.shutdown();
 				}
 			} );

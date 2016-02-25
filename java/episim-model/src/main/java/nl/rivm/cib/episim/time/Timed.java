@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.x.ExceptionBuilder;
+import io.coala.json.x.Wrapper;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import rx.Observable;
@@ -55,64 +56,15 @@ import rx.subjects.Subject;
  */
 public interface Timed
 {
-	Scheduler SCHEDULER_INSTANCE = new Scheduler()
-	{
-		/** */
-		private final Logger LOG = LogManager.getLogger( Timed.class );
-
-		private Instant now = Instant.ZERO;
-
-		private boolean run = false;
-
-		private final transient Subject<Instant, Instant> instants = BehaviorSubject
-				.create( this.now );
-
-		@Override
-		public Instant now()
-		{
-			return this.now;
-		}
-
-		@Override
-		public Observable<Instant> resume()
-		{
-			this.run = true;
-			return this.instants.map( new Func1<Instant, Instant>()
-			{
-				@Override
-				public Instant call( final Instant t )
-				{
-					while( !run )
-						try
-						{
-							System.err.println( "waiting to resume..." );
-							Thread.sleep( 10 );
-						} catch( final InterruptedException e )
-						{
-							LOG.error( "Problem", e );
-						}
-					now = t;
-					return t;
-				}
-			} ).asObservable();
-		}
-
-		@Override
-		public Expectation schedule( final Instant when,
-			final Callable<?> call )
-		{
-			final Subscription subscription = null; // FIXME
-			return Expectation.of( when, subscription );
-		}
-	};
 
 	/**
 	 * @return the {@link Scheduler} of this {@link Timed} object
 	 */
-	default Scheduler scheduler()
-	{
-		return SCHEDULER_INSTANCE;
-	}
+	//default 
+	Scheduler scheduler();
+//	{
+//		return SCHEDULER_INSTANCE;
+//	}
 
 	/** @return the current {@link Instant} */
 	default Instant now()
@@ -140,7 +92,7 @@ public interface Timed
 	{
 		return FutureSelf.of( this, now().add( delay ) );
 	}
-	
+
 	interface Scheduler
 	{
 
@@ -155,48 +107,99 @@ public interface Timed
 		 * @return the occurrence {@link Expectation}, for optional cancellation
 		 */
 		Expectation schedule( Instant when, Callable<?> call );
+
+		static Scheduler of( final Instant offset )
+		{
+			return new Scheduler()
+			{
+				/** */
+				private final Logger LOG = LogManager.getLogger( Timed.class );
+
+				private Instant now = offset;
+
+				private boolean run = false;
+
+				private final transient Subject<Instant, Instant> instants = BehaviorSubject
+						.create( this.now );
+
+				@Override
+				public Instant now()
+				{
+					return this.now;
+				}
+
+				@Override
+				public Observable<Instant> resume()
+				{
+					this.run = true;
+					return this.instants.map( new Func1<Instant, Instant>()
+					{
+						@Override
+						public Instant call( final Instant t )
+						{
+							while( !run )
+								try
+								{
+									Thread.sleep( 10 );
+								} catch( final InterruptedException e )
+								{
+									LOG.error( "Problem", e );
+								}
+							now = t;
+							return t;
+						}
+					} ).asObservable();
+				}
+
+				@Override
+				public Expectation schedule( final Instant when,
+					final Callable<?> call )
+				{
+					final Subscription subscription = null; // FIXME
+					return Expectation.of( when, subscription );
+				}
+			};
+		}
+
 	}
 
 	/**
 	 * {@link Expectation} or anticipation confirms that an event is scheduled
-	 * to occur
+	 * to occur at some future {@link Instant}
 	 * 
 	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
-	interface Expectation
+	class Expectation extends Wrapper.SimpleOrdinal<Instant>
 	{
-		/** the occurrence {@link Instant} */
-		Instant getInstant();
+		Subscription subscription;
+
+		public Expectation()
+		{
+
+		}
+
+		public Expectation( final Subscription subscription )
+		{
+			this.subscription = subscription;
+		}
 
 		/** cancels the scheduled event */
-		void remove();
+		public void remove()
+		{
+			this.subscription.unsubscribe();
+		}
 
 		/** @return {@code true} iff the event was cancelled or has occurred */
-		boolean isRemoved();
+		public boolean isRemoved()
+		{
+			return this.subscription.isUnsubscribed();
+		}
 
 		static Expectation of( final Instant when,
 			final Subscription subscription )
 		{
-			return new Expectation()
-			{
-				public Instant getInstant()
-				{
-					return when;
-				}
-
-				@Override
-				public void remove()
-				{
-					subscription.unsubscribe();
-				}
-
-				@Override
-				public boolean isRemoved()
-				{
-					return subscription.isUnsubscribed();
-				}
-			};
+			return new Expectation( subscription );
 		}
 	}
 

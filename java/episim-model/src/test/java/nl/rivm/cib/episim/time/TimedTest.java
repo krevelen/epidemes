@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
+import nl.rivm.cib.episim.time.Timed.Scheduler;
 
 /**
  * {@link TimedTest}
@@ -45,12 +46,15 @@ public class TimedTest
 	@Test
 	public void test() throws InterruptedException
 	{
+		final Scheduler sched = Scheduler.of( Instant.ZERO );
 		final Timed model = new Timed()
 		{
+			@Override
+			public Scheduler scheduler()
+			{
+				return sched;
+			}
 		};
-
-		assertThat( "default scheduler", model.scheduler(),
-				equalTo( Timed.SCHEDULER_INSTANCE ) );
 
 		LOG.trace( "testing t=0: " + Instant.ZERO );
 		assertThat( "default start time is zero", model.now(),
@@ -65,19 +69,13 @@ public class TimedTest
 				model.after( TimeSpan.of( 3 ) ).now(),
 				not( equalTo( Instant.of( 2 ) ) ) );
 /*
-		final CountDownLatch latch = new CountDownLatch( 1 );
-		model.after( TimeSpan.of( 3 ) ).call( new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				latch.countDown();
-			}
-		} );
-		model.scheduler().resume();
-		latch.await( 1, TimeUnit.SECONDS );
-		assertThat( "testing Callable executed and counted down in <1000ms",
-				latch.getCount(), equalTo( 0 ) );
-*/	}
+ * final CountDownLatch latch = new CountDownLatch( 1 ); model.after(
+ * TimeSpan.of( 3 ) ).call( new Runnable() {
+ * 
+ * @Override public void run() { latch.countDown(); } } );
+ * model.scheduler().resume(); latch.await( 1, TimeUnit.SECONDS ); assertThat(
+ * "testing Callable executed and counted down in <1000ms", latch.getCount(),
+ * equalTo( 0 ) );
+ */ }
 
 }

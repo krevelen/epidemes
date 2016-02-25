@@ -52,7 +52,7 @@ public class DataSourceNeo4JTest
 		final Iterable<RelationshipType> relTypes = GlobalGraphOperations
 				.at( neo4j ).getAllRelationshipTypes();
 		for( RelationshipType relType : relTypes )
-			LOG.trace( "Found relationship type: " + relType );
+			LOG.trace( "Found relationship type: {}", relType );
 	}
 
 }

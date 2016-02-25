@@ -19,6 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
+import java.util.Map;
+
 /**
  * {@link Carrier} can be a (secondary or even primary) host to multiple
  * {@link Infection}s, each with their own {@link Condition} dynamics
@@ -34,6 +36,12 @@ public interface Carrier
 	 * @return the {@link Condition} of this {@link Carrier} with respect to
 	 *         specified {@link Infection}, or {@code null} if susceptible
 	 */
-	Condition getCondition( Infection infection );
+	//Condition getCondition( Infection infection );
+
+	/**
+	 * @return a {@link Map} of this {@link Carrier}s {@link Condition}s by
+	 *         {@link Infection}
+	 */
+	Map<Infection, Condition> getConditions();
 
 }
