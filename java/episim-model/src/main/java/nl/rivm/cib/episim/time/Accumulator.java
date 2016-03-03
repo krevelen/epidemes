@@ -84,31 +84,33 @@ public class Accumulator<Q extends Quantity> implements Timed
 		final Amount<Q> amount = this.amount == null ? delta
 				: this.amount.plus( delta );
 		setAmount( amount );
-
-		this.intercepts.forEach( this::reschedule );
 	}
 
 	public synchronized void setAmount( final Amount<Q> amount )
 	{
 		this.amount = amount;
 		this.amounts.onNext( amount );
-		this.intercepts.forEach( this::reschedule );
+
+		this.intercepts.keySet().forEach( this::reschedule );
 	}
 
-	protected void reschedule( final TargetAmount<Q> target,
-		final Expectation e )
+	protected void reschedule( final TargetAmount<Q> target )
 	{
+		final Expectation e = this.intercepts.put( target, null );
 		e.remove(); // unschedule target
-		reach( target ); // reschedule target, if any
+		LOG.trace( "unscheduled a={} at t={}, total={}", target.amount, e,
+				this.intercepts.size() );
+		scheduleReached( target ); // reschedule target, if any
 	}
 
-	public void reach( final Amount<Q> amount,
-		final Consumer<Instant> observer )
+	protected void onReached( final TargetAmount<Q> target )
 	{
-		reach( TargetAmount.of( amount, observer ) );
+		setAmount( target.amount );
+		target.consumer.accept( now() );
+		scheduleReached( target );
 	}
 
-	protected void reach( final TargetAmount<Q> target )
+	protected void scheduleReached( final TargetAmount<Q> target )
 	{
 		final Instant t1 = now();
 		final Instant t2 = this.integrator.when( t1,
@@ -116,16 +118,15 @@ public class Accumulator<Q extends Quantity> implements Timed
 		if( t2 == null ) return; // no repeats, push onCompleted()?
 		// schedule repeat
 		if( t2.compareTo( t1 ) <= 0 ) throw ExceptionBuilder
-				.unchecked( "Got time in past: %s <= %s", t2, t1 ).build();
+				.unchecked( "Got time in past: %s =< %s", t2, t1 ).build();
 		this.intercepts.put( target, at( t2 ).call( this::onReached, target ) );
-		LOG.trace( "scheduled a={} at t={}", target.amount, t2 );
+		LOG.trace( "scheduled a={} at t={}, total={}", target.amount, t2,
+				this.intercepts.size() );
 	}
 
-	protected void onReached( final TargetAmount<Q> target )
+	public void at( final Amount<Q> amount, final Consumer<Instant> observer )
 	{
-		setAmount( target.amount );
-		target.consumer.accept( now() );
-		reach( target );
+		scheduleReached( TargetAmount.of( amount, observer ) );
 	}
 
 	public Amount<Q> getAmount()

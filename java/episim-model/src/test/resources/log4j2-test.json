@@ -17,7 +17,7 @@
 			"Console":{
 				"name":"STDOUT",
 				"PatternLayout":{
-					"pattern":"%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C{1}#%M(%F:%L)]%n"
+					"pattern":"%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C{1}.%M(%F:%L)]%n"
 				}
 			}
 		}

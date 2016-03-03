@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 import javax.measure.quantity.DataAmount;
 import javax.measure.unit.SI;
+import javax.measure.unit.Unit;
 
 import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
@@ -32,6 +33,7 @@ import org.junit.Test;
 
 import io.coala.log.LogUtil;
 import io.coala.time.x.Instant;
+import nl.rivm.cib.episim.time.Accumulator.Integrator;
 import nl.rivm.cib.episim.time.Timed.Scheduler;
 import rx.Observer;
 
@@ -50,21 +52,23 @@ public class AccumulatorTest
 
 	/**
 	 * Test method for {@link Accumulator#setIntegrator(Accumulator.Integrator)}
-	 * , {@link Accumulator#reach(Amount, Observer)},
+	 * , {@link Accumulator#at(Amount, Observer)},
 	 * {@link Accumulator#emitAmounts()} and {@link Accumulator#getAmount()}.
 	 */
 	@Test
 	public void test()
 	{
+
+		final Unit<?> bps = SI.BIT.divide( SI.SECOND );
 		final Scheduler scheduler = Scheduler.of( Instant.valueOf( "0 s" ) );
 		final Accumulator<DataAmount> acc = Accumulator.of( scheduler,
-				Amount.valueOf( 20, SI.BIT ),
-				Amount.valueOf( 2, SI.BIT.divide( SI.SECOND ) ) );
+				Amount.valueOf( 20, SI.BIT ), Amount.valueOf( 2, bps ) );
 		final Amount<DataAmount> target = Amount.valueOf( 40, SI.BIT );
-		acc.reach( target, ( Instant t ) ->
+		acc.at( target, ( Instant t ) ->
 		{
 			LOG.trace( "reached a={} at t={}", target, t );
 		} );
+		acc.setIntegrator( Integrator.ofRate( Amount.valueOf( 4, bps ) ) );
 		assertThat( "Can't be null", acc, not( nullValue() ) );
 	}
 

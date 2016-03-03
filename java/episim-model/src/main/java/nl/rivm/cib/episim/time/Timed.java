@@ -42,6 +42,7 @@ import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import rx.Observable;
 import rx.Subscription;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.Subject;
@@ -155,8 +156,30 @@ public interface Timed
 				public Expectation schedule( final Instant when,
 					final Callable<?> call )
 				{
-					final Subscription subscription = null; // FIXME
-					return Expectation.of( when, subscription );
+					final Subscription sub = this.instants
+							.filter( new Func1<Instant, Boolean>()
+					{
+						@Override
+						public Boolean call( final Instant t )
+						{
+							final int cmp = t.compareTo( when );
+							return cmp == 0;
+						}
+					} ).subscribe( new Action1<Instant>()
+					{
+						@Override
+						public void call( final Instant t )
+						{
+							try
+							{
+								call.call();
+							} catch( final Exception e )
+							{
+								LOG.error( "Problem", e );
+							}
+						}
+					} );
+					return Expectation.of( when, sub );
 				}
 			};
 		}
@@ -179,8 +202,10 @@ public interface Timed
 
 		}
 
-		public Expectation( final Subscription subscription )
+		public Expectation( final Instant when,
+			final Subscription subscription )
 		{
+			wrap( when );
 			this.subscription = subscription;
 		}
 
@@ -199,7 +224,7 @@ public interface Timed
 		static Expectation of( final Instant when,
 			final Subscription subscription )
 		{
-			return new Expectation( subscription );
+			return new Expectation( when, subscription );
 		}
 	}
 
