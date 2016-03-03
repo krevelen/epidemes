@@ -1,0 +1,32 @@
+templates:
+   defaultAgent:
+     transport:
+        class: com.almende.eve.transport.http.HttpTransportBuilder
+#        servletUrl: http://localhost:8082/agents/
+        servletUrl: http://openid.almende.org:8082/agents/
+        servletLauncher: JettyLauncher
+        servletClass: com.almende.eve.transport.http.DebugServlet
+        doShortcut: true
+        doAuthentication: false
+        jetty: 
+           port: 8082
+     state:
+       class: com.almende.eve.state.memory.MemoryStateBuilder
+     scheduler:
+       class: com.almende.eve.scheduling.SimpleSchedulerBuilder
+
+agents:
+-  id: logger
+   extends: templates/defaultAgent
+   class: com.almende.inertia.common.agents.LoggerAgent
+-  id: dso
+   extends: templates/defaultAgent
+   class: com.almende.inertia.mv.DSOAgent
+   GridCoordinatorURL: http://localhost:8083/aggregator/setForecastProfile
+#  GridCoordinatorURL: http://localhost:8082/test   
+-  id: bus_6
+   extends: templates/defaultAgent
+   class: com.almende.inertia.mv.MVAgent
+   parentUrl: local:dso
+   sendOffset: 60000
+
