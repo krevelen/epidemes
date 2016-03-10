@@ -85,7 +85,7 @@ public class Dsol3Scheduler implements Scheduler
 													.setName( id );
 										}
 									}, "run", null ) );
-					
+
 					// trigger onInitialize function
 					onInitialize.accept( Dsol3Scheduler.this );
 				}
@@ -143,8 +143,7 @@ public class Dsol3Scheduler implements Scheduler
 		} catch( final RemoteException | SimRuntimeException
 				| NamingException e )
 		{
-			LOG.error( "Problem", e );
-			this.time.onError( e ); // FIXME unlikely there's a subscriber yet
+			this.time.onError( e );
 			throw ExceptionBuilder.unchecked( e, "Problem creating scheduler" )
 					.build();
 		}
@@ -166,7 +165,7 @@ public class Dsol3Scheduler implements Scheduler
 			this.scheduler.start();
 		} catch( final SimRuntimeException e )
 		{
-			LOG.error( "Problem", e );
+			this.time.onError( e );
 		}
 	}
 
@@ -194,7 +193,7 @@ public class Dsol3Scheduler implements Scheduler
 							{ t } ) );
 				} catch( final Exception e )
 				{
-					LOG.error( "Problem", e );
+					this.time.onError( e );
 				}
 				return result;
 			} );
@@ -203,16 +202,12 @@ public class Dsol3Scheduler implements Scheduler
 					{
 						try
 						{
-//							LOG.trace( "Calling subscriber at t={}", t );
 							call.call();
 						} catch( Exception e )
 						{
-							LOG.error( "Problem with call scheduled at t=" + t,
-									e );
 							this.time.onError( e );
 						}
 					} );
-//			LOG.trace( "subscribed to publisher for t={}", when );
 			return Expectation.of( when, sub );
 		}
 	}

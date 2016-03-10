@@ -38,8 +38,7 @@ import rx.subjects.Subject;
 /**
  * {@link Accumulator}
  * 
- * @param
- * 			<Q>the concrete type of accumulated {@link Quantity}
+ * @param <Q>the concrete type of accumulated {@link Quantity}
  * @param <R> the concrete type of accumulation rate {@link Quantity}
  * @version $Id$
  * @author Rick van Krevelen
@@ -115,10 +114,14 @@ public class Accumulator<Q extends Quantity> implements Timed
 		final Instant t1 = now();
 		final Instant t2 = this.integrator.when( t1,
 				target.amount.minus( this.amount ) );
-		if( t2 == null ) return; // no repeats, push onCompleted()?
+		if( t2 == null || t2.compareTo( t1 ) <= 0 ) return; // no repeats, push onCompleted()?
+		
 		// schedule repeat
-		if( t2.compareTo( t1 ) <= 0 ) throw ExceptionBuilder
-				.unchecked( "Got time in past: %s =< %s", t2, t1 ).build();
+		/*
+		 * if( t2.compareTo( t1 ) <= 0 ) throw ExceptionBuilder .unchecked(
+		 * "Got time in past: %s =< %s", t2, t1 ).build();
+		 */
+
 		this.intercepts.put( target, at( t2 ).call( this::onReached, target ) );
 		LOG.trace( "scheduled a={} at t={}, total={}", target.amount, t2,
 				this.intercepts.size() );

@@ -22,6 +22,10 @@ package nl.rivm.cib.episim.time;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.measure.quantity.DataAmount;
 import javax.measure.unit.SI;
@@ -55,17 +59,20 @@ public class AccumulatorTest
 	 * Test method for {@link Accumulator#setIntegrator(Accumulator.Integrator)}
 	 * , {@link Accumulator#at(Amount, Observer)},
 	 * {@link Accumulator#emitAmounts()} and {@link Accumulator#getAmount()}.
+	 * 
+	 * @throws InterruptedException
 	 */
 	@Test
-	public void test()
+	public void test() throws InterruptedException
 	{
 
 		final Unit<?> bps = SI.BIT.divide( SI.SECOND );
 		final Scheduler scheduler = new Dsol3Scheduler( "dsol3Test",
-				Instant.of( 5 ), Instant.of( 10 ), ( Timed.Scheduler s ) ->
+				Instant.valueOf( "5 s" ), Instant.valueOf( "100 s" ),
+				( Timed.Scheduler s ) ->
 				{
 					LOG.trace( "initialized, t={}", s.now() );
-					
+
 				} );
 		final Accumulator<DataAmount> acc = Accumulator.of( scheduler,
 				Amount.valueOf( 20, SI.BIT ), Amount.valueOf( 2, bps ) );
@@ -76,6 +83,23 @@ public class AccumulatorTest
 		} );
 		acc.setIntegrator( Integrator.ofRate( Amount.valueOf( 4, bps ) ) );
 		assertThat( "Can't be null", acc, not( nullValue() ) );
+
+		final CountDownLatch latch = new CountDownLatch( 1 );
+		scheduler.time().subscribe( ( Instant t ) ->
+		{
+			LOG.trace( "new time, t={}", t );
+		}, ( Throwable e ) ->
+		{
+			LOG.trace( "problem, t=" + scheduler.now(), e );
+		}, () ->
+		{
+			LOG.trace( "completed, t={}", scheduler.now() );
+			latch.countDown();
+		} );
+		scheduler.resume();
+
+		latch.await( 1, TimeUnit.SECONDS );
+		assertEquals( "Scheduler never completed", 0, latch.getCount() );
 	}
 
 }
