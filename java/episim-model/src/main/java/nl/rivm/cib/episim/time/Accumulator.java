@@ -28,7 +28,6 @@ import javax.measure.quantity.Quantity;
 import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 
-import io.coala.exception.x.ExceptionBuilder;
 import io.coala.log.LogUtil;
 import io.coala.time.x.Instant;
 import rx.Observable;
@@ -69,6 +68,12 @@ public class Accumulator<Q extends Quantity> implements Timed
 	}
 
 	@Override
+	public String toString()
+	{
+		return getAmount().toString();
+	}
+
+	@Override
 	public Scheduler scheduler()
 	{
 		return this.scheduler;
@@ -76,8 +81,14 @@ public class Accumulator<Q extends Quantity> implements Timed
 
 	public synchronized void setIntegrator( final Integrator<Q> integrator )
 	{
-		final Instant t0 = this.t, t1 = now();
 		this.integrator = integrator;
+		recalculate();
+	}
+
+	protected synchronized void recalculate()
+	{
+		final Instant t0 = this.t, t1 = now();
+		if( t0.equals( t1 ) ) return;
 		this.t = t1;
 		final Amount<Q> delta = this.integrator.delta( t0, t1 );
 		final Amount<Q> amount = this.amount == null ? delta
@@ -96,6 +107,7 @@ public class Accumulator<Q extends Quantity> implements Timed
 	protected void reschedule( final TargetAmount<Q> target )
 	{
 		final Expectation e = this.intercepts.put( target, null );
+		if( e == null ) return;
 		e.remove(); // unschedule target
 		LOG.trace( "unscheduled a={} at t={}, total={}", target.amount, e,
 				this.intercepts.size() );
@@ -115,7 +127,7 @@ public class Accumulator<Q extends Quantity> implements Timed
 		final Instant t2 = this.integrator.when( t1,
 				target.amount.minus( this.amount ) );
 		if( t2 == null || t2.compareTo( t1 ) <= 0 ) return; // no repeats, push onCompleted()?
-		
+
 		// schedule repeat
 		/*
 		 * if( t2.compareTo( t1 ) <= 0 ) throw ExceptionBuilder .unchecked(
@@ -134,6 +146,7 @@ public class Accumulator<Q extends Quantity> implements Timed
 
 	public Amount<Q> getAmount()
 	{
+		recalculate();
 		return this.amount;
 	}
 

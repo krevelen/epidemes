@@ -37,6 +37,7 @@ import org.junit.Test;
 
 import io.coala.log.LogUtil;
 import io.coala.time.x.Instant;
+import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.time.Accumulator.Integrator;
 import nl.rivm.cib.episim.time.Timed.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
@@ -55,6 +56,12 @@ public class AccumulatorTest
 	private static final Logger LOG = LogUtil
 			.getLogger( AccumulatorTest.class );
 
+	private void logPoint(final Accumulator<?> acc, final TimeSpan interval)
+	{
+		LOG.trace( "{},{}",acc.now(), acc.getAmount() );
+		acc.after( interval ).call( this::logPoint, acc, interval );
+	}
+	
 	/**
 	 * Test method for {@link Accumulator#setIntegrator(Accumulator.Integrator)}
 	 * , {@link Accumulator#at(Amount, Observer)},
@@ -68,19 +75,25 @@ public class AccumulatorTest
 
 		final Unit<?> bps = SI.BIT.divide( SI.SECOND );
 		final Scheduler scheduler = new Dsol3Scheduler( "dsol3Test",
-				Instant.valueOf( "5 s" ), Instant.valueOf( "100 s" ),
+				Instant.of( "5 s" ), Instant.of( "100 s" ),
 				( Timed.Scheduler s ) ->
 				{
 					LOG.trace( "initialized, t={}", s.now() );
-
 				} );
 		final Accumulator<DataAmount> acc = Accumulator.of( scheduler,
-				Amount.valueOf( 20, SI.BIT ), Amount.valueOf( 2, bps ) );
+				Amount.valueOf( 120, SI.BIT ), Amount.valueOf( 2, bps ) );
+		
+		final TimeSpan delay = TimeSpan.valueOf( "1 s" );
+		scheduler.after( delay ).call( this::logPoint, acc, delay );
+		
+		// schedule event at target level
 		final Amount<DataAmount> target = Amount.valueOf( 40, SI.BIT );
 		acc.at( target, ( Instant t ) ->
 		{
 			LOG.trace( "reached a={} at t={}", target, t );
 		} );
+		
+		// double the rate
 		acc.setIntegrator( Integrator.ofRate( Amount.valueOf( 4, bps ) ) );
 		assertThat( "Can't be null", acc, not( nullValue() ) );
 
@@ -100,6 +113,8 @@ public class AccumulatorTest
 
 		latch.await( 1, TimeUnit.SECONDS );
 		assertEquals( "Scheduler never completed", 0, latch.getCount() );
+		
+		LOG.trace( "Got total: "+acc );
 	}
 
 }
