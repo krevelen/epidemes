@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: e67e3079fc342154fce540f31a263151797d8350 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -46,7 +46,7 @@ import rx.subjects.Subject;
 /**
  * {@link Location}
  * 
- * @version $Id$
+ * @version $Id: e67e3079fc342154fce540f31a263151797d8350 $
  * @author Rick van Krevelen
  */
 public interface Location extends Timed
@@ -62,7 +62,7 @@ public interface Location extends Timed
 	/**
 	 * {@link ZipCode} is a simple {@link Wrapper} of {@link String} values
 	 * 
-	 * @version $Id$
+	 * @version $Id: e67e3079fc342154fce540f31a263151797d8350 $
 	 * @author Rick van Krevelen
 	 */
 	class ZipCode extends Wrapper.Simple<String>
@@ -365,7 +365,7 @@ public interface Location extends Timed
 	 * {@link ContactEvent}s which in turn may trigger its transmission by
 	 * generating {@link TransmissionEvent}s.
 	 * 
-	 * @version $Id$
+	 * @version $Id: e67e3079fc342154fce540f31a263151797d8350 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Location
@@ -379,7 +379,12 @@ public interface Location extends Timed
 		private final transient Subject<TransmissionEvent, TransmissionEvent> transmissions = PublishSubject
 				.create();
 
-		private Scheduler scheduler = Scheduler.of( Instant.ZERO );
+		private Scheduler scheduler = null;
+
+		private Simple( final Scheduler scheduler )
+		{
+			this.scheduler = scheduler;
+		}
 
 		@Override
 		public Scheduler scheduler()

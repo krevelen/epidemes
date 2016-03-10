@@ -35,6 +35,7 @@ import io.coala.log.LogUtil;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Accumulator.Integrator;
 import nl.rivm.cib.episim.time.Timed.Scheduler;
+import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 import rx.Observer;
 
 /**
@@ -60,7 +61,12 @@ public class AccumulatorTest
 	{
 
 		final Unit<?> bps = SI.BIT.divide( SI.SECOND );
-		final Scheduler scheduler = Scheduler.of( Instant.valueOf( "0 s" ) );
+		final Scheduler scheduler = new Dsol3Scheduler( "dsol3Test",
+				Instant.of( 5 ), Instant.of( 10 ), ( Timed.Scheduler s ) ->
+				{
+					LOG.trace( "initialized, t={}", s.now() );
+					
+				} );
 		final Accumulator<DataAmount> acc = Accumulator.of( scheduler,
 				Amount.valueOf( 20, SI.BIT ), Amount.valueOf( 2, bps ) );
 		final Amount<DataAmount> target = Amount.valueOf( 40, SI.BIT );

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: dfc79e6adc947b0e970d847b546cafdde5f6dd26 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -30,23 +30,29 @@ import org.junit.Test;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.time.Timed.Scheduler;
+import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
 /**
  * {@link TimedTest}
  * 
- * @version $Id$
+ * @version $Id: dfc79e6adc947b0e970d847b546cafdde5f6dd26 $
  * @author Rick van Krevelen
  */
 public class TimedTest
 {
 
 	/** */
-	private static final Logger LOG = LogManager.getLogger( TimedTest.class );
+	static final Logger LOG = LogManager.getLogger( TimedTest.class );
 
 	@Test
 	public void test() throws InterruptedException
 	{
-		final Scheduler sched = Scheduler.of( Instant.ZERO );
+		final Scheduler sched = new Dsol3Scheduler( "dsol3Test",
+				Instant.of( 5 ), Instant.of( 10 ), ( Timed.Scheduler s ) ->
+				{
+					LOG.trace( "initialized, t={}", s.now() );
+					
+				} );
 		final Timed model = new Timed()
 		{
 			@Override

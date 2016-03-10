@@ -12,8 +12,8 @@
 		<module>episim-model</module>
 		<module>episim-connect-cbs</module>
 		<module>episim-api</module>
-		<module>episim-dist</module>
 		<module>episim-mas</module>
+		<module>episim-dist</module>
 	</modules>
 
 	<name>${project.artifactId} ${project.version}</name>

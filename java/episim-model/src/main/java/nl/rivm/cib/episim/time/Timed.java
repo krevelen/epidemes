@@ -32,8 +32,6 @@ import java.util.function.Supplier;
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.x.ExceptionBuilder;
@@ -42,10 +40,6 @@ import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.subjects.BehaviorSubject;
-import rx.subjects.Subject;
 
 /**
  * {@link Timed}
@@ -82,7 +76,33 @@ public interface Timed
 		return FutureSelf.of( this, when );
 	}
 
-//	TODO FutureSelf at( final TriggerPattern recurrent );
+//	default FutureSelf at( final Amount<?> when )
+//	{
+//		return at( Instant.of( when ) );
+//	}
+//
+//	default FutureSelf at( final Measure<?, ?> when )
+//	{
+//		return at( Instant.of( when ) );
+//	}
+//
+//	default FutureSelf at( final ReadableInstant when )
+//	{
+//		return at( Instant.of( when ) );
+//	}
+//
+//	default FutureSelf at( final Number when )
+//	{
+//		return at( Instant.of( when ) );
+//	}
+
+	default Observable<FutureSelf> atEach( final Observable<Instant> stream )
+	{
+		return stream.map( ( Instant t ) ->
+		{
+			return FutureSelf.of( this, t );
+		} );
+	}
 
 	/**
 	 * @param delay the {@link Amount} of delay, in ({@link Duration} or
@@ -94,13 +114,21 @@ public interface Timed
 		return FutureSelf.of( this, now().add( delay ) );
 	}
 
-	interface Scheduler
+	interface Scheduler extends Timed
 	{
 
-		Instant now();
+		//Instant now();
+
+		@Override
+		default Scheduler scheduler()
+		{
+			return this;
+		}
+
+		Observable<Instant> time();
 
 		/** */
-		Observable<Instant> resume();
+		void resume();
 
 		/**
 		 * @param when the {@link Instant} of execution
@@ -108,81 +136,6 @@ public interface Timed
 		 * @return the occurrence {@link Expectation}, for optional cancellation
 		 */
 		Expectation schedule( Instant when, Callable<?> call );
-
-		static Scheduler of( final Instant offset )
-		{
-			return new Scheduler()
-			{
-				/** */
-				private final Logger LOG = LogManager.getLogger( Timed.class );
-
-				private Instant now = offset;
-
-				private boolean run = false;
-
-				private final transient Subject<Instant, Instant> instants = BehaviorSubject
-						.create( this.now );
-
-				@Override
-				public Instant now()
-				{
-					return this.now;
-				}
-
-				@Override
-				public Observable<Instant> resume()
-				{
-					this.run = true;
-					return this.instants.map( new Func1<Instant, Instant>()
-					{
-						@Override
-						public Instant call( final Instant t )
-						{
-							while( !run )
-								try
-								{
-									Thread.sleep( 10 );
-								} catch( final InterruptedException e )
-								{
-									LOG.error( "Problem", e );
-								}
-							now = t;
-							return t;
-						}
-					} ).asObservable();
-				}
-
-				@Override
-				public Expectation schedule( final Instant when,
-					final Callable<?> call )
-				{
-					final Subscription sub = this.instants
-							.filter( new Func1<Instant, Boolean>()
-					{
-						@Override
-						public Boolean call( final Instant t )
-						{
-							final int cmp = t.compareTo( when );
-							return cmp == 0;
-						}
-					} ).subscribe( new Action1<Instant>()
-					{
-						@Override
-						public void call( final Instant t )
-						{
-							try
-							{
-								call.call();
-							} catch( final Exception e )
-							{
-								LOG.error( "Problem", e );
-							}
-						}
-					} );
-					return Expectation.of( when, sub );
-				}
-			};
-		}
 
 	}
 
@@ -221,7 +174,7 @@ public interface Timed
 			return this.subscription.isUnsubscribed();
 		}
 
-		static Expectation of( final Instant when,
+		public static Expectation of( final Instant when,
 			final Subscription subscription )
 		{
 			return new Expectation( when, subscription );
@@ -272,6 +225,7 @@ public interface Timed
 				@Override
 				public Object call() throws Exception
 				{
+					method.setAccessible( true );
 					return method.invoke( obj, args );
 				}
 			} );
