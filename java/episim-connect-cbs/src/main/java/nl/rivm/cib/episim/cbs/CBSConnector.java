@@ -27,7 +27,8 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.fluent.Request;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.coala.json.x.JsonUtil;
 
 /**
  * {@link CBSConnector}
@@ -37,8 +38,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class CBSConnector
 {
-
-	static final ObjectMapper om = new ObjectMapper();
 
 	static final int connectTimeoutMS = 1000;
 
@@ -59,18 +58,18 @@ public class CBSConnector
 	public static JsonNode getJSON( final Request request )
 		throws ClientProtocolException, IOException
 	{
-
 		try( final InputStream stream = request
 				.connectTimeout( connectTimeoutMS )
 				.socketTimeout( socketTimeoutMS ).execute().returnContent()
 				.asStream() )
 		{
-			return om.readTree( stream );
+			return JsonUtil.getJOM().readTree( stream );
 		}
 	}
-	
-	public static void olingoTest(){
-		
+
+	public static void olingoTest()
+	{
+
 	}
 
 }

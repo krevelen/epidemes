@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 50e413952a4dbeea9e3a19b9a9fee08f4c586b27 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -20,18 +20,16 @@
 package nl.rivm.cib.episim.model;
 
 import java.util.Collection;
+import java.util.Map;
 
 import javax.measure.quantity.Duration;
 import javax.measure.quantity.Frequency;
-import javax.measure.unit.SI;
+import javax.measure.unit.NonSI;
+import javax.measure.unit.Unit;
 
 import org.jscience.physics.amount.Amount;
 
-import nl.rivm.cib.episim.time.Timed;
-import rx.Observable;
-import rx.functions.Func1;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
+import io.coala.random.RandomDistribution;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
@@ -69,34 +67,11 @@ import rx.subjects.Subject;
  * </tr>
  * </table>
  * 
- * @version $Id$
+ * @version $Id: 50e413952a4dbeea9e3a19b9a9fee08f4c586b27 $
  * @author Rick van Krevelen
  */
-public interface Infection extends Timed
+public interface Infection
 {
-
-	// FIXME have a Subject mapped separately for each Infection ?
-	@SuppressWarnings( "rawtypes" )
-	Subject<TransitionEvent, TransitionEvent> transitions = PublishSubject
-			.create();
-
-	/**
-	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
-	 *            this {@link Infection}
-	 */
-	@SuppressWarnings( "rawtypes" )
-	default Observable<TransitionEvent> emitTransitions()
-	{
-		final Infection self = this;
-		return transitions.filter( new Func1<TransitionEvent, Boolean>()
-		{
-			@Override
-			public Boolean call( final TransitionEvent event )
-			{
-				return self.equals( event.getCondition().getInfection() );
-			}
-		} );
-	}
 
 	/**
 	 * infection is transmitted via direct/indirect animal-human route, see
@@ -125,28 +100,27 @@ public interface Infection extends Timed
 	 */
 	//Collection<TransmissionRoute> getTransmissionRoutes();
 
+	Unit<Frequency> DAILY = NonSI.DAY.inverse().asType( Frequency.class );
+
 	/**
-	 * The force of infection (denoted &lambda;) is the rate ({@link Frequency}
-	 * {@link Amount}) at which a secondary susceptible individual acquires this
-	 * infectious disease from primary infectives. It is directly proportional
-	 * to the effective transmission rate &beta; and gives the number of new
-	 * infections given a number of infectives and the average duration of
-	 * exposures (see
+	 * The force of infection (denoted &lambda;) is the rate ({@link Amount} of
+	 * {@link Frequency}) at which a secondary susceptible individual acquires
+	 * this infectious disease from primary infectives. It is directly
+	 * proportional to the effective transmission rate &beta; and gives the
+	 * number of new infections given a number of infectives and the average
+	 * duration of exposures (see
 	 * <a href="https://en.wikipedia.org/wiki/Force_of_infection">wikipedia</a>
 	 * ), here with calibration to specific circumstances:
 	 * 
 	 * @param location the {@link Location} of contact
-	 * @param infectives the primary infective {@link Carrier}s
+	 * @param infectives the primary infective {@link Carrier}s in contact with
+	 *            their respective {@link ContactIntensity}
 	 * @param susceptible the secondary susceptible {@link Carrier}
 	 * @param duration the {@link Duration} {@link Amount} of contact
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	default Amount<Frequency> getForceOfInfection( Location location,
-		Collection<? extends Carrier> infectives, Carrier susceptible,
-		Amount<Duration> duration )
-	{
-		return Amount.valueOf( 0, SI.HERTZ );
-	}
+	Amount<Frequency> getForceOfInfection( Location location,
+		Map<Carrier, ContactIntensity> infectives, Carrier susceptible );
 
 	/**
 	 * @return the (random) period between {@link Stage#EXPOSED} and
@@ -177,4 +151,42 @@ public interface Infection extends Timed
 	 *         immunization
 	 */
 //	Amount<Duration> drawSeroconversionPeriod();
+
+	/**
+	 * {@link Simple} implements an {@link Infection} with a simple force of
+	 * infection that is drawn from some {link RandomDistribution} independent
+	 * of the relations between infective and susceptible {@link Carrier}s,
+	 * their current {@link Condition}s, or the contact {@link Location} (and
+	 * {@link TransmissionRoute}s)
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
+	 */
+	class Simple implements Infection
+	{
+		private final RandomDistribution<Amount<Frequency>> forceDist;
+
+		public Simple( final Amount<Frequency> constantForce )
+		{
+			this.forceDist = RandomDistribution.Util
+					.asConstant( constantForce );
+		}
+
+		public Simple( final RandomDistribution<Amount<Frequency>> forceDist )
+		{
+			this.forceDist = forceDist;
+		}
+
+		@Override
+		public Amount<Frequency> getForceOfInfection( final Location location,
+			final Map<Carrier, ContactIntensity> infectives,
+			final Carrier susceptible )
+		{
+			Amount<Frequency> force = this.forceDist.draw();
+			Amount<Frequency> result = Amount.valueOf( 0, DAILY );
+			for( ContactIntensity intensity : infectives.values() )
+				result = result.plus( force.times( intensity.getFactor() ) );
+			return result.times( infectives.size() );
+		}
+	}
 }

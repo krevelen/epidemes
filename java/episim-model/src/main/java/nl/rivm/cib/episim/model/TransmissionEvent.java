@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 18fd2b4cf3b6654714b5baa115e415bb0e851b5d $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import io.coala.time.x.Instant;
  * successful invasion of a susceptible {@link Carrier} that was exposed due to
  * some {@link ContactEvent}.
  * 
- * @version $Id$
+ * @version $Id: 18fd2b4cf3b6654714b5baa115e415bb0e851b5d $
  * @author Rick van Krevelen
  */
 public abstract class TransmissionEvent
@@ -46,7 +46,7 @@ public abstract class TransmissionEvent
 	/** @return the (exposed) {@link Condition} of secondary {@link Carrier} */
 	public abstract Condition getSecondaryCondition();
 
-	public static TransmissionEvent valueOf( final ContactEvent contact,
+	public static TransmissionEvent of( final ContactEvent contact,
 		final Instant time, final Infection infection )
 	{
 		return new TransmissionEvent()

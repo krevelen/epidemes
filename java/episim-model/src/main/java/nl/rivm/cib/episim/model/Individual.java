@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: fa433a59293b9ce3856ae7aa0f78663b7a77b533 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,26 +19,47 @@
  */
 package nl.rivm.cib.episim.model;
 
-import javax.measure.Measurable;
-import javax.measure.quantity.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
+import io.coala.time.x.Instant;
+import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 /**
  * {@link Individual} represents an infective/infectious subject
- * 
+ * <p>
+ * lifecycle:
+ * <ol>
+ * <li>birth into single/double parent family</li>
+ * <li>day care / school / work, *</li>
+ * <li>activities / communities, *</li>
+ * <li>vaccination, *</li>
+ * <li>move home, *</li>
+ * <li>partners, *</li>
+ * <li>offspring, *</li>
+ * <li>travels, *</li>
+ * <li>retirement</li>
+ * <li>death</li>
+ * </ol>
+ *
  * @version $Date$
  * @author Rick van Krevelen
  */
-public interface Individual extends Carrier
+public interface Individual extends Carrier, Timed
 
 {
 
 	/** @return the {@link Gender} of this {@link Individual} */
 	Gender getGender();
 
-	/** @return the current age {@link Duration} of this {@link Individual} */
-	Measurable<Duration> getAge();
+	/** @return the birth {@link Instant} of this {@link Individual} */
+	Instant getBirth();
+
+	/** @return the home {@link Location} of this {@link Individual} */
+	Location getHome();
 
 	/** @return the current {@link Location} of this {@link Individual} */
 	Location getLocation();
@@ -52,5 +73,94 @@ public interface Individual extends Carrier
 //	// social network dynamics (incl self): links/rates change due to media
 //	// attention/campaigns, active search, medical consultations
 //	public Map<Subject, Rate> complianceAuthorities;
+
+	Map<Infection, VaccineBelief> getBeliefs();
+
+	class Simple implements Individual
+	{
+		private final Scheduler scheduler;
+
+		private final Instant birth;
+
+		private final Gender gender;
+
+		private final Map<Infection, Condition> conditions = new HashMap<>();
+
+		private final Map<Infection, VaccineBelief> beliefs = new HashMap<>();
+
+		private final transient Subject<TravelEvent, TravelEvent> travels = PublishSubject
+				.create();
+
+		private Location home;
+
+		private Location location;
+
+		public Simple( final Scheduler scheduler, final Instant birth,
+			final Gender gender, final Location home, final Location location,
+			final Condition... conditions )
+		{
+			this.scheduler = scheduler;
+			this.birth = birth;
+			this.gender = gender;
+			this.home = home;
+			this.location = location;
+			for( Condition condition : conditions )
+			{
+				this.conditions.put( condition.getInfection(), condition );
+				this.beliefs.put( condition.getInfection(),
+						new VaccineBelief.Simple( scheduler,
+								condition.getInfection() ) );
+			}
+		}
+
+		@Override
+		public Scheduler scheduler()
+		{
+			return this.scheduler;
+		}
+
+		@Override
+		public Map<Infection, Condition> getConditions()
+		{
+			return this.conditions;
+		}
+
+		@Override
+		public Gender getGender()
+		{
+			return this.gender;
+		}
+
+		@Override
+		public Instant getBirth()
+		{
+			return this.birth;
+		}
+
+		@Override
+		public Location getHome()
+		{
+			return this.home;
+		}
+
+		@Override
+		public Location getLocation()
+		{
+			return this.location;
+		}
+
+		@Override
+		public Observable<TravelEvent> getTravels()
+		{
+			return this.travels.asObservable();
+		}
+
+		@Override
+		public Map<Infection, VaccineBelief> getBeliefs()
+		{
+			return this.beliefs;
+		}
+
+	}
 
 }

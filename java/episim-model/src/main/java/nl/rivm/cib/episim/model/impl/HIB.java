@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: c497843c72fe02d3fb4c20067d0832b27514147b $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -38,6 +38,7 @@ import nl.rivm.cib.episim.model.SymptomPhase;
 import nl.rivm.cib.episim.model.TransitionEvent;
 import nl.rivm.cib.episim.model.TransmissionEvent;
 import nl.rivm.cib.episim.model.TreatmentStage;
+import nl.rivm.cib.episim.time.Timed;
 
 /**
  * {@link HIB} is an invasive disease caused by the Hib bacteria residing in
@@ -49,10 +50,10 @@ import nl.rivm.cib.episim.model.TreatmentStage;
  * <a href="http://www.who.int/immunization/topics/hib/en/">WHO immunization
  * page</a>
  * 
- * @version $Id$
+ * @version $Id: c497843c72fe02d3fb4c20067d0832b27514147b $
  * @author Rick van Krevelen
  */
-public abstract class HIB implements Infection
+public abstract class HIB implements Infection, Timed
 {
 
 //	@SuppressWarnings( "unchecked" )
@@ -97,8 +98,8 @@ public abstract class HIB implements Infection
 
 	public static void expose( final HIB self, final Condition condition )
 	{
-		transitions.onNext(
-				TransitionEvent.of( condition, EpidemicCompartment.Simple.EXPOSED ) );
+//		transitions.onNext(
+//				TransitionEvent.of( condition, EpidemicCompartment.Simple.EXPOSED ) );
 		self.after( TimeSpan.of( self.seroconversionPeriodDist.draw() ) )
 				.call( HIB::infect, self, condition );
 		self.after( TimeSpan.of( self.latentPeriodDist.draw() ) )
@@ -109,43 +110,43 @@ public abstract class HIB implements Infection
 
 	public static void symptomize( final HIB self, final Condition condition )
 	{
-		transitions.onNext(
-				TransitionEvent.of( condition, SymptomPhase.SYSTEMIC ) );
+//		transitions.onNext(
+//				TransitionEvent.of( condition, SymptomPhase.SYSTEMIC ) );
 		self.after( TimeSpan.of( self.symptomPeriodDist.draw() ) )
 				.call( HIB::asymptomize, self, condition );
 	}
 
 	public static void asymptomize( final HIB self, final Condition condition )
 	{
-		transitions.onNext(
-				TransitionEvent.of( condition, SymptomPhase.ASYMPTOMATIC ) );
+//		transitions.onNext(
+//				TransitionEvent.of( condition, SymptomPhase.ASYMPTOMATIC ) );
 	}
 
 	public static void seroconvert( final HIB self, final Condition condition )
 	{
-		transitions.onNext( TransitionEvent.of( condition,
-				TreatmentStage.PRE_EXPOSURE_PROPHYLACTIC ) );
+//		transitions.onNext( TransitionEvent.of( condition,
+//				TreatmentStage.PRE_EXPOSURE_PROPHYLACTIC ) );
 	}
 
 	public static void infect( final HIB self, final Condition condition )
 	{
-		transitions.onNext( TransitionEvent.of( condition,
-				EpidemicCompartment.Simple.INFECTIVE ) );
+//		transitions.onNext( TransitionEvent.of( condition,
+//				EpidemicCompartment.Simple.INFECTIVE ) );
 		self.after( TimeSpan.of( self.recoverPeriodDist.draw() ) )
 				.call( HIB::recover, self, condition );
 	}
 
 	public static void recover( final HIB self, final Condition condition )
 	{
-		transitions.onNext( TransitionEvent.of( condition,
-				EpidemicCompartment.Simple.RECOVERED ) );
+//		transitions.onNext( TransitionEvent.of( condition,
+//				EpidemicCompartment.Simple.RECOVERED ) );
 		self.after( TimeSpan.of( self.wanePeriodDist.draw() ) ).call( HIB::wane,
 				self, condition );
 	}
 
 	public static void wane( final HIB self, final Condition condition )
 	{
-		transitions.onNext( TransitionEvent.of( condition,
-				EpidemicCompartment.Simple.SUSCEPTIBLE ) );
+//		transitions.onNext( TransitionEvent.of( condition,
+//				EpidemicCompartment.Simple.SUSCEPTIBLE ) );
 	}
 }

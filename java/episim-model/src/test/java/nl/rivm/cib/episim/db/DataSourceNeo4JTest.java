@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 4e7b078aa1022e524014203b7fe3e7af3140f96c $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.tooling.GlobalGraphOperations;
 
 import io.coala.log.LogUtil;
@@ -32,7 +33,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link DataSourceNeo4JTest}
  * 
- * @version $Id$
+ * @version $Id: 4e7b078aa1022e524014203b7fe3e7af3140f96c $
  * @author Rick van Krevelen
  */
 public class DataSourceNeo4JTest
@@ -45,14 +46,21 @@ public class DataSourceNeo4JTest
 	public void test()
 	{
 		LOG.trace( "starting {}", DataSourceNeo4JTest.class.getSimpleName() );
-		final GraphDatabaseService neo4j;
-		assertNotNull( "Neo4J not instantiated",
-				neo4j = DataSourceNeo4J.getInstance() );
-		neo4j.beginTx();
-		final Iterable<RelationshipType> relTypes = GlobalGraphOperations
-				.at( neo4j ).getAllRelationshipTypes();
-		for( RelationshipType relType : relTypes )
-			LOG.trace( "Found relationship type: {}", relType );
+		final GraphDatabaseService neo4j = DataSourceNeo4J.getInstance();
+		assertNotNull( "Neo4J not instantiated", neo4j );
+		try( Transaction tx = neo4j.beginTx() )
+		{
+			final Iterable<RelationshipType> relTypes = GlobalGraphOperations
+					.at( neo4j ).getAllRelationshipTypes();
+			for( RelationshipType relType : relTypes )
+				LOG.trace( "Found relationship type: {}", relType );
+			tx.success();
+		}
+
+		// household unit : n x adults, m x children, postcode (wijk/buurt/stad/gemeente/provincie/landsdeel)
+
+		
+		
 	}
 
 }

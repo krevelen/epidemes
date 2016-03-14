@@ -109,3 +109,4 @@ arbovirus
 tibovirus
 infectives
 unschedule
+immunize

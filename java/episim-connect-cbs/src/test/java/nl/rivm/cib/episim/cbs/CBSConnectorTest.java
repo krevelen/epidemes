@@ -25,12 +25,16 @@ import java.util.List;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.Logger;
+import org.apache.olingo.commons.api.edm.Edm;
+import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmSchema;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.coala.json.x.JsonUtil;
 import io.coala.log.LogUtil;
 
 /**
@@ -46,21 +50,6 @@ public class CBSConnectorTest
 	private static final Logger LOG = LogUtil
 			.getLogger( CBSConnectorTest.class );
 
-	/**
-	 * <pre>
-	 * {
-	 * "odata.metadata":"http://opendata.cbs.nl/ODataApi/OData/81435ned/$metadata",
-	 * "value":[
-	 * 		{"name":"TableInfos","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/TableInfos"},
-	 * 		{"name":"UntypedDataSet","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/UntypedDataSet"},
-	 * 		{"name":"TypedDataSet","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/TypedDataSet"},
-	 * 		{"name":"DataProperties","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/DataProperties"},
-	 * 		{"name":"Dagsoort","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/Dagsoort"},
-	 * 		{"name":"Regio","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/Regio"},
-	 * 		{"name":"Perioden","url":"http://opendata.cbs.nl/ODataApi/odata/81435ned/Perioden"}
-	 * ] }
-	 * </pre>
-	 */
 	public static class CBSMetaURL
 	{
 		private String name;
@@ -90,11 +79,30 @@ public class CBSConnectorTest
 	public void testCBSOpenDataPortal()
 		throws ClientProtocolException, IOException
 	{
-
-		final String testURI = "http://opendata.cbs.nl/ODataApi/odata/81435ned";
+		final String testURI = "http://opendata.cbs.nl/ODataApi/odata/70072NED";//"http://opendata.cbs.nl/ODataApi/odata/81435ned";
 		final JsonNode result = CBSConnector.getJSON( testURI );
 		Assert.assertNotNull( "Got null response for " + testURI, result );
 //		final CBSMetadata data = JsonUtil.valueOf(result, CBSMetadata.class);
-		LOG.trace( "Got result: " + result );
+		LOG.trace( "Got result: " + JsonUtil.toJSON( result ) );
+	}
+
+	@Test
+	public void testOlingo() throws IOException
+	{
+		final String serviceUrl = "http://opendata.cbs.nl/ODataApi/odata/37422ned";//"http://opendata.cbs.nl/ODataApi/odata/81435ned";
+		final Edm edm = ODataUtil.readEdm( serviceUrl );
+		edm.getSchemas().forEach( ( EdmSchema s ) ->
+		{
+			s.getEntityTypes().forEach( ( EdmEntityType t ) ->
+			{
+
+				LOG.trace( "{} :: {}", t.getFullQualifiedName(),
+						t.getPropertyNames()
+				/*
+				 * ,ODataUtil .readEntities( edm, serviceUrl, t.getName() )
+				 */ );
+			} );
+		} );
+
 	}
 }
