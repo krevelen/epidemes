@@ -24,6 +24,7 @@ import javax.measure.quantity.Dimensionless;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.json.x.Wrapper;
+import io.coala.json.x.DynaBean.BeanWrapper;
 
 /**
  * {@link ContactIntensity} is an extensible identifier for relation types
@@ -31,10 +32,11 @@ import io.coala.json.x.Wrapper;
  * @version $Id: c754b3b6a190657ce3524e685fce0c9bd08f1815 $
  * @author Rick van Krevelen
  */
+@BeanWrapper
 public interface ContactIntensity extends Wrapper<String>
 {
 
-	default Amount<Dimensionless> getFactor()
+	default public Amount<Dimensionless> getFactor()
 	{
 		return Amount.ONE;
 	}

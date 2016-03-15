@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 69f546cf8559f0dd178f2bfb6f3c8fbb9a08ff1c $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,14 +19,16 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.json.x.DynaBean.BeanWrapper;
 import io.coala.json.x.Wrapper;
 
 /**
  * {@link TreatmentStage} is an extensible identifier for stages of treatment
  * 
- * @version $Id$
+ * @version $Id: 69f546cf8559f0dd178f2bfb6f3c8fbb9a08ff1c $
  * @author Rick van Krevelen
  */
+@BeanWrapper
 public interface TreatmentStage extends Wrapper<String>
 {
 	/** currently not receiving any treatment */

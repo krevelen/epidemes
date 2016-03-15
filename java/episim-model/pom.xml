@@ -14,7 +14,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Vaccination Acceptance Simulator
-		$Id$
+		$Id: a1a835b9a2627f0150bcaf84cf438b8c88796e54 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
@@ -83,6 +83,10 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
 		</dependency>
 
 		<!-- TODO use more specific dependencies rather than entire toolkit -->

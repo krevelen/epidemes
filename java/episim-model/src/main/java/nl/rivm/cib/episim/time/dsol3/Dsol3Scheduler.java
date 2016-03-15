@@ -99,8 +99,9 @@ public class Dsol3Scheduler implements Scheduler
 
 			// initialize the simulator
 			final BigDecimal warmup = BigDecimal.ZERO;
-			final BigDecimal length = endTime.subtract( startTime ).unwrap()
-					.to( startTime.unwrap().getUnit() ).getValue();
+			final BigDecimal length = endTime.unwrap()
+					.to( startTime.unwrap().getUnit() ).getValue()
+					.subtract( startTime.unwrap().getValue() );
 			this.scheduler.initialize( DsolTime.createReplication( id, start,
 					warmup, length, model ), ReplicationMode.TERMINATING );
 
@@ -208,7 +209,7 @@ public class Dsol3Scheduler implements Scheduler
 							this.time.onError( e );
 						}
 					} );
-			return Expectation.of( when, sub );
+			return Expectation.of( this, when, sub );
 		}
 	}
 

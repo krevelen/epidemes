@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 2f7141963aaa4c17ee828105bff1527724cab23a $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -22,7 +22,7 @@ package nl.rivm.cib.episim.model;
 /**
  * {@link TransitionEvent}
  * 
- * @version $Id$
+ * @version $Id: 2f7141963aaa4c17ee828105bff1527724cab23a $
  * @author Rick van Krevelen
  */
 public class TransitionEvent<T>
@@ -60,6 +60,14 @@ public class TransitionEvent<T>
 	public T getNewValue()
 	{
 		return this.newValue;
+	}
+
+	@Override
+	public String toString()
+	{
+		return new StringBuffer( getClass().getSimpleName() ).append( '[' )
+				.append( getOldValue() ).append( "->" ).append( getNewValue() )
+				.append( ']' ).toString();
 	}
 
 	public static class CompartmentEvent

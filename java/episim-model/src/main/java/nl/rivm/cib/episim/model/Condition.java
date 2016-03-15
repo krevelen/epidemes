@@ -19,12 +19,7 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.Map;
-import java.util.function.Function;
-
-import io.coala.time.x.Duration;
-import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.time.Schedule;
+import io.coala.exception.x.ExceptionBuilder;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
 import rx.subjects.PublishSubject;
@@ -58,7 +53,9 @@ public interface Condition extends Timed
 	 *         tests (i.e. after seroconversion, where antibody &gt;&gt;
 	 *         antigen), {@code false} otherwise
 	 */
-	Boolean isSeropositive();
+	//Boolean isSeropositive();
+	
+	void infect();
 
 	/**
 	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
@@ -72,61 +69,68 @@ public interface Condition extends Timed
 
 		private final Infection infection;
 
-		private final Function<Instant, EpidemicCompartment> compartment;
+		private EpidemicCompartment compartment;
 
-		private final Function<Instant, SymptomPhase> symptoms;
+		private SymptomPhase symptoms;
 
-		private final Function<Instant, TreatmentStage> treatment;
-
-		private final Function<Instant, Boolean> seroconversion;
+		private TreatmentStage treatment;
 
 		private final Subject<TransitionEvent<?>, TransitionEvent<?>> transitions = PublishSubject
 				.create();
 
+		public Simple( final Scheduler scheduler, final Infection infection )
+		{
+			this( scheduler, infection, EpidemicCompartment.Simple.SUSCEPTIBLE,
+					SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
+		}
+
 		public Simple( final Scheduler scheduler, final Infection infection,
 			final EpidemicCompartment compartment, final SymptomPhase symptoms,
-			final TreatmentStage treatment, final Boolean seroconversion )
-		{
-			this( scheduler, infection, ( Instant t ) ->
-			{
-				return compartment;
-			}, ( Instant t ) ->
-			{
-				return symptoms;
-			}, ( Instant t ) ->
-			{
-				return treatment;
-			}, ( Instant t ) ->
-			{
-				return seroconversion;
-			} );
-		}
-
-		public Simple( final Scheduler scheduler, final Infection infection,
-			final Map<Duration, EpidemicCompartment> compartment,
-			final Map<Duration, SymptomPhase> symptoms,
-			final Map<Duration, TreatmentStage> treatment,
-			final Map<Duration, Boolean> seroconversion )
-		{
-			this( scheduler, infection,
-					Schedule.of( scheduler.now(), compartment )::floor,
-					Schedule.of( scheduler.now(), symptoms )::floor,
-					Schedule.of( scheduler.now(), treatment )::floor,
-					Schedule.of( scheduler.now(), seroconversion )::floor );
-		}
-
-		public Simple( final Scheduler scheduler, final Infection infection,
-			final Function<Instant, EpidemicCompartment> compartment,
-			final Function<Instant, SymptomPhase> symptoms,
-			final Function<Instant, TreatmentStage> treatment,
-			final Function<Instant, Boolean> seroconversion )
+			final TreatmentStage treatment )
 		{
 			this.scheduler = scheduler;
 			this.infection = infection;
 			this.compartment = compartment;
 			this.symptoms = symptoms;
 			this.treatment = treatment;
-			this.seroconversion = seroconversion;
+		}
+
+		protected void set( final EpidemicCompartment compartment )
+		{
+			this.transitions.onNext( TransitionEvent.of( this, compartment ) );
+			this.compartment = compartment;
+		}
+
+		protected void set( final TreatmentStage treatment )
+		{
+			this.transitions.onNext( TransitionEvent.of( this, treatment ) );
+			this.treatment = treatment;
+		}
+
+		protected void set( final SymptomPhase symptoms )
+		{
+			this.transitions.onNext( TransitionEvent.of( this, symptoms ) );
+			this.symptoms = symptoms;
+		}
+
+		public void infect()
+		{
+			if( !getCompartment().isSusceptible() ) throw ExceptionBuilder
+					.unchecked( "Can't be exposed when: %s", getCompartment() )
+					.build();
+
+			set( EpidemicCompartment.Simple.EXPOSED );
+
+			after( getInfection().drawLatentPeriod() )
+					.call( this::set, EpidemicCompartment.Simple.INFECTIVE )
+					.thenAfter( getInfection().drawRecoverPeriod() )
+					.call( this::set, EpidemicCompartment.Simple.RECOVERED )
+					.thenAfter( getInfection().drawWanePeriod() )
+					.call( this::set, EpidemicCompartment.Simple.SUSCEPTIBLE );
+			after( getInfection().drawOnsetPeriod() )
+					.call( this::set, SymptomPhase.SYSTEMIC )
+					.thenAfter( getInfection().drawSymptomPeriod() )
+					.call( this::set, SymptomPhase.ASYMPTOMATIC );
 		}
 
 		@Override
@@ -144,25 +148,19 @@ public interface Condition extends Timed
 		@Override
 		public EpidemicCompartment getCompartment()
 		{
-			return this.compartment.apply( now() );
+			return this.compartment;
 		}
 
 		@Override
 		public TreatmentStage getTreatmentStage()
 		{
-			return this.treatment.apply( now() );
+			return this.treatment;
 		}
 
 		@Override
 		public SymptomPhase getSymptomPhase()
 		{
-			return this.symptoms.apply( now() );
-		}
-
-		@Override
-		public Boolean isSeropositive()
-		{
-			return this.seroconversion.apply( now() );
+			return this.symptoms;
 		}
 
 		@Override
@@ -170,7 +168,5 @@ public interface Condition extends Timed
 		{
 			return this.transitions.asObservable();
 		}
-
 	}
-
 }

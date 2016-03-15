@@ -69,4 +69,9 @@ public class Schedule<T>
 				.entrySet() )
 			scheduler.at( entry.getKey() ).call( handler, entry.getValue() );
 	}
+
+	public void put( final Instant when, final T value )
+	{
+		this.function.put( when, value );
+	}
 }

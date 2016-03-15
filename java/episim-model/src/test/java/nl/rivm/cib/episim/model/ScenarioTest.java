@@ -19,25 +19,31 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import static org.junit.Assert.assertEquals;
 
-import javax.measure.unit.SI;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import javax.measure.quantity.Frequency;
+import javax.measure.unit.NonSI;
+import javax.measure.unit.Unit;
+import javax.measure.unit.UnitFormat;
 
 import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
+import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.RandomDistribution;
+import io.coala.random.RandomNumberStream;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Timed.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
-
-import static org.aeonbits.owner.util.Collections.map;
-import static org.aeonbits.owner.util.Collections.entry;
 
 /**
  * {@link ScenarioTest}
@@ -49,6 +55,10 @@ public class ScenarioTest
 {
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( ScenarioTest.class );
+	{
+		UnitFormat.getInstance().alias( NonSI.DAY, "days" );
+		//UnitFormat.getInstance().label(DAILY, "daily");
+	}
 
 	/**
 	 * This test should:
@@ -63,48 +73,83 @@ public class ScenarioTest
 	 * @throws Throwable
 	 */
 	@Test
-	@SuppressWarnings( "unchecked" )
 	public void scenarioTest() throws Throwable
 	{
 		LOG.trace( "Starting scenario..." );
 
 		final Scheduler scheduler = new Dsol3Scheduler( "dsol3Test",
-				Instant.of( "5 s" ), Instant.of( "100 s" ), ( Scheduler s ) ->
+				Instant.of( "0 days" ), Instant.of( "100 days" ),
+				( Scheduler s ) ->
 				{
 					LOG.trace( "initialized, t={}", s.now() );
 				} );
 
-		final Set<Location> homes = new HashSet<>();
 		final Set<Individual> pop = new HashSet<>();
-		final Set<Location> offices = new HashSet<>();
+		final int n_pop = 10;
+//		final Set<Location> homes = new HashSet<>();
+//		final int n_homes = 6000000;
+//		final Set<Location> offices = new HashSet<>();
+//		final int n_offices = 3000000;
+		final Infection measles = new Infection.Simple(
+				Amount.valueOf( 1, Infection.DAILY ), Duration.of( "2 days" ),
+				Duration.of( "5 days" ), Duration.of( "9999 days" ),
+				Duration.of( "3 days" ), Duration.of( "7 days" ) );
 
-		final int n_pop = 17000000;
-		final int n_homes = 6000000;
-		final int n_offices = 3000000;
+		final TransmissionRoute route = TransmissionRoute.AIRBORNE;
+		final Location rivm = new Location.Simple( scheduler,
+				Location.RIVM_POSITION, Location.NO_ZIP, route );
+
+		final Duration contactPeriod = Duration.of( "1 h" );
+		final ContactIntensity[] contactTypes = { ContactIntensity.FAMILY };
+		final Amount<Frequency> force = measles.getForceOfInfection( null, null,
+				contactTypes );
+		final double infectLikelihood = force.times( contactPeriod.toAmount() )
+				.to( Unit.ONE ).getEstimatedValue();
+		LOG.trace( "Infection likelihood: {} x {} x {} = {}", force,
+				contactPeriod, Arrays.asList( contactTypes ),
+				infectLikelihood );
+
 		final RandomDistribution<Gender> genderDist = RandomDistribution.Util
 				.asConstant( Gender.MALE );
-		final Location rivm = new Location.Simple( scheduler,
-				Location.RIVM_POSITION, Location.NO_ZIP,
-				TransmissionRoute.AIRBORNE );
-		final Infection measles = new Infection.Simple(
-				Amount.valueOf( 0L, SI.HERTZ ) );
-		final Map<Duration, EpidemicCompartment> compartment = map( entry(
-				Duration.ZERO, EpidemicCompartment.Simple.PASSIVE_IMMUNE ) );
-		final Map<Duration, SymptomPhase> symptoms = map(
-				entry( Duration.ZERO, SymptomPhase.ASYMPTOMATIC ) );
-		final Map<Duration, TreatmentStage> treatment = map(
-				entry( Duration.ZERO, TreatmentStage.UNTREATED ) );
-		final Map<Duration, Boolean> seroconversion = map(
-				entry( Duration.ZERO, Boolean.FALSE ) );
-		final Condition healthy = new Condition.Simple( scheduler, measles,
-				compartment, symptoms, treatment, seroconversion );
+		final CountDownLatch latch = new CountDownLatch( 1 );
+		final RandomNumberStream rng = new Math3RandomNumberStream.MersenneFactory()
+				.create( "MAIN", 1234L );
 		for( int i = 1; i < n_pop; i++ )
 		{
 			final Individual ind = new Individual.Simple( scheduler,
-					Instant.of( "2013-01-01" ), genderDist.draw(), rivm, rivm,
-					healthy );
+					Instant.of( "0 h" ), genderDist.draw(), rivm, rivm,
+					new Condition.Simple( scheduler, measles ) );
 			pop.add( ind );
+			if( rng.nextDouble() > infectLikelihood ) continue;
+			final int nr = i;
+			ind.getConditions().get( measles ).emitTransitions()
+					.subscribe( ( TransitionEvent<?> t ) ->
+					{
+						LOG.trace( "Transition for {} at t={}: {}", nr,
+								scheduler.now(), t );
+					}, ( Throwable e ) ->
+					{
+						LOG.warn( "Problem in transition", e );
+					}, () ->
+					{
+						latch.countDown();
+					} );
+			ind.getConditions().get( measles ).infect();
+			LOG.trace( "INFECTED" );
 		}
+		scheduler.time().subscribe( ( Instant t ) ->
+		{
+			LOG.trace( "t = {}", t );
+		}, ( Throwable e ) ->
+		{
+			LOG.warn( "Problem in scheduler", e );
+		}, () ->
+		{
+			latch.countDown();
+		} );
+		scheduler.resume();
+		latch.await( 3, TimeUnit.SECONDS );
+		assertEquals( "Should have completed", 0, latch.getCount() );
 	}
 
 }

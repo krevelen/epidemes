@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: e09ef6f5bdddf867d6f60848ae7ca3d5ccb0a485 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,14 +19,16 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.json.x.DynaBean.BeanWrapper;
 import io.coala.json.x.Wrapper;
 
 /**
  * {@link SymptomPhase} is an extensible identifier for stages of treatment
  * 
- * @version $Id$
+ * @version $Id: e09ef6f5bdddf867d6f60848ae7ca3d5ccb0a485 $
  * @author Rick van Krevelen
  */
+@BeanWrapper
 public interface SymptomPhase extends Wrapper<String>
 {
 	/** no signs or symptoms (not occult if not exposed or immune) */

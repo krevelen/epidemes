@@ -138,7 +138,12 @@
 
 			<dependency>
 				<groupId>io.coala</groupId>
-				<artifactId>dsol2-coala-adapter</artifactId>
+				<artifactId>dsol3-coala-adapter</artifactId>
+				<version>${coala.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.coala</groupId>
+				<artifactId>math3-coala-adapter</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 

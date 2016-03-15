@@ -29,13 +29,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.measure.quantity.Dimensionless;
-import javax.measure.quantity.Duration;
+//import javax.measure.quantity.Dimensionless;
+//import javax.measure.quantity.Duration;
 
 import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.x.ExceptionBuilder;
 import io.coala.json.x.Wrapper;
+import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import rx.Observable;
@@ -109,6 +110,16 @@ public interface Timed
 	 *            {@link Dimensionless} units
 	 * @return the {@link FutureSelf}
 	 */
+	default FutureSelf after( final Duration delay )
+	{
+		return after( delay.unwrap() );
+	}
+
+	/**
+	 * @param delay the {@link Amount} of delay, in ({@link Duration} or
+	 *            {@link Dimensionless} units
+	 * @return the {@link FutureSelf}
+	 */
 	default FutureSelf after( final TimeSpan delay )
 	{
 		return FutureSelf.of( this, now().add( delay ) );
@@ -148,6 +159,8 @@ public interface Timed
 	 */
 	class Expectation extends Wrapper.SimpleOrdinal<Instant>
 	{
+		Timed self;
+
 		Subscription subscription;
 
 		public Expectation()
@@ -155,10 +168,11 @@ public interface Timed
 
 		}
 
-		public Expectation( final Instant when,
+		public Expectation( final Timed self, final Instant when,
 			final Subscription subscription )
 		{
 			wrap( when );
+			this.self = self;
 			this.subscription = subscription;
 		}
 
@@ -174,10 +188,20 @@ public interface Timed
 			return this.subscription.isUnsubscribed();
 		}
 
-		public static Expectation of( final Instant when,
+		public FutureSelf thenAfter( final Duration delay )
+		{
+			return FutureSelf.of( this.self, unwrap().add( delay.unwrap() ) );
+		}
+
+		public FutureSelf thenAfter( final TimeSpan delay )
+		{
+			return FutureSelf.of( this.self, unwrap().add( delay ) );
+		}
+
+		public static Expectation of( final Timed self, final Instant when,
 			final Subscription subscription )
 		{
-			return new Expectation( when, subscription );
+			return new Expectation( self, when, subscription );
 		}
 	}
 

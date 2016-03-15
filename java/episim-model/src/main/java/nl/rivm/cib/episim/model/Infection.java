@@ -19,17 +19,15 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.Collection;
-import java.util.Map;
-
-import javax.measure.quantity.Duration;
 import javax.measure.quantity.Frequency;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.Unit;
+import javax.measure.unit.UnitFormat;
 
 import org.jscience.physics.amount.Amount;
 
 import io.coala.random.RandomDistribution;
+import io.coala.time.x.Duration;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
@@ -100,7 +98,8 @@ public interface Infection
 	 */
 	//Collection<TransmissionRoute> getTransmissionRoutes();
 
-	Unit<Frequency> DAILY = NonSI.DAY.inverse().asType( Frequency.class );
+	/** a {@link Frequency} per {@link NonSI#DAY} */
+	Unit<Frequency> DAILY = NonSI.DAY.pow( -1 ).asType( Frequency.class );
 
 	/**
 	 * The force of infection (denoted &lambda;) is the rate ({@link Amount} of
@@ -120,29 +119,35 @@ public interface Infection
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
 	Amount<Frequency> getForceOfInfection( Location location,
-		Map<Carrier, ContactIntensity> infectives, Carrier susceptible );
+		Carrier susceptible, ContactIntensity... infectives );
 
 	/**
-	 * @return the (random) period between {@link Stage#EXPOSED} and
-	 *         {@link Stage#INFECTIVE} (i.e. 1 / &epsilon;)
+	 * @return the (random) period between
+	 *         {@link EpidemicCompartment.Simple#EXPOSED} and
+	 *         {@link EpidemicCompartment.Simple#INFECTIVE} (i.e. 1 / &epsilon;)
 	 */
-//	Amount<Duration> drawLatentPeriod();
+	Duration drawLatentPeriod();
 
 	/**
-	 * @return the (random) period between {@link Stage#INFECTIVE} and
-	 *         {@link Stage#RECOVERED} conditions (i.e. 1 / &gamma;)
+	 * @return the (random) period between
+	 *         {@link EpidemicCompartment.Simple#INFECTIVE} and
+	 *         {@link EpidemicCompartment.Simple#RECOVERED} conditions (i.e. 1 /
+	 *         &gamma;)
 	 */
-//	Amount<Duration> drawInfectiousPeriod();
+	Duration drawRecoverPeriod();
 
 	/**
-	 * @return the (random) period between {@link Stage#RECOVERED} and
-	 *         {@link Stage#SUSCEPTIBLE} (i.e. &delta;), or {@code null} for
-	 *         infinite (there is no loss of immunity)
+	 * @return the (random) period between
+	 *         {@link EpidemicCompartment.Simple#RECOVERED} and
+	 *         {@link EpidemicCompartment.Simple#SUSCEPTIBLE} (i.e. &delta;), or
+	 *         {@code null} for infinite (there is no loss of immunity)
 	 */
-//	Amount<Duration> drawImmunizationPeriod();
+	Duration drawWanePeriod();
 
 	/** @return the (random) period between exposure and first symptoms */
-//	Amount<Duration> drawOnsetPeriod();
+	Duration drawOnsetPeriod();
+
+	Duration drawSymptomPeriod();
 
 	/**
 	 * @return the (random) window period between exposure and seropositive
@@ -150,7 +155,7 @@ public interface Infection
 	 *         infections; immunoglobulin G (IgG) for past infection or
 	 *         immunization
 	 */
-//	Amount<Duration> drawSeroconversionPeriod();
+//	Duration drawSeroconversionPeriod();
 
 	/**
 	 * {@link Simple} implements an {@link Infection} with a simple force of
@@ -164,29 +169,86 @@ public interface Infection
 	 */
 	class Simple implements Infection
 	{
+		{
+			UnitFormat.getInstance().alias(DAILY, "daily");
+			UnitFormat.getInstance().label(DAILY, "daily");
+		}
 		private final RandomDistribution<Amount<Frequency>> forceDist;
 
-		public Simple( final Amount<Frequency> constantForce )
+		private final RandomDistribution<Duration> latentPeriodDist;
+		private final RandomDistribution<Duration> recoverPeriodDist;
+		private final RandomDistribution<Duration> wanePeriodDist;
+		private final RandomDistribution<Duration> onsetPeriodDist;
+		private final RandomDistribution<Duration> symptomPeriodDist;
+
+		public Simple( final Amount<Frequency> forceConst,
+			final Duration latentPeriodConst, final Duration recoverPeriodConst,
+			final Duration wanePeriodConst, final Duration onsetPeriodConst,
+			final Duration symptomPeriodConst )
 		{
-			this.forceDist = RandomDistribution.Util
-					.asConstant( constantForce );
+			this( RandomDistribution.Util.asConstant( forceConst ),
+					RandomDistribution.Util.asConstant( latentPeriodConst ),
+					RandomDistribution.Util.asConstant( recoverPeriodConst ),
+					RandomDistribution.Util.asConstant( wanePeriodConst ),
+					RandomDistribution.Util.asConstant( onsetPeriodConst ),
+					RandomDistribution.Util.asConstant( symptomPeriodConst ) );
 		}
 
-		public Simple( final RandomDistribution<Amount<Frequency>> forceDist )
+		public Simple( final RandomDistribution<Amount<Frequency>> forceDist,
+			final RandomDistribution<Duration> latentPeriodDist,
+			final RandomDistribution<Duration> recoverPeriodDist,
+			final RandomDistribution<Duration> wanePeriodDist,
+			final RandomDistribution<Duration> onsetPeriodDist,
+			final RandomDistribution<Duration> symptomPeriodDist )
 		{
 			this.forceDist = forceDist;
+			this.latentPeriodDist = latentPeriodDist;
+			this.recoverPeriodDist = recoverPeriodDist;
+			this.wanePeriodDist = wanePeriodDist;
+			this.onsetPeriodDist = onsetPeriodDist;
+			this.symptomPeriodDist = symptomPeriodDist;
 		}
 
 		@Override
 		public Amount<Frequency> getForceOfInfection( final Location location,
-			final Map<Carrier, ContactIntensity> infectives,
-			final Carrier susceptible )
+			final Carrier susceptible, final ContactIntensity... infectives )
 		{
-			Amount<Frequency> force = this.forceDist.draw();
 			Amount<Frequency> result = Amount.valueOf( 0, DAILY );
-			for( ContactIntensity intensity : infectives.values() )
+			if( infectives == null ) return result;
+			Amount<Frequency> force = this.forceDist.draw();
+			for( ContactIntensity intensity : infectives )
 				result = result.plus( force.times( intensity.getFactor() ) );
-			return result.times( infectives.size() );
+			return result;
+		}
+
+		@Override
+		public Duration drawLatentPeriod()
+		{
+			return this.latentPeriodDist.draw();
+		}
+
+		@Override
+		public Duration drawRecoverPeriod()
+		{
+			return this.recoverPeriodDist.draw();
+		}
+
+		@Override
+		public Duration drawWanePeriod()
+		{
+			return this.wanePeriodDist.draw();
+		}
+
+		@Override
+		public Duration drawOnsetPeriod()
+		{
+			return this.onsetPeriodDist.draw();
+		}
+
+		@Override
+		public Duration drawSymptomPeriod()
+		{
+			return this.symptomPeriodDist.draw();
 		}
 	}
 }
