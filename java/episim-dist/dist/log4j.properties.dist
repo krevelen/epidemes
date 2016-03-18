@@ -1,0 +1,22 @@
+# $Id: c1c68b99ceba785027c2b09e74e518eaaf7aa738 $
+# $URL: https://dev.almende.com/svn/abms/coala-common/src/test/resources/log4j.properties $
+
+#
+# Configure the logger to output info level messages into a rolling log file.
+#
+log4j.rootLogger=TRACE, A1
+
+#
+# Configuration for standard output
+#
+log4j.appender.A1=org.apache.log4j.ConsoleAppender
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout
+
+#
+# Print the date in ISO 8601 format, %d{HH:mm:ss.SSS} %-5p [%t] %m [at %C{1}.%M(%F:%L)]%n
+#
+log4j.appender.A1.layout.ConversionPattern=%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C.%M(%F:%L)]%n
+
+
+log4j.logger.org.apache.http=INFO
+log4j.logger.org.eclipse.jetty=INFO
