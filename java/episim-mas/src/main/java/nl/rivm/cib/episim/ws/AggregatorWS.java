@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: f70a5234051c27a17ee4cd152cac2f344107874d $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -38,7 +38,7 @@ import nl.rivm.cib.episim.api.AggregatorAPI;
  * {@link AggregatorWS} exposes the statistics aggregation function provided by
  * some {@link AggregatorAPI} instance in a web service
  * 
- * @version $Id$
+ * @version $Id: f70a5234051c27a17ee4cd152cac2f344107874d $
  * @author Rick van Krevelen
  */
 @Path( "/stat" )
@@ -74,7 +74,7 @@ public class AggregatorWS
 	{
 		final JsonNode query = JsonUtil.getJOM().createObjectNode();
 		final JsonNode response = this.aggregator.select( query );
-		return Response.ok( JsonUtil.toString( response ) ).build();
+		return Response.ok( JsonUtil.toJSON( response ) ).build();
 	}
 
 	/**
@@ -91,7 +91,7 @@ public class AggregatorWS
 	{
 		final JsonNode statistics = JsonUtil.toTree( json );
 		final JsonNode response = this.aggregator.insert( statistics );
-		return Response.ok( JsonUtil.toString( response ) ).build();
+		return Response.ok( JsonUtil.toJSON( response ) ).build();
 	}
 
 }

@@ -89,7 +89,8 @@ public class TransitionEvent<T>
 	public static CompartmentEvent of( final TransmissionEvent transmission,
 		final EpidemicCompartment newStage )
 	{
-		return of( transmission.getSecondaryCondition(), newStage );
+		return of( transmission.getContact().getSecondaryCondition(),
+				newStage );
 	}
 
 	/**

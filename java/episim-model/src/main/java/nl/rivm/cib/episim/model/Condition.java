@@ -19,7 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.exception.x.ExceptionBuilder;
+import io.coala.exception.ExceptionBuilder;
+import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
 import rx.subjects.PublishSubject;
@@ -54,8 +55,6 @@ public interface Condition extends Timed
 	 *         antigen), {@code false} otherwise
 	 */
 	//Boolean isSeropositive();
-	
-	void infect();
 
 	/**
 	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
@@ -63,6 +62,46 @@ public interface Condition extends Timed
 	 */
 	Observable<TransitionEvent<?>> emitTransitions();
 
+	/**
+	 * initiate infection (infectiousness, symptoms, etc.)
+	 */
+	void infect();
+	
+	// FIXME void treat(TreatmentStage stage);
+
+	/**
+	 * @param scheduler the {@link Scheduler}
+	 * @param infection the {@link Infection}
+	 * @return a {@link Simple} instance of {@link Condition}
+	 */
+	static Condition of( final Scheduler scheduler, final Infection infection )
+	{
+		return of( scheduler, infection, EpidemicCompartment.Simple.SUSCEPTIBLE,
+				SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
+	}
+
+	/**
+	 * @param scheduler the {@link Scheduler}
+	 * @param infection the {@link Infection}
+	 * @param compartment the {@link EpidemicCompartment}
+	 * @param symptoms the {@link SymptomPhase}
+	 * @param treatment the {@link TreatmentStage}
+	 * @return a {@link Simple} instance of {@link Condition}
+	 */
+	static Condition of( final Scheduler scheduler, final Infection infection,
+		final EpidemicCompartment compartment, final SymptomPhase symptoms,
+		final TreatmentStage treatment )
+	{
+		return new Simple( scheduler, infection, compartment, symptoms,
+				treatment );
+	}
+
+	/**
+	 * {@link Simple} implementation of {@link Condition}
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
+	 */
 	class Simple implements Condition
 	{
 		private final Scheduler scheduler;
@@ -78,12 +117,15 @@ public interface Condition extends Timed
 		private final Subject<TransitionEvent<?>, TransitionEvent<?>> transitions = PublishSubject
 				.create();
 
-		public Simple( final Scheduler scheduler, final Infection infection )
-		{
-			this( scheduler, infection, EpidemicCompartment.Simple.SUSCEPTIBLE,
-					SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
-		}
-
+		/**
+		 * {@link Simple} constructor
+		 * 
+		 * @param scheduler the {@link Scheduler}
+		 * @param infection the {@link Infection}
+		 * @param compartment the {@link EpidemicCompartment}
+		 * @param symptoms the {@link SymptomPhase}
+		 * @param treatment the {@link TreatmentStage}
+		 */
 		public Simple( final Scheduler scheduler, final Infection infection,
 			final EpidemicCompartment compartment, final SymptomPhase symptoms,
 			final TreatmentStage treatment )
@@ -111,26 +153,6 @@ public interface Condition extends Timed
 		{
 			this.transitions.onNext( TransitionEvent.of( this, symptoms ) );
 			this.symptoms = symptoms;
-		}
-
-		public void infect()
-		{
-			if( !getCompartment().isSusceptible() ) throw ExceptionBuilder
-					.unchecked( "Can't be exposed when: %s", getCompartment() )
-					.build();
-
-			set( EpidemicCompartment.Simple.EXPOSED );
-
-			after( getInfection().drawLatentPeriod() )
-					.call( this::set, EpidemicCompartment.Simple.INFECTIVE )
-					.thenAfter( getInfection().drawRecoverPeriod() )
-					.call( this::set, EpidemicCompartment.Simple.RECOVERED )
-					.thenAfter( getInfection().drawWanePeriod() )
-					.call( this::set, EpidemicCompartment.Simple.SUSCEPTIBLE );
-			after( getInfection().drawOnsetPeriod() )
-					.call( this::set, SymptomPhase.SYSTEMIC )
-					.thenAfter( getInfection().drawSymptomPeriod() )
-					.call( this::set, SymptomPhase.ASYMPTOMATIC );
 		}
 
 		@Override
@@ -167,6 +189,27 @@ public interface Condition extends Timed
 		public Observable<TransitionEvent<?>> emitTransitions()
 		{
 			return this.transitions.asObservable();
+		}
+
+		@Override
+		public void infect()
+		{
+			if( !getCompartment().isSusceptible() ) throw ExceptionBuilder
+					.unchecked( "Can't be exposed when: %s", getCompartment() )
+					.build();
+
+			set( EpidemicCompartment.Simple.EXPOSED );
+
+			after( getInfection().drawLatentPeriod() )
+					.call( this::set, EpidemicCompartment.Simple.INFECTIVE )
+					.thenAfter( getInfection().drawRecoverPeriod() )
+					.call( this::set, EpidemicCompartment.Simple.RECOVERED )
+					.thenAfter( getInfection().drawWanePeriod() )
+					.call( this::set, EpidemicCompartment.Simple.SUSCEPTIBLE );
+			after( getInfection().drawOnsetPeriod() )
+					.call( this::set, SymptomPhase.SYSTEMIC )
+					.thenAfter( getInfection().drawSymptomPeriod() )
+					.call( this::set, SymptomPhase.ASYMPTOMATIC );
 		}
 	}
 }

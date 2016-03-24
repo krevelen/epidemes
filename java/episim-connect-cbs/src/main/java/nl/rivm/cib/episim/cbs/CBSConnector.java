@@ -28,7 +28,7 @@ import org.apache.http.client.fluent.Request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.coala.json.x.JsonUtil;
+import io.coala.json.JsonUtil;
 
 /**
  * {@link CBSConnector}
@@ -65,11 +65,6 @@ public class CBSConnector
 		{
 			return JsonUtil.getJOM().readTree( stream );
 		}
-	}
-
-	public static void olingoTest()
-	{
-
 	}
 
 }

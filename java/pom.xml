@@ -9,11 +9,17 @@
 	<packaging>pom</packaging>
 
 	<modules>
-		<module>episim-model</module>
-		<module>episim-connect-cbs</module>
 		<module>episim-api</module>
 		<module>episim-mas</module>
+		
+		<module>episim-model</module>
+		<module>episim-connect-cbs</module>
+		<module>episim-connect-geodb</module>
+		<module>episim-connect-pienter2</module>
+		<module>episim-persist-kundera</module>
+		
 		<module>episim-dist</module>
+		<module>episim-persist</module>
 	</modules>
 
 	<name>${project.artifactId} ${project.version}</name>

@@ -19,8 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.x.DynaBean.BeanWrapper;
-import io.coala.json.x.Wrapper;
+import io.coala.json.Wrapper;
+import io.coala.json.DynaBean.BeanProxy;
 
 /**
  * {@link TreatmentStage} is an extensible identifier for stages of treatment
@@ -28,7 +28,7 @@ import io.coala.json.x.Wrapper;
  * @version $Id: 69f546cf8559f0dd178f2bfb6f3c8fbb9a08ff1c $
  * @author Rick van Krevelen
  */
-@BeanWrapper
+@BeanProxy
 public interface TreatmentStage extends Wrapper<String>
 {
 	/** currently not receiving any treatment */

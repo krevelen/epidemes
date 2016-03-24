@@ -23,8 +23,8 @@ import javax.measure.quantity.Dimensionless;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.json.x.Wrapper;
-import io.coala.json.x.DynaBean.BeanWrapper;
+import io.coala.json.Wrapper;
+import io.coala.json.DynaBean.BeanProxy;
 
 /**
  * {@link ContactIntensity} is an extensible identifier for relation types
@@ -32,7 +32,7 @@ import io.coala.json.x.DynaBean.BeanWrapper;
  * @version $Id: c754b3b6a190657ce3524e685fce0c9bd08f1815 $
  * @author Rick van Krevelen
  */
-@BeanWrapper
+@BeanProxy
 public interface ContactIntensity extends Wrapper<String>
 {
 

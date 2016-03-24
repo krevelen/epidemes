@@ -19,8 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.x.DynaBean.BeanWrapper;
-import io.coala.json.x.Wrapper;
+import io.coala.json.Wrapper;
+import io.coala.json.DynaBean.BeanProxy;
 
 /**
  * {@link SymptomPhase} is an extensible identifier for stages of treatment
@@ -28,7 +28,7 @@ import io.coala.json.x.Wrapper;
  * @version $Id: e09ef6f5bdddf867d6f60848ae7ca3d5ccb0a485 $
  * @author Rick van Krevelen
  */
-@BeanWrapper
+@BeanProxy
 public interface SymptomPhase extends Wrapper<String>
 {
 	/** no signs or symptoms (not occult if not exposed or immune) */

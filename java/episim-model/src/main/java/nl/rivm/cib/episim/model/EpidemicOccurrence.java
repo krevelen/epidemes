@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 4a50c88b1b873be037db78d0b76d4d4ab29ec731 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,16 +19,17 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.x.Wrapper;
+import io.coala.json.Wrapper;
+import nl.rivm.cib.episim.model.metrics.PopulationMetrics;
 
 /**
  * {@link EpidemicOccurrence} is an extensible classifier to characterize incidence of
- * an {@link Infection} among a {@link Population} (= <em>demos</em>) over time
+ * an {@link Infection} among a {@link PopulationMetrics} (= <em>demos</em>) over time
  * and space, related but not similar to
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>
  * 
- * @version $Id$
+ * @version $Id: 4a50c88b1b873be037db78d0b76d4d4ab29ec731 $
  * @author Rick van Krevelen
  */
 public interface EpidemicOccurrence extends Wrapper<String>

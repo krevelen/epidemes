@@ -22,6 +22,7 @@ package nl.rivm.cib.episim.model;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -32,17 +33,18 @@ import javax.measure.unit.NonSI;
 import javax.measure.unit.Unit;
 import javax.measure.unit.UnitFormat;
 
+import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
+import io.coala.math3.Math3RandomDistribution;
 import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.RandomDistribution;
-import io.coala.random.RandomNumberStream;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.time.Timed.Scheduler;
+import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
 /**
@@ -72,6 +74,7 @@ public class ScenarioTest
 	 * 
 	 * @throws Throwable
 	 */
+	@SuppressWarnings( "unchecked" )
 	@Test
 	public void scenarioTest() throws Throwable
 	{
@@ -96,37 +99,55 @@ public class ScenarioTest
 				Duration.of( "3 days" ), Duration.of( "7 days" ) );
 
 		final TransmissionRoute route = TransmissionRoute.AIRBORNE;
-		final Location rivm = new Location.Simple( scheduler,
-				Location.RIVM_POSITION, Location.NO_ZIP, route );
+		final TransmissionSpace space = TransmissionSpace.of( scheduler,
+				route );
+		final Place rivm = Place.of( Place.RIVM_POSITION, Place.NO_ZIP, space );
 
-		final Duration contactPeriod = Duration.of( "1 h" );
+		final Duration contactPeriod = Duration.of( "10 h" );
 		final ContactIntensity[] contactTypes = { ContactIntensity.FAMILY };
 		final Amount<Frequency> force = measles.getForceOfInfection( null, null,
 				contactTypes );
 		final double infectLikelihood = force.times( contactPeriod.toAmount() )
 				.to( Unit.ONE ).getEstimatedValue();
-		LOG.trace( "Infection likelihood: {} x {} x {} = {}", force,
+		LOG.trace( "Infection likelihood: {} * {} * {} = {}", force,
 				contactPeriod, Arrays.asList( contactTypes ),
 				infectLikelihood );
 
-		final RandomDistribution<Gender> genderDist = RandomDistribution.Util
-				.asConstant( Gender.MALE );
+		final RandomDistribution.Parser distParser = new RandomDistribution.Parser.Simple(
+				Math3RandomDistribution.Factory
+						.of( Math3RandomNumberStream.Factory
+								.of( MersenneTwister.class )
+								.create( "MAIN", 1234L ) ) );
+		final RandomDistribution<Gender> genderDist = distParser.getFactory()
+				.getUniformEnumerated( Gender.MALE, Gender.FEMALE );
+		/*
+		 * FIXME RandomDistribution. Util .valueOf( "uniform(male;female)",
+		 * distParser, Gender.class );
+		 */
+		final RandomDistribution<Instant> birthDist = Instant
+				.of( /* distFactory.getUniformInteger( rng, -5, 0 ) */
+						RandomDistribution.Util.valueOf(
+								"uniformdiscrete(-5;0)", distParser,
+								Integer.class ),
+						NonSI.DAY );
 		final CountDownLatch latch = new CountDownLatch( 1 );
-		final RandomNumberStream rng = new Math3RandomNumberStream.MersenneFactory()
-				.create( "MAIN", 1234L );
 		for( int i = 1; i < n_pop; i++ )
 		{
-			final Individual ind = new Individual.Simple( scheduler,
-					Instant.of( "0 h" ), genderDist.draw(), rivm, rivm,
-					new Condition.Simple( scheduler, measles ) );
+			final Gender gender = genderDist.draw();
+			final Instant birth = birthDist.draw();
+			LOG.trace( "#{} - gender: {}, birth: {}", i, gender, birth );
+			final Individual ind = Individual.of( scheduler, birth, gender,
+					Household.of( scheduler, rivm ), rivm.getSpace(),
+					Collections.singleton( Condition.of( scheduler, measles ) ),
+					Collections.emptySet() );
 			pop.add( ind );
-			if( rng.nextDouble() > infectLikelihood ) continue;
 			final int nr = i;
 			ind.getConditions().get( measles ).emitTransitions()
 					.subscribe( ( TransitionEvent<?> t ) ->
 					{
-						LOG.trace( "Transition for {} at t={}: {}", nr,
-								scheduler.now(), t );
+						LOG.trace( "Transition for #{} at t={}: {}", nr,
+								scheduler.now().toMeasure().to( NonSI.HOUR ),
+								t );
 					}, ( Throwable e ) ->
 					{
 						LOG.warn( "Problem in transition", e );
@@ -134,8 +155,12 @@ public class ScenarioTest
 					{
 						latch.countDown();
 					} );
-			ind.getConditions().get( measles ).infect();
-			LOG.trace( "INFECTED" );
+			if( distParser.getStream().nextDouble() < infectLikelihood )
+			{
+				LOG.trace( "INFECTED #{}", i );
+				ind.after( Duration.of( "30 min" ) )
+						.call( ind.getConditions().get( measles )::infect );
+			}
 		}
 		scheduler.time().subscribe( ( Instant t ) ->
 		{

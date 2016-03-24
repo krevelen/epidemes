@@ -13,11 +13,13 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
-		$Id$
+		$Id: cc46229c3f1137b55f0569b1f04a2b6c01c403b0 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<dsol.version>3.00.18</dsol.version>
+		<hamcrest.version>1.3</hamcrest.version>
 	</properties>
 
 	<repositories>
@@ -34,6 +36,7 @@
 				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
+		
 		<repository>
 			<name>EPISIM Public Maven Repository</name>
 			<id>episim-public</id>
@@ -47,12 +50,41 @@
 				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.coala</groupId>
-			<artifactId>coala-api</artifactId>
+			<artifactId>coala-api-time</artifactId>
+		</dependency>
+	
+		<!-- <dependency> <groupId>io.coala</groupId> <artifactId>guice3-coala-adapter</artifactId> 
+			<scope>test</scope> </dependency> -->
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>dsol</groupId>
+			<artifactId>dsol-core</artifactId>
+			<version>${dsol.version}</version>
+			<scope>test</scope>
 		</dependency>
 		
 		<dependency>
@@ -61,8 +93,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<version>${hamcrest.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

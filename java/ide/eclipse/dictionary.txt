@@ -110,3 +110,13 @@ tibovirus
 infectives
 unschedule
 immunize
+proxy
+hypergeometric
+poisson
+zipf
+cauchy
+&chi;
+pareto
+&chi;
+vaccinate
+centroid

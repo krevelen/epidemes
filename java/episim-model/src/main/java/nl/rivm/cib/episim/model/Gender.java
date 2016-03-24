@@ -19,8 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.x.DynaBean.BeanWrapper;
-import io.coala.json.x.Wrapper;
+import io.coala.json.Wrapper;
+import io.coala.json.DynaBean.BeanProxy;
 
 /**
  * {@link Gender} is an extensible identifier for gender classifications
@@ -28,7 +28,7 @@ import io.coala.json.x.Wrapper;
  * @version $Id: 29f8beca0d938bde40a0178d73456e1827c03856 $
  * @author Rick van Krevelen
  */
-@BeanWrapper
+@BeanProxy
 public interface Gender extends Wrapper<String>
 {
 	/** the MALE {@link Gender} */

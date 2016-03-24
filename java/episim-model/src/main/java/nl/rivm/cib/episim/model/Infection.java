@@ -111,14 +111,14 @@ public interface Infection
 	 * <a href="https://en.wikipedia.org/wiki/Force_of_infection">wikipedia</a>
 	 * ), here with calibration to specific circumstances:
 	 * 
-	 * @param location the {@link Location} of contact
+	 * @param location the {@link Place} of contact
 	 * @param infectives the primary infective {@link Carrier}s in contact with
 	 *            their respective {@link ContactIntensity}
 	 * @param susceptible the secondary susceptible {@link Carrier}
 	 * @param duration the {@link Duration} {@link Amount} of contact
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	Amount<Frequency> getForceOfInfection( Location location,
+	Amount<Frequency> getForceOfInfection( Place location,
 		Carrier susceptible, ContactIntensity... infectives );
 
 	/**
@@ -161,7 +161,7 @@ public interface Infection
 	 * {@link Simple} implements an {@link Infection} with a simple force of
 	 * infection that is drawn from some {link RandomDistribution} independent
 	 * of the relations between infective and susceptible {@link Carrier}s,
-	 * their current {@link Condition}s, or the contact {@link Location} (and
+	 * their current {@link Condition}s, or the contact {@link Place} (and
 	 * {@link TransmissionRoute}s)
 	 * 
 	 * @version $Id$
@@ -210,7 +210,7 @@ public interface Infection
 		}
 
 		@Override
-		public Amount<Frequency> getForceOfInfection( final Location location,
+		public Amount<Frequency> getForceOfInfection( final Place location,
 			final Carrier susceptible, final ContactIntensity... infectives )
 		{
 			Amount<Frequency> result = Amount.valueOf( 0, DAILY );
