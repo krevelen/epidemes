@@ -33,7 +33,6 @@ import nl.rivm.cib.episim.time.Scheduler;
  * @author Rick van Krevelen
  */
 public class Indicator<Q extends Quantity> extends Signal.Ordinal<Amount<Q>>
-	implements Comparable<Indicator<Q>>
 {
 
 	private final TimeInvariant<Amount<Q>> timeInvariant;
