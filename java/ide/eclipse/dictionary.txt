@@ -120,3 +120,6 @@ pareto
 &chi;
 vaccinate
 centroid
+urgency
+complacency
+ordinally

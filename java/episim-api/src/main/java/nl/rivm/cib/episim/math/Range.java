@@ -12,79 +12,132 @@ import io.coala.exception.ExceptionFactory;
 public class Range<T extends Comparable<T>>
 {
 
-	private T minimum;
+	private Extreme<T> maximum;
 
-	private Boolean minimumInclusive;
+	private Extreme<T> minimum;
 
-	private T maximum;
-
-	private Boolean maximumInclusive;
-
-	public Range( final T minimum, final Boolean minimumInclusive,
-		final T maximum, final Boolean maximumInclusive )
+	public Range( final Extreme<T> minimum, final Extreme<T> maximum )
 	{
-		if( minimum != null && maximum != null
-				&& maximum.compareTo( minimum ) < 0 )
+		if( minimum == null || maximum == null
+				|| maximum.compareTo( minimum ) < 0 )
 			throw ExceptionFactory.createUnchecked(
 					"minimum {} greater than maximum {}", minimum, maximum );
 
 		this.minimum = minimum;
-		this.minimumInclusive = minimumInclusive;
 		this.maximum = maximum;
-		this.maximumInclusive = maximumInclusive;
 	}
 
-	public T getMinimum()
+	/** @return the minimum value, or {@code null} for (negative) infinity */
+	public Extreme<T> getMinimum()
 	{
 		return this.minimum;
 	}
 
-	public Boolean isMinimumInclusive()
-	{
-		return this.minimumInclusive;
-	}
-
-	public T getMaximum()
+	/** @return the maximum value, or {@code null} for (positive) infinity */
+	public Extreme<T> getMaximum()
 	{
 		return this.maximum;
 	}
 
-	public Boolean isMaximumInclusive()
-	{
-		return this.maximumInclusive;
-	}
-
 	/**
-	 * @param value the {@link Comparable} to test
+	 * @param value the {@link T} to test
 	 * @return {@code true} iff this {@link Range} has a finite minimum that is
 	 *         greater than specified value, {@code false} otherwise
 	 */
 	public boolean isGreaterThan( final T value )
 	{
-		if( getMinimum() == null ) return false;
-		final int minimumCompare = value.compareTo( getMinimum() );
-		return isMinimumInclusive() ? minimumCompare < 0 : minimumCompare <= 0;
+		if( this.minimum.isNegativeInfinity() ) return false;
+		return getMinimum().isInclusive()
+				? Comparison.of( value,
+						getMinimum().getValue() ) == Comparison.LESS
+				: Comparison.of( value,
+						getMinimum().getValue() ) != Comparison.GREATER;
 	}
 
 	/**
-	 * @param value the {@link Comparable} to test
+	 * @param value the {@link T} to test
 	 * @return {@code true} iff this {@link Range} has a finite maximum that is
 	 *         smaller than specified value, {@code false} otherwise
 	 */
 	public boolean isLessThan( final T value )
 	{
 		if( getMaximum() == null ) return false;
-		final int maximumCompare = value.compareTo( getMaximum() );
-		return isMaximumInclusive() ? maximumCompare > 0 : maximumCompare >= 0;
+		return getMaximum().isInclusive()
+				? Comparison.of( value,
+						getMaximum().getValue() ) == Comparison.GREATER
+				: Comparison.of( value,
+						getMaximum().getValue() ) != Comparison.LESS;
 	}
 
 	/**
-	 * @param value the {@link Comparable} to test
+	 * @param value the {@link T} to test
 	 * @return {@code true} iff this {@link Range} contains specified value
 	 */
 	public Boolean contains( final T value )
 	{
 		return !isGreaterThan( value ) && !isLessThan( value );
+	}
+
+	public boolean overlaps( final Range<T> that )
+	{
+		return intersect( that ) != null;
+	}
+
+	public Range<T> intersect( final Range<T> that )
+	{
+		return of( Comparison.max( this.getMinimum(), that.getMinimum() ),
+				Comparison.min( this.getMaximum(), that.getMaximum() ) );
+	}
+
+	public static <T extends Comparable<T>> Range<T> infinite()
+	{
+		return of( null, null, null, null );
+	}
+
+	/**
+	 * @param minimum
+	 * @return a {@link Range} representing <code>[x,&rarr;)</code>
+	 */
+	public static <T extends Comparable<T>> Range<T>
+		upFromAndIncluding( final T minimum )
+	{
+		return upFrom( minimum, true );
+	}
+
+	/**
+	 * @param minimum
+	 * @param minimumInclusive
+	 * @return a {@link Range} representing <code>[x,&rarr;)</code> or
+	 *         <code>(x,&rarr;)</code>
+	 */
+	public static <T extends Comparable<T>> Range<T> upFrom( final T minimum,
+		final Boolean minimumInclusive )
+	{
+		return of( Extreme.lower( minimum, minimumInclusive ),
+				Extreme.positiveInfinity() );
+	}
+
+	/**
+	 * @param maximum
+	 * @return a {@link Range} representing <code>(&larr;,x]</code>
+	 */
+	public static <T extends Comparable<T>> Range<T>
+		upToAndIncluding( final T maximum )
+	{
+		return upFrom( maximum, true );
+	}
+
+	/**
+	 * @param maximum
+	 * @param maximumInclusive
+	 * @return a {@link Range} representing <code>(&larr;,x]</code> or
+	 *         <code>(&larr;,x)</code>
+	 */
+	public static <T extends Comparable<T>> Range<T> upTo( final T maximum,
+		final Boolean maximumInclusive )
+	{
+		return of( Extreme.negativeInfinity(),
+				Extreme.upper( maximum, maximumInclusive ) );
 	}
 
 	/**
@@ -93,7 +146,7 @@ public class Range<T extends Comparable<T>>
 	 */
 	public static <T extends Comparable<T>> Range<T> of( final T value )
 	{
-		return of( value, Boolean.TRUE, value, Boolean.TRUE );
+		return of( value, true, value, true );
 	}
 
 	/**
@@ -104,7 +157,7 @@ public class Range<T extends Comparable<T>>
 	public static <T extends Comparable<T>> Range<T> of( final T minimum,
 		final T maximum )
 	{
-		return of( minimum, Boolean.TRUE, maximum, Boolean.TRUE );
+		return of( minimum, true, maximum, true );
 	}
 
 	/**
@@ -118,7 +171,18 @@ public class Range<T extends Comparable<T>>
 		final Boolean minimumInclusive, final T maximum,
 		final Boolean maximumInclusive )
 	{
-		return new Range<T>( minimum, minimumInclusive, maximum,
-				maximumInclusive );
+		return of( Extreme.lower( minimum, minimumInclusive ),
+				Extreme.upper( maximum, maximumInclusive ) );
+	}
+
+	/**
+	 * @param minimum the lower {@link Extreme}
+	 * @param maximum the upper {@link Extreme}
+	 * @return the {@link Range} instance
+	 */
+	public static <T extends Comparable<T>> Range<T>
+		of( final Extreme<T> minimum, final Extreme<T> maximum )
+	{
+		return new Range<T>( minimum, maximum );
 	}
 }

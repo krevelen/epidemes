@@ -19,172 +19,41 @@
  */
 package nl.rivm.cib.episim.math;
 
-import javax.measure.Measurable;
 import javax.measure.quantity.Quantity;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
-import rx.Observable;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 /**
- * {@link Indicator} decorates an {@link Amount} as {@link Timed}
+ * {@link Indicator} is a linear time {@link Signal} of {@link Amount}s
  * 
- * @param <Q>the concrete type of accumulated {@link Quantity}
+ * @param <Q> the type of {@link Quantity} being indicated
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class Indicator<Q extends Quantity>
-	implements Timed, Comparable<Indicator<Q>>
+public class Indicator<Q extends Quantity> extends Signal.Ordinal<Amount<Q>>
+	implements Comparable<Indicator<Q>>
 {
 
-	private Amount<Q> value = null;
+	private final TimeInvariant<Amount<Q>> timeInvariant;
 
-	private final transient Scheduler scheduler;
-
-	private final transient Subject<Amount<Q>, Amount<Q>> values = PublishSubject
-			.create();
-
-	public Indicator( final Scheduler scheduler, final Amount<Q> initialValue )
+	public Indicator( final Scheduler scheduler,
+		final TimeInvariant<Amount<Q>> timeInvariant )
 	{
-		this.scheduler = scheduler;
-		setValue( initialValue );
-	}
-
-	@Override
-	public Scheduler scheduler()
-	{
-		return this.scheduler;
-	}
-
-	@Override
-	public String toString()
-	{
-		return getValue() == null ? null : getValue().toString();
-	}
-
-	@Override
-	public int compareTo( final Indicator<Q> o )
-	{
-		return getValue().compareTo( o.getValue() );
+		super( scheduler, Range.infinite(), timeInvariant::get );
+		this.timeInvariant = timeInvariant;
 	}
 
 	public synchronized void setValue( final Amount<Q> amount )
 	{
-		this.value = amount;
-		if( amount != null ) this.values.onNext( amount );
-	}
-
-	public Amount<Q> getValue()
-	{
-		return this.value;
-	}
-
-	public Observable<Amount<Q>> emitValues()
-	{
-		return this.values.asObservable();
-	}
-
-	/**
-	 * @param target the {@link Amount} to equate (unit, value, range, etc.)
-	 * @return a filtered mapping of {@link #emitValues()} to an
-	 *         {@link Observable} stream of all {@link Instant}s when this
-	 *         {@link Indicator}'s {@link Amount} equals specified
-	 *         {@code target}
-	 */
-	public Observable<Instant> emitEquals( final Amount<Q> target )
-	{
-		return emitValues().filter( ( Amount<Q> amount ) ->
-		{
-			return amount.equals( target );
-		} ).map( ( Amount<Q> amount ) ->
-		{
-			return now();
-		} );
-	}
-
-	/**
-	 * @param target the {@link Measurable} to compare
-	 * @return a filtered mapping of {@link #emitValues()} to an
-	 *         {@link Observable} stream of all {@link Instant}s when this
-	 *         {@link Indicator}'s {@link Amount} equals specified
-	 *         {@code target}
-	 */
-	public Observable<Instant> emitIsSame( final Measurable<Q> target )
-	{
-		return emitValues().filter( ( Amount<Q> amount ) ->
-		{
-			return amount.compareTo( target ) == 0;
-		} ).map( ( Amount<Q> amount ) ->
-		{
-			return now();
-		} );
-	}
-
-	/**
-	 * @param minimum the lower bound {@link Measurable} (inclusive)
-	 * @param maximum the upper bound {@link Measurable} (inclusive)
-	 * @return a filtered mapping of {@link #emitValues()} to an
-	 *         {@link Observable} stream of {@link Boolean}s whether
-	 *         {@link #getValue(} is currently within specified range
-	 */
-	public Observable<Boolean> emitIsLessThan( final Measurable<Q> maximum )
-	{
-		return emitIsWithin( null, null, maximum, false );
-	}
-
-	/**
-	 * @param minimum the lower bound {@link Measurable} (inclusive)
-	 * @param maximum the upper bound {@link Measurable} (inclusive)
-	 * @return a filtered mapping of {@link #emitValues()} to an
-	 *         {@link Observable} stream of {@link Boolean}s whether
-	 *         {@link #getValue(} is currently within specified range
-	 */
-	public Observable<Boolean> emitIsWithin( final Measurable<Q> minimum,
-		final Measurable<Q> maximum )
-	{
-		return emitIsWithin( minimum, true, maximum, true );
-	}
-
-	/**
-	 * @param minimum the lower bound {@link Measurable} or {@code null}
-	 * @param isMinimumInclusive whether the lower bound is inclusive
-	 * @param maximum the upper bound {@link Measurable} or {@code null}
-	 * @param isMaximumInclusive whether the upper bound is inclusive
-	 * @return a filtered mapping of {@link #emitValues()} to an
-	 *         {@link Observable} stream of {@link Boolean}s whether
-	 *         {@link #getValue(} is currently within specified range
-	 */
-	public <T extends Measurable<Q>> Observable<Boolean> emitIsWithin( final Measurable<Q> minimum,
-		final Boolean isMinimumInclusive, final Measurable<Q> maximum,
-		final Boolean isMaximumInclusive )
-	{
-		return emitValues().map( ( final Amount<Q> amount ) ->
-		{
-			final int minimumCompare = amount.compareTo( minimum );
-			final boolean isWithinLowerBound = minimum == null
-					|| isMinimumInclusive ? minimumCompare >= 0
-							: minimumCompare > 0;
-			if( !isWithinLowerBound ) return false;
-			final int maximumCompare = amount.compareTo( maximum );
-			return maximum == null || isMaximumInclusive ? maximumCompare <= 0
-					: maximumCompare < 0;
-		} );
-	}
-
-	public static <Q extends Quantity> Indicator<Q>
-		of( final Scheduler scheduler )
-	{
-		return of( scheduler, null );
+		this.timeInvariant.set( amount );
 	}
 
 	public static <Q extends Quantity> Indicator<Q>
 		of( final Scheduler scheduler, final Amount<Q> initialValue )
 	{
-		return new Indicator<>( scheduler, initialValue );
+		return new Indicator<Q>( scheduler,
+				new TimeInvariant<Amount<Q>>( initialValue ) );
 	}
 }

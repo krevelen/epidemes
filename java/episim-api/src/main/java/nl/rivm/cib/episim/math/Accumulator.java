@@ -40,7 +40,9 @@ import rx.subjects.Subject;
 /**
  * {@link Accumulator}
  * 
- * @param <Q>the concrete type of accumulated {@link Quantity}
+ * FIXME extend Indicator ?
+ * 
+ * @param <Q> the type of accumulated {@link Quantity}
  * @version $Id$
  * @author Rick van Krevelen
  */

@@ -1,11 +1,11 @@
 package nl.rivm.cib.episim.model;
 
-import io.coala.name.x.Id;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 
 /**
- * {@link Vaccine}
+ * {@link Vaccine}s trigger the immune system to protect against some
+ * {@link Infection}
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -15,6 +15,10 @@ public interface Vaccine extends Timed
 
 	Infection getTarget();
 
+//	Amount<Dimensionless> getDeliveryComfort();
+
+//	Amount<Dimensionless> getEffectiveness();
+
 	/**
 	 * @param scheduler the {@link Scheduler}
 	 * @param target the target {@link Infection}
@@ -23,20 +27,6 @@ public interface Vaccine extends Timed
 	static Vaccine of( final Scheduler scheduler, final Infection target )
 	{
 		return new Simple( scheduler, target );
-	}
-
-	/**
-	 * {@link ID}
-	 * 
-	 * @version $Id$
-	 * @author Rick van Krevelen
-	 */
-	class ID extends Id.Ordinal<String>
-	{
-		public static ID valueOf( final String value )
-		{
-			return Util.valueOf( value, new ID() );
-		}
 	}
 
 	/**
