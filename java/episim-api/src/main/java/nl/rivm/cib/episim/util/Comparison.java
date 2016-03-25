@@ -1,4 +1,4 @@
-package nl.rivm.cib.episim.math;
+package nl.rivm.cib.episim.util;
 
 import java.util.Comparator;
 

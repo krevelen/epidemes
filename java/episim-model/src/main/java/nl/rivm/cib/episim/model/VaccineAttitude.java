@@ -26,7 +26,8 @@ public interface VaccineAttitude extends Timed
 	Vaccine getVaccine();
 
 	/**
-	 * @return the confidence (inverse vaccine risk perception)
+	 * @return the confidence (vaccine effectiveness vs risk perception) due to
+	 *         e.g. success reports, side-effect reports, etc.
 	 */
 	Amount<Dimensionless> getConfidence();
 
@@ -36,7 +37,18 @@ public interface VaccineAttitude extends Timed
 	Amount<Dimensionless> getComplacency();
 
 	/**
-	 * @return the convenience (inverse delivery effort required)
+	 * @return the comfort factor {@link Amount} due to delivery method (e.g.
+	 *         intravenous, needle-free patch, inhaled, oral, micro-needle
+	 *         arrays, stratum corneum disruption)
+	 */
+//	Amount<Dimensionless> getDeliveryComfort();
+
+//	Amount<Dimensionless> getEffectiveness();
+	/**
+	 * @return the convenience (inverse delivery effort required) due to time
+	 *         and/or distance required, the delivery method used (e.g.
+	 *         intravenous, needle-free patch, inhaled, oral, micro-needle
+	 *         arrays, stratum corneum disruption), etc.
 	 */
 	Amount<Dimensionless> getConvenience( Amount<Length> distance );
 
@@ -95,7 +107,7 @@ public interface VaccineAttitude extends Timed
 
 		/**
 		 * @param attitude
-		 * @param distance the 
+		 * @param distance the
 		 * @return
 		 */
 		static VaccineOpportunity of( final VaccineAttitude attitude,

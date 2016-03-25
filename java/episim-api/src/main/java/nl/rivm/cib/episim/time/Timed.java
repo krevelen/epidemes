@@ -19,15 +19,14 @@
  */
 package nl.rivm.cib.episim.time;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
+
+import javax.measure.quantity.Dimensionless;
 
 //import javax.measure.quantity.Dimensionless;
 //import javax.measure.quantity.Duration;
@@ -38,6 +37,7 @@ import io.coala.exception.ExceptionBuilder;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
+import nl.rivm.cib.episim.util.Caller;
 import rx.Observable;
 
 /**
@@ -141,113 +141,40 @@ public interface Timed
 			return self().scheduler();
 		}
 
-		default <R> Expectation call( final Callable<R> call )
+		/**
+		 * @param call the (checked) {@link Callable} method to schedule
+		 * @return the {@link Expectation} of the scheduled call
+		 */
+		default Expectation call( final Callable<?> call )
 		{
-			return self().scheduler().schedule( now(), call );
+			return scheduler().schedule( now(), call );
 		}
 
-		default Expectation call( final Runnable runnable )
+		default Expectation call( final Runnable r )
 		{
-			return call( new Callable<Void>()
-			{
-				@Override
-				public Void call() throws Exception
-				{
-					runnable.run();
-					return null;
-				}
-			} );
-		}
-
-		default Expectation call( final Method method, final Object obj,
-			final Object... args )
-		{
-			return call( new Callable<Object>()
-			{
-				@Override
-				public Object call() throws Exception
-				{
-					method.setAccessible( true );
-					return method.invoke( obj, args );
-				}
-			} );
-		}
-
-		default <T> Expectation call( final Constructor<T> constructor,
-			final Object... initargs )
-		{
-			return call( new Callable<T>()
-			{
-				@Override
-				public T call() throws Exception
-				{
-					return constructor.newInstance( initargs );
-				}
-			} );
-		}
-
-		default <R> Expectation call( final Supplier<R> s )
-		{
-			return call( new Callable<R>()
-			{
-				@Override
-				public R call() throws Exception
-				{
-					return s.get();
-				}
-			} );
+			return call( Caller.of( r ) );
 		}
 
 		default <T> Expectation call( final Consumer<T> c, final T t )
 		{
-			return call( new Callable<Void>()
-			{
-				@Override
-				public Void call() throws Exception
-				{
-					c.accept( t );
-					return null;
-				}
-			} );
-		}
-
-		default <T, R> Expectation call( final Function<T, R> f, final T t )
-		{
-			return call( new Callable<R>()
-			{
-				@Override
-				public R call() throws Exception
-				{
-					return f.apply( t );
-				}
-			} );
+			return call( Caller.of( c, t ) );
 		}
 
 		default <T, U> Expectation call( final BiConsumer<T, U> c, final T t,
 			final U u )
 		{
-			return call( new Callable<Void>()
-			{
-				@Override
-				public Void call() throws Exception
-				{
-					c.accept( t, u );
-					return null;
-				}
-			} );
+			return call( Caller.of( c, t, u ) );
 		}
 
-		default <T, U, R> Expectation call( final BiFunction<T, U, R> f,
+		default <T, R> Expectation call( final Function<T, R> c, final T t )
+		{
+			return call( Caller.of( c, t ) );
+		}
+
+		default <T, U, R> Expectation call( final BiFunction<T, U, R> c,
 			final T t, final U u )
 		{
-			return call( new Callable<R>()
-			{
-				@Override
-				public R call() throws Exception
-				{
-					return f.apply( t, u );
-				}
-			} );
+			return call( Caller.of( c, t, u ) );
 		}
 
 		static FutureSelf of( final Timed self, final Instant when )

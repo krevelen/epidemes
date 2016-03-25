@@ -22,6 +22,7 @@ package nl.rivm.cib.episim.model;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -44,6 +45,7 @@ import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.RandomDistribution;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
+import nl.rivm.cib.episim.math.Units;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
@@ -80,8 +82,8 @@ public class ScenarioTest
 	{
 		LOG.trace( "Starting scenario..." );
 
-		final Scheduler scheduler = new Dsol3Scheduler( "dsol3Test",
-				Instant.of( "0 days" ), Instant.of( "100 days" ),
+		final Scheduler scheduler = Dsol3Scheduler.of( "dsol3Test",
+				Instant.of( "0 days" ), Duration.of( "100 days" ),
 				( Scheduler s ) ->
 				{
 					LOG.trace( "initialized, t={}", s.now() );
@@ -94,7 +96,7 @@ public class ScenarioTest
 //		final Set<Location> offices = new HashSet<>();
 //		final int n_offices = 3000000;
 		final Infection measles = new Infection.Simple(
-				Amount.valueOf( 1, Infection.DAILY ), Duration.of( "2 days" ),
+				Amount.valueOf( 1, Units.DAILY ), Duration.of( "2 days" ),
 				Duration.of( "5 days" ), Duration.of( "9999 days" ),
 				Duration.of( "3 days" ), Duration.of( "7 days" ) );
 
@@ -103,10 +105,11 @@ public class ScenarioTest
 				route );
 		final Place rivm = Place.of( Place.RIVM_POSITION, Place.NO_ZIP, space );
 
+		final Collection<ContactIntensity> contactTypes = Collections
+				.singleton( ContactIntensity.FAMILY );
+		final Amount<Frequency> force = measles.getForceOfInfection(
+				rivm.getSpace().getTransmissionRoutes(), contactTypes );
 		final Duration contactPeriod = Duration.of( "10 h" );
-		final ContactIntensity[] contactTypes = { ContactIntensity.FAMILY };
-		final Amount<Frequency> force = measles.getForceOfInfection( null, null,
-				contactTypes );
 		final double infectLikelihood = force.times( contactPeriod.toAmount() )
 				.to( Unit.ONE ).getEstimatedValue();
 		LOG.trace( "Infection likelihood: {} * {} * {} = {}", force,

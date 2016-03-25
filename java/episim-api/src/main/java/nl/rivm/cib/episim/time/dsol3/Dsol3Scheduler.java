@@ -15,9 +15,11 @@ import org.apache.logging.log4j.Logger;
 import io.coala.dsol3.DsolTime;
 import io.coala.exception.ExceptionBuilder;
 import io.coala.log.LogUtil;
+import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Expectation;
 import nl.rivm.cib.episim.time.Scheduler;
+import nl.rivm.cib.episim.util.Caller;
 import nl.tudelft.simulation.dsol.ModelInterface;
 import nl.tudelft.simulation.dsol.SimRuntimeException;
 import nl.tudelft.simulation.dsol.experiment.ReplicationMode;
@@ -61,7 +63,8 @@ public class Dsol3Scheduler implements Scheduler
 	 */
 	@SuppressWarnings( { "unchecked", "serial", "rawtypes" } )
 	public Dsol3Scheduler( final String id, final Instant startTime,
-		final Instant endTime, final Consumer<Scheduler> onInitialize )
+		final Duration warmUp, final Duration length,
+		final Consumer<Scheduler> onInitialize )
 	{
 		this.scheduler = DsolTime.createDEVSSimulator( DEVSSimulator.class );
 		try
@@ -99,12 +102,14 @@ public class Dsol3Scheduler implements Scheduler
 			};
 
 			// initialize the simulator
-			final BigDecimal warmup = BigDecimal.ZERO;
-			final BigDecimal length = endTime.unwrap()
-					.to( startTime.unwrap().getUnit() ).getValue()
-					.subtract( startTime.unwrap().getValue() );
-			this.scheduler.initialize( DsolTime.createReplication( id, start,
-					warmup, length, model ), ReplicationMode.TERMINATING );
+			this.scheduler.initialize(
+					DsolTime.createReplication( id, start,
+							warmUp.unwrap().to( startTime.unwrap().getUnit() )
+									.getValue(),
+							length.unwrap().to( startTime.unwrap().getUnit() )
+									.getValue(),
+							model ),
+					ReplicationMode.TERMINATING );
 
 			// observe time changes
 			this.scheduler.addListener( ( final EventInterface event ) ->
@@ -212,6 +217,20 @@ public class Dsol3Scheduler implements Scheduler
 					} );
 			return Expectation.of( this, when, sub );
 		}
+	}
+
+	public static Dsol3Scheduler of( final String id, final Instant start,
+		final Duration duration, final Runnable modelInitializer )
+	{
+		return of( id, start, duration,
+				Caller.of( modelInitializer )::ignoreUnchecked );
+	}
+
+	public static Dsol3Scheduler of( final String id, final Instant start,
+		final Duration duration, final Consumer<Scheduler> modelInitializer )
+	{
+		return new Dsol3Scheduler( id, start, Duration.ZERO, duration,
+				modelInitializer );
 	}
 
 }

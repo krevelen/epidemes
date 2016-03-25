@@ -15,7 +15,11 @@ public interface Vaccine extends Timed
 
 	Infection getTarget();
 
-//	Amount<Dimensionless> getDeliveryComfort();
+	/**
+	 * @return the delivery method (e.g. intravenous, needle-free patch,
+	 *         inhaled, oral, micro-needle arrays, stratum corneum disruption)
+	 */
+//	DeliveryMethod getDeliveryMethod();
 
 //	Amount<Dimensionless> getEffectiveness();
 

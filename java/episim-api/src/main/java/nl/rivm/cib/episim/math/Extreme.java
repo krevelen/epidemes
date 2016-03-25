@@ -1,5 +1,7 @@
 package nl.rivm.cib.episim.math;
 
+import nl.rivm.cib.episim.util.Comparison;
+
 /**
  * {@link Extreme}
  * 

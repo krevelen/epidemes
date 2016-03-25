@@ -27,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
@@ -46,11 +47,10 @@ public class TimedTest
 	@Test
 	public void test() throws InterruptedException
 	{
-		final Scheduler sched = new Dsol3Scheduler( "dsol3Test",
-				Instant.of( 5 ), Instant.of( 10 ), ( Scheduler s ) ->
+		final Scheduler sched = Dsol3Scheduler.of( "dsol3Test", Instant.of( 5 ),
+				Duration.of( 10 ), ( final Scheduler s ) ->
 				{
-					LOG.trace( "initialized, t={}", s.now() );
-					
+					LOG.trace( "Scheduler initialized, t={}", s.now() );
 				} );
 		final Timed model = new Timed()
 		{

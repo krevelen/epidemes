@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import io.coala.exception.ExceptionBuilder;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
+import nl.rivm.cib.episim.util.Caller;
 
 /**
  * {@link Schedule} is a mapping of values occurring from some {@link Instant}s
@@ -66,7 +67,8 @@ public class Schedule<T>
 	{
 		for( Entry<Instant, T> entry : this.function.tailMap( scheduler.now() )
 				.entrySet() )
-			scheduler.at( entry.getKey() ).call( handler, entry.getValue() );
+			scheduler.at( entry.getKey() )
+					.call( Caller.of( handler, entry.getValue() ) );
 	}
 
 	public void put( final Instant when, final T value )

@@ -1,6 +1,7 @@
 package nl.rivm.cib.episim.math;
 
 import io.coala.exception.ExceptionFactory;
+import nl.rivm.cib.episim.util.Comparison;
 
 /**
  * {@link Range}

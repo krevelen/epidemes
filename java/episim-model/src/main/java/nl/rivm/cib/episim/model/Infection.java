@@ -19,15 +19,15 @@
  */
 package nl.rivm.cib.episim.model;
 
+import java.util.Collection;
+
 import javax.measure.quantity.Frequency;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
-import javax.measure.unit.UnitFormat;
 
 import org.jscience.physics.amount.Amount;
 
 import io.coala.random.RandomDistribution;
 import io.coala.time.x.Duration;
+import nl.rivm.cib.episim.math.Units;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
@@ -98,9 +98,6 @@ public interface Infection
 	 */
 	//Collection<TransmissionRoute> getTransmissionRoutes();
 
-	/** a {@link Frequency} per {@link NonSI#DAY} */
-	Unit<Frequency> DAILY = NonSI.DAY.pow( -1 ).asType( Frequency.class );
-
 	/**
 	 * The force of infection (denoted &lambda;) is the rate ({@link Amount} of
 	 * {@link Frequency}) at which a secondary susceptible individual acquires
@@ -111,15 +108,14 @@ public interface Infection
 	 * <a href="https://en.wikipedia.org/wiki/Force_of_infection">wikipedia</a>
 	 * ), here with calibration to specific circumstances:
 	 * 
-	 * @param location the {@link Place} of contact
-	 * @param infectives the primary infective {@link Carrier}s in contact with
-	 *            their respective {@link ContactIntensity}
-	 * @param susceptible the secondary susceptible {@link Carrier}
-	 * @param duration the {@link Duration} {@link Amount} of contact
+	 * @param routes a {@link Collection} of local {@link TransmissionRoute}s
+	 * @param infectionPressure the infection pressure as
+	 *            {@link ContactIntensity} for each primary infective currently
+	 *            in contact
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	Amount<Frequency> getForceOfInfection( Place location,
-		Carrier susceptible, ContactIntensity... infectives );
+	Amount<Frequency> getForceOfInfection( Collection<TransmissionRoute> routes,
+		Collection<ContactIntensity> infectionPressure );
 
 	/**
 	 * @return the (random) period between
@@ -169,10 +165,6 @@ public interface Infection
 	 */
 	class Simple implements Infection
 	{
-		{
-			UnitFormat.getInstance().alias(DAILY, "daily");
-			UnitFormat.getInstance().label(DAILY, "daily");
-		}
 		private final RandomDistribution<Amount<Frequency>> forceDist;
 
 		private final RandomDistribution<Duration> latentPeriodDist;
@@ -210,13 +202,13 @@ public interface Infection
 		}
 
 		@Override
-		public Amount<Frequency> getForceOfInfection( final Place location,
-			final Carrier susceptible, final ContactIntensity... infectives )
+		public Amount<Frequency> getForceOfInfection(
+			Collection<TransmissionRoute> routes,
+			Collection<ContactIntensity> infectionPressure )
 		{
-			Amount<Frequency> result = Amount.valueOf( 0, DAILY );
-			if( infectives == null ) return result;
+			Amount<Frequency> result = Amount.valueOf( 0, Units.DAILY );
 			Amount<Frequency> force = this.forceDist.draw();
-			for( ContactIntensity intensity : infectives )
+			for( ContactIntensity intensity : infectionPressure )
 				result = result.plus( force.times( intensity.getFactor() ) );
 			return result;
 		}

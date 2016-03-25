@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
@@ -34,10 +35,10 @@ public class Dsol3SchedulerTest
 	@Test
 	public void testScheduler() throws InterruptedException
 	{
-		final Instant h5 = Instant.valueOf( "5 h" );
+		final Instant h5 = Instant.of( "5 h" );
 		LOG.trace( "start t={}", h5 );
-		final Scheduler sched = new Dsol3Scheduler( "dsol3Test", h5,
-				h5.add( 5 ), ( Scheduler s ) ->
+		final Scheduler sched = Dsol3Scheduler.of( "dsol3Test", h5,
+				Duration.of( "5 h" ), ( Scheduler s ) ->
 				{
 					s.at( h5.add( 1 ) ).call( this::logTime, s );
 					s.at( h5.add( 2 ) ).call( this::logTime, s );
@@ -53,7 +54,6 @@ public class Dsol3SchedulerTest
 		}, ( Throwable e ) ->
 		{
 			LOG.trace( "problem, t=" + sched.now(), e );
-//			fail( e.getMessage() );
 		}, () ->
 		{
 			LOG.trace( "completed, t={}", sched.now() );
@@ -62,7 +62,7 @@ public class Dsol3SchedulerTest
 		sched.resume();
 
 		latch.await( 1, TimeUnit.SECONDS );
-		assertEquals( "Scheduler never completed", 0, latch.getCount() );
+		assertEquals( "Scheduler not completed in time", 0, latch.getCount() );
 	}
 
 }

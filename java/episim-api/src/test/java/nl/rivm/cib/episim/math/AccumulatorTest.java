@@ -38,6 +38,7 @@ import org.jscience.physics.amount.Amount;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
+import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.math.Accumulator;
@@ -79,8 +80,8 @@ public class AccumulatorTest
 	{
 
 		final Unit<?> bps = SI.BIT.divide( SI.SECOND );
-		final Scheduler scheduler = new Dsol3Scheduler( "dsol3Test",
-				Instant.of( "5 s" ), Instant.of( "100 s" ), ( Scheduler s ) ->
+		final Scheduler scheduler = Dsol3Scheduler.of( "dsol3Test",
+				Instant.of( "5 s" ), Duration.of( "100 s" ), ( Scheduler s ) ->
 				{
 					LOG.trace( "initialized, t={}", s.now() );
 				} );

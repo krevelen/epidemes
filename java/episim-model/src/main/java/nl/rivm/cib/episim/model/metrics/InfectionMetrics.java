@@ -18,17 +18,9 @@ import nl.rivm.cib.episim.time.Timed;
  * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic modeling
  * terminology</a> and approaches for <a href=
  * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
- * mathematical modelling of infectious disease</a>
+ * mathematical modeling of infectious disease</a>
  * 
  * <table>
- * <tr>
- * <th>&mu;</th>
- * <td>Average death rate</td>
- * </tr>
- * <tr>
- * <th>B</th>
- * <td>Average birth rate</td>
- * </tr>
  * <tr>
  * <th>M</th>
  * <td>Passively immune infants</td>
@@ -70,4 +62,15 @@ public interface InfectionMetrics extends Timed
 	 *         {@link #getEffectiveContactsNumber()} per {@link TimeSpan})
 	 */
 	Indicator<Frequency> getEffectiveContactRate();
+
+	// Indicator<Dimensionless> getVaccineCosts();
+
+	// disease burden analysis
+
+	// Indicator<Dimensionless> getMortality()
+	// Indicator<Dimensionless> getMorbidity()
+	// YLLs due to mortality
+	// Indicator<Dimensionless> getYearsOfLifeLost()
+	// YLDs due to morbidity
+	// Indicator<Dimensionless> getYearsOfHealthyLifeLostDueToDisability()
 }

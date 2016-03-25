@@ -42,26 +42,6 @@ import nl.rivm.cib.episim.time.Timed;
  * <td>Average birth rate</td>
  * </tr>
  * <tr>
- * <th>M</th>
- * <td>Passively immune infants</td>
- * </tr>
- * <tr>
- * <th>S</th>
- * <td>Susceptibles</td>
- * </tr>
- * <tr>
- * <th>E</th>
- * <td>Exposed individuals in the latent period</td>
- * </tr>
- * <tr>
- * <th>I</th>
- * <td>Infectives</td>
- * </tr>
- * <tr>
- * <th>R</th>
- * <td>Recovered with immunity</td>
- * </tr>
- * <tr>
  * <th>N</th>
  * <td>Total population</td>
  * </tr>
@@ -75,5 +55,25 @@ public interface PopulationMetrics extends Timed
 
 	InfectionMetrics metricsOf(Infection infection);
 
-	Indicator<Dimensionless> getSize();
+	Indicator<Dimensionless> getTotalPopulationSize();
+
+	Indicator<Dimensionless> getTotalBirths();
+
+	Indicator<Dimensionless> getTotalDeaths();
+
+	// disease burden analysis
+	
+	// N: deaths per 10^n individuals
+	// Indicator<Dimensionless> getTotalMortality()
+	// I: incidence (new cases fraction of population per interval)
+	// P: prevalence (total cases fraction of population per instant/interval/lifetime)
+	// Indicator<Dimensionless> getTotalMorbidity()
+	// YLLs = N x L (standard life expectancy at age of death in years)
+	// Indicator<Dimensionless> getTotalYearsOfLifeLost()
+	// YLDs = I x DW x L or P x DW (almost equivalent when not discounting age etc)
+	// Indicator<Dimensionless> getTotalYearsOfHealthyLifeLostDueToDisability()
+
+	// Indicator<Dimensionless> getTotalLifeYears();
+	// DALYs = YLL + YLD
+	// Indicator<Dimensionless> getTotalDisabilityAdjustedLifeYears();
 }
