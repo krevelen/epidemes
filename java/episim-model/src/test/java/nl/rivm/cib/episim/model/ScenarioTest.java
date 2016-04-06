@@ -40,9 +40,9 @@ import org.jscience.physics.amount.Amount;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
-import io.coala.math3.Math3RandomDistribution;
+import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3RandomNumberStream;
-import io.coala.random.RandomDistribution;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.math.Units;
@@ -116,20 +116,21 @@ public class ScenarioTest
 				contactPeriod, Arrays.asList( contactTypes ),
 				infectLikelihood );
 
-		final RandomDistribution.Parser distParser = new RandomDistribution.Parser.Simple(
-				Math3RandomDistribution.Factory
+		final ProbabilityDistribution.Parser distParser = new ProbabilityDistribution.Parser.Simple(
+				Math3ProbabilityDistribution.Factory
 						.of( Math3RandomNumberStream.Factory
 								.of( MersenneTwister.class )
 								.create( "MAIN", 1234L ) ) );
-		final RandomDistribution<Gender> genderDist = distParser.getFactory()
-				.getUniformEnumerated( Gender.MALE, Gender.FEMALE );
+		final ProbabilityDistribution<Gender> genderDist = distParser
+				.getFactory()
+				.createUniformCategorical( Gender.MALE, Gender.FEMALE );
 		/*
 		 * FIXME RandomDistribution. Util .valueOf( "uniform(male;female)",
 		 * distParser, Gender.class );
 		 */
-		final RandomDistribution<Instant> birthDist = Instant
+		final ProbabilityDistribution<Instant> birthDist = Instant
 				.of( /* distFactory.getUniformInteger( rng, -5, 0 ) */
-						RandomDistribution.Util.valueOf(
+						ProbabilityDistribution.Util.valueOf(
 								"uniformdiscrete(-5;0)", distParser,
 								Integer.class ),
 						NonSI.DAY );
@@ -158,7 +159,8 @@ public class ScenarioTest
 					{
 						latch.countDown();
 					} );
-			if( distParser.getStream().nextDouble() < infectLikelihood )
+			if( distParser.getFactory().getStream()
+					.nextDouble() < infectLikelihood )
 			{
 				LOG.trace( "INFECTED #{}", i );
 				ind.after( Duration.of( "30 min" ) )

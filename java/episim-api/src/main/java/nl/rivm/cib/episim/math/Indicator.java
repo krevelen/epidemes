@@ -23,6 +23,7 @@ import javax.measure.quantity.Quantity;
 
 import org.jscience.physics.amount.Amount;
 
+import io.coala.math.Range;
 import nl.rivm.cib.episim.time.Scheduler;
 
 /**

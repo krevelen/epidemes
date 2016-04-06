@@ -37,6 +37,8 @@ public interface LocationBroker extends Timed
 			return Util.of( new UUID(), new Registration() );
 		}
 	}
+	
+	// TODO health care
 
 	/**
 	 * @param daycare

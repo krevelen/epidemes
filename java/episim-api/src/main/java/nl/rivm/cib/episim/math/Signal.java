@@ -4,10 +4,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import io.coala.exception.ExceptionFactory;
+import io.coala.math.Comparison;
+import io.coala.math.Range;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
-import nl.rivm.cib.episim.util.Comparison;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;

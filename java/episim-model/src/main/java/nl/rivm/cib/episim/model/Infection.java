@@ -25,7 +25,7 @@ import javax.measure.quantity.Frequency;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.random.RandomDistribution;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
 import nl.rivm.cib.episim.math.Units;
 
@@ -165,33 +165,33 @@ public interface Infection
 	 */
 	class Simple implements Infection
 	{
-		private final RandomDistribution<Amount<Frequency>> forceDist;
+		private final ProbabilityDistribution<Amount<Frequency>> forceDist;
 
-		private final RandomDistribution<Duration> latentPeriodDist;
-		private final RandomDistribution<Duration> recoverPeriodDist;
-		private final RandomDistribution<Duration> wanePeriodDist;
-		private final RandomDistribution<Duration> onsetPeriodDist;
-		private final RandomDistribution<Duration> symptomPeriodDist;
+		private final ProbabilityDistribution<Duration> latentPeriodDist;
+		private final ProbabilityDistribution<Duration> recoverPeriodDist;
+		private final ProbabilityDistribution<Duration> wanePeriodDist;
+		private final ProbabilityDistribution<Duration> onsetPeriodDist;
+		private final ProbabilityDistribution<Duration> symptomPeriodDist;
 
 		public Simple( final Amount<Frequency> forceConst,
 			final Duration latentPeriodConst, final Duration recoverPeriodConst,
 			final Duration wanePeriodConst, final Duration onsetPeriodConst,
 			final Duration symptomPeriodConst )
 		{
-			this( RandomDistribution.Util.asConstant( forceConst ),
-					RandomDistribution.Util.asConstant( latentPeriodConst ),
-					RandomDistribution.Util.asConstant( recoverPeriodConst ),
-					RandomDistribution.Util.asConstant( wanePeriodConst ),
-					RandomDistribution.Util.asConstant( onsetPeriodConst ),
-					RandomDistribution.Util.asConstant( symptomPeriodConst ) );
+			this( ProbabilityDistribution.Util.createDeterministic( forceConst ),
+					ProbabilityDistribution.Util.createDeterministic( latentPeriodConst ),
+					ProbabilityDistribution.Util.createDeterministic( recoverPeriodConst ),
+					ProbabilityDistribution.Util.createDeterministic( wanePeriodConst ),
+					ProbabilityDistribution.Util.createDeterministic( onsetPeriodConst ),
+					ProbabilityDistribution.Util.createDeterministic( symptomPeriodConst ) );
 		}
 
-		public Simple( final RandomDistribution<Amount<Frequency>> forceDist,
-			final RandomDistribution<Duration> latentPeriodDist,
-			final RandomDistribution<Duration> recoverPeriodDist,
-			final RandomDistribution<Duration> wanePeriodDist,
-			final RandomDistribution<Duration> onsetPeriodDist,
-			final RandomDistribution<Duration> symptomPeriodDist )
+		public Simple( final ProbabilityDistribution<Amount<Frequency>> forceDist,
+			final ProbabilityDistribution<Duration> latentPeriodDist,
+			final ProbabilityDistribution<Duration> recoverPeriodDist,
+			final ProbabilityDistribution<Duration> wanePeriodDist,
+			final ProbabilityDistribution<Duration> onsetPeriodDist,
+			final ProbabilityDistribution<Duration> symptomPeriodDist )
 		{
 			this.forceDist = forceDist;
 			this.latentPeriodDist = latentPeriodDist;

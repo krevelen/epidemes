@@ -18,8 +18,7 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<metamodel-sas.version>4.4.0</metamodel-sas.version>
-		<metamodel.version>4.5.1</metamodel.version>
+		<metamodel-extras.version>4.4.0</metamodel-extras.version>
 	</properties>
 
 	<repositories>
@@ -60,14 +59,16 @@
 		<dependency>
 			<groupId>org.eobjects.metamodel-extras</groupId>
 			<artifactId>MetaModel-extras-sas</artifactId>
-			<version>${metamodel-sas.version}</version>
+			<version>${metamodel-extras.version}</version>
 		</dependency>
+		<!-- 
 		<dependency>
 			<groupId>org.apache.metamodel</groupId>
-			<artifactId>MetaModel-core</artifactId>
+			<artifactId>MetaModel-full</artifactId>
 			<version>${metamodel.version}</version>
 		</dependency>
-
+ -->
+ 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

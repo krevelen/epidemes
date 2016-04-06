@@ -23,7 +23,7 @@ import javax.measure.quantity.Frequency;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.random.RandomDistribution;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
 import nl.rivm.cib.episim.model.Infection;
 
@@ -43,17 +43,17 @@ import nl.rivm.cib.episim.model.Infection;
 public class HIB extends Infection.Simple
 {
 
-	private static final RandomDistribution<Amount<Frequency>> forceDist = null;
+	private static final ProbabilityDistribution<Amount<Frequency>> forceDist = null;
 
-	private static final RandomDistribution<Duration> latentPeriodDist = null;
+	private static final ProbabilityDistribution<Duration> latentPeriodDist = null;
 
-	private static final RandomDistribution<Duration> recoverPeriodDist = null;
+	private static final ProbabilityDistribution<Duration> recoverPeriodDist = null;
 
-	private static final RandomDistribution<Duration> wanePeriodDist = null;
+	private static final ProbabilityDistribution<Duration> wanePeriodDist = null;
 
-	private static final RandomDistribution<Duration> onsetPeriodDist = null;
+	private static final ProbabilityDistribution<Duration> onsetPeriodDist = null;
 
-	private static final RandomDistribution<Duration> symptomPeriodDist = null;
+	private static final ProbabilityDistribution<Duration> symptomPeriodDist = null;
 
 	public HIB()
 	{
