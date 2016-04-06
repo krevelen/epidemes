@@ -31,7 +31,7 @@ import javax.measure.quantity.Frequency;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.exception.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.math.Accumulator;
 import nl.rivm.cib.episim.time.Scheduler;
@@ -296,8 +296,9 @@ public interface TransmissionSpace extends Timed
 			final Instant previous;
 			if( (previous = getArrivals().put( visitor,
 					getSpace().now() )) != null )
-				throw ExceptionBuilder.unchecked( "%s already entered %s on %s",
-						visitor, getSpace(), previous ).build();
+				throw ExceptionFactory.createUnchecked(
+						"%s already entered {} on {}", visitor, getSpace(),
+						previous );
 
 			if( getCompartment().isInfective() )
 			{
@@ -320,9 +321,8 @@ public interface TransmissionSpace extends Timed
 		{
 			final Instant arrival;
 			if( (arrival = getArrivals().remove( visitor )) == null )
-				throw ExceptionBuilder
-						.unchecked( "%s already left %s", visitor, getSpace() )
-						.build();
+				throw ExceptionFactory.createUnchecked( "{} already left {}",
+						visitor, getSpace() );
 			arrival.toAmount();
 //			final Instant departure = getLocation().now();
 //			for( Map.Entry<Individual, Instant> entry : getOccupantArrivals()

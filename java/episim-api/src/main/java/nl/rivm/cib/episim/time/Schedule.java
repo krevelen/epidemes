@@ -6,7 +6,7 @@ import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Consumer;
 
-import io.coala.exception.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.util.Caller;
@@ -43,7 +43,7 @@ public class Schedule<T>
 	public static <T> Schedule<T> of( final NavigableMap<Instant, T> function )
 	{
 		if( function.isEmpty() )
-			throw ExceptionBuilder.unchecked( "Can't be empty" ).build();
+			throw ExceptionFactory.createUnchecked( "Can't be empty" );
 		final Schedule<T> result = new Schedule<T>();
 		result.function = function;
 		return result;

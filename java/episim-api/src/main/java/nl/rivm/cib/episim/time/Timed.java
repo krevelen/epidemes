@@ -33,7 +33,7 @@ import javax.measure.quantity.Dimensionless;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.exception.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
@@ -179,10 +179,9 @@ public interface Timed
 
 		static FutureSelf of( final Timed self, final Instant when )
 		{
-			if( self.now().compareTo( when ) > 0 ) throw ExceptionBuilder
-					.unchecked( "Can't schedule in past: %s < now(%s)", when,
-							self.now() )
-					.build();
+			if( self.now().compareTo( when ) > 0 ) throw ExceptionFactory
+					.createUnchecked( "Can't schedule in past: {} < now({})",
+							when, self.now() );
 			return new FutureSelf()
 			{
 				@Override

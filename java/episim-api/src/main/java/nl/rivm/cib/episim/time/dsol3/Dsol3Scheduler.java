@@ -13,7 +13,7 @@ import javax.naming.NamingException;
 import org.apache.logging.log4j.Logger;
 
 import io.coala.dsol3.DsolTime;
-import io.coala.exception.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
 import io.coala.log.LogUtil;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
@@ -151,8 +151,8 @@ public class Dsol3Scheduler implements Scheduler
 				| NamingException e )
 		{
 			this.time.onError( e );
-			throw ExceptionBuilder.unchecked( e, "Problem creating scheduler" )
-					.build();
+			throw ExceptionFactory.createUnchecked( e,
+					"Problem creating scheduler" );
 		}
 	}
 

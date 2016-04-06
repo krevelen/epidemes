@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.exception.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
@@ -66,7 +66,7 @@ public interface Condition extends Timed
 	 * initiate infection (infectiousness, symptoms, etc.)
 	 */
 	void infect();
-	
+
 	// FIXME void treat(TreatmentStage stage);
 
 	/**
@@ -194,9 +194,9 @@ public interface Condition extends Timed
 		@Override
 		public void infect()
 		{
-			if( !getCompartment().isSusceptible() ) throw ExceptionBuilder
-					.unchecked( "Can't be exposed when: %s", getCompartment() )
-					.build();
+			if( !getCompartment().isSusceptible() )
+				throw ExceptionFactory.createUnchecked(
+						"Can't become exposed when: {}", getCompartment() );
 
 			set( EpidemicCompartment.Simple.EXPOSED );
 

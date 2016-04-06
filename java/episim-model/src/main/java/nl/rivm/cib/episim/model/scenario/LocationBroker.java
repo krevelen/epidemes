@@ -7,7 +7,7 @@ import java.util.function.Function;
 
 import com.eaio.uuid.UUID;
 
-import io.coala.exception.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
 import io.coala.name.x.Id;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
@@ -37,7 +37,7 @@ public interface LocationBroker extends Timed
 			return Util.of( new UUID(), new Registration() );
 		}
 	}
-	
+
 	// TODO health care
 
 	/**
@@ -120,9 +120,8 @@ public interface LocationBroker extends Timed
 		{
 			final Consumer<Instant> deregistrar = this.registrations
 					.get( registration );
-			if( deregistrar == null ) throw ExceptionBuilder
-					.unchecked( "Already deregistered: %s", registration )
-					.build();
+			if( deregistrar == null ) throw ExceptionFactory.createUnchecked(
+					"Already deregistered: {}", registration );
 			deregistrar.accept( now() );
 		}
 
