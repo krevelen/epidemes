@@ -4,9 +4,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import io.coala.exception.ExceptionFactory;
-import io.coala.math.Comparison;
 import io.coala.math.Range;
 import io.coala.time.x.Instant;
+import io.coala.util.Comparison;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;

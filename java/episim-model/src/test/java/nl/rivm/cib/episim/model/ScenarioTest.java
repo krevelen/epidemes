@@ -116,7 +116,7 @@ public class ScenarioTest
 				contactPeriod, Arrays.asList( contactTypes ),
 				infectLikelihood );
 
-		final ProbabilityDistribution.Parser distParser = new ProbabilityDistribution.Parser.Simple(
+		final ProbabilityDistribution.Parser distParser = new ProbabilityDistribution.Parser(
 				Math3ProbabilityDistribution.Factory
 						.of( Math3RandomNumberStream.Factory
 								.of( MersenneTwister.class )
@@ -130,8 +130,7 @@ public class ScenarioTest
 		 */
 		final ProbabilityDistribution<Instant> birthDist = Instant
 				.of( /* distFactory.getUniformInteger( rng, -5, 0 ) */
-						ProbabilityDistribution.Util.valueOf(
-								"uniformdiscrete(-5;0)", distParser,
+						distParser.parse( "uniform-discrete(-5;0)",
 								Integer.class ),
 						NonSI.DAY );
 		final CountDownLatch latch = new CountDownLatch( 1 );
