@@ -36,6 +36,8 @@ import rx.subjects.Subject;
 public interface Condition extends Timed
 {
 
+	Individual getIndividual();
+
 	Infection getInfection();
 
 	/**
@@ -70,33 +72,6 @@ public interface Condition extends Timed
 	// FIXME void treat(TreatmentStage stage);
 
 	/**
-	 * @param scheduler the {@link Scheduler}
-	 * @param infection the {@link Infection}
-	 * @return a {@link Simple} instance of {@link Condition}
-	 */
-	static Condition of( final Scheduler scheduler, final Infection infection )
-	{
-		return of( scheduler, infection, EpidemicCompartment.Simple.SUSCEPTIBLE,
-				SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
-	}
-
-	/**
-	 * @param scheduler the {@link Scheduler}
-	 * @param infection the {@link Infection}
-	 * @param compartment the {@link EpidemicCompartment}
-	 * @param symptoms the {@link SymptomPhase}
-	 * @param treatment the {@link TreatmentStage}
-	 * @return a {@link Simple} instance of {@link Condition}
-	 */
-	static Condition of( final Scheduler scheduler, final Infection infection,
-		final EpidemicCompartment compartment, final SymptomPhase symptoms,
-		final TreatmentStage treatment )
-	{
-		return new Simple( scheduler, infection, compartment, symptoms,
-				treatment );
-	}
-
-	/**
 	 * {@link Simple} implementation of {@link Condition}
 	 * 
 	 * @version $Id$
@@ -104,7 +79,37 @@ public interface Condition extends Timed
 	 */
 	class Simple implements Condition
 	{
-		private final Scheduler scheduler;
+
+		/**
+		 * @param individual the {@link Individual}
+		 * @param infection the {@link Infection}
+		 * @return a {@link Simple} instance of {@link Condition}
+		 */
+		public static Simple of( final Individual individual,
+			final Infection infection )
+		{
+			return of( individual, infection,
+					EpidemicCompartment.Simple.SUSCEPTIBLE,
+					SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
+		}
+
+		/**
+		 * @param individual the {@link Individual}
+		 * @param infection the {@link Infection}
+		 * @param compartment the {@link EpidemicCompartment}
+		 * @param symptoms the {@link SymptomPhase}
+		 * @param treatment the {@link TreatmentStage}
+		 * @return a {@link Simple} instance of {@link Condition}
+		 */
+		public static Simple of( final Individual individual,
+			final Infection infection, final EpidemicCompartment compartment,
+			final SymptomPhase symptoms, final TreatmentStage treatment )
+		{
+			return new Simple( individual, infection, compartment, symptoms,
+					treatment );
+		}
+
+		private final Individual individual;
 
 		private final Infection infection;
 
@@ -120,17 +125,17 @@ public interface Condition extends Timed
 		/**
 		 * {@link Simple} constructor
 		 * 
-		 * @param scheduler the {@link Scheduler}
+		 * @param individual the {@link Individual}
 		 * @param infection the {@link Infection}
 		 * @param compartment the {@link EpidemicCompartment}
 		 * @param symptoms the {@link SymptomPhase}
 		 * @param treatment the {@link TreatmentStage}
 		 */
-		public Simple( final Scheduler scheduler, final Infection infection,
+		public Simple( final Individual individual, final Infection infection,
 			final EpidemicCompartment compartment, final SymptomPhase symptoms,
 			final TreatmentStage treatment )
 		{
-			this.scheduler = scheduler;
+			this.individual = individual;
 			this.infection = infection;
 			this.compartment = compartment;
 			this.symptoms = symptoms;
@@ -156,9 +161,15 @@ public interface Condition extends Timed
 		}
 
 		@Override
+		public Individual getIndividual()
+		{
+			return this.individual;
+		}
+
+		@Override
 		public Scheduler scheduler()
 		{
-			return this.scheduler;
+			return getIndividual().scheduler();
 		}
 
 		@Override

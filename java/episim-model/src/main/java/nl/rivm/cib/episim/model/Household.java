@@ -15,31 +15,44 @@ import nl.rivm.cib.episim.time.Timed;
  */
 public interface Household extends Timed
 {
+	Population getPopulation();
+
 	Collection<Individual> getMembers();
 
 	/** @return the home {@link Place} */
 	Place getHome();
 
+	// TODO change daily routines: schools, commute, etc.
 	void move( Place newHome );
 
-	default boolean join( Individual member )
+	default Household join( Individual member )
 	{
-		return getMembers().add( member );
+		getMembers().add( member );
+		return this;
 	}
 
-	default boolean leave( Individual member )
+	default Household join( Household extra )
 	{
-		return getMembers().remove( member );
+		getMembers().addAll( extra.getMembers() );
+		return this;
 	}
 
-	/**
-	 * @param scheduler the {@link Scheduler}
-	 * @param home the initial {@link Place} of residence
-	 * @return a {@link Simple} instance of {@link Household}
-	 */
-	static Household of( final Scheduler scheduler, final Place home )
+	default Household part( Individual member )
 	{
-		return new Simple( scheduler, home );
+		getMembers().remove( member );
+		return this;
+	}
+
+	default Household part( Household leavers )
+	{
+		getMembers().removeAll( leavers.getMembers() );
+		return this;
+	}
+
+	default Household abandon()
+	{
+		getMembers().clear();
+		return this;
 	}
 
 	/**
@@ -50,22 +63,40 @@ public interface Household extends Timed
 	 */
 	class Simple implements Household
 	{
-		private final Scheduler scheduler;
 
-		private Place home;
+		/**
+		 * @param population the {@link Population}
+		 * @param home the initial {@link Place} of residence
+		 * @return a {@link Simple} instance of {@link Household}
+		 */
+		public static Household of( final Population population,
+			final Place home )
+		{
+			return new Simple( population, home );
+		}
+
+		private final Population population;
 
 		private final Collection<Individual> members = new HashSet<>();
 
-		public Simple( final Scheduler scheduler, final Place home )
+		private Place home;
+
+		public Simple( final Population population, final Place home )
 		{
-			this.scheduler = scheduler;
+			this.population = population;
 			this.home = home;
+		}
+
+		@Override
+		public Population getPopulation()
+		{
+			return this.population;
 		}
 
 		@Override
 		public Scheduler scheduler()
 		{
-			return this.scheduler;
+			return getPopulation().scheduler();
 		}
 
 		@Override
@@ -77,8 +108,9 @@ public interface Household extends Timed
 		@Override
 		public void move( final Place newHome )
 		{
+			getHome().vacate( this );
 			this.home = newHome;
-			// TODO change daily routine, schools, commute, etc.
+			getHome().occupy( this );
 		}
 
 		@Override

@@ -24,8 +24,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -46,7 +44,6 @@ import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Units;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
 /**
@@ -89,7 +86,7 @@ public class ScenarioTest
 					LOG.trace( "initialized, t={}", s.now() );
 				} );
 
-		final Set<Individual> pop = new HashSet<>();
+		//final Set<Individual> pop = new HashSet<>();
 		final int n_pop = 10;
 //		final Set<Location> homes = new HashSet<>();
 //		final int n_homes = 6000000;
@@ -103,7 +100,8 @@ public class ScenarioTest
 		final TransmissionRoute route = TransmissionRoute.AIRBORNE;
 		final TransmissionSpace space = TransmissionSpace.of( scheduler,
 				route );
-		final Place rivm = Place.of( Place.RIVM_POSITION, Place.NO_ZIP, space );
+		final Place rivm = Place.Simple.of( Place.RIVM_POSITION, Place.NO_ZIP,
+				space );
 
 		final Collection<ContactIntensity> contactTypes = Collections
 				.singleton( ContactIntensity.FAMILY );
@@ -134,24 +132,25 @@ public class ScenarioTest
 								Integer.class ),
 						NonSI.DAY );
 		final CountDownLatch latch = new CountDownLatch( 1 );
+		final Population pop = Population.Simple.of( scheduler );
 		for( int i = 1; i < n_pop; i++ )
 		{
 			final Gender gender = genderDist.draw();
 			final Instant birth = birthDist.draw();
 			LOG.trace( "#{} - gender: {}, birth: {}", i, gender, birth );
-			final Individual ind = Individual.of( scheduler, birth, gender,
-					Household.of( scheduler, rivm ), rivm.getSpace(),
-					Collections.singleton( Condition.of( scheduler, measles ) ),
-					Collections.emptySet() );
-			pop.add( ind );
+			final Individual ind = Individual.Simple.of(
+					Household.Simple.of( pop, rivm ), birth, gender,
+					rivm.getSpace() );
+			ind.with( Condition.Simple.of( ind, measles ) );
+//			pop.add( ind );
 			final int nr = i;
 			ind.getConditions().get( measles ).emitTransitions()
-					.subscribe( ( TransitionEvent<?> t ) ->
+					.subscribe( ( t ) ->
 					{
 						LOG.trace( "Transition for #{} at t={}: {}", nr,
 								scheduler.now().toMeasure().to( NonSI.HOUR ),
 								t );
-					}, ( Throwable e ) ->
+					}, ( e ) ->
 					{
 						LOG.warn( "Problem in transition", e );
 					}, () ->

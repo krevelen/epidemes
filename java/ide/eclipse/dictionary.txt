@@ -147,3 +147,4 @@ enum
 wavelets
 residual
 umarshalling
+haversine

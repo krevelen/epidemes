@@ -17,22 +17,23 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.metrics;
 
 import io.coala.json.Wrapper;
-import nl.rivm.cib.episim.model.metrics.PopulationMetrics;
+import nl.rivm.cib.episim.model.Infection;
+import nl.rivm.cib.episim.model.Population;
 
 /**
- * {@link EpidemicOccurrence} is an extensible classifier to characterize incidence of
- * an {@link Infection} among a {@link PopulationMetrics} (= <em>demos</em>) over time
- * and space, related but not similar to
+ * {@link OutbreakScale} is an extensible classifier to characterize evolution
+ * of an {@link Infection} among a {@link Population} (= <em>demos</em>) over
+ * time and space, somewhat similar to
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>
  * 
  * @version $Id: 4a50c88b1b873be037db78d0b76d4d4ab29ec731 $
  * @author Rick van Krevelen
  */
-public interface EpidemicOccurrence extends Wrapper<String>
+public interface OutbreakScale extends Wrapper<String>
 {
 
 	/**
@@ -40,32 +41,33 @@ public interface EpidemicOccurrence extends Wrapper<String>
 	 * <a href="https://en.wikipedia.org/wiki/Hospital-acquired_infection">
 	 * hospital-acquired or nosocomial infections</a>
 	 */
-	EpidemicOccurrence SPORADIC = Util.valueOf( "sporadic", EpidemicOccurrence.class );
+	OutbreakScale SPORADIC = Util.valueOf( "sporadic", OutbreakScale.class );
 
 	/**
 	 * regular cases often occurring in a region, e.g. community-acquired
 	 * infections and livestock-acquired (zoonotic) infections (eg MRSA)
 	 */
-	EpidemicOccurrence ENDEMIC = Util.valueOf( "endemic", EpidemicOccurrence.class );
+	OutbreakScale ENDEMIC = Util.valueOf( "endemic", OutbreakScale.class );
 
 	/**
 	 * an unusually high number of cases in a (possibly international) region
 	 * (regional outbreak), see
 	 * <a href="https://en.wikipedia.org/wiki/Epidemic">wikipedia</a>
 	 */
-	EpidemicOccurrence EPIDEMIC = Util.valueOf( "epidemic", EpidemicOccurrence.class );
+	OutbreakScale EPIDEMIC = Util.valueOf( "epidemic", OutbreakScale.class );
 
 	/**
 	 * a global epidemic: an unusually high number of cases globally (global
 	 * outbreak), see
 	 * <a href="https://en.wikipedia.org/wiki/Pandemic">wikipedia</a>
 	 */
-	EpidemicOccurrence PANDEMIC = Util.valueOf( "pandemic", EpidemicOccurrence.class );
+	OutbreakScale PANDEMIC = Util.valueOf( "pandemic", OutbreakScale.class );
 
 	/** immunization threshold reached, disease practically eliminated */
-	EpidemicOccurrence HERD_IMMUNITY = Util.valueOf( "herd-immunity",
-			EpidemicOccurrence.class );
+	OutbreakScale HERD_IMMUNITY = Util.valueOf( "herd-immunity",
+			OutbreakScale.class );
 
-	/** no more occurrence, also in the ild worldwide */
-	EpidemicOccurrence ERADICATED = Util.valueOf( "eradicated", EpidemicOccurrence.class );
+	/** no more occurrence, also in the wild worldwide */
+	OutbreakScale ERADICATED = Util.valueOf( "eradicated",
+			OutbreakScale.class );
 }

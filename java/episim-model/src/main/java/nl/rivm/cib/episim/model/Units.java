@@ -1,7 +1,8 @@
-package nl.rivm.cib.episim.time;
+package nl.rivm.cib.episim.model;
 
 import javax.measure.quantity.Frequency;
 import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
 import javax.measure.unit.Unit;
 import javax.measure.unit.UnitFormat;
 
@@ -14,8 +15,10 @@ import javax.measure.unit.UnitFormat;
 public class Units
 {
 
+	public static final Unit<?> PER_KM2 = SI.KILOMETER.pow( -2 );
+
 	/** a {@link Frequency} expressed as an amount per {@link NonSI#DAY} */
-	public static final Unit<Frequency> DAILY = NonSI.DAY.pow( -1 )
+	public static final Unit<Frequency> DAILY = NonSI.DAY.inverse()
 			.asType( Frequency.class );
 
 	static

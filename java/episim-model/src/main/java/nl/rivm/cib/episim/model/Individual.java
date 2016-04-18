@@ -57,17 +57,16 @@ import rx.subjects.Subject;
  * @author Rick van Krevelen
  */
 public interface Individual extends Carrier, Timed
-
 {
+
+	/** @return the {@link Household} */
+	Household getHousehold();
 
 	/** @return the {@link Gender} */
 	Gender getGender();
 
 	/** @return the birth {@link Instant} */
 	Instant getBirth();
-
-	/** @return the {@link Household} */
-	Household getHousehold();
 
 	/** @return the current {@link TransmissionSpace} */
 	TransmissionSpace getSpace();
@@ -89,24 +88,16 @@ public interface Individual extends Carrier, Timed
 
 	void move( TransmissionSpace newSpace );
 
-	/**
-	 * @param scheduler the {@link Scheduler}
-	 * @param birth the {@link Instant} of birth
-	 * @param gender the {@link Gender}
-	 * @param household the {@link Household}
-	 * @param currentSpace the occupied {@link TransmissionSpace}
-	 * @param conditions the {@link Condition}s
-	 * @param attitudes the {@link VaccineAttitude}s
-	 * @return a {@link Simple} instance of {@link Individual}
-	 */
-	static Individual of( final Scheduler scheduler, final Instant birth,
-		final Gender gender, final Household household,
-		final TransmissionSpace currentSpace,
-		final Iterable<Condition> conditions,
-		final Iterable<VaccineAttitude> attitudes )
+	default Individual with( final Condition condition )
 	{
-		return new Simple( scheduler, birth, gender, household, currentSpace,
-				conditions, attitudes );
+		getConditions().put( condition.getInfection(), condition );
+		return this;
+	}
+
+	default Individual with( final VaccineAttitude attitude )
+	{
+		getBeliefs().put( attitude.getVaccine(), attitude );
+		return this;
 	}
 
 	/**
@@ -117,7 +108,21 @@ public interface Individual extends Carrier, Timed
 	 */
 	class Simple implements Individual
 	{
-		private final Scheduler scheduler;
+
+		/**
+		 * @param household the {@link Household}
+		 * @param birth the {@link Instant} of birth
+		 * @param gender the {@link Gender}
+		 * @param currentSpace the occupied {@link TransmissionSpace}
+		 * @param conditions the {@link Condition}s
+		 * @param attitudes the {@link VaccineAttitude}s
+		 * @return a {@link Simple} instance of {@link Individual}
+		 */
+		public static Simple of( final Household household, final Instant birth,
+			final Gender gender, final TransmissionSpace currentSpace )
+		{
+			return new Simple( household, birth, gender, currentSpace );
+		}
 
 		private final Instant birth;
 
@@ -125,14 +130,14 @@ public interface Individual extends Carrier, Timed
 
 		private final Household household;
 
-		private TransmissionSpace space;
-
 		private final Map<Infection, Condition> conditions = new HashMap<>();
 
 		private final Map<Vaccine, VaccineAttitude> beliefs = new HashMap<>();
 
 		private final transient Subject<TravelEvent, TravelEvent> travels = PublishSubject
 				.create();
+
+		private TransmissionSpace space;
 
 		/**
 		 * {@link Simple} constructor
@@ -145,27 +150,25 @@ public interface Individual extends Carrier, Timed
 		 * @param conditions
 		 * @param attitudes
 		 */
-		public Simple( final Scheduler scheduler, final Instant birth,
-			final Gender gender, final Household household,
-			final TransmissionSpace currentSpace,
-			final Iterable<Condition> conditions,
-			final Iterable<VaccineAttitude> attitudes )
+		public Simple( final Household household, final Instant birth,
+			final Gender gender, final TransmissionSpace currentSpace )
 		{
-			this.scheduler = scheduler;
 			this.birth = birth;
 			this.gender = gender;
 			this.household = household;
 			this.space = currentSpace;
-			for( Condition condition : conditions )
-				this.conditions.put( condition.getInfection(), condition );
-			for( VaccineAttitude attitude : attitudes )
-				this.beliefs.put( attitude.getVaccine(), attitude );
+		}
+
+		@Override
+		public Household getHousehold()
+		{
+			return this.household;
 		}
 
 		@Override
 		public Scheduler scheduler()
 		{
-			return this.scheduler;
+			return getHousehold().scheduler();
 		}
 
 		@Override
@@ -178,12 +181,6 @@ public interface Individual extends Carrier, Timed
 		public Instant getBirth()
 		{
 			return this.birth;
-		}
-
-		@Override
-		public Household getHousehold()
-		{
-			return this.household;
 		}
 
 		@Override

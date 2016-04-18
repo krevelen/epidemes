@@ -15,7 +15,7 @@ import rx.subjects.Subject;
  * @version $Id$
  * @author Rick van Krevelen
  */
-interface Signal<T> extends Timed
+public interface Signal<T> extends Timed
 {
 
 	/** @return the domain interval as {@link Range} of {@link Instant}s */

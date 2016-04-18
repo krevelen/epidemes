@@ -42,25 +42,19 @@ public interface Place
 	/** the NO_ZIP {@link ZipCode} constant */
 	ZipCode NO_ZIP = ZipCode.valueOf( "0000" );
 
-	/** @return the global {@link Position} */
-	LatLong getPosition();
-
+	Region getContainer();
+	
+	/** @return the global centroid {@link Position} */
+	LatLong getCentroid();
+	
 	/** @return the {@link ZipCode} */
 	ZipCode getZip();
 
 	TransmissionSpace getSpace();
 
-	/**
-	 * @param position the (centroid) {@link LatLong} position
-	 * @param zip the {@link ZipCode}, if any
-	 * @param routes the {@link TransmissionRoute}s
-	 * @return a {@link Simple} instance of {@link Place}
-	 */
-	static Place of( final LatLong position, final ZipCode zip,
-		final TransmissionSpace space )
-	{
-		return new Simple( position, zip, space );
-	}
+	void occupy( Household household );
+
+	void vacate( Household household );
 
 	/**
 	 * {@link Simple} implementation of {@link Place}
@@ -70,6 +64,18 @@ public interface Place
 	 */
 	class Simple implements Place
 	{
+
+		/**
+		 * @param position the (centroid) {@link LatLong} position
+		 * @param zip the {@link ZipCode}, if any
+		 * @param routes the {@link TransmissionRoute}s
+		 * @return a {@link Simple} instance of {@link Place}
+		 */
+		public static Place of( final LatLong position, final ZipCode zip,
+			final TransmissionSpace space )
+		{
+			return new Simple( position, zip, space );
+		}
 
 		private final TransmissionSpace space;
 
@@ -93,7 +99,7 @@ public interface Place
 		}
 
 		@Override
-		public LatLong getPosition()
+		public LatLong getCentroid()
 		{
 			return this.position;
 		}
@@ -108,6 +114,27 @@ public interface Place
 		public TransmissionSpace getSpace()
 		{
 			return this.space;
+		}
+
+		@Override
+		public Region getContainer()
+		{
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public void occupy( Household household )
+		{
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void vacate( Household household )
+		{
+			// TODO Auto-generated method stub
+			
 		}
 
 	}

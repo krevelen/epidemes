@@ -163,9 +163,9 @@ public class LocationDimensionDao
 	public static LocationDimensionDao of( final Place location )
 	{
 		final LocationDimensionDao result = new LocationDimensionDao();
-		result.latitude = location.getPosition()
+		result.latitude = location.getCentroid()
 				.latitudeValue( NonSI.DEGREE_ANGLE );
-		result.longitude = location.getPosition()
+		result.longitude = location.getCentroid()
 				.longitudeValue( NonSI.DEGREE_ANGLE );
 		result.postCode3 = location.getZip().toPostCode3();
 		result.postCode4 = location.getZip().toPostCode4();
@@ -176,7 +176,7 @@ public class LocationDimensionDao
 	public Place toLocation( final Scheduler scheduler )
 	{
 		final TransmissionSpace space = null;
-		return Place.of(
+		return Place.Simple.of(
 				LatLong.valueOf( this.latitude, this.longitude,
 						NonSI.DEGREE_ANGLE ),
 				ZipCode.valueOf( this.zipCode ), space );

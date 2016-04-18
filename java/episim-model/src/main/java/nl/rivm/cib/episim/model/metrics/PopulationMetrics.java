@@ -19,10 +19,18 @@
  */
 package nl.rivm.cib.episim.model.metrics;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.measure.quantity.Dimensionless;
 
+import org.jscience.physics.amount.Amount;
+
 import nl.rivm.cib.episim.model.Infection;
+import nl.rivm.cib.episim.model.Population;
 import nl.rivm.cib.episim.time.Indicator;
+import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 
 /**
@@ -30,7 +38,7 @@ import nl.rivm.cib.episim.time.Timed;
  * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
  * and approaches for <a href=
  * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
- * mathematical modelling of infectious disease</a>
+ * mathematical modeling of infectious disease</a>
  * 
  * <table>
  * <tr>
@@ -53,27 +61,111 @@ import nl.rivm.cib.episim.time.Timed;
 public interface PopulationMetrics extends Timed
 {
 
-	InfectionMetrics metricsOf(Infection infection);
+	Population getPopulation();
 
-	Indicator<Dimensionless> getTotalPopulationSize();
+	InfectionMetrics metricsOf( Infection infection );
 
-	Indicator<Dimensionless> getTotalBirths();
+	Indicator<Dimensionless> getSize();
 
-	Indicator<Dimensionless> getTotalDeaths();
+	Indicator<Dimensionless> getBirths();
 
-	// disease burden analysis
-	
-	// N: deaths per 10^n individuals
-	// Indicator<Dimensionless> getTotalMortality()
-	// I: incidence (new cases fraction of population per interval)
-	// P: prevalence (total cases fraction of population per instant/interval/lifetime)
-	// Indicator<Dimensionless> getTotalMorbidity()
-	// YLLs = N x L (standard life expectancy at age of death in years)
-	// Indicator<Dimensionless> getTotalYearsOfLifeLost()
-	// YLDs = I x DW x L or P x DW (almost equivalent when not discounting age etc)
-	// Indicator<Dimensionless> getTotalYearsOfHealthyLifeLostDueToDisability()
+	Indicator<Dimensionless> getDeaths();
 
-	// Indicator<Dimensionless> getTotalLifeYears();
-	// DALYs = YLL + YLD
-	// Indicator<Dimensionless> getTotalDisabilityAdjustedLifeYears();
+	Indicator<Dimensionless> getImmigrations();
+
+	Indicator<Dimensionless> getEmigrations();
+
+	class Simple implements PopulationMetrics
+	{
+
+		/** */
+		private final Population population;
+
+		/** */
+		private final Indicator<Dimensionless> size;
+
+		/** */
+		private final Indicator<Dimensionless> births;
+
+		/** */
+		private final Indicator<Dimensionless> deaths;
+
+		/** */
+		private final Indicator<Dimensionless> immigrations;
+
+		/** */
+		private final Indicator<Dimensionless> emigrations;
+
+		public Simple( final Population population )
+		{
+			this.population = population;
+			this.size = Indicator.of( population.scheduler(), Amount.ZERO );
+			this.births = Indicator.of( population.scheduler(), Amount.ZERO );
+			this.deaths = Indicator.of( population.scheduler(), Amount.ZERO );
+			this.immigrations = Indicator.of( population.scheduler(),
+					Amount.ZERO );
+			this.emigrations = Indicator.of( population.scheduler(),
+					Amount.ZERO );
+		}
+
+		@Override
+		public Population getPopulation()
+		{
+			return this.population;
+		}
+
+		@Override
+		public Scheduler scheduler()
+		{
+			return getPopulation().scheduler();
+		}
+
+		private final Map<Infection, InfectionMetrics> infections = Collections
+				.synchronizedMap( new HashMap<>() );
+
+		@Override
+		public InfectionMetrics metricsOf( final Infection infection )
+		{
+			synchronized( this.infections )
+			{
+				InfectionMetrics result = this.infections.get( infection );
+				if(result == null)
+				{
+					//result = InfectionMetrics.
+				}
+				return result;
+			}
+		}
+
+		@Override
+		public Indicator<Dimensionless> getSize()
+		{
+			return this.size;
+		}
+
+		@Override
+		public Indicator<Dimensionless> getBirths()
+		{
+			return this.births;
+		}
+
+		@Override
+		public Indicator<Dimensionless> getDeaths()
+		{
+			return this.deaths;
+		}
+
+		@Override
+		public Indicator<Dimensionless> getImmigrations()
+		{
+			return this.immigrations;
+		}
+
+		@Override
+		public Indicator<Dimensionless> getEmigrations()
+		{
+			return this.emigrations;
+		}
+
+	}
 }

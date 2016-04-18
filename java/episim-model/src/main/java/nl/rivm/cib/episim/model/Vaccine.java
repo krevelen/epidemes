@@ -1,5 +1,9 @@
 package nl.rivm.cib.episim.model;
 
+import javax.measure.quantity.Dimensionless;
+
+import io.coala.random.ProbabilityDistribution;
+import io.coala.random.ProbabilityDistribution.Arithmetic;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 
@@ -16,22 +20,22 @@ public interface Vaccine extends Timed
 	Infection getTarget();
 
 	/**
-	 * @return the delivery method (e.g. intravenous, needle-free patch,
-	 *         inhaled, oral, micro-needle arrays, stratum corneum disruption)
+	 * @param person the {@link Individual} to vaccinate
+	 * @return an {@link Arithmetic} {@link ProbabilityDistribution} of the
+	 *         <em>actual</em> efficacy for specified {@link Individual}'s
+	 *         traits (age, sex, &hellip;)
 	 */
-//	DeliveryMethod getDeliveryMethod();
-
-//	Amount<Dimensionless> getEffectiveness();
+	Arithmetic<Dimensionless> getEfficacy( Individual person );
 
 	/**
-	 * @param scheduler the {@link Scheduler}
-	 * @param target the target {@link Infection}
-	 * @return a {@link Simple} instance of {@link Vaccine}
+	 * @param person the {@link Individual} to vaccinate
+	 * @return an {@link Arithmetic} {@link ProbabilityDistribution} of the
+	 *         <em>actual</em> delivery method comfort (e.g. intravenous,
+	 *         needle-free patch, inhaled, oral, micro-needle arrays, stratum
+	 *         corneum disruption) for specified {@link Individual}'s traits
+	 *         (age, sex, &hellip;)
 	 */
-	static Vaccine of( final Scheduler scheduler, final Infection target )
-	{
-		return new Simple( scheduler, target );
-	}
+	Arithmetic<Dimensionless> getComfort( Individual person );
 
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
@@ -42,9 +46,27 @@ public interface Vaccine extends Timed
 	class Simple implements Vaccine
 	{
 
+		/**
+		 * @param scheduler the {@link Scheduler}
+		 * @param target the target {@link Infection}
+		 * @param efficacy <em>actual</em> efficacy
+		 * @param comfort <em>actual</em> delivery method comfort
+		 * @return a {@link Simple} instance of {@link Vaccine}
+		 */
+		public static Simple of( final Scheduler scheduler,
+			final Infection target, final Arithmetic<Dimensionless> efficacy,
+			final Arithmetic<Dimensionless> comfort )
+		{
+			return new Simple( scheduler, target, efficacy, comfort );
+		}
+
 		private final Scheduler scheduler;
 
 		private final Infection target;
+
+		private final Arithmetic<Dimensionless> efficacy;
+
+		private final Arithmetic<Dimensionless> comfort;
 
 		/**
 		 * {@link Simple} constructor
@@ -52,10 +74,14 @@ public interface Vaccine extends Timed
 		 * @param scheduler the {@link Scheduler}
 		 * @param target the target {@link Infection}
 		 */
-		public Simple( final Scheduler scheduler, final Infection target )
+		public Simple( final Scheduler scheduler, final Infection target,
+			final Arithmetic<Dimensionless> efficacy,
+			final Arithmetic<Dimensionless> comfort )
 		{
 			this.scheduler = scheduler;
 			this.target = target;
+			this.efficacy = efficacy;
+			this.comfort = comfort;
 		}
 
 		@Override
@@ -68,6 +94,18 @@ public interface Vaccine extends Timed
 		public Infection getTarget()
 		{
 			return this.target;
+		}
+
+		@Override
+		public Arithmetic<Dimensionless> getEfficacy( final Individual person )
+		{
+			return this.efficacy;
+		}
+
+		@Override
+		public Arithmetic<Dimensionless> getComfort( final Individual person )
+		{
+			return this.comfort;
 		}
 
 	}

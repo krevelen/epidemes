@@ -26,7 +26,7 @@ import org.jscience.physics.amount.Amount;
 import io.coala.math.Range;
 
 /**
- * {@link Indicator} is a linear time {@link Signal} of {@link Amount}s
+ * {@link Indicator} is a linear-time {@link Signal} of {@link Amount}s
  * 
  * @param <Q> the type of {@link Quantity} being indicated
  * @version $Id$

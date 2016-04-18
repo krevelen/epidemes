@@ -4,13 +4,16 @@ import java.util.Map;
 
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
+import javax.measure.unit.Unit;
 
-import io.coala.time.x.TimeSpan;
+import org.jscience.physics.amount.Amount;
+
+import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.model.EpidemicCompartment;
-import nl.rivm.cib.episim.model.EpidemicOccurrence;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.TransmissionEvent;
 import nl.rivm.cib.episim.time.Indicator;
+import nl.rivm.cib.episim.time.Signal;
 import nl.rivm.cib.episim.time.Timed;
 
 /**
@@ -48,29 +51,73 @@ import nl.rivm.cib.episim.time.Timed;
  */
 public interface InfectionMetrics extends Timed
 {
+	PopulationMetrics getPopulationMetrics();
+
 	Infection getInfection();
 
-	EpidemicOccurrence getOccurrence();
+	OutbreakScale getOutbreakScale();
+
+	/** the proportion of newly diagnosed cases in population at risk */
+	Indicator<Dimensionless> getIncidence( Instant since );
+
+	/**
+	 * @return an {@link Amount} of (period) prevalence, i.e. the proportion of
+	 *         current population that is or was infected between {@code since}
+	 *         and {@link #now()}
+	 */
+	Indicator<Dimensionless> getPrevalence( Instant since );
+
+	/**
+	 * @return an {@link Amount} of (point) prevalence, i.e. the proportion of
+	 *         the current population that is or was infected (ignores deaths)
+	 */
+	Amount<Dimensionless> getPrevalence();
+
+	/**
+	 * @return the number of {@link TransmissionEvent}s, i.e. 'successful'
+	 *         contact events
+	 */
+	Indicator<Dimensionless> getEffectiveContactsNumber();
 
 	Map<EpidemicCompartment, Indicator<Dimensionless>> getCompartmentAmounts();
 
-	/** @return the number of {@link TransmissionEvent}s */
-	Indicator<Dimensionless> getEffectiveContactsNumber();
-
 	/**
-	 * @return &beta; = Effective contact rate (=
-	 *         {@link #getEffectiveContactsNumber()} per {@link TimeSpan})
+	 * @param unit the {@link Frequency} to calculate
+	 * @return &beta; = Effective contact rate
 	 */
-	Indicator<Frequency> getEffectiveContactRate();
+	default Signal<Amount<Frequency>>
+		getEffectiveContactRate( final Unit<Frequency> unit )
+	{
+		return getEffectiveContactsNumber().transform( ( n ) ->
+		{
+			return n.divide( scheduler().now().toAmount() ).to( unit );
+		} );
+	}
 
 	// Indicator<Dimensionless> getVaccineCosts();
 
 	// disease burden analysis
 
-	// Indicator<Dimensionless> getMortality()
-	// Indicator<Dimensionless> getMorbidity()
+	// Indicator<Dimensionless> getMortality() // vaccine-preventable
+	// Indicator<Dimensionless> getMorbidity() // vaccine-preventable
 	// YLLs due to mortality
 	// Indicator<Dimensionless> getYearsOfLifeLost()
 	// YLDs due to morbidity
 	// Indicator<Dimensionless> getYearsOfHealthyLifeLostDueToDisability()
+
+	// disease burden analysis
+
+	// N: deaths per 10^n individuals
+	// Indicator<Dimensionless> getTotalMortality()
+	// I: incidence (new cases fraction of population per interval)
+	// P: prevalence (total cases fraction of population per instant/interval/lifetime)
+	// Indicator<Dimensionless> getTotalMorbidity()
+	// YLLs = N x L (standard life expectancy at age of death in years)
+	// Indicator<Dimensionless> getTotalYearsOfLifeLost()
+	// YLDs = I x DW x L or P x DW (almost equivalent when not discounting age etc)
+	// Indicator<Dimensionless> getTotalYearsOfHealthyLifeLostDueToDisability()
+
+	// Indicator<Dimensionless> getTotalLifeYears();
+	// DALYs = YLL + YLD
+	// Indicator<Dimensionless> getTotalDisabilityAdjustedLifeYears();
 }
