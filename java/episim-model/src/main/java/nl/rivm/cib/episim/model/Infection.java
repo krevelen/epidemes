@@ -27,7 +27,7 @@ import org.jscience.physics.amount.Amount;
 
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
-import nl.rivm.cib.episim.math.Units;
+import nl.rivm.cib.episim.time.Units;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious

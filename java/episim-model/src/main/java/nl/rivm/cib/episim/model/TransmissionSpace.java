@@ -33,7 +33,7 @@ import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.ExceptionFactory;
 import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.math.Accumulator;
+import nl.rivm.cib.episim.time.Accumulator;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;

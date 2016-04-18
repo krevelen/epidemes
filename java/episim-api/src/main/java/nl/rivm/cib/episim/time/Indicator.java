@@ -17,14 +17,13 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.math;
+package nl.rivm.cib.episim.time;
 
 import javax.measure.quantity.Quantity;
 
 import org.jscience.physics.amount.Amount;
 
 import io.coala.math.Range;
-import nl.rivm.cib.episim.time.Scheduler;
 
 /**
  * {@link Indicator} is a linear time {@link Signal} of {@link Amount}s
@@ -33,7 +32,7 @@ import nl.rivm.cib.episim.time.Scheduler;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class Indicator<Q extends Quantity> extends Signal.Ordinal<Amount<Q>>
+public class Indicator<Q extends Quantity> extends Signal.SimpleOrdinal<Amount<Q>>
 {
 
 	private final TimeInvariant<Amount<Q>> timeInvariant;

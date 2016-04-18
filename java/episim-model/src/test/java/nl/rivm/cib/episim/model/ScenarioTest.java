@@ -45,8 +45,8 @@ import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.math.Units;
 import nl.rivm.cib.episim.time.Scheduler;
+import nl.rivm.cib.episim.time.Units;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
 /**

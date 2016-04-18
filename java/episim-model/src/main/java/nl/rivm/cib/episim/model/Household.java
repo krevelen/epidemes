@@ -7,7 +7,8 @@ import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 
 /**
- * {@link Household}
+ * {@link Household} includes elements adapted from
+ * <a href= "https://github.com/nlgn/sim-demog">Python code by Nic Geard</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen

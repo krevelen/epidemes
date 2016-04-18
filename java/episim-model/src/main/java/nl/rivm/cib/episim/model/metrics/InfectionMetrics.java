@@ -6,11 +6,11 @@ import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
 
 import io.coala.time.x.TimeSpan;
-import nl.rivm.cib.episim.math.Indicator;
 import nl.rivm.cib.episim.model.EpidemicCompartment;
 import nl.rivm.cib.episim.model.EpidemicOccurrence;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.TransmissionEvent;
+import nl.rivm.cib.episim.time.Indicator;
 import nl.rivm.cib.episim.time.Timed;
 
 /**
