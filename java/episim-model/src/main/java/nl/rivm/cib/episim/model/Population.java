@@ -24,13 +24,13 @@ import javax.measure.unit.Unit;
 
 import org.jscience.physics.amount.Amount;
 
-import nl.rivm.cib.episim.model.HouseholdEvent.Birth;
-import nl.rivm.cib.episim.model.HouseholdEvent.CoupleDissolution;
-import nl.rivm.cib.episim.model.HouseholdEvent.CoupleFormation;
-import nl.rivm.cib.episim.model.HouseholdEvent.Death;
-import nl.rivm.cib.episim.model.HouseholdEvent.Emigration;
-import nl.rivm.cib.episim.model.HouseholdEvent.Immigration;
-import nl.rivm.cib.episim.model.HouseholdEvent.NestDeparture;
+import nl.rivm.cib.episim.model.DemographicEvent.Birth;
+import nl.rivm.cib.episim.model.DemographicEvent.CoupleDissolution;
+import nl.rivm.cib.episim.model.DemographicEvent.CoupleFormation;
+import nl.rivm.cib.episim.model.DemographicEvent.Death;
+import nl.rivm.cib.episim.model.DemographicEvent.Emigration;
+import nl.rivm.cib.episim.model.DemographicEvent.Immigration;
+import nl.rivm.cib.episim.model.DemographicEvent.NestDeparture;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
@@ -63,7 +63,7 @@ public interface Population extends Timed
 {
 	Amount<Dimensionless> getSize();
 
-	Observable<HouseholdEvent> emitHouseholdEvents();
+	Observable<DemographicEvent> emitHouseholdEvents();
 
 	Population birth( Individual newborn );
 
@@ -86,7 +86,7 @@ public interface Population extends Timed
 			return new Simple( scheduler );
 		}
 
-		private final Subject<HouseholdEvent, HouseholdEvent> changes = PublishSubject
+		private final Subject<DemographicEvent, DemographicEvent> changes = PublishSubject
 				.create();
 
 		private final Scheduler scheduler;
@@ -104,7 +104,7 @@ public interface Population extends Timed
 			return this.scheduler;
 		}
 
-		public Observable<HouseholdEvent> emitHouseholdEvents()
+		public Observable<DemographicEvent> emitHouseholdEvents()
 		{
 			return this.changes.asObservable();
 		}

@@ -112,14 +112,11 @@ public class Dsol3Scheduler implements Scheduler
 					ReplicationMode.TERMINATING );
 
 			// observe time changes
-			this.scheduler.addListener( ( final EventInterface event ) ->
+			this.scheduler.addListener( event ->
 			{
 				final Instant t = ((DsolTime) event.getContent()).toInstant();
-				if( t.equals( this.last ) )
-				{
-					LOG.trace( "Skipping t={}", t );
-					return;
-				}
+				if( t.equals( this.last ) ) return;
+
 				this.last = t;
 				synchronized( this.listeners )
 				{
@@ -135,7 +132,7 @@ public class Dsol3Scheduler implements Scheduler
 			}, SimulatorInterface.TIME_CHANGED_EVENT );
 
 			// observe simulation completed
-			this.scheduler.addListener( ( final EventInterface event ) ->
+			this.scheduler.addListener( event ->
 			{
 				synchronized( this.listeners )
 				{
@@ -187,7 +184,7 @@ public class Dsol3Scheduler implements Scheduler
 	{
 		synchronized( this.listeners )
 		{
-			this.listeners.computeIfAbsent( when, ( Instant t ) ->
+			this.listeners.computeIfAbsent( when, t ->
 			{
 				// create proxy and schedule the actual invocation of "onNext"
 				final Subject<Instant, Instant> result = PublishSubject
@@ -232,5 +229,12 @@ public class Dsol3Scheduler implements Scheduler
 		return new Dsol3Scheduler( id, start, Duration.ZERO, duration,
 				modelInitializer );
 	}
+
+//	public static Dsol3Scheduler of( final String id, final Instant start,
+//		final Duration duration, final Consumer_WithExceptions<Scheduler, ?> modelInitializer )
+//	{
+//		return new Dsol3Scheduler( id, start, Duration.ZERO, duration,
+//				Caller.rethrow( modelInitializer ) );
+//	}
 
 }

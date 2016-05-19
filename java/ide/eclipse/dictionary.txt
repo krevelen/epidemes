@@ -148,3 +148,4 @@ wavelets
 residual
 umarshalling
 haversine
+convalescent

@@ -64,6 +64,20 @@ import io.coala.time.x.Duration;
  * </tr>
  * </table>
  * 
+ * typical life cycle (compartment transitions):
+ * - passively immune
+ * - susceptible
+ *   - vaccine-infected : latent (incubation-period), infectious, recovered (1-2y), susceptible
+ *   - contact-infected : latent (incubation-period)
+ *     - asymptomatic, infectious, recovering, removed (2-7y), susceptible
+ *     - symptomatic
+ *       - mobile, recovering, removed (2-7y), susceptible
+ *       - immobilize
+ *         - convalescent, removed (2-7y), susceptible
+ *         - hospitalize
+ *           - convalescent, removed (2-7y), susceptible
+ *           - death, removed
+ * 
  * @version $Id: 50e413952a4dbeea9e3a19b9a9fee08f4c586b27 $
  * @author Rick van Krevelen
  */
@@ -208,8 +222,8 @@ public interface Infection
 
 		@Override
 		public Amount<Frequency> getForceOfInfection(
-			Collection<TransmissionRoute> routes,
-			Collection<ContactIntensity> infectionPressure )
+			final Collection<TransmissionRoute> routes,
+			final Collection<ContactIntensity> infectionPressure )
 		{
 			Amount<Frequency> result = Amount.valueOf( 0, Units.DAILY );
 			Amount<Frequency> force = this.forceDist.draw();

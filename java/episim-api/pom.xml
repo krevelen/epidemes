@@ -18,7 +18,6 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<dsol.version>3.00.18</dsol.version>
 		<hamcrest.version>1.3</hamcrest.version>
 	</properties>
 
@@ -78,13 +77,6 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>dsol3-coala-adapter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>dsol</groupId>
-			<artifactId>dsol-core</artifactId>
-			<version>${dsol.version}</version>
-			<scope>test</scope>
 		</dependency>
 		
 		<dependency>

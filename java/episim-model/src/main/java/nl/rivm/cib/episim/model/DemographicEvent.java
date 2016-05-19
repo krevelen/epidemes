@@ -25,13 +25,13 @@ import java.util.Collections;
 import io.coala.time.x.Instant;
 
 /**
- * {@link HouseholdEvent} represents {@link Population} changes due to birth,
+ * {@link DemographicEvent} represents {@link Population} changes due to birth,
  * death, migration, couple formation or separation, or people leaving home
  * 
  * @version $Id: 18fd2b4cf3b6654714b5baa115e415bb0e851b5d $
  * @author Rick van Krevelen
  */
-public abstract class HouseholdEvent
+public abstract class DemographicEvent
 {
 
 	private Instant time;
@@ -42,7 +42,7 @@ public abstract class HouseholdEvent
 	/** the previous {@link Household}, e.g. empty nest or single shack */
 	private Household previous;
 
-	protected HouseholdEvent( final Instant time,
+	protected DemographicEvent( final Instant time,
 		final Collection<Individual> individuals, final Household previous )
 	{
 		this.time = time;
@@ -108,7 +108,7 @@ public abstract class HouseholdEvent
 		return new CoupleDissolution( parting, dissolving );
 	}
 
-	public static class Birth extends HouseholdEvent
+	public static class Birth extends DemographicEvent
 	{
 		public Birth( final Individual newborn )
 		{
@@ -116,7 +116,7 @@ public abstract class HouseholdEvent
 		}
 	}
 
-	public static class Death extends HouseholdEvent
+	public static class Death extends DemographicEvent
 	{
 		public Death( final Individual diseased )
 		{
@@ -124,7 +124,7 @@ public abstract class HouseholdEvent
 		}
 	}
 
-	public static class NestDeparture extends HouseholdEvent
+	public static class NestDeparture extends DemographicEvent
 	{
 		public NestDeparture( final Individual parting,
 			final Household nest )
@@ -133,7 +133,7 @@ public abstract class HouseholdEvent
 		}
 	}
 
-	public static class Immigration extends HouseholdEvent
+	public static class Immigration extends DemographicEvent
 	{
 		public Immigration( final Household immigrants )
 		{
@@ -141,7 +141,7 @@ public abstract class HouseholdEvent
 		}
 	}
 
-	public static class Emigration extends HouseholdEvent
+	public static class Emigration extends DemographicEvent
 	{
 		public Emigration( final Household emigrants )
 		{
@@ -149,7 +149,7 @@ public abstract class HouseholdEvent
 		}
 	}
 
-	public static class CoupleFormation extends HouseholdEvent
+	public static class CoupleFormation extends DemographicEvent
 	{
 		public CoupleFormation( final Household merging,
 			final Household abandoning )
@@ -159,7 +159,7 @@ public abstract class HouseholdEvent
 		}
 	}
 
-	public static class CoupleDissolution extends HouseholdEvent
+	public static class CoupleDissolution extends DemographicEvent
 	{
 		public CoupleDissolution( final Household parting,
 			final Household dissolving )

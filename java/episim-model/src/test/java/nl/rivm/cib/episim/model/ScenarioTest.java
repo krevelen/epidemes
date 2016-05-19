@@ -73,7 +73,6 @@ public class ScenarioTest
 	 * 
 	 * @throws Throwable
 	 */
-	@SuppressWarnings( "unchecked" )
 	@Test
 	public void scenarioTest() throws Throwable
 	{
@@ -83,7 +82,8 @@ public class ScenarioTest
 				Instant.of( "0 days" ), Duration.of( "100 days" ),
 				( Scheduler s ) ->
 				{
-					LOG.trace( "initialized, t={}", s.now() );
+					LOG.trace( "initialized, t={}",
+							s.now().prettify( NonSI.DAY, 1 ) );
 				} );
 
 		//final Set<Individual> pop = new HashSet<>();
@@ -137,7 +137,8 @@ public class ScenarioTest
 		{
 			final Gender gender = genderDist.draw();
 			final Instant birth = birthDist.draw();
-			LOG.trace( "#{} - gender: {}, birth: {}", i, gender, birth );
+			LOG.trace( "#{} - gender: {}, birth: {}", i, gender,
+					birth.prettify( NonSI.DAY, 1 ) );
 			final Individual ind = Individual.Simple.of(
 					Household.Simple.of( pop, rivm ), birth, gender,
 					rivm.getSpace() );
@@ -148,8 +149,7 @@ public class ScenarioTest
 					.subscribe( ( t ) ->
 					{
 						LOG.trace( "Transition for #{} at t={}: {}", nr,
-								scheduler.now().toMeasure().to( NonSI.HOUR ),
-								t );
+								scheduler.now().prettify( NonSI.HOUR, 1 ), t );
 					}, ( e ) ->
 					{
 						LOG.warn( "Problem in transition", e );
@@ -167,7 +167,7 @@ public class ScenarioTest
 		}
 		scheduler.time().subscribe( ( Instant t ) ->
 		{
-			LOG.trace( "t = {}", t );
+			LOG.trace( "t = {}", t.prettify( NonSI.DAY, 1 ) );
 		}, ( Throwable e ) ->
 		{
 			LOG.warn( "Problem in scheduler", e );
@@ -178,6 +178,9 @@ public class ScenarioTest
 		scheduler.resume();
 		latch.await( 3, TimeUnit.SECONDS );
 		assertEquals( "Should have completed", 0, latch.getCount() );
+
+		// CBS overledenen in huishouden per leeftijd: 83190ned
+		// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83190ned&D1=0&D2=0&D3=a&D4=0%2c2-3%2c5&D5=a&HDR=T%2cG2%2cG3&STB=G1%2cG4&VW=T
 	}
 
 }
