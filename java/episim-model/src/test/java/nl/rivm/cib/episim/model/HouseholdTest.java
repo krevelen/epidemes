@@ -171,10 +171,11 @@ public class HouseholdTest
 					dt.doubleValue( NonSI.YEAR_CALENDAR ) );
 		}
 
-		public static ProbabilityDistribution<Boolean> toBooleanDist( final ProbabilityDistribution.Factory distFact,
-			final double prob )
+		public static ProbabilityDistribution<Boolean> toBooleanDist(
+			final ProbabilityDistribution.Factory distFact,
+			final Measurable<Frequency> prob, final Measurable<Duration> dt )
 		{
-			return distFact.create;
+			return null;
 		}
 
 		// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
@@ -279,11 +280,16 @@ public class HouseholdTest
 			this.dt = Amount.valueOf( 1, NonSI.DAY );
 
 			// TODO read from "paramspec_pop.cfg", rather: parse distributions
-			this.dtGrowth = adjust( Rate.of( 0, Units.ANNUAL ), this.dt );
-			this.dtImmigration = adjust( Rate.of( 0, Units.ANNUAL ), this.dt );
-			this.dtCouplers = adjust( Rate.of( 0.08, Units.ANNUAL ), this.dt );
-			this.dtLeavers = adjust( Rate.of( 0.02, Units.ANNUAL ), this.dt );
-			this.dtDivorcers = adjust( Rate.of( 0.01, Units.ANNUAL ), this.dt );
+			this.dtGrowth = toBooleanDist( distFact, Rate.of( 0, Units.ANNUAL ),
+					this.dt );
+			this.dtImmigration = toBooleanDist( distFact,
+					Rate.of( 0, Units.ANNUAL ), this.dt );
+			this.dtCouplers = toBooleanDist( distFact,
+					Rate.of( 0.08, Units.ANNUAL ), this.dt );
+			this.dtLeavers = toBooleanDist( distFact,
+					Rate.of( 0.02, Units.ANNUAL ), this.dt );
+			this.dtDivorcers = toBooleanDist( distFact,
+					Rate.of( 0.01, Units.ANNUAL ), this.dt );
 			this.ageCoupling = distFact.createDeterministic(
 					Range.of( 21, 60, NonSI.YEAR_CALENDAR ) );
 			this.ageLeaving = distFact.createDeterministic( 18 )
@@ -383,8 +389,6 @@ public class HouseholdTest
 				Instant.of( "0 days" ),
 				io.coala.time.x.Duration.of( "100 days" ),
 				Caller.rethrow( new Geard2011Scenario()::init ) );
-		
-		final Vaccine HPV = Vaccine.Simple.of( scheduler, measles, efficacy, comfort );
 
 		LOG.trace( "Starting household composition scenario..." );
 		final CountDownLatch latch = new CountDownLatch( 1 );
