@@ -36,7 +36,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import javax.measure.Measurable;
 import javax.measure.quantity.Dimensionless;
+import javax.measure.quantity.Duration;
+import javax.measure.quantity.Frequency;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.Unit;
 import javax.measure.unit.UnitFormat;
@@ -56,7 +59,6 @@ import io.coala.random.ProbabilityDistribution;
 import io.coala.random.ProbabilityDistribution.ArithmeticDistribution;
 import io.coala.random.RandomNumberStream;
 import io.coala.resource.x.FileUtil;
-import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.Rate;
 import io.coala.util.Comparison;
@@ -156,17 +158,23 @@ public class HouseholdTest
 			}
 		}
 
-		public double adjust_prob( double year_prob, int days )
+		public static double adjust_prob( double year_prob, double days )
 		{
 			double fraction = days / 365.0;
 			return 1.0 - Math.pow( 1.0 - year_prob, fraction );
 		}
 
-		private ArithmeticDistribution<Dimensionless>
-			adjust_prob( final Rate prob, final Duration dt )
+		public static double adjust( final Measurable<Frequency> prob,
+			final Measurable<Duration> dt )
 		{
-			// TODO Auto-generated method stub
-			return null;
+			return 1.0 - Math.pow( 1.0 - prob.doubleValue( Units.ANNUAL ),
+					dt.doubleValue( NonSI.YEAR_CALENDAR ) );
+		}
+
+		public static ProbabilityDistribution<Boolean> toBooleanDist( final ProbabilityDistribution.Factory distFact,
+			final double prob )
+		{
+			return distFact.create;
 		}
 
 		// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
@@ -212,6 +220,19 @@ public class HouseholdTest
 
 		private ProbabilityDistribution<Gender> gender_dist;
 
+		private Amount<Duration> dt;
+		private ProbabilityDistribution<Boolean> dtGrowth;
+		private ProbabilityDistribution<Boolean> dtImmigration;
+		private ProbabilityDistribution<Boolean> dtCouplers;
+		private ProbabilityDistribution<Boolean> dtLeavers;
+		private ProbabilityDistribution<Boolean> dtDivorcers;
+
+		private ProbabilityDistribution<Range<Amount<Duration>>> ageCoupling;
+		private ArithmeticDistribution<Duration> ageLeaving;
+		private ProbabilityDistribution<Range<Amount<Duration>>> ageDivorcing;
+		private ArithmeticDistribution<Duration> agePartner;
+		private ArithmeticDistribution<Duration> birthGap;
+
 		public void init( final Scheduler scheduler ) throws IOException
 		{
 			final long seed = 12345L;
@@ -255,51 +276,24 @@ public class HouseholdTest
 			this.gender_dist = distFact.createUniformCategorical( Gender.FEMALE,
 					Gender.MALE );
 
-			/*
-			 * # population parameters (rates are yearly) pop_size =
-			 * integer(default=1000) growth_rate = float(default=0.000) imm_rate
-			 * = float(default=0.000) use_parity = boolean(default=False)
-			 * dyn_rates = boolean(default=False)
-			 * 
-			 * # demographic parameters (probs are yearly) couple_prob =
-			 * float(default=0.08) leaving_prob = float(default=0.02)
-			 * divorce_prob = float(default=0.01) couple_age =
-			 * integer(default=21) couple_age_max = integer(default=60)
-			 * leaving_age = integer(default=18) divorce_age =
-			 * integer(default=24) divorce_age_max = integer(default=60)
-			 * min_partner_age = integer(default=16) partner_age_diff =
-			 * integer(default=-2) partner_age_sd = integer(default=2)
-			 * 
-			 * birth_gap_mean = integer(default=270) birth_gap_sd =
-			 * integer(default=0) #immigration_prob = float(default=0.0)
-			 */
-			final Duration dt = Duration.of( Amount.valueOf( 1, NonSI.DAY ) );
+			this.dt = Amount.valueOf( 1, NonSI.DAY );
 
-			final Rate growth = Rate.of( 0, Units.ANNUAL );
-			final Rate immigration = Rate.of( 0, Units.ANNUAL );
-			final Rate couplers = Rate.of( 0.08, Units.ANNUAL );
-			final Rate leavers = Rate.of( 0.02, Units.ANNUAL );
-			final Rate divorcers = Rate.of( 0.01, Units.ANNUAL );
-
-			final ArithmeticDistribution<Dimensionless> dtGrowth = adjust_prob(
-					growth, dt );
-			final ArithmeticDistribution<Dimensionless> dtImmigration = adjust_prob(
-					immigration, dt );
-			final ArithmeticDistribution<Dimensionless> dtCouplers = adjust_prob(
-					couplers, dt );
-			final ArithmeticDistribution<Dimensionless> dtLeavers = adjust_prob(
-					leavers, dt );
-			final ArithmeticDistribution<Dimensionless> dtDivorcers = adjust_prob(
-					divorcers, dt );
-
-			final ProbabilityDistribution<Range<Amount<Dimensionless>>> ageCoupling = distFact
-					.createDeterministic( Range.of( 21, 60, Unit.ONE ) );
-			final ArithmeticDistribution<Dimensionless> ageLeaving = ArithmeticDistribution
-					.of( 18, Unit.ONE );
-			final ProbabilityDistribution<Range<Amount<Dimensionless>>> ageDivorcing = distFact
-					.createDeterministic( Range.of( 24, 60, Unit.ONE ) );
-			final ProbabilityDistribution<Double> agePartner = distFact
-					.createNormal( -2, 2 );
+			// TODO read from "paramspec_pop.cfg", rather: parse distributions
+			this.dtGrowth = adjust( Rate.of( 0, Units.ANNUAL ), this.dt );
+			this.dtImmigration = adjust( Rate.of( 0, Units.ANNUAL ), this.dt );
+			this.dtCouplers = adjust( Rate.of( 0.08, Units.ANNUAL ), this.dt );
+			this.dtLeavers = adjust( Rate.of( 0.02, Units.ANNUAL ), this.dt );
+			this.dtDivorcers = adjust( Rate.of( 0.01, Units.ANNUAL ), this.dt );
+			this.ageCoupling = distFact.createDeterministic(
+					Range.of( 21, 60, NonSI.YEAR_CALENDAR ) );
+			this.ageLeaving = distFact.createDeterministic( 18 )
+					.toAmounts( NonSI.YEAR_CALENDAR );
+			this.ageDivorcing = distFact.createDeterministic(
+					Range.of( 24, 60, NonSI.YEAR_CALENDAR ) );
+			this.agePartner = distFact.createNormal( -2, 2 )
+					.toAmounts( NonSI.YEAR_CALENDAR );
+			this.birthGap = distFact.createNormal( 270, 0 )
+					.toAmounts( NonSI.DAY );
 
 			final Set<Household> households = new HashSet<>();
 			final int popSize = 20000;
@@ -386,8 +380,11 @@ public class HouseholdTest
 		LOG.trace( "Initializing household composition scenario..." );
 
 		final Scheduler scheduler = Dsol3Scheduler.of( "dsol3Test",
-				Instant.of( "0 days" ), Duration.of( "100 days" ),
+				Instant.of( "0 days" ),
+				io.coala.time.x.Duration.of( "100 days" ),
 				Caller.rethrow( new Geard2011Scenario()::init ) );
+		
+		final Vaccine HPV = Vaccine.Simple.of( scheduler, measles, efficacy, comfort );
 
 		LOG.trace( "Starting household composition scenario..." );
 		final CountDownLatch latch = new CountDownLatch( 1 );
