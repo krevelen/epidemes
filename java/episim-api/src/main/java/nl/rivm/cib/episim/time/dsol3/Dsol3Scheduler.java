@@ -27,7 +27,6 @@ import nl.tudelft.simulation.dsol.formalisms.eventscheduling.SimEvent;
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulator;
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface;
 import nl.tudelft.simulation.dsol.simulators.SimulatorInterface;
-import nl.tudelft.simulation.event.EventInterface;
 import rx.Observable;
 import rx.Subscription;
 import rx.subjects.PublishSubject;

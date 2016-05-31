@@ -1,5 +1,7 @@
 package nl.rivm.cib.episim.model;
 
+import java.util.Collection;
+
 import javax.measure.quantity.Dimensionless;
 
 import io.coala.random.ProbabilityDistribution;
@@ -17,7 +19,7 @@ import nl.rivm.cib.episim.time.Timed;
 public interface Vaccine extends Timed
 {
 
-	Infection getTarget();
+	Collection<Infection> getTarget();
 
 	/**
 	 * @param person the {@link Individual} to vaccinate

@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +37,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import javax.measure.quantity.Dimensionless;
-import javax.measure.quantity.Frequency;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.Unit;
 import javax.measure.unit.UnitFormat;
@@ -50,7 +48,6 @@ import org.jscience.physics.amount.Amount;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
-import io.coala.math.MeasureUtil;
 import io.coala.math.Range;
 import io.coala.math.WeightedValue;
 import io.coala.math3.Math3ProbabilityDistribution;
@@ -63,7 +60,6 @@ import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.Rate;
 import io.coala.util.Comparison;
-import io.coala.util.DecimalUtil;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 import nl.rivm.cib.episim.util.Caller;
@@ -298,8 +294,8 @@ public class HouseholdTest
 
 			final ProbabilityDistribution<Range<Amount<Dimensionless>>> ageCoupling = distFact
 					.createDeterministic( Range.of( 21, 60, Unit.ONE ) );
-			final ArithmeticDistribution<Dimensionless> ageLeaving = ProbabilityDistribution
-					.createDeterministic( 18, Unit.ONE );
+			final ArithmeticDistribution<Dimensionless> ageLeaving = ArithmeticDistribution
+					.of( 18, Unit.ONE );
 			final ProbabilityDistribution<Range<Amount<Dimensionless>>> ageDivorcing = distFact
 					.createDeterministic( Range.of( 24, 60, Unit.ONE ) );
 			final ProbabilityDistribution<Double> agePartner = distFact
