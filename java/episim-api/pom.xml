@@ -6,7 +6,8 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
+		<version>0.0.1-SNAPSHOT</version>\
+		<relativePath>../..</relativePath>
 	</parent>
 
 	<artifactId>episim-api</artifactId>

@@ -7,13 +7,14 @@
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../..</relativePath>
 	</parent>
 	<artifactId>episim-connect-cbs</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id$
+		$Id: ff87019c7890c404abc2ca5ab6fc3e0e7c565e9f $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
