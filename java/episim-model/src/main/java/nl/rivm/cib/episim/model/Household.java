@@ -66,6 +66,15 @@ public interface Household extends Timed
 
 		/**
 		 * @param population the {@link Population}
+		 * @return a {@link Simple} instance of a homeless {@link Household}
+		 */
+		public static Household of( final Population population )
+		{
+			return of( population, null );
+		}
+
+		/**
+		 * @param population the {@link Population}
 		 * @param home the initial {@link Place} of residence
 		 * @return a {@link Simple} instance of {@link Household}
 		 */

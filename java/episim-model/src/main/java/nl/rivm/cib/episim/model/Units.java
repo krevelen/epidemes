@@ -21,6 +21,13 @@ public class Units
 	public static final Unit<Frequency> DAILY = NonSI.DAY.inverse()
 			.asType( Frequency.class );
 
+	/**
+	 * a {@link Frequency} expressed as an amount per
+	 * {@link NonSI#YEAR_CALENDAR} (annum = 365 days)
+	 */
+	public static final Unit<Frequency> ANNUAL = NonSI.YEAR_CALENDAR.inverse()
+			.asType( Frequency.class );
+
 	static
 	{
 		UnitFormat.getInstance().alias( DAILY, "daily" );

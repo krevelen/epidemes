@@ -61,6 +61,9 @@ import rx.subjects.Subject;
  */
 public interface Population extends Timed
 {
+
+	void reset( Iterable<Household> households );
+
 	Amount<Dimensionless> getSize();
 
 	Observable<DemographicEvent> emitHouseholdEvents();
@@ -102,6 +105,16 @@ public interface Population extends Timed
 		public Scheduler scheduler()
 		{
 			return this.scheduler;
+		}
+
+		@Override
+		public void reset( final Iterable<Household> households )
+		{
+			int size = 0;
+			for( Household hh : households )
+				size += hh.getMembers().size();
+			// FIXME persist?
+			this.size = Amount.valueOf( size, Unit.ONE );
 		}
 
 		public Observable<DemographicEvent> emitHouseholdEvents()
