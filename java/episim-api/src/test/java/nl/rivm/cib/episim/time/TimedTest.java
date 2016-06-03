@@ -23,6 +23,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
+import javax.measure.unit.Unit;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
@@ -47,10 +49,11 @@ public class TimedTest
 	@Test
 	public void test() throws InterruptedException
 	{
-		final Scheduler sched = Dsol3Scheduler.of( "dsol3Test", Instant.of( 5 ),
-				Duration.of( 10 ), ( final Scheduler s ) ->
+		final Scheduler sched = Dsol3Scheduler.of( "dsol3Test", Instant.ZERO,
+				Duration.of( 10, Unit.ONE ), s ->
 				{
-					LOG.trace( "Scheduler initialized, t={}", s.now() );
+					LOG.trace( "Scheduler initialized, t={}",
+							s.now().prettify( 3 ) );
 				} );
 		final Timed model = new Timed()
 		{
@@ -69,10 +72,10 @@ public class TimedTest
 		assertThat( "FutureSelf#after(t) time is added to Timed#now()",
 				model.after( TimeSpan.ONE ).now(), equalTo( Instant.ONE ) );
 
-		LOG.trace( "testing t+3 != " + Instant.of( 2 ) );
+		LOG.trace( "testing t+3 != " + Instant.of( 2, Unit.ONE ) );
 		assertThat( "FutureSelf#after(t) time is added to Timed#now()",
-				model.after( TimeSpan.of( 3 ) ).now(),
-				not( equalTo( Instant.of( 2 ) ) ) );
+				model.after( TimeSpan.of( 3, Unit.ONE ) ).now(),
+				not( equalTo( Instant.of( 2, Unit.ONE ) ) ) );
 /*
  * final CountDownLatch latch = new CountDownLatch( 1 ); model.after(
  * TimeSpan.of( 3 ) ).call( new Runnable() {

@@ -38,7 +38,6 @@ import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import nl.rivm.cib.episim.util.Caller;
-import rx.Observable;
 
 /**
  * {@link Timed}
@@ -67,43 +66,6 @@ public interface Timed
 	}
 
 	/**
-	 * @param delay the future {@link Instant}
-	 * @return the {@link FutureSelf}
-	 */
-	default FutureSelf at( final Instant when )
-	{
-		return FutureSelf.of( this, when );
-	}
-
-//	default FutureSelf at( final Amount<?> when )
-//	{
-//		return at( Instant.of( when ) );
-//	}
-//
-//	default FutureSelf at( final Measure<?, ?> when )
-//	{
-//		return at( Instant.of( when ) );
-//	}
-//
-//	default FutureSelf at( final ReadableInstant when )
-//	{
-//		return at( Instant.of( when ) );
-//	}
-//
-//	default FutureSelf at( final Number when )
-//	{
-//		return at( Instant.of( when ) );
-//	}
-
-	default Observable<FutureSelf> atEach( final Observable<Instant> stream )
-	{
-		return stream.map( ( Instant t ) ->
-		{
-			return FutureSelf.of( this, t );
-		} );
-	}
-
-	/**
 	 * @param delay the {@link Amount} of delay, in ({@link Duration} or
 	 *            {@link Dimensionless} units
 	 * @return the {@link FutureSelf}
@@ -121,6 +83,15 @@ public interface Timed
 	default FutureSelf after( final TimeSpan delay )
 	{
 		return FutureSelf.of( this, now().add( delay ) );
+	}
+
+	/**
+	 * @param delay the future {@link Instant}
+	 * @return the {@link FutureSelf}
+	 */
+	default FutureSelf at( final Instant when )
+	{
+		return FutureSelf.of( this, when );
 	}
 
 	/**
@@ -145,36 +116,37 @@ public interface Timed
 		 * @param call the (checked) {@link Callable} method to schedule
 		 * @return the {@link Expectation} of the scheduled call
 		 */
-		default Expectation call( final Callable<?> call )
+		default Expectation call( final Runnable runner )
 		{
-			return scheduler().schedule( now(), call );
+			return scheduler().schedule( now(), runner );
 		}
 
-		default Expectation call( final Runnable r )
+		default Expectation call( final Callable<?> call )
 		{
-			return call( Caller.of( r ) );
+//			return scheduler().schedule( now(), call );
+			return call( (Runnable) call );
 		}
 
 		default <T> Expectation call( final Consumer<T> c, final T t )
 		{
-			return call( Caller.of( c, t ) );
+			return call( (Runnable) Caller.of( c, t ) );
 		}
 
 		default <T, U> Expectation call( final BiConsumer<T, U> c, final T t,
 			final U u )
 		{
-			return call( Caller.of( c, t, u ) );
+			return call( (Runnable) Caller.of( c, t, u ) );
 		}
 
 		default <T, R> Expectation call( final Function<T, R> c, final T t )
 		{
-			return call( Caller.of( c, t ) );
+			return call( (Runnable) Caller.of( c, t ) );
 		}
 
 		default <T, U, R> Expectation call( final BiFunction<T, U, R> c,
 			final T t, final U u )
 		{
-			return call( Caller.of( c, t, u ) );
+			return call( (Runnable) Caller.of( c, t, u ) );
 		}
 
 		static FutureSelf of( final Timed self, final Instant when )

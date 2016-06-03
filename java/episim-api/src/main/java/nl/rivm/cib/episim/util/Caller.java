@@ -22,7 +22,7 @@ import io.coala.exception.ExceptionFactory;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Caller<T, U, R> extends Callable<R>, Supplier<R>//, Runnable
+public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 {
 
 	/** @return the {@link Callable} */
@@ -59,11 +59,11 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>//, Runnable
 	/**
 	 * an (unchecked) {@link Runnable} of the wrapped {@link #getCallable()}
 	 */
-//	@Override
-//	default void run()
-//	{
-//		get();
-//	}
+	@Override
+	default void run()
+	{
+		get();
+	}
 
 	/**
 	 * a checked invariant {@link Function} of the wrapped

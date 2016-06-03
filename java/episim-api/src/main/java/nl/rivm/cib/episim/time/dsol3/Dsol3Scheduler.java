@@ -3,11 +3,11 @@ package nl.rivm.cib.episim.time.dsol3;
 import java.math.BigDecimal;
 import java.rmi.RemoteException;
 import java.util.NavigableMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Consumer;
 
 import javax.measure.Measurable;
+import javax.measure.quantity.Quantity;
 import javax.naming.NamingException;
 
 import org.apache.logging.log4j.Logger;
@@ -28,7 +28,6 @@ import nl.tudelft.simulation.dsol.simulators.DEVSSimulator;
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface;
 import nl.tudelft.simulation.dsol.simulators.SimulatorInterface;
 import rx.Observable;
-import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -38,7 +37,7 @@ import rx.subjects.Subject;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class Dsol3Scheduler implements Scheduler
+public class Dsol3Scheduler<Q extends Quantity> implements Scheduler
 {
 
 	/** */
@@ -53,7 +52,7 @@ public class Dsol3Scheduler implements Scheduler
 	private final NavigableMap<Instant, Subject<Instant, Instant>> listeners = new ConcurrentSkipListMap<>();
 
 	/** the scheduler */
-	private final DEVSSimulator<Measurable<?>, BigDecimal, DsolTime> scheduler;
+	private final DEVSSimulator<Measurable<Q>, BigDecimal, DsolTime<Q>> scheduler;
 
 	/**
 	 * {@link Dsol3Scheduler} constructor
@@ -69,6 +68,7 @@ public class Dsol3Scheduler implements Scheduler
 		try
 		{
 			final DsolTime start = DsolTime.valueOf( startTime );
+			LOG.trace( "jscience: {} => dsol: {}", startTime, start );
 
 			final ModelInterface model = new ModelInterface()
 			{
@@ -77,8 +77,8 @@ public class Dsol3Scheduler implements Scheduler
 					throws RemoteException, SimRuntimeException
 				{
 					// schedule first event to rename the worker thread
-					((DEVSSimulatorInterface<Measurable<?>, BigDecimal, DsolTime>) simulator)
-							.scheduleEvent( new SimEvent<DsolTime>( start,
+					((DEVSSimulatorInterface<Measurable<Q>, BigDecimal, DsolTime<Q>>) simulator)
+							.scheduleEvent( new SimEvent<DsolTime<Q>>( start,
 									simulator, new Runnable()
 									{
 										@Override
@@ -119,13 +119,19 @@ public class Dsol3Scheduler implements Scheduler
 				this.last = t;
 				synchronized( this.listeners )
 				{
-					final Subject<Instant, Instant> timeProxy = this.listeners
-							.remove( t );
-					if( timeProxy != null )
+					this.listeners.computeIfPresent( t, ( t1, timeProxy ) ->
 					{
-						timeProxy.onNext( t );
+						try
+						{
+							timeProxy.onNext( t );
+						} catch( final Throwable e )
+						{
+//							timeProxy.onError( e );
+//							this.time.onError( e );
+						}
 						timeProxy.onCompleted();
-					}
+						return null; // i.e. remove
+					} );
 					this.time.onNext( t );
 				}
 			}, SimulatorInterface.TIME_CHANGED_EVENT );
@@ -178,54 +184,65 @@ public class Dsol3Scheduler implements Scheduler
 		return this.time.asObservable();
 	}
 
+	@SuppressWarnings( "unchecked" )
 	@Override
-	public Expectation schedule( final Instant when, final Callable<?> call )
+	public Expectation schedule( final Instant when, final Runnable runner )
 	{
 		synchronized( this.listeners )
 		{
-			this.listeners.computeIfAbsent( when, t ->
-			{
-				// create proxy and schedule the actual invocation of "onNext"
-				final Subject<Instant, Instant> result = PublishSubject
-						.create();
-				try
-				{
-					this.scheduler.scheduleEvent(
-							new SimEvent<DsolTime>( DsolTime.valueOf( t ), this,
-									result, "onNext", new Object[]
-							{ t } ) );
-				} catch( final Exception e )
-				{
-					this.time.onError( e );
-				}
-				return result;
-			} );
-			final Subscription sub = this.listeners.get( when )
-					.subscribe( ( Instant t ) ->
+			return Expectation.of( this, when,
+					this.listeners.computeIfAbsent( when, t ->
 					{
+						// create proxy and schedule the actual invocation of "onNext"
+						final Subject<Instant, Instant> result = PublishSubject
+								.create();
 						try
 						{
-							call.call();
-						} catch( Exception e )
+							this.scheduler
+									.scheduleEvent( new SimEvent<DsolTime<Q>>(
+											(DsolTime<Q>) DsolTime.valueOf( t ),
+											this, result, "onNext",
+											new Object[]
+											{ t } ) );
+						} catch( final Exception e )
 						{
 							this.time.onError( e );
 						}
-					} );
-			return Expectation.of( this, when, sub );
+						return result;
+					} ).subscribe( t ->
+					{
+						try
+						{
+							runner.run();
+						} catch( final Exception e )
+						{
+							this.time.onError( e );
+						}
+					} ) );
 		}
 	}
 
-	public static Dsol3Scheduler of( final String id, final Instant start,
-		final Duration duration, final Runnable modelInitializer )
+	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
+		final Instant start, final Duration duration,
+		final Runnable modelInitializer )
 	{
 		return of( id, start, duration,
 				Caller.of( modelInitializer )::ignoreUnchecked );
 	}
 
-	public static Dsol3Scheduler of( final String id, final Instant start,
-		final Duration duration, final Consumer<Scheduler> modelInitializer )
+	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
+		final Instant start, final Duration length,
+		final Consumer<Scheduler> modelInitializer )
 	{
-		return new Dsol3Scheduler( id, start, Duration.ZERO, duration,
+		return of( id, start, Duration.of( 0, start.unwrap().getUnit() ),
+				length, modelInitializer );
+	}
+
+	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
+		final Instant start, final Duration warmup, final Duration length,
+		final Consumer<Scheduler> modelInitializer )
+	{
+		return new Dsol3Scheduler<Q>( id, start, warmup, length,
 				modelInitializer );
 	}
 

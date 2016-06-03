@@ -68,7 +68,7 @@ public class Schedule<T>
 		for( Entry<Instant, T> entry : this.function.tailMap( scheduler.now() )
 				.entrySet() )
 			scheduler.at( entry.getKey() )
-					.call( Caller.of( handler, entry.getValue() ) );
+					.call( (Runnable) Caller.of( handler, entry.getValue() ) );
 	}
 
 	public void put( final Instant when, final T value )

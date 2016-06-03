@@ -23,20 +23,18 @@ public interface Vaccine extends Timed
 	Collection<Infection> getTargets();
 
 	/**
-	 * @param person the {@link Individual} to vaccinate
-	 * @return an {@link ArithmeticDistribution} {@link ProbabilityDistribution}
-	 *         of the <em>actual</em> efficacy for specified {@link Individual}
-	 *         's traits (age, sex, &hellip;)
+	 * @param condition the {@link Condition} to improve
+	 * @return a {@link ProbabilityDistribution} of the <em>actual</em> efficacy
+	 *         for specified {@link Individual} 's traits (age, sex, &hellip;)
 	 */
-	ArithmeticDistribution<Dimensionless> getEfficacy( Individual person );
+	ProbabilityDistribution<Boolean> getEfficacy( Condition condition );
 
 	/**
 	 * @param person the {@link Individual} to vaccinate
-	 * @return an {@link ArithmeticDistribution} {@link ProbabilityDistribution}
-	 *         of the <em>actual</em> delivery method comfort (e.g. intravenous,
-	 *         needle-free patch, inhaled, oral, micro-needle arrays, stratum
-	 *         corneum disruption) for specified {@link Individual}'s traits
-	 *         (age, sex, &hellip;)
+	 * @return a {@link ProbabilityDistribution} of the <em>actual</em> delivery
+	 *         method comfort (e.g. intravenous, needle-free patch, inhaled,
+	 *         oral, micro-needle arrays, stratum corneum disruption) for
+	 *         specified {@link Individual}'s traits (age, sex, &hellip;)
 	 */
 	ArithmeticDistribution<Dimensionless> getComfort( Individual person );
 
@@ -52,13 +50,14 @@ public interface Vaccine extends Timed
 		/**
 		 * @param scheduler the {@link Scheduler}
 		 * @param target the target {@link Infection}
-		 * @param efficacy <em>actual</em> efficacy
-		 * @param comfort <em>actual</em> delivery method comfort
+		 * @param efficacy <em>actual</em> efficacy distribution for everyone
+		 * @param comfort <em>actual</em> delivery method comfort distribution
+		 *            for everyone
 		 * @return a {@link Simple} instance of {@link Vaccine}
 		 */
 		public static Simple of( final Scheduler scheduler,
 			final Infection target,
-			final ArithmeticDistribution<Dimensionless> efficacy,
+			final ProbabilityDistribution<Boolean> efficacy,
 			final ArithmeticDistribution<Dimensionless> comfort )
 		{
 			return new Simple( scheduler, Collections.singleton( target ),
@@ -69,7 +68,7 @@ public interface Vaccine extends Timed
 
 		private final Collection<Infection> targets;
 
-		private final ArithmeticDistribution<Dimensionless> efficacy;
+		private final ProbabilityDistribution<Boolean> efficacy;
 
 		private final ArithmeticDistribution<Dimensionless> comfort;
 
@@ -81,7 +80,7 @@ public interface Vaccine extends Timed
 		 */
 		public Simple( final Scheduler scheduler,
 			final Collection<Infection> targets,
-			final ArithmeticDistribution<Dimensionless> efficacy,
+			final ProbabilityDistribution<Boolean> efficacy,
 			final ArithmeticDistribution<Dimensionless> comfort )
 		{
 			this.scheduler = scheduler;
@@ -103,8 +102,8 @@ public interface Vaccine extends Timed
 		}
 
 		@Override
-		public ArithmeticDistribution<Dimensionless>
-			getEfficacy( final Individual person )
+		public ProbabilityDistribution<Boolean>
+			getEfficacy( final Condition condition )
 		{
 			return this.efficacy;
 		}

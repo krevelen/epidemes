@@ -81,7 +81,7 @@ public class AccumulatorTest
 
 		final Unit<?> bps = SI.BIT.divide( SI.SECOND );
 		final Scheduler scheduler = Dsol3Scheduler.of( "dsol3Test",
-				Instant.of( "5 s" ), Duration.of( "100 s" ), ( Scheduler s ) ->
+				Instant.of( "5 s" ), Duration.of( "100 s" ), s ->
 				{
 					LOG.trace( "initialized, t={}", s.now() );
 				} );
@@ -93,7 +93,7 @@ public class AccumulatorTest
 
 		// schedule event at target level
 		final Amount<DataAmount> target = Amount.valueOf( 40, SI.BIT );
-		acc.at( target, ( Instant t ) ->
+		acc.at( target, t ->
 		{
 			LOG.trace( "reached a={} at t={}", target, t );
 		} );
@@ -103,10 +103,10 @@ public class AccumulatorTest
 		assertThat( "Can't be null", acc, not( nullValue() ) );
 
 		final CountDownLatch latch = new CountDownLatch( 1 );
-		scheduler.time().subscribe( ( Instant t ) ->
+		scheduler.time().subscribe( t ->
 		{
 			LOG.trace( "new time, t={}", t );
-		}, ( Throwable e ) ->
+		}, e ->
 		{
 			LOG.trace( "problem, t=" + scheduler.now(), e );
 		}, () ->

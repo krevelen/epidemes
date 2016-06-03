@@ -7,7 +7,7 @@
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 
 	<artifactId>episim-model</artifactId>

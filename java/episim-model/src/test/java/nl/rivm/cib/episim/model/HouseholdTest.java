@@ -37,11 +37,9 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import javax.measure.Measurable;
-import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
 import javax.measure.quantity.Frequency;
 import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
 import javax.measure.unit.UnitFormat;
 
 import org.apache.commons.math3.random.MersenneTwister;
@@ -175,7 +173,7 @@ public class HouseholdTest
 			final ProbabilityDistribution.Factory distFact,
 			final Measurable<Frequency> prob, final Measurable<Duration> dt )
 		{
-			return null;
+			return distFact.createBernoulli( adjust( prob, dt ) );
 		}
 
 		// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
