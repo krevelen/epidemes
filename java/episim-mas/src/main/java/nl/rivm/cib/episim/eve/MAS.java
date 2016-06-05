@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 5d9e7c1ed3ccfced243cecfbff29647d70388ac7 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -23,13 +23,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.servlet.ServletException;
-import javax.ws.rs.core.Application;
 
+import org.apache.logging.log4j.Logger;
 import org.apache.wink.server.internal.servlet.RestServlet;
 
 import com.almende.eve.capabilities.Config;
@@ -40,34 +37,20 @@ import com.almende.util.jackson.JOM;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.thetransactioncompany.cors.CORSFilter;
 
-import nl.rivm.cib.episim.ws.AggregatorWS;
+import io.coala.log.LogUtil;
+import nl.rivm.cib.episim.rest.WinkApplication;
 
 /**
  * {@link MAS}
  * 
- * @version $Id$
+ * @version $Id: 5d9e7c1ed3ccfced243cecfbff29647d70388ac7 $
  * @author Rick van Krevelen
  */
 public class MAS
 {
+	/** */
+	private static final Logger LOG = LogUtil.getLogger( MAS.class );
 
-	/**
-	 * {@link WinkApplication}
-	 */
-	public class WinkApplication extends Application
-	{
-
-		/** */
-		private final Set<Class<?>> classes = new HashSet<Class<?>>(Arrays.asList(
-				AggregatorWS.class));
-
-		@Override
-		public Set<Class<?>> getClasses()
-		{
-			return this.classes;
-		}
-	}
-	
 	/**
 	 * The main method.
 	 *
@@ -78,14 +61,11 @@ public class MAS
 	public static void main( final String[] args )
 		throws FileNotFoundException, ServletException
 	{
+	    
 		final Config configfile = YamlReader
 				.load( new FileInputStream( new File( args[0] ) ) ).expand();
 
 		Boot.boot( configfile );
-
-		// final WebAppContext aggregator = new WebAppContext("aggregator.war",
-		// "/aggregator");
-		// aggregator.setServer(server);
 
 		final JettyLauncher launcher = new JettyLauncher();
 
@@ -98,7 +78,8 @@ public class MAS
 				.add( JOM.createObjectNode()
 						.put( "key", "javax.ws.rs.Application" )
 						.put( "value", WinkApplication.class.getName() ) );
-		launcher.add( new RestServlet(), URI.create( "/rs/" ), winkCfg );
+		launcher.add( new RestServlet(), URI.create( "/rest/v1/" ), winkCfg );
+		LOG.trace( "STARTED" );
 	}
 
 }

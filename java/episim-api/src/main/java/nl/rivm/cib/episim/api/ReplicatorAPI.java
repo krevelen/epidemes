@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 3932e2a6cc6b2b9db954ea3d10c7caad0f4a9104 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 /**
  * {@link ReplicatorAPI}
  * 
- * @version $Id$
+ * @version $Id: 3932e2a6cc6b2b9db954ea3d10c7caad0f4a9104 $
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */
@@ -39,6 +39,13 @@ public interface ReplicatorAPI
 	 * @return response code
 	 */
 	JsonNode resume( JsonNode config );
+
+	/**
+	 * pause the simulation
+	 * 
+	 * @return response code
+	 */
+	JsonNode status();
 
 	/**
 	 * pause the simulation

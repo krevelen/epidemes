@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.ws;
+package nl.rivm.cib.episim.rest;
 
 import java.io.InputStream;
 
@@ -57,8 +57,9 @@ public class AggregatorWS
 	public Response welcome()
 	{
 		return Response
-				.ok( "<html><head><title>EPISIM - Stats</title></head>"
-						+ "<body><p>Welcome to EPISIM - statistics</p></body></html>" )
+				.ok( "<html><head><title>EPISIM - Stats</title></head><body>"
+						+ "<p>Welcome to EPISIM statistics RESTful service</p>"
+						+ "</body></html>" )
 				.build();
 	}
 

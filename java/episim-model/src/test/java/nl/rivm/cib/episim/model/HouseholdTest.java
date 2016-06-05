@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -156,24 +157,46 @@ public class HouseholdTest
 			}
 		}
 
-		public static double adjust_prob( double year_prob, double days )
-		{
-			double fraction = days / 365.0;
-			return 1.0 - Math.pow( 1.0 - year_prob, fraction );
-		}
-
 		public static double adjust( final Measurable<Frequency> prob,
 			final Measurable<Duration> dt )
 		{
+			// [geard] 1.0 - Math.pow( 1.0 - year_prob, num_days / 365.0 )
 			return 1.0 - Math.pow( 1.0 - prob.doubleValue( Units.ANNUAL ),
 					dt.doubleValue( NonSI.YEAR_CALENDAR ) );
 		}
 
-		public static ProbabilityDistribution<Boolean> toBooleanDist(
-			final ProbabilityDistribution.Factory distFact,
-			final Measurable<Frequency> prob, final Measurable<Duration> dt )
+		public static class HouseholdComposition
 		{
-			return distFact.createBernoulli( adjust( prob, dt ) );
+			/**
+			 * "i j k": a household with i adults (18+), j school-age children
+			 * (5-17) and k preschool-age children (<5).
+			 */
+			private Number[] counts = null;
+
+			public static <T> HouseholdComposition
+				valueOf( final String values )
+			{
+				return of( Integer::valueOf, VALUE_SEP.split( values ) );
+			}
+
+			public static <T extends Number> HouseholdComposition
+				of( final Function<String, T> parser, final String... values )
+			{
+				final HouseholdComposition result = new HouseholdComposition();
+				if( values != null )
+				{
+					result.counts = new Number[values.length];
+					for( int i = 0; i < values.length; i++ )
+						result.counts[i] = parser.apply( values[i] );
+				}
+				return result;
+			}
+
+			@Override
+			public String toString()
+			{
+				return "hh" + Arrays.asList( this.counts );
+			}
 		}
 
 		// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
@@ -263,7 +286,7 @@ public class HouseholdTest
 //			this.fertility_age_parity = distFact
 //					.createCategorical( importFrequencies(
 //							"sim-demog/fertility_age_parity_probs.dat", 1,
-//							Integer::valueOf ) );
+//							?::valueOf ) );
 
 			this.hh_comp_dist = distFact.createCategorical(
 					importFrequencies( "sim-demog/hh_comp.dat", 0,
@@ -278,16 +301,16 @@ public class HouseholdTest
 			this.dt = Amount.valueOf( 1, NonSI.DAY );
 
 			// TODO read from "paramspec_pop.cfg", rather: parse distributions
-			this.dtGrowth = toBooleanDist( distFact, Rate.of( 0, Units.ANNUAL ),
-					this.dt );
-			this.dtImmigration = toBooleanDist( distFact,
-					Rate.of( 0, Units.ANNUAL ), this.dt );
-			this.dtCouplers = toBooleanDist( distFact,
-					Rate.of( 0.08, Units.ANNUAL ), this.dt );
-			this.dtLeavers = toBooleanDist( distFact,
-					Rate.of( 0.02, Units.ANNUAL ), this.dt );
-			this.dtDivorcers = toBooleanDist( distFact,
-					Rate.of( 0.01, Units.ANNUAL ), this.dt );
+			this.dtGrowth = distFact.createBernoulli(
+					adjust( Rate.of( 0, Units.ANNUAL ), this.dt ) );
+			this.dtImmigration = distFact.createBernoulli(
+					adjust( Rate.of( 0, Units.ANNUAL ), this.dt ) );
+			this.dtCouplers = distFact.createBernoulli(
+					adjust( Rate.of( 0.08, Units.ANNUAL ), this.dt ) );
+			this.dtLeavers = distFact.createBernoulli(
+					adjust( Rate.of( 0.02, Units.ANNUAL ), this.dt ) );
+			this.dtDivorcers = distFact.createBernoulli(
+					adjust( Rate.of( 0.01, Units.ANNUAL ), this.dt ) );
 			this.ageCoupling = distFact.createDeterministic(
 					Range.of( 21, 60, NonSI.YEAR_CALENDAR ) );
 			this.ageLeaving = distFact.createDeterministic( 18 )
@@ -296,7 +319,7 @@ public class HouseholdTest
 					Range.of( 24, 60, NonSI.YEAR_CALENDAR ) );
 			this.agePartner = distFact.createNormal( -2, 2 )
 					.toAmounts( NonSI.YEAR_CALENDAR );
-			this.birthGap = distFact.createNormal( 270, 0 )
+			this.birthGap = distFact.createDeterministic( 270 )
 					.toAmounts( NonSI.DAY );
 
 			final Set<Household> households = new HashSet<>();
@@ -332,42 +355,6 @@ public class HouseholdTest
 
 			LOG.trace( "{} households initialized, total={}", households.size(),
 					pop.getSize() );
-		}
-
-		/*
-		 * "prob i j k": probability of a household with i adults (18+), j
-		 * school-age children (5-17) and k preschool-age children (<5).
-		 */
-		public static class HouseholdComposition
-		{
-			// i, j, k
-			private Number[] counts = null;
-
-			public static <T> HouseholdComposition
-				valueOf( final String values )
-			{
-				return of( Integer::valueOf, VALUE_SEP.split( values ) );
-			}
-
-			public static <T extends Number> HouseholdComposition
-				of( final Function<String, T> parser, final String... values )
-			{
-				final HouseholdComposition result = new HouseholdComposition();
-				if( values != null )
-				{
-					result.counts = new Number[values.length];
-					for( int i = 0; i < values.length; i++ )
-						result.counts[i] = parser.apply( values[i] );
-				}
-				return result;
-			}
-
-			@Override
-			public String toString()
-			{
-				return String.format( "hh(18+yo: %d, 5-17yo: %d, 0-4yo:%d)",
-						this.counts[0], this.counts[1], this.counts[2] );
-			}
 		}
 	}
 
