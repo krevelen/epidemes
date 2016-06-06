@@ -1,0 +1,9 @@
+{
+  "name": "episim-mobile",
+  "version": "1.0.0",
+  "dependencies": {
+    "requirejs": "~2.1.11",
+    "jquery-mobile": "~1.4.1"
+  },
+  "devDependencies": {}
+}

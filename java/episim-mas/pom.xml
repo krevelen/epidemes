@@ -19,12 +19,12 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<!-- stand-alone runnable JAR config -->
 		<dist.dir>${basedir}/mas</dist.dir>
-		<main.class>nl.rivm.cib.episim.eve.MAS</main.class>
+		<main.class>nl.rivm.cib.episim.eve.mas.Main</main.class>
 
 		<eve.version>3.1.1</eve.version>
 		<jetty.version>9.3.8.v20160314</jetty.version>
-		<wink.version>1.4</wink.version>
 		<cors.version>1.8</cors.version>
 	</properties>
 
@@ -62,7 +62,6 @@
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
 			<artifactId>episim-api</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
@@ -133,11 +132,6 @@
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-webapp</artifactId>
 			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.wink</groupId>
-			<artifactId>wink-server</artifactId>
-			<version>${wink.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.thetransactioncompany</groupId>

@@ -13,8 +13,8 @@ Configuration:
       level: trace
       AppenderRef:
         ref: Console
-    logger:
-      level: warn
-      name: org.eclipse.jetty
-      AppenderRef:
-        ref: Console
+    Logger:
+      - level: warn
+        name: javax.management
+        AppenderRef:
+          ref: Console

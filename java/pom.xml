@@ -8,20 +8,47 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-	<modules>
-		<module>episim-api</module>
-		<module>episim-mas</module>
+	<profiles>
+		<profile>
+			<id>model</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<modules>
+				<module>episim-common</module>
 
-		<module>episim-model</module>
-		<module>episim-connect-cbs</module>
-		<module>episim-connect-geodb</module>
-		<module>episim-connect-pienter2</module>
-		<module>episim-persist</module>
-		<module>episim-persist-kundera</module>
-
-		<!-- <module>episim-webapp</module> -->
-		<module>episim-dist</module>
-	</modules>
+				<module>episim-connect-cbs</module>
+				<module>episim-connect-geodb</module>
+				<module>episim-connect-pienter2</module>
+				<module>episim-model</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>mas</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<modules>
+				<module>episim-persist</module>
+				<module>episim-persist-kundera</module>
+				<module>episim-api</module>
+				<module>episim-mas</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>gui</id>
+			<activation>
+				<file>
+					<!-- set system property "npm" with any value -->
+					<exists>episim-webapp/node_modules</exists>
+				</file>
+			</activation>
+			<modules>
+				<module>episim-webapp</module>
+				<!-- <module>episim-dist</module> -->
+			</modules>
+		</profile>
+	</profiles>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
@@ -79,6 +106,7 @@
 		<log4j.version>2.5</log4j.version>
 		<javaee-api.version>6.0</javaee-api.version>
 		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
+		<javax.ws.rs-api.version>2.0.1</javax.ws.rs-api.version>
 		<javax.inject.version>1</javax.inject.version>
 		<javax.inject-api.version>1.0.0-PRD</javax.inject-api.version>
 		<persistence-api.version>1.0.2</persistence-api.version>
@@ -112,6 +140,18 @@
 
 	<dependencyManagement>
 		<dependencies>
+
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>episim-common</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>episim-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>io.coala</groupId>
@@ -214,6 +254,12 @@
 				<groupId>javax.servlet</groupId>
 				<artifactId>javax.servlet-api</artifactId>
 				<version>${javax.servlet-api.version}</version>
+			</dependency>
+			<dependency>
+				<!-- artifactId: jsr311-api=v1; javax.ws.rs-api=JSR-339/v2 -->
+				<groupId>javax.ws.rs</groupId>
+				<artifactId>javax.ws.rs-api</artifactId>
+				<version>${javax.ws.rs-api.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>javax.inject</groupId>

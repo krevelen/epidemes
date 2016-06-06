@@ -10,16 +10,18 @@
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>episim-model</artifactId>
+	<artifactId>episim-common</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
-		Modeling Components for the RIVM Vaccination Acceptance Simulator
+		Common Components for the RIVM Vaccination Acceptance Simulator
 		$Id: a1a835b9a2627f0150bcaf84cf438b8c88796e54 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<quartz.version>2.2.3</quartz.version>
+		<joda-time.version>2.9.4</joda-time.version>
 		<hamcrest.version>1.3</hamcrest.version>
 	</properties>
 
@@ -51,7 +53,7 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
-		
+
 		<repository>
 			<name>EPISIM Public Maven Repository</name>
 			<id>episim-public</id>
@@ -67,9 +69,35 @@
 	</repositories>
 
 	<dependencies>
+
+		<!-- <dependency> <groupId>io.coala</groupId> <artifactId>guice3-coala-adapter</artifactId> 
+			<scope>test</scope> </dependency> -->
 		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>episim-common</artifactId>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
+		</dependency>
+
+		<!-- Time-related implementations, similar to JSR-310 -->
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>${joda-time.version}</version>
+		</dependency>
+		<!-- Quartz implementation of CRON-like scheduler -->
+		<dependency>
+			<groupId>org.quartz-scheduler</groupId>
+			<artifactId>quartz</artifactId>
+			<version>${quartz.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -94,4 +122,5 @@
 		<plugins>
 		</plugins>
 	</build>
+
 </project>

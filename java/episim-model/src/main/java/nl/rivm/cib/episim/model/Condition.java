@@ -142,19 +142,19 @@ public interface Condition extends Timed
 			this.treatment = treatment;
 		}
 
-		protected void set( final EpidemicCompartment compartment )
+		protected void setCompartment( final EpidemicCompartment compartment )
 		{
 			this.transitions.onNext( TransitionEvent.of( this, compartment ) );
 			this.compartment = compartment;
 		}
 
-		protected void set( final TreatmentStage treatment )
+		protected void setTreatmentStage( final TreatmentStage treatment )
 		{
 			this.transitions.onNext( TransitionEvent.of( this, treatment ) );
 			this.treatment = treatment;
 		}
 
-		protected void set( final SymptomPhase symptoms )
+		protected void setSymptomPhase( final SymptomPhase symptoms )
 		{
 			this.transitions.onNext( TransitionEvent.of( this, symptoms ) );
 			this.symptoms = symptoms;
@@ -209,18 +209,21 @@ public interface Condition extends Timed
 				throw ExceptionFactory.createUnchecked(
 						"Can't become exposed when: {}", getCompartment() );
 
-			set( EpidemicCompartment.Simple.EXPOSED );
+			setCompartment( EpidemicCompartment.Simple.EXPOSED );
 
 			after( getInfection().drawLatentPeriod() )
-					.call( this::set, EpidemicCompartment.Simple.INFECTIVE )
+					.call( this::setCompartment,
+							EpidemicCompartment.Simple.INFECTIVE )
 					.thenAfter( getInfection().drawRecoverPeriod() )
-					.call( this::set, EpidemicCompartment.Simple.RECOVERED )
+					.call( this::setCompartment,
+							EpidemicCompartment.Simple.RECOVERED )
 					.thenAfter( getInfection().drawWanePeriod() )
-					.call( this::set, EpidemicCompartment.Simple.SUSCEPTIBLE );
+					.call( this::setCompartment,
+							EpidemicCompartment.Simple.SUSCEPTIBLE );
 			after( getInfection().drawOnsetPeriod() )
-					.call( this::set, SymptomPhase.SYSTEMIC )
+					.call( this::setSymptomPhase, SymptomPhase.SYSTEMIC )
 					.thenAfter( getInfection().drawSymptomPeriod() )
-					.call( this::set, SymptomPhase.ASYMPTOMATIC );
+					.call( this::setSymptomPhase, SymptomPhase.ASYMPTOMATIC );
 		}
 	}
 }
