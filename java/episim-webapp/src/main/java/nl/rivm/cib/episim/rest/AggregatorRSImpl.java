@@ -29,17 +29,27 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.coala.json.JsonUtil;
+import io.coala.log.LogUtil;
+import nl.rivm.cib.episim.mas.AggregatorAgent;
+
 /**
- * {@link AggregatorWink} exposes the statistics aggregation function provided
- * by some {@link AggregatorAPI} instance in a web service
+ * {@link AggregatorRSImpl} exposes the statistics aggregation function provided
+ * by some {@link AggregatorAgent} instance in a web service
  * 
  * @version $Id: f70a5234051c27a17ee4cd152cac2f344107874d $
  * @author Rick van Krevelen
  */
-public class AggregatorWink implements AggregatorWS
+public class AggregatorRSImpl implements AggregatorWS
 {
+
+	/** */
+	private static final Logger LOG = LogUtil
+			.getLogger( AggregatorRSImpl.class );
 
 	private AggregatorAgent aggregator = null;
 
@@ -85,6 +95,7 @@ public class AggregatorWink implements AggregatorWS
 	public Response insertFact( final InputStream json )
 	{
 		final JsonNode statistics = JsonUtil.toTree( json );
+		LOG.trace( "Handling {}", statistics );
 		final JsonNode response = this.aggregator.insert( statistics );
 		return Response.ok( JsonUtil.toJSON( response ) ).build();
 	}

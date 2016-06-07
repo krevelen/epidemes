@@ -11,6 +11,7 @@
 	</parent>
 
 	<artifactId>episim-mas</artifactId>
+	<packaging>war</packaging>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
@@ -24,7 +25,6 @@
 		<main.class>nl.rivm.cib.episim.eve.mas.Main</main.class>
 
 		<eve.version>3.1.1</eve.version>
-		<jetty.version>9.3.8.v20160314</jetty.version>
 		<cors.version>1.8</cors.version>
 	</properties>
 
@@ -67,43 +67,17 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.almende.eve</groupId>
-			<artifactId>eve-transport-http-jetty</artifactId>
-			<version>${eve.version}</version>
 			<exclusions>
+				<!-- websocket dependency not inside a WAR file! -->
 				<exclusion>
-					<groupId>org.eclipse.jetty</groupId>
-					<artifactId>jetty-maven-plugin</artifactId>
+					<groupId>org.eclipse.jetty.websocket</groupId>
+					<artifactId>javax-websocket-server-impl</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>jackson-datatype-joda</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.dataformat</groupId>
-					<artifactId>jackson-dataformat-yaml</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-jdk14</artifactId>
+					<groupId>javax.websocket</groupId>
+					<artifactId>javax.websocket-api</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.almende.eve</groupId>
-			<artifactId>eve-scheduling-persistent</artifactId>
-			<version>${eve.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.almende.eve</groupId>
-			<artifactId>eve-deploy</artifactId>
-			<version>${eve.version}</version>
 		</dependency>
 
 		<dependency>
@@ -123,16 +97,6 @@
 			<version>${jackson.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.eclipse.jetty.websocket</groupId>
-			<artifactId>javax-websocket-server-impl</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-webapp</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>com.thetransactioncompany</groupId>
 			<artifactId>cors-filter</artifactId>
@@ -233,6 +197,24 @@
 				implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> 
 				<mainClass>${main.class}</mainClass> </transformer> </transformers> </configuration> 
 				</execution> </executions> </plugin> -->
+
+			<plugin>
+				<!-- jetty:run starts this Eve web-app in a Jetty container -->
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-maven-plugin</artifactId>
+				<configuration>
+					<scanIntervalSeconds>1</scanIntervalSeconds>
+					<systemProperties>
+						<systemProperty>
+							<name>log4j.configurationFile</name>
+							<value>mas/log4j2.yaml</value>
+						</systemProperty>
+					</systemProperties>
+					<webApp>
+						<contextPath>/</contextPath>
+					</webApp>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 </project>

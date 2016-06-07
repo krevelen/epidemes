@@ -19,30 +19,20 @@
  */
 package nl.rivm.cib.episim.rest;
 
-import java.io.InputStream;
-
-import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import io.coala.json.JsonUtil;
-import nl.rivm.cib.episim.api.AggregatorAPI;
-
 /**
- * {@link WelcomeWink} exposes the statistics aggregation function provided by
- * some {@link AggregatorAPI} instance in a web service
+ * {@link WelcomeRSImpl}
  * 
  * @version $Id: f70a5234051c27a17ee4cd152cac2f344107874d $
  * @author Rick van Krevelen
  */
 @Path( "/" )
-public class WelcomeWink implements WelcomeWS
+public class WelcomeRSImpl implements WelcomeWS
 {
 
 	/**

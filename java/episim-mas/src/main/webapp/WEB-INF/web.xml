@@ -3,25 +3,24 @@
 	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee"
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
 	id="WebApp_ID" metadata-complete="true" version="3.0">
-	
+
 	<display-name>EpiSim Mobile</display-name>
-	
+
 	<context-param>
 		<param-name>eve_config</param-name>
-		<param-value>eve.yaml</param-value>
+		<param-value>mas/eve.yaml</param-value>
 	</context-param>
-	
+
 	<listener>
-		<listener-class>com.almende.eve.deploy.EveListener</listener-class>
+		<listener-class>nl.rivm.cib.episim.mas.eve.ServletContextListenerEve</listener-class>
 	</listener>
-	
+
 	<servlet>
 		<servlet-name>EveServlet</servlet-name>
-		<servlet-class>com.almende.eve.transport.http.DebugServlet
-		</servlet-class>
+		<servlet-class>com.almende.eve.transport.http.DebugServlet</servlet-class>
 		<init-param>
 			<param-name>ServletUrl</param-name>
-			<param-value>http://localhost:8080/war/agents/</param-value>
+			<param-value>http://localhost:8080/agents/</param-value>
 		</init-param>
 		<load-on-startup>1</load-on-startup>
 	</servlet>

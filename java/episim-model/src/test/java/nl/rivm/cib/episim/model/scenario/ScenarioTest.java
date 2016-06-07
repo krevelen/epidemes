@@ -54,7 +54,6 @@ import nl.rivm.cib.episim.model.Population;
 import nl.rivm.cib.episim.model.TransmissionRoute;
 import nl.rivm.cib.episim.model.TransmissionSpace;
 import nl.rivm.cib.episim.model.Units;
-import nl.rivm.cib.episim.model.Household.Simple;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
@@ -71,6 +70,25 @@ public class ScenarioTest
 	{
 		UnitFormat.getInstance().alias( NonSI.DAY, "days" );
 		//UnitFormat.getInstance().label(DAILY, "daily");
+	}
+
+	/**
+	 * Traffic intensity
+	 * (http://opendata.cbs.nl/dataportaal/portal.html?_catalog=CBS&_la=nl&
+	 * tableId=81435ned&_theme=364) Traffic participants
+	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
+	 * tableId=81125ned&_theme=361) Mobility - vehicle posession
+	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
+	 * tableId=37856&_theme=837) Mobility - traveler characteristics
+	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
+	 * tableId=81128ned&_theme=494) Mobility - traffic characteristics
+	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
+	 * tableId=81127ned&_theme=494) Mobility - motives
+	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
+	 * tableId=81124ned&_theme=494)
+	 */
+	public void testTraffic()
+	{
 	}
 
 	/**

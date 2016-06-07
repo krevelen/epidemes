@@ -82,7 +82,7 @@
 
 		<coala.version>0.2.0-SNAPSHOT</coala.version>
 		<httpcomponents.version>4.5.1</httpcomponents.version>
-		<jackson.version>2.7.0</jackson.version>
+		<jackson.version>2.7.4</jackson.version>
 		<jetty.version>9.3.9.v20160517</jetty.version>
 
 		<!-- set reporting versions (e.g. unit test code coverage) -->
@@ -218,6 +218,17 @@
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-core</artifactId>
 				<version>${jackson.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.eclipse.jetty.websocket</groupId>
+				<artifactId>javax-websocket-server-impl</artifactId>
+				<version>${jetty.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-webapp</artifactId>
+				<version>${jetty.version}</version>
 			</dependency>
 
 			<dependency>

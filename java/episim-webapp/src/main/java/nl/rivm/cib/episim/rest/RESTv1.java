@@ -6,9 +6,6 @@ import java.util.Set;
 
 import javax.ws.rs.core.Application;
 
-import nl.rivm.cib.episim.api.rest.AggregatorWS;
-import nl.rivm.cib.episim.api.rest.WelcomeWS;
-
 /**
  * {@link RESTv1}
  */
@@ -17,7 +14,7 @@ public class RESTv1 extends Application
 
 	/** */
 	private final Set<Class<?>> restClasses = new HashSet<Class<?>>(
-			Arrays.asList( WelcomeWS.class, AggregatorWS.class ) );
+			Arrays.asList( WelcomeRSImpl.class, AggregatorRSImpl.class ) );
 
 	@Override
 	public Set<Class<?>> getClasses()
