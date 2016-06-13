@@ -9,7 +9,7 @@
 		"evejs": "~0.5.0"
 	},
 	"devDependencies": {
-		"bower": "~1.7.9",
+		"bower": "~1.7.9"
 	},
 	"devDependencies2": {
 		"grunt": "~0.4.2",

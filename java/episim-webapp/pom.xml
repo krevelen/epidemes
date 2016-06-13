@@ -55,7 +55,26 @@
 	<dependencies>
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>episim-api</artifactId>
+			<artifactId>episim-mas</artifactId>
+			<version>${project.version}</version>
+			<exclusions>
+				<!-- websocket dependency not inside a WAR file! -->
+				<exclusion>
+					<groupId>org.eclipse.jetty.websocket</groupId>
+					<artifactId>javax-websocket-server-impl</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>javax.websocket</groupId>
+					<artifactId>javax.websocket-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- Freemarker IDE for Eclipse (4.5 Mars, 4.6 Neon) at: http://download.jboss.org/jbosstools/neon/snapshots/builds/jbosstools-freemarker_master/latest/all/repo/ -->
+		<dependency>
+			<groupId>org.freemarker</groupId>
+			<artifactId>freemarker</artifactId>
+			<version>2.3.24-incubating</version>
 		</dependency>
 
 		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-frontend-jaxrs</artifactId> 
@@ -82,13 +101,6 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<!-- Freemarker IDE for Eclipse (4.5 Mars, 4.6 Neon) at: http://download.jboss.org/jbosstools/neon/snapshots/builds/jbosstools-freemarker_master/latest/all/repo/ -->
-		<dependency>
-			<groupId>org.freemarker</groupId>
-			<artifactId>freemarker</artifactId>
-			<version>2.3.24-incubating</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -223,7 +235,7 @@
 					<stopKey>alpha</stopKey>
 					<stopPort>9099</stopPort>
 					<webApp>
-						<contextPath>/test/</contextPath>
+						<contextPath>/</contextPath>
 					</webApp>
 				</configuration>
 				<executions>

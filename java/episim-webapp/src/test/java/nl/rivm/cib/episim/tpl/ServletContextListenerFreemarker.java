@@ -1,18 +1,12 @@
 package nl.rivm.cib.episim.tpl;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
 import org.apache.logging.log4j.Logger;
 
-import com.almende.eve.deploy.Boot;
-
 import io.coala.log.LogUtil;
-import io.coala.resource.x.FileUtil;
 
 /**
  * {@link ServletContextListenerFreemarker}
@@ -32,7 +26,7 @@ public class ServletContextListenerFreemarker implements ServletContextListener
 	{
 		final ServletContext sc = sce.getServletContext();
 
-		
+		// TODO boot Eve?
 	}
 
 	@Override

@@ -37,6 +37,8 @@ import io.coala.util.FileUtil;
  * 
  * @version $Id: 5d9e7c1ed3ccfced243cecfbff29647d70388ac7 $
  * @author Rick van Krevelen
+ * 
+ * TODO try RxNetty server?
  */
 public class EpisimMasServer
 {
