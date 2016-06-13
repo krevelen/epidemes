@@ -167,7 +167,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 
 		reset();
 
-		// FIXME BUG have Scheduler @Sender represent owner (local:) getId()
+		// FIXME BUG have Scheduler @Sender be owner (local:) getId() by default
 //		schedule( "subscribe",
 //				JsonUtil.getJOM().createObjectNode()
 //						.put( "sender", "local:" + getId() )
@@ -198,7 +198,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 			LOG.trace( "{} - CMD: now unpaced {} -> {}", getId(), this.myPace,
 					pace );
 			this.myPace = pace;
-			this.scheduler.resume();
+			if( pace.virtualMS.signum() == 1 ) this.scheduler.resume();
 		}
 	}
 
@@ -299,6 +299,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		final @Name( "topic" ) String topic,
 		final @Name( "timing" ) Timing timing )
 	{
+		// TODO apply timing to Eve's real-time scheduler, not the sim scheduler
 		final Subscription sub;
 		final UUID result = new UUID();
 		if( topic.equalsIgnoreCase( TIME_TOPIC ) )
@@ -353,6 +354,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 				} );
 	}
 
+	// FIXME FEATURE REQ have TypedKey as non-abstract, with static of() factory 
 	static class MyTypedKey<T> extends TypedKey<T>
 	{
 		public MyTypedKey( final String key )

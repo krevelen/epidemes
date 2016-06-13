@@ -63,12 +63,13 @@ public class Schedule<T>
 	 * @param scheduler the {@link Scheduler} for the timing of calls
 	 * @param handler the {@link Consumer} of new values to call
 	 */
+	// FIXME make Throwable's observable, e.g. using scheduler::atEach?
 	public void handle( final Scheduler scheduler, final Consumer<T> handler )
 	{
 		for( Entry<Instant, T> entry : this.function.tailMap( scheduler.now() )
 				.entrySet() )
 			scheduler.at( entry.getKey() )
-					.call( (Runnable) Caller.of( handler, entry.getValue() ) );
+					.call( Caller.of( handler, entry.getValue() )::run );
 	}
 
 	public void put( final Instant when, final T value )

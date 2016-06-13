@@ -20,10 +20,6 @@
 package nl.rivm.cib.episim.time;
 
 import java.util.concurrent.Callable;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.measure.quantity.Dimensionless;
 
@@ -38,6 +34,10 @@ import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
 import io.coala.util.Comparison;
 import nl.rivm.cib.episim.util.Caller;
+import nl.rivm.cib.episim.util.Caller.ThrowingBiConsumer;
+import nl.rivm.cib.episim.util.Caller.ThrowingBiFunction;
+import nl.rivm.cib.episim.util.Caller.ThrowingConsumer;
+import nl.rivm.cib.episim.util.Caller.ThrowingFunction;
 import rx.Observable;
 import rx.Observer;
 
@@ -135,42 +135,79 @@ public interface Timed
 		}
 
 		/**
-		 * @param call the (checked) {@link Callable} method to schedule
-		 * @return the {@link Expectation} of the scheduled call
+		 * @param runner the {@link Runnable} (method) to call when time comes
+		 * @return the {@link Expectation} for potential cancellation
 		 */
 		default Expectation call( final Runnable runner )
 		{
 			return scheduler().schedule( now(), runner );
 		}
 
-		default Expectation call( final Callable<?> call )
+		/**
+		 * @param call the {@link Callable} (method) to call when time comes
+		 * @return the {@link Expectation} for potential cancellation
+		 */
+		default <R> Observable<R> call( final Callable<R> call )
 		{
-//			return scheduler().schedule( now(), call );
-			return call( (Runnable) call );
+			return scheduler().schedule( Observable.just( now() ), call );
 		}
 
-		default <T> Expectation call( final Consumer<T> c, final T t )
+		/**
+		 * @param call the {@link Callable} (method) to call when time comes
+		 * @param t arg0
+		 * @return the {@link Expectation} for potential cancellation
+		 */
+		default <T, E extends Exception> Expectation
+			call( final ThrowingConsumer<T, E> call, final T t )
 		{
-			return call( (Runnable) Caller.of( c, t ) );
+			return call( Caller.of( call, t )::run );
 		}
 
-		default <T, U> Expectation call( final BiConsumer<T, U> c, final T t,
-			final U u )
+		/**
+		 * @param call the {@link Callable} (method) to call when time comes
+		 * @param t arg0
+		 * @param u arg1
+		 * @return the {@link Expectation} for potential cancellation
+		 */
+		default <T, U, E extends Exception> Expectation
+			call( final ThrowingBiConsumer<T, U, E> call, final T t, final U u )
 		{
-			return call( (Runnable) Caller.of( c, t, u ) );
+			return call( Caller.of( call, t, u )::run );
 		}
 
-		default <T, R> Expectation call( final Function<T, R> c, final T t )
+		/**
+		 * @param call the {@link Callable} (method) to call when time comes
+		 * @param t arg0
+		 * @return the {@link Expectation} for potential cancellation
+		 */
+		// FIXME make result R observable?
+		default <T, R, E extends Exception> Expectation
+			call( final ThrowingFunction<T, R, E> call, final T t )
 		{
-			return call( (Runnable) Caller.of( c, t ) );
+			return call( Caller.of( call, t )::run );
 		}
 
-		default <T, U, R> Expectation call( final BiFunction<T, U, R> c,
-			final T t, final U u )
+		/**
+		 * @param call the {@link Callable} (method) to call when time comes
+		 * @param t arg0
+		 * @param u arg1
+		 * @return the {@link Expectation} for potential cancellation
+		 */
+		// FIXME make result R observable?
+		default <T, U, R, E extends Exception> Expectation call(
+			final ThrowingBiFunction<T, U, R, E> call, final T t, final U u )
 		{
-			return call( (Runnable) Caller.of( c, t, u ) );
+			return call( Caller.of( call, t, u )::run );
 		}
 
+		/**
+		 * {@link FutureSelf} factory method
+		 * 
+		 * @param self the {@link Timed} to project forward
+		 * @param when the {@link Instant} to project onto
+		 * @return a {@link FutureSelf} wrapper of the {@link Timed} self at
+		 *         specified {@link Instant}
+		 */
 		static FutureSelf of( final Timed self, final Instant when )
 		{
 			if( Comparison.is( when ).lt( self.now() ) ) throw ExceptionFactory

@@ -81,10 +81,10 @@ public interface Scheduler extends Timed
 	 * @return an {@link Observable} stream of results, until completion of
 	 *         simulation time or observed instants or an error occurs
 	 */
-	default <T> Observable<T> schedule( final Observable<Instant> when,
-		final Callable<T> what )
+	default <R> Observable<R> schedule( final Observable<Instant> when,
+		final Callable<R> what )
 	{
-		final Subject<T, T> result = BehaviorSubject.create();
+		final Subject<R, R> result = BehaviorSubject.create();
 		schedule( when, new Observer<Instant>()
 		{
 			@Override
