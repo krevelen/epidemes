@@ -12,15 +12,11 @@ Configuration:
       AppenderRef:
         ref: Console
     Logger:
-      - name: com.sun.jmx
-        level: info
+      - level: warn
+        name: javax.management
         AppenderRef:
           ref: Console
       - name: org.eclipse.jetty
-        level: info
-        AppenderRef:
-          ref: Console
-      - name: org.apache.wink
         level: info
         AppenderRef:
           ref: Console

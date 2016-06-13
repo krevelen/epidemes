@@ -31,21 +31,21 @@ import nl.rivm.cib.episim.time.Timed;
 public interface Scenario extends Timed
 {
 
-	static Scenario of( final Scheduler scheduler )
-	{
-		return new Simple( scheduler );
-	}
-	
-	//interface Population
-
 	class Simple implements Scenario
 	{
+
+		public static Simple of( final String id, final Scheduler s )
+		{
+			return new Simple( s );
+		}
 
 		private final Scheduler scheduler;
 
 		public Simple( final Scheduler scheduler )
 		{
 			this.scheduler = scheduler;
+			
+			// TODO create/load model components
 		}
 
 		@Override

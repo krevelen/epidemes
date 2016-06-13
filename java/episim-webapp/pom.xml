@@ -14,8 +14,13 @@
 	<packaging>war</packaging>
 
 	<properties>
-		<jetty.version>9.3.8.v20160314</jetty.version>
 		<cxf.version>3.1.6</cxf.version>
+		<!-- front-end -->
+		<jsp-api.version>2.2</jsp-api.version>
+		<node.version>v6.2.1</node.version>
+		<npm.version>1.4.9</npm.version>
+		<npm.install.dir>${basedir}</npm.install.dir>
+		<npm.build.dir>src/main/frontend</npm.build.dir>
 	</properties>
 
 	<repositories>
@@ -53,16 +58,25 @@
 			<artifactId>episim-api</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.apache.cxf</groupId>
-			<artifactId>cxf-rt-frontend-jaxrs</artifactId>
-			<version>${cxf.version}</version>
-		</dependency>
+		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-frontend-jaxrs</artifactId> 
+			<version>${cxf.version}</version> </dependency> -->
 
+		<!-- javax.ws.rs-api (JSR-311=v1, JSR-339/javax.ws.rs-api=v2) -->
 		<dependency>
-			<groupId>org.apache.cxf</groupId>
-			<artifactId>cxf-rt-frontend-jaxrs</artifactId>
-			<version>${cxf.version}</version>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet.jsp</groupId>
+			<artifactId>jsp-api</artifactId>
+			<version>${jsp-api.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
@@ -70,7 +84,48 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Freemarker IDE for Eclipse (4.5 Mars, 4.6 Neon) at: http://download.jboss.org/jbosstools/neon/snapshots/builds/jbosstools-freemarker_master/latest/all/repo/ -->
+		<dependency>
+			<groupId>org.freemarker</groupId>
+			<artifactId>freemarker</artifactId>
+			<version>2.3.24-incubating</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
+
+	<profiles>
+		<profile>
+			<activation>
+				<file>
+					<missing>${npm.install.dir}/node/npm</missing>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<version>1.0</version>
+
+						<configuration>
+							<nodeVersion>${node.version}</nodeVersion>
+							<npmVersion>${npm.version}</npmVersion>
+							<installDirectory>${npm.install.dir}</installDirectory>
+						</configuration>
+
+						<executions>
+							<execution>
+								<id>node install</id>
+								<goals>
+									<goal>install-node-and-npm</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<build>
 		<pluginManagement>
@@ -100,6 +155,23 @@
 									</action>
 								</pluginExecution>
 
+								<!-- Configure "org.eclipse.jetty:jetty-maven-plugin:stop" goal execution 
+									in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.eclipse.jetty</groupId>
+										<artifactId>jetty-maven-plugin</artifactId>
+										<versionRange>[9.0,)</versionRange>
+										<goals>
+											<goal>start</goal>
+											<goal>stop</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+
 							</pluginExecutions>
 						</lifecycleMappingMetadata>
 					</configuration>
@@ -108,70 +180,38 @@
 		</pluginManagement>
 
 		<plugins>
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-antrun-plugin</artifactId> 
+				<executions> <execution> <id>exec-npm-install</id> <phase>pre-integration-test</phase> 
+				<goals> <goal>run</goal> </goals> <configuration> <tasks> <taskdef resource="net/sf/antcontrib/antcontrib.properties" 
+				/> <if> <available file="node_modules" /> <then> <echo>NPM was used</echo> 
+				</then> <else> <echo>NPM never used</echo> </else> </if> </tasks> <target> 
+				<exec executable="cmd.exe" failOnError="true"> <arg line="/c npm install" 
+				/> </exec> </target> </configuration> </execution> <execution> <id>exec-bower-install</id> 
+				<phase>generate-sources</phase> <goals> <goal>run</goal> </goals> <configuration> 
+				<target> <exec executable="cmd.exe" failOnError="true"> <arg value="/c bower 
+				install" /> </exec> </target> </configuration> </execution> </executions> 
+				<dependencies> <dependency> <groupId>ant-contrib</groupId> <artifactId>ant-contrib</artifactId> 
+				<version>20020829</version> </dependency> </dependencies> </plugin> -->
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>1.0</version>
+
+				<configuration>
+					<installDirectory>${npm.install.dir}</installDirectory>
+					<workingDirectory>${npm.build.dir}</workingDirectory>
+				</configuration>
+
 				<executions>
-					<!-- node dependencies -->
 					<execution>
-						<id>exec-npm-install</id>
-						<phase>pre-integration-test</phase>
+						<id>npm-bower-grunt</id>
 						<goals>
-							<goal>run</goal>
+							<goal>npm</goal>
+							<goal>bower</goal>
+							<!-- <goal>grunt</goal> -->
 						</goals>
-						<configuration>
-							<tasks>
-								<taskdef resource="net/sf/antcontrib/antcontrib.properties" />
-
-								<if>
-									<available file="npm" />
-									<then>
-										<echo>NPM exists</echo>
-									</then>
-
-									<else>
-										<echo>NPM unavailable</echo>
-									</else>
-								</if>
-							</tasks>
-
-							<target>
-								<exec executable="cmd.exe" failOnError="true">
-									<arg line="/c npm install" />
-								</exec>
-							</target>
-						</configuration>
 					</execution>
-					<!-- browser-compatible node dependencies -->
-					<execution>
-						<id>exec-bower-install</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>run</goal>
-						</goals>
-						<configuration>
-							<target>
-								<!-- <exec executable="cmd.exe"> <arg line="/c npm install -g bower" 
-									/> </exec> -->
-								<exec executable="cmd.exe" failOnError="true">
-									<arg value="/c bower install" />
-								</exec>
-							</target>
-						</configuration>
-					</execution>
-					<!-- grunt-browserify (bundle, uglify, etc.) -->
-					<!-- <execution> <id>exec-grunt</id> <phase>process-resources</phase> 
-						<goals> <goal>run</goal> </goals> <configuration> <target> <exec executable="cmd.exe" 
-						failOnError="true"> <arg line="/c grunt" /> </exec> </target> </configuration> 
-						</execution> -->
 				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>ant-contrib</groupId>
-						<artifactId>ant-contrib</artifactId>
-						<version>20020829</version>
-					</dependency>
-				</dependencies>
 			</plugin>
 
 			<plugin>
@@ -180,10 +220,21 @@
 				<artifactId>jetty-maven-plugin</artifactId>
 				<configuration>
 					<scanIntervalSeconds>10</scanIntervalSeconds>
+					<stopKey>alpha</stopKey>
+					<stopPort>9099</stopPort>
 					<webApp>
-						<contextPath>/rest/v1</contextPath>
+						<contextPath>/test/</contextPath>
 					</webApp>
 				</configuration>
+				<executions>
+					<execution>
+						<id>stop-jetty</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>stop</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

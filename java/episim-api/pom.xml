@@ -58,7 +58,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.coala</groupId>
-			<artifactId>coala-api</artifactId>
+			<artifactId>coala-api-time</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>episim-common</artifactId>
 		</dependency>
 
 		<!-- javax.ws.rs-api (JSR-311=v1, JSR-339/javax.ws.rs-api=v2) -->

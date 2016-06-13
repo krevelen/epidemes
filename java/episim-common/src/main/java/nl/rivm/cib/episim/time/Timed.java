@@ -19,7 +19,6 @@
  */
 package nl.rivm.cib.episim.time;
 
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -37,12 +36,13 @@ import io.coala.exception.ExceptionFactory;
 import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
 import io.coala.time.x.TimeSpan;
+import io.coala.util.Comparison;
 import nl.rivm.cib.episim.util.Caller;
+import rx.Observable;
+import rx.Observer;
 
 /**
  * {@link Timed}
- * 
- * {@link List#stream()}
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -50,14 +50,8 @@ import nl.rivm.cib.episim.util.Caller;
 public interface Timed
 {
 
-	/**
-	 * @return the {@link Scheduler} of this {@link Timed} object
-	 */
-	//default 
+	/** @return the {@link Scheduler} of this {@link Timed} object */
 	Scheduler scheduler();
-//	{
-//		return SCHEDULER_INSTANCE;
-//	}
 
 	/** @return the current {@link Instant} */
 	default Instant now()
@@ -92,6 +86,34 @@ public interface Timed
 	default FutureSelf at( final Instant when )
 	{
 		return FutureSelf.of( this, when );
+	}
+
+	default Observable<FutureSelf> atEach( final Observable<Instant> when )
+	{
+		final Timed self = this;
+		return Observable.create( sub ->
+		{
+			scheduler().schedule( when, new Observer<Instant>()
+			{
+				@Override
+				public void onCompleted()
+				{
+					sub.onCompleted();
+				}
+
+				@Override
+				public void onError( final Throwable e )
+				{
+					sub.onError( e );
+				}
+
+				@Override
+				public void onNext( final Instant t )
+				{
+					sub.onNext( FutureSelf.of( self, t ) );
+				}
+			} );
+		} );
 	}
 
 	/**
@@ -151,7 +173,7 @@ public interface Timed
 
 		static FutureSelf of( final Timed self, final Instant when )
 		{
-			if( self.now().compareTo( when ) > 0 ) throw ExceptionFactory
+			if( Comparison.is( when ).lt( self.now() ) ) throw ExceptionFactory
 					.createUnchecked( "Can't schedule in past: {} < now({})",
 							when, self.now() );
 			return new FutureSelf()

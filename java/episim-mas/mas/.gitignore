@@ -1,4 +1,5 @@
-/lib/
-/episim-mas.jar
-/episim.log
 /.eve_agents/
+/lib/
+/**.jar
+/**.log
+/**.war

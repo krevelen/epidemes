@@ -32,6 +32,8 @@ public class Units
 	{
 		UnitFormat.getInstance().alias( DAILY, "daily" );
 		UnitFormat.getInstance().label( DAILY, "daily" );
+		UnitFormat.getInstance().alias( NonSI.DAY, "days" );
+		UnitFormat.getInstance().label( NonSI.DAY, "days" );
 	}
 
 }

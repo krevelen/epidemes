@@ -20,6 +20,7 @@ import io.coala.time.x.Instant;
 import nl.rivm.cib.episim.time.Expectation;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.util.Caller;
+import nl.rivm.cib.episim.util.Caller.ThrowingConsumer;
 import nl.tudelft.simulation.dsol.ModelInterface;
 import nl.tudelft.simulation.dsol.SimRuntimeException;
 import nl.tudelft.simulation.dsol.experiment.ReplicationMode;
@@ -167,11 +168,14 @@ public class Dsol3Scheduler<Q extends Quantity> implements Scheduler
 	@Override
 	public void resume()
 	{
-		LOG.trace( "resuming, t={}, #events={}", now(),
-				this.scheduler.getEventList().size() );
 		try
 		{
-			this.scheduler.start();
+			if( !this.scheduler.isRunning() )
+			{
+				LOG.trace( "resuming, t={}, #events={}", now(),
+						this.scheduler.getEventList().size() );
+				this.scheduler.start();
+			}
 		} catch( final SimRuntimeException e )
 		{
 			this.time.onError( e );
@@ -226,31 +230,25 @@ public class Dsol3Scheduler<Q extends Quantity> implements Scheduler
 		final Instant start, final Duration duration,
 		final Runnable modelInitializer )
 	{
-		return of( id, start, duration,
-				Caller.of( modelInitializer )::ignoreUnchecked );
+		return of( id, start, duration, Caller.of( modelInitializer )::ignore );
 	}
 
-	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
-		final Instant start, final Duration length,
-		final Consumer<Scheduler> modelInitializer )
-	{
-		return of( id, start, Duration.of( 0, start.unwrap().getUnit() ),
-				length, modelInitializer );
-	}
-
-	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
-		final Instant start, final Duration warmup, final Duration length,
-		final Consumer<Scheduler> modelInitializer )
-	{
-		return new Dsol3Scheduler<Q>( id, start, warmup, length,
-				modelInitializer );
-	}
-
-//	public static Dsol3Scheduler of( final String id, final Instant start,
-//		final Duration duration, final Consumer_WithExceptions<Scheduler, ?> modelInitializer )
+//	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
+//		final Instant start, final Duration length,
+//		final Consumer<Scheduler> modelInitializer )
 //	{
-//		return new Dsol3Scheduler( id, start, Duration.ZERO, duration,
-//				Caller.rethrow( modelInitializer ) );
+//		return new Dsol3Scheduler<Q>( id, start,
+//				Duration.of( 0, start.unwrap().getUnit() ), length,
+//				modelInitializer );
 //	}
+
+	public static <Q extends Quantity> Dsol3Scheduler<Q> of( final String id,
+		final Instant start, final Duration duration,
+		final ThrowingConsumer<Scheduler, ?> modelInitializer )
+	{
+		return new Dsol3Scheduler<Q>( id, start,
+				Duration.of( 0, start.unwrap().getUnit() ), duration,
+				Caller.rethrow( modelInitializer ) );
+	}
 
 }

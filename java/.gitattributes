@@ -1,6 +1,15 @@
-**/*.java ident
+**/*.bat ident
+**/*.cmd ident
+**/*.sh ident
 **/*.asl ident
 **/*.properties ident
 **/*.yaml ident
+**/*.yml ident
+**/*.java ident
+**/*.jsp ident
+**/*.ftl ident
 **/*.xml ident
-**/*.properties ident
+**/*.html ident
+**/*.css ident
+**/*.js ident
+**/*.md ident

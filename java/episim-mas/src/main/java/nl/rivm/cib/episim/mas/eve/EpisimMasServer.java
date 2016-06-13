@@ -19,11 +19,7 @@
  */
 package nl.rivm.cib.episim.mas.eve;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-
-import javax.servlet.ServletException;
+import java.io.IOException;
 
 import org.apache.logging.log4j.Logger;
 
@@ -34,31 +30,30 @@ import com.almende.eve.transport.http.embed.JettyLauncher;
 import com.thetransactioncompany.cors.CORSFilter;
 
 import io.coala.log.LogUtil;
+import io.coala.util.FileUtil;
 
 /**
- * {@link Main}
+ * {@link EpisimMasServer}
  * 
  * @version $Id: 5d9e7c1ed3ccfced243cecfbff29647d70388ac7 $
  * @author Rick van Krevelen
  */
-public class Main
+public class EpisimMasServer
 {
 	/** */
-	private static final Logger LOG = LogUtil.getLogger( Main.class );
+	private static final Logger LOG = LogUtil.getLogger( EpisimMasServer.class );
 
 	/**
 	 * The main method.
 	 *
-	 * @param args the arguments
-	 * @throws FileNotFoundException the file not found exception
-	 * @throws ServletException
+	 * @param args the command line arguments
+	 * @throws IOException e.g. file not found
 	 */
-	public static void main( final String[] args )
-		throws FileNotFoundException, ServletException
+	public static void main( final String[] args ) throws IOException
 	{
 
 		final Config configfile = YamlReader
-				.load( new FileInputStream( new File( args[0] ) ) ).expand();
+				.load( FileUtil.toInputStream( args.length==0?"eve.yaml":args[0] ) ).expand();
 
 		Boot.boot( configfile );
 

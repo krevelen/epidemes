@@ -11,7 +11,6 @@
 	</parent>
 
 	<artifactId>episim-mas</artifactId>
-	<packaging>war</packaging>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
@@ -22,7 +21,7 @@
 	<properties>
 		<!-- stand-alone runnable JAR config -->
 		<dist.dir>${basedir}/mas</dist.dir>
-		<main.class>nl.rivm.cib.episim.eve.mas.Main</main.class>
+		<main.class>nl.rivm.cib.episim.mas.eve.EpisimMasServer</main.class>
 
 		<eve.version>3.1.1</eve.version>
 		<cors.version>1.8</cors.version>
@@ -61,6 +60,12 @@
 
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
+			<artifactId>episim-model</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
 			<artifactId>episim-api</artifactId>
 		</dependency>
 
@@ -68,7 +73,7 @@
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
 			<exclusions>
-				<!-- websocket dependency not inside a WAR file! -->
+				<!-- websocket dependency not inside a WAR file!
 				<exclusion>
 					<groupId>org.eclipse.jetty.websocket</groupId>
 					<artifactId>javax-websocket-server-impl</artifactId>
@@ -77,6 +82,7 @@
 					<groupId>javax.websocket</groupId>
 					<artifactId>javax.websocket-api</artifactId>
 				</exclusion>
+				 -->
 			</exclusions>
 		</dependency>
 

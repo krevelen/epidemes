@@ -383,31 +383,31 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 	}
 
 	@FunctionalInterface
-	public interface Consumer_WithExceptions<T, E extends Exception>
+	public interface ThrowingConsumer<T, E extends Throwable>
 	{
 		void accept( T t ) throws E;
 	}
 
 	@FunctionalInterface
-	public interface BiConsumer_WithExceptions<T, U, E extends Exception>
+	public interface ThrowingBiConsumer<T, U, E extends Throwable>
 	{
 		void accept( T t, U u ) throws E;
 	}
 
 	@FunctionalInterface
-	public interface Function_WithExceptions<T, R, E extends Exception>
+	public interface ThrowingFunction<R, T, E extends Throwable>
 	{
 		R apply( T t ) throws E;
 	}
 
 	@FunctionalInterface
-	public interface Supplier_WithExceptions<T, E extends Exception>
+	public interface ThrowingSupplier<T, E extends Throwable>
 	{
 		T get() throws E;
 	}
 
 	@FunctionalInterface
-	public interface Runnable_WithExceptions<E extends Exception>
+	public interface ThrowingRunnable<E extends Throwable>
 	{
 		void run() throws E;
 	}
@@ -417,30 +417,30 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 	 * System.out.println(Class.forName(name)))); or
 	 * .forEach(rethrowConsumer(ClassNameUtil::println));
 	 */
-	public static <T, E extends Exception> Consumer<T>
-		rethrow( final Consumer_WithExceptions<T, E> consumer )
+	public static <T, E extends Throwable> Consumer<T>
+		rethrow( final ThrowingConsumer<T, E> consumer )
 	{
 		return t ->
 		{
 			try
 			{
 				consumer.accept( t );
-			} catch( Exception exception )
+			} catch( final Throwable exception )
 			{
 				throwAsUnchecked( exception );
 			}
 		};
 	}
 
-	public static <T, U, E extends Exception> BiConsumer<T, U>
-		rethrow( final BiConsumer_WithExceptions<T, U, E> biConsumer )
+	public static <T, U, E extends Throwable> BiConsumer<T, U>
+		rethrow( final ThrowingBiConsumer<T, U, E> biConsumer )
 	{
 		return ( t, u ) ->
 		{
 			try
 			{
 				biConsumer.accept( t, u );
-			} catch( Exception exception )
+			} catch( final Throwable exception )
 			{
 				throwAsUnchecked( exception );
 			}
@@ -451,15 +451,15 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 	 * .map(rethrowFunction(name -> Class.forName(name))) or
 	 * .map(rethrowFunction(Class::forName))
 	 */
-	public static <T, R, E extends Exception> Function<T, R>
-		rethrow( final Function_WithExceptions<T, R, E> function )
+	public static <R, T, E extends Throwable> Function<T, R>
+		rethrow( final ThrowingFunction<R, T, E> function )
 	{
 		return t ->
 		{
 			try
 			{
 				return function.apply( t );
-			} catch( Exception exception )
+			} catch( final Throwable exception )
 			{
 				throwAsUnchecked( exception );
 				return null;
@@ -471,15 +471,15 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 	 * rethrowSupplier(() -> new StringJoiner(new String(new byte[]{77, 97, 114,
 	 * 107}, "UTF-8"))),
 	 */
-	public static <T, E extends Exception> Supplier<T>
-		rethrow( final Supplier_WithExceptions<T, E> function )
+	public static <T, E extends Throwable> Supplier<T>
+		rethrow( final ThrowingSupplier<T, E> function )
 	{
 		return () ->
 		{
 			try
 			{
 				return function.get();
-			} catch( Exception exception )
+			} catch( final Throwable exception )
 			{
 				throwAsUnchecked( exception );
 				return null;
@@ -488,25 +488,25 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 	}
 
 	/** uncheck(() -> Class.forName("xxx")); */
-	public static void uncheck( Runnable_WithExceptions<?> t )
+	public static void uncheck( ThrowingRunnable<?> t )
 	{
 		try
 		{
 			t.run();
-		} catch( Exception exception )
+		} catch( final Throwable exception )
 		{
 			throwAsUnchecked( exception );
 		}
 	}
 
 	/** uncheck(() -> Class.forName("xxx")); */
-	public static <R, E extends Exception> R
-		uncheck( Supplier_WithExceptions<R, E> supplier )
+	public static <R, E extends Throwable> R
+		uncheck( ThrowingSupplier<R, E> supplier )
 	{
 		try
 		{
 			return supplier.get();
-		} catch( Exception exception )
+		} catch( final Throwable exception )
 		{
 			throwAsUnchecked( exception );
 			return null;
@@ -514,13 +514,13 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 	}
 
 	/** uncheck(Class::forName, "xxx"); */
-	public static <T, R, E extends Exception> R
-		uncheck( Function_WithExceptions<T, R, E> function, T t )
+	public static <R, T, E extends Throwable> R
+		uncheck( ThrowingFunction<R, T, E> function, T t )
 	{
 		try
 		{
 			return function.apply( t );
-		} catch( Exception exception )
+		} catch( final Throwable exception )
 		{
 			throwAsUnchecked( exception );
 			return null;
@@ -529,7 +529,7 @@ public interface Caller<T, U, R> extends Callable<R>, Supplier<R>, Runnable
 
 	@SuppressWarnings( "unchecked" )
 	static <E extends Throwable> void
-		throwAsUnchecked( final Exception exception ) throws E
+		throwAsUnchecked( final Throwable exception ) throws E
 	{
 		throw (E) exception;
 	}

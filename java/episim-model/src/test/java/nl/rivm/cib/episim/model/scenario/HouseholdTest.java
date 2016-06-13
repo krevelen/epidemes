@@ -24,17 +24,15 @@ import static org.junit.Assert.assertEquals;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import javax.measure.unit.NonSI;
-import javax.measure.unit.UnitFormat;
-
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
+import io.coala.time.x.Duration;
 import io.coala.time.x.Instant;
+import nl.rivm.cib.episim.model.Units;
 import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
-import nl.rivm.cib.episim.util.Caller;
 
 /**
  * {@link HouseholdTest}
@@ -45,11 +43,7 @@ import nl.rivm.cib.episim.util.Caller;
 public class HouseholdTest
 {
 	/** */
-	static final Logger LOG = LogUtil.getLogger( HouseholdTest.class );
-	{
-		UnitFormat.getInstance().alias( NonSI.DAY, "days" );
-		//UnitFormat.getInstance().label(DAILY, "daily");
-	}
+	private static final Logger LOG = LogUtil.getLogger( HouseholdTest.class );
 
 	/**
 	 * This test should:
@@ -63,17 +57,17 @@ public class HouseholdTest
 	{
 		LOG.trace( "Initializing household composition scenario..." );
 
-		final Scheduler scheduler = Dsol3Scheduler.of( "dsol3Test",
-				Instant.of( "0 days" ),
-				io.coala.time.x.Duration.of( "100 days" ),
-				Caller.rethrow( new Geard2011Scenario()::init ) );
+		Units.DAILY.toString();
+		final Scheduler scheduler = Dsol3Scheduler.of( "householdTest",
+				Instant.of( "0 days" ), Duration.of( "100 days" ),
+				new Geard2011Scenario()::init );
 
 		LOG.trace( "Starting household composition scenario..." );
 		final CountDownLatch latch = new CountDownLatch( 1 );
-		scheduler.time().subscribe( ( t ) ->
+		scheduler.time().subscribe( t ->
 		{
-			LOG.trace( "t = {}", t.prettify( NonSI.DAY, 1 ) );
-		}, ( e ) ->
+			LOG.trace( "t = {}", t.prettify( 4 ) );
+		}, e ->
 		{
 			LOG.warn( "Problem in scheduler", e );
 		}, () ->

@@ -24,6 +24,6 @@ templates:
 
 agents:
 -  id: scenario
-   class: nl.rivm.cib.episim.mas.eve.ReplicatorAgentEve
+   class: nl.rivm.cib.episim.mas.eve.ReplicatorAgentImpl
    extends: templates/defaultAgent
    

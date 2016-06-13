@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import javax.measure.quantity.Frequency;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.Unit;
-import javax.measure.unit.UnitFormat;
 
 import org.apache.commons.math3.random.MersenneTwister;
 import org.apache.logging.log4j.Logger;
@@ -67,10 +66,6 @@ public class ScenarioTest
 {
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( ScenarioTest.class );
-	{
-		UnitFormat.getInstance().alias( NonSI.DAY, "days" );
-		//UnitFormat.getInstance().label(DAILY, "daily");
-	}
 
 	/**
 	 * Traffic intensity
@@ -108,9 +103,9 @@ public class ScenarioTest
 	{
 		LOG.trace( "Starting scenario..." );
 
-		final Scheduler scheduler = Dsol3Scheduler.of( "dsol3Test",
-				Instant.of( "0 days" ), Duration.of( "100 days" ),
-				( Scheduler s ) ->
+		Units.DAILY.toString(); // init new unit
+		final Scheduler scheduler = Dsol3Scheduler.of( "scenarioTest",
+				Instant.of( "0 days" ), Duration.of( "100 days" ), s ->
 				{
 					LOG.trace( "initialized, t={}",
 							s.now().prettify( NonSI.DAY, 1 ) );

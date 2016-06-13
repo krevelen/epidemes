@@ -26,6 +26,7 @@ public interface Scheduler extends Timed
 		return this;
 	}
 
+	/** @return an {@link Observable} stream of {@link Instant}s */
 	Observable<Instant> time();
 
 	/** */
@@ -39,6 +40,8 @@ public interface Scheduler extends Timed
 	Expectation schedule( Instant when, Runnable what );
 
 	/**
+	 * Schedule a stream of {@link Expectation}s for execution of {@code what}
+	 * 
 	 * @param when the {@link Observable} stream of {@link Instant}s
 	 * @param what the {@link Runnable} to execute upon each {@link Instant}
 	 * @return an {@link Observable} stream of {@link Expectation}s for each
@@ -71,8 +74,9 @@ public interface Scheduler extends Timed
 	}
 
 	/**
-	 * @param when the {@link Observable} stream of {@link Instant}s, to be
-	 *            scheduled immediately
+	 * Schedule a stream of values resulting from executing a {@link Callable}
+	 * 
+	 * @param when the {@link Observable} stream of {@link Instant}s
 	 * @param what the {@link Callable} to execute upon each {@link Instant}
 	 * @return an {@link Observable} stream of results, until completion of
 	 *         simulation time or observed instants or an error occurs
@@ -115,6 +119,8 @@ public interface Scheduler extends Timed
 	}
 
 	/**
+	 * Schedule a stream of {@link Instant}s and their {@link Expectation}s
+	 * 
 	 * @param when the {@link Observable} stream of {@link Instant}s, to be
 	 *            scheduled immediately
 	 * @param what the {@link Observer} of the same {@link Instant}s but delayed
@@ -129,7 +135,7 @@ public interface Scheduler extends Timed
 		final Subject<Expectation, Expectation> result = BehaviorSubject
 				.create();
 
-		scheduler().time().subscribe( t ->
+		time().subscribe( t ->
 		{
 			// ignore passage of time
 		}, e ->
@@ -154,14 +160,14 @@ public interface Scheduler extends Timed
 					try
 					{
 						result.onError( e );
-						what.onError( e );
+//						what.onError( e );
 					} catch( final Throwable e1 )
 					{
 						LogUtil.getLogger( getClass() ).error(
 								"Problem in error propagation/handling", e1 );
 					}
 					// FIXME kill sim
-//					scheduler().time().doOnNext( t1 ->
+//					time().doOnNext( t1 ->
 //					{
 //						throw e instanceof RuntimeException
 //								? (RuntimeException) e
