@@ -6,9 +6,11 @@
 	
 	<display-name>EpiSim MAS</display-name>
 	
+	<!-- 
 	<listener>
 		<listener-class>nl.rivm.cib.episim.mas.eve.MasServletContextListener</listener-class>
 	</listener>
+	 -->
 
 	<servlet>
 		<servlet-name>EveServlet</servlet-name>
@@ -115,11 +117,11 @@
 	</servlet-mapping>
 	
 	<servlet>
-		<servlet-name>hello_servlet</servlet-name>
-		<servlet-class>nl.rivm.cib.episim.tpl.HelloServlet</servlet-class>
+		<servlet-name>gui</servlet-name>
+		<servlet-class>nl.rivm.cib.episim.tpl.GUITemplatesServlet</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>hello_servlet</servlet-name>
-		<url-pattern>/hello</url-pattern>
+		<servlet-name>gui</servlet-name>
+		<url-pattern>/gui</url-pattern>
 	</servlet-mapping>
 </web-app>

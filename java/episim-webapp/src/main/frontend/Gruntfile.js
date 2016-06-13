@@ -64,7 +64,7 @@ module.exports = function(grunt) {
 								"backbone" : "../bower_components/backbone/backbone",
 								"evejs" : "../node_modules/evejs/index",
 								"highcharts" : "../bower_components/highcharts/highcharts"
-//								'templates' : '../../../../.tmp/js/templates'
+							// 'templates' : '../../../../.tmp/js/templates'
 							}
 						}
 					}
@@ -90,7 +90,10 @@ module.exports = function(grunt) {
 	grunt.registerTask('default', [ 'clean'
 	// , 'jshint'
 	// , 'compass:dist',
-	, 'cssmin'
+	// , 'cssmin'
 	// , 'handlebars'
-	, 'requirejs', 'uglify' ]);
+	, 'requirejs'
+	// , 'uglify'
+	//
+	]);
 };

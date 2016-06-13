@@ -220,7 +220,7 @@
 						<goals>
 							<goal>npm</goal>
 							<goal>bower</goal>
-							<!-- <goal>grunt</goal> -->
+							<goal>grunt</goal>
 						</goals>
 					</execution>
 				</executions>

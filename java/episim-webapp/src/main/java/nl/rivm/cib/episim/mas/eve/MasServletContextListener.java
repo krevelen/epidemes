@@ -61,21 +61,21 @@ public class MasServletContextListener implements ServletContextListener
 		// Get the eve.yaml file and load it. (In production code this requires some serious input checking)
 		final String path = sc.getInitParameter( "eve_config" ) == null
 				? "eve.yaml" : sc.getInitParameter( "eve_config" );
-		try( final InputStream is = FileUtil.toInputStream( path ) )
+		try( final InputStream is = FileUtil.toInputStream( path,
+				sc.getClassLoader() ) )
 		{
 			this.eveConfig = (Config) Boot.boot( is );
 		} catch( final Throwable e )
 		{
-			final String fullname = "/WEB-INF/" + path;
-			try( final InputStream is = FileUtil.toInputStream( fullname ) )
+			LOG.warn( "Problem: {}", e.getMessage() );
+			final String fullname = "WEB-INF/" + path;
+			try( final InputStream is = FileUtil.toInputStream( fullname,
+					sc.getClassLoader() ) )
 			{
 				this.eveConfig = (Config) Boot.boot( is );
 			} catch( final IOException e1 )
 			{
-				LOG.error( "Failed reading {} in local file system: {}", path,
-						e.getMessage() );
-				LOG.error( "Failed reading {} in servlet WEB-INF/ class-path",
-						fullname, e1.getMessage() );
+				LOG.warn( "Problem: {}", e1.getMessage() );
 			}
 		}
 	}

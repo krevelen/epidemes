@@ -5,29 +5,32 @@ require.config({
 	// "libs/jquery-1.8.2.min")
 	paths : {
 
-		// Core Libraries
-//		"jquery" : "lib/jquery",
-//		"jquerymobile" : "lib/jquery.mobile",
-//		"underscore" : "lib/lodash",
-//		"backbone" : "lib/backbone",
-//		"highcharts" : "lib/highcharts"
+	// Core Libraries
+	// "jquery" : "lib/jquery",
+	// "jquerymobile" : "lib/jquery.mobile",
+	// "underscore" : "lib/lodash",
+	// "backbone" : "lib/backbone",
+	// "highcharts" : "lib/highcharts"
 	},
 
 	// Sets the configuration for your third party scripts that are not AMD
 	// compatible
 	shim : {
-		'underscore' : {
+		underscore : {
 			exports : "_"
 		},
-		'jquery' : {
+		jquery : {
 			exports : "$"
 		},
-		'jquery.validate' : [ 'jquery' ],
-		'jquerymobile' : [ 'jquery', 'mobileinit' ],
-		
-		"backbone" : {
-			"deps" : [ "underscore", "jquery" ],
-			"exports" : "Backbone" // attaches "Backbone" to the window object
+		backbone : {
+			deps : [ "underscore", "jquery" ],
+			exports : "Backbone" // attaches "Backbone" to the window object
+		},
+		'jquery.validate' : {
+			deps : [ 'jquery' ]
+		},
+		jquerymobile : {
+			deps : [ 'jquery', 'mobileinit' ]
 		}
 
 	}
@@ -36,8 +39,7 @@ require.config({
 });
 
 // Includes File Dependencies
-require([ "jquery", "backbone", "routers/mobileRouter" ], function($, Backbone,
-		Mobile) {
+require([ "jquery", "backbone" ], function($, Backbone, Mobile) {
 
 	$(document).on("mobileinit",
 	// Set up the "mobileinit" handler before requiring jQuery Mobile's module
@@ -55,7 +57,6 @@ require([ "jquery", "backbone", "routers/mobileRouter" ], function($, Backbone,
 		this.router = new Mobile();
 	});
 });
-
 
 require([ 'evejs' ], function(eve) {
 

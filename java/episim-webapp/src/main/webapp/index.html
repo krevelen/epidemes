@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html class="no-js ui-mobile-rendering" lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>EpiSim Mobile</title>
+	<!--<link rel="shortcut icon" href="favicon.ico">-->
+	<link rel="stylesheet" href="scripts/jquery/jquery.mobile-1.4.5.min.css" />
+	<script type="text/javascript" src="scripts/jquery/jquery-1.11.1.min.js"></script>
+	<script type="text/javascript" src="scripts/jquery/jquery.mobile-1.4.5.min.js"></script>
+	<script type="text/javascript" src="scripts/highcharts/highmaps.js"></script>
+	<script type="text/javascript" src="scripts/highcharts/exporting.js"></script>
+	<script type="text/javascript" src="scripts/highcharts/nl-all-all.js"></script>
+	<script src="scripts/nl-map.js"></script>
+	<style style="display:none">
+	#container {
+		height: 700px;
+		min-width: 310px;
+		max-width: 90%;
+		margin: 0 auto;
+	}
+
+	.loading {
+		margin-top: 10em;
+		text-align: center;
+		color: gray;
+	}
+	</style>
+</head>
+<body>
+	<div data-role="page">
+		<!-- /panel -->
+
+		<!-- header -->
+		<div data-role="header" style="overflow:hidden;">
+				<h1>Scenario</h1>
+					<a href="#mypanel" data-icon="gear" class="ui-btn ui-btn-left ui-btn-icon-notext ui-corner-all ui-alt-icon ui-icon-bars">Simulator</a>
+					<form>
+					<div class="ui-grid-b">
+						<div class="ui-block-a">
+							<div class="ui-field-contain">
+		                       <select name="region-select" id="region-select" data-native-menu="false">
+		                            <option>Scale&hellip;</option>
+		                            <option value="NL">Country</option>
+		                            <option value="Prov">Province/County</option>
+		                            <option value="GGD">GGD/Health Services</option>
+		                            <option selected="selected" value="Stad">Municipality/City</option>
+		                            <option disabled="disabled" value="PC3">PC3</option>
+		                            <option disabled="disabled" value="PC4">PC4</option>
+		                            <option disabled="disabled" value="PC6">PC6</option>
+		                        </select>
+		                    </div><!-- /field-contain -->
+	                    </div><!-- /block-a -->
+						<div class="ui-block-b">
+						</div><!-- /block-b -->
+						<div class="ui-block-c">
+						</div><!-- /block-c -->
+					</div><!-- /grid-b -->
+					<div class="ui-grid-b">
+						<div class="ui-block-a">
+							<label for="measles-checkbox">Measles</label>
+							<input id="measles-checkbox" type="checkbox" name="measles-checkbox">
+	                    </div><!-- /block-a -->
+						<div class="ui-block-b">
+							<div class="ui-field-contain" style="margin:0 auto; text-align:center;">
+		                       <select name="vaccine-measles" id="vaccine-measles" data-native-menu="false" multiple="multiple">
+		                            <option>Vaccines&hellip;</option>
+		                            <option disabled="disabled" value="MMRV">Attenuvax</option>
+		                            <option disabled="disabled" value="MMRV">M-R-Vax II</option>
+		                            <option disabled="disabled" value="MMRV">Biavax II</option>
+		                            <option value="MMR">M-M-R II</option>
+		                            <option disabled="disabled" value="MMRV">MMRV (Proquad)</option>
+		                        </select>
+		                    </div><!-- /field-contain -->
+						</div><!-- /block-b -->
+						<div class="ui-block-c">
+							<div class="ui-field-contain" style="margin:0 auto;">
+		                       <select name="regime-measles" id="regime-measles" data-native-menu="false" multiple="multiple">
+		                            <option>Compartments&hellip;</option>
+		                            <option selected="selected" value="Susceptible">Susceptible</option>
+		                            <option disabled="disabled" value="Exposed">Exposed</option>
+		                            <option disabled="disabled" value="Infectious">Infectious</option>
+		                            <option disabled="disabled" value="Removed">Removed</option>
+		                        </select>
+		                    </div><!-- /field-contain -->
+						</div><!-- /block-c -->
+					</div><!-- /grid-b -->
+					<div class="ui-grid-b">
+						<div class="ui-block-a">
+							<label for="influenza-checkbox">Influenza</label>
+							<input id="influenza-checkbox" type="checkbox" name="influenza-checkbox">
+	                    </div><!-- /block-a -->
+						<div class="ui-block-b">
+							<div class="ui-field-contain" style="margin:0 auto; text-align:center;">
+		                       <select name="vaccine-influenza" id="vaccine-influenza" data-native-menu="false" multiple="multiple">
+		                            <option>Vaccines&hellip;</option>
+		                            <option selected="selected" value="TIV-Influvac">TIV (Influvac)</option>
+		                            <option disabled="disabled" value="TIV-Imuvac">TIV (Imuvac)</option>
+		                            <option disabled="disabled" value="TIV-Fluarix">TIV (Fluarix)</option>
+		                            <option disabled="disabled" value="TIV-Alpharix">TIV (Alpharix)</option>
+		                            <option disabled="disabled" value="TIV-Influsplit">TIV (Influsplit)</option>
+		                            <option disabled="disabled" value="TIV-Agrippal">TIV (Agrippal)</option>
+		                            <option disabled="disabled" value="TIV-Fluvirin">TIV (Fluvirin)</option>
+		                            <option disabled="disabled" value="TIV-Optaflu">TIV (Optaflu)</option>
+		                            <option disabled="disabled" value="TIV-Fluad">TIV (Fluad)</option>
+		                            <option disabled="disabled" value="TIV-Fluval AB">TIV (Fluval AB)</option>
+		                            <option disabled="disabled" value="TIV-Afluria">TIV (Afluria)</option>
+		                            <option disabled="disabled" value="TIV-Enzira">TIV (Enzira)</option>
+		                            <option disabled="disabled" value="TIV-Vaxigrip">TIV (Vaxigrip)</option>
+		                            <option disabled="disabled" value="TIV-Intanza">TIV (Intanza)</option>
+		                            <option disabled="disabled" value="QIV-Fluarix">QIV (Fluarix Tetra)</option>
+		                            <option disabled="disabled" value="QIV-Alpharix">QIV (Alpharix Tetra)</option>
+		                            <option disabled="disabled" value="QIV-Influsplit">QIV (Influsplit Tetra)</option>
+		                            <option disabled="disabled" value="LAIV">LAIV (?)</option>
+		                            <option disabled="disabled" value="LAIV4-Fluenz">LAIV4 (Fluenz tetra)</option>
+		                            <option disabled="disabled" value="LAIV4-FluMist">LAIV4 (FluMist Quadrivalent)</option>
+		                        </select>
+		                    </div><!-- /field-contain -->
+						</div><!-- /block-b -->
+						<div class="ui-block-c">
+							<div class="ui-field-contain" style="margin:0 auto;">
+		                       <select name="regime-influenza" id="regime-influenza" data-native-menu="false" multiple="multiple">
+		                            <option>Compartments&hellip;</option>
+		                            <option selected="selected" value="Susceptible">Susceptible</option>
+		                            <option disabled="disabled" value="Exposed">Exposed</option>
+		                            <option disabled="disabled" value="Infectious">Infectious</option>
+		                            <option disabled="disabled" value="Removed">Removed</option>
+		                        </select>
+		                    </div>
+						</div><!-- /block-c -->
+					</div><!-- /grid-b -->
+					<div class="ui-grid-b">
+						<div class="ui-block-a">
+							<label for="papilloma-checkbox">Papilloma</label>
+							<input id="papilloma-checkbox" type="checkbox" name="papilloma-checkbox">
+	                    </div><!-- /block-a -->
+						<div class="ui-block-b">
+							<div class="ui-field-contain" style="margin:0 auto; text-align:center;">
+		                       <select name="vaccine-papilloma" id="vaccine-papilloma" data-native-menu="false" multiple="multiple">
+		                            <option>Vaccines&hellip;</option>
+		                            <option disabled="disabled" value="HPV2v">HPV2v (Cervarix)</option>
+		                            <option value="HPV4v">HPV4v (Gardasil 4)</option>
+		                            <option disabled="disabled" value="HPV9v">HPV9v (Gardasil 9)</option>
+		                        </select>
+		                    </div><!-- /field-contain -->
+						</div><!-- /block-b -->
+						<div class="ui-block-c">
+							<div class="ui-field-contain" style="margin:0 auto;">
+		                       <select name="regime-papilloma" id="regime-papilloma" data-native-menu="false" multiple="multiple">
+		                            <option>Compartments&hellip;</option>
+		                            <option selected="selected" value="Susceptible">Susceptible</option>
+		                            <option disabled="disabled" value="Exposed">Exposed</option>
+		                            <option disabled="disabled" value="Infectious">Infectious</option>
+		                            <option disabled="disabled" value="Removed">Removed</option>
+		                        </select>
+		                    </div><!-- /field-contain -->
+						</div><!-- /block-c -->
+					</div><!-- /grid-b -->
+					</form>
+				</div><!-- /header -->
+
+		<!-- content -->
+			<div data-role="main" id="container" style="overflow:hidden;">NL</div>
+		<!-- footer -->
+
+	</div>
+	<!-- page -->
+
+		<!-- panel -->
+		<div data-role="panel" id="mypanel">
+			<a href="#" class="ui-btn ui-btn-icon-notext ui-corner-all ui-icon-bars ui-nodisc-icon ui-alt-icon ui-btn-left">Menu</a>
+			<a href="#" class="ui-btn ui-btn-icon-notext ui-corner-all ui-icon-search ui-nodisc-icon ui-alt-icon ui-btn-right">Search</a>
+		</div>
+
+<script type='text/javascript'>
+	//<![CDATA[
+	$(function() {
+		// Initiate the chart
+		$('#container')
+				.highcharts(
+						'Map',
+						{
+							title : {
+								text : 'Highmaps basic demo'
+							},
+
+							subtitle : {
+								text : 'Source map: <a href="https://code.highcharts.com/mapdata/countries/nl/nl-all-all.js">The Netherlands, admin2</a>'
+							},
+
+							mapNavigation : {
+								enabled : true,
+								buttonOptions : {
+									verticalAlign : 'bottom'
+								}
+							},
+
+							colorAxis : {
+								min : 0
+							},
+
+							series : [ {
+								data : data,
+								mapData : Highcharts.maps['countries/nl/nl-all-all'],
+								joinBy : 'hc-key',
+								name : 'Random data',
+								states : {
+									hover : {
+										color : '#BADA55'
+									}
+								},
+								dataLabels : {
+									enabled : false,
+									format : '{point.name}'
+								}
+							} ]
+						});
+
+	});
+
+	//]]>
+</script>
+</body>
+</html>
