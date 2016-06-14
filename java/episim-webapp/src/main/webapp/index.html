@@ -1,224 +1,469 @@
 <!DOCTYPE html>
 <html class="no-js ui-mobile-rendering" lang="en">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>EpiSim Mobile</title>
-	<!--<link rel="shortcut icon" href="favicon.ico">-->
-	<link rel="stylesheet" href="scripts/jquery/jquery.mobile-1.4.5.min.css" />
-	<script type="text/javascript" src="scripts/jquery/jquery-1.11.1.min.js"></script>
-	<script type="text/javascript" src="scripts/jquery/jquery.mobile-1.4.5.min.js"></script>
-	<script type="text/javascript" src="scripts/highcharts/highmaps.js"></script>
-	<script type="text/javascript" src="scripts/highcharts/exporting.js"></script>
-	<script type="text/javascript" src="scripts/highcharts/nl-all-all.js"></script>
-	<script src="scripts/nl-map.js"></script>
-	<style style="display:none">
-	#container {
-		height: 700px;
-		min-width: 310px;
-		max-width: 90%;
-		margin: 0 auto;
-	}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EpiSim Mobile</title>
+<!--<link rel="shortcut icon" href="favicon.ico">-->
+<link rel="stylesheet" href="scripts/jquery/jquery.mobile-1.4.5.min.css" />
+<script type="text/javascript" src="scripts/jquery/jquery-1.11.1.min.js"></script>
+<script type="text/javascript"
+	src="scripts/jquery/jquery.mobile-1.4.5.min.js"></script>
+<script type="text/javascript" src="scripts/highcharts/highmaps.js"></script>
+<!-- 
+<script type="text/javascript" src="scripts/highcharts/highcharts.js"></script>
+ -->
+<script type="text/javascript" src="scripts/highcharts/highcharts-more.js"></script>
+<script type="text/javascript" src="scripts/highcharts/exporting.js"></script>
+<script type="text/javascript" src="scripts/highcharts/nl-all.js"></script>
+<script type="text/javascript" src="scripts/highcharts/nl-all-all.js"></script>
+<script src="scripts/nl-map.js"></script>
+<style style="display:none">
+.kaart {
+	height: 700px;
+	min-width: 310px;
+	max-width: 90%;
+	margin: 0 auto;
+}
 
-	.loading {
-		margin-top: 10em;
-		text-align: center;
-		color: gray;
-	}
-	</style>
+.loading {
+	margin-top: 10em;
+	text-align: center;
+	color: gray;
+}
+
+.tab-list {
+	width: 35%;
+	display: inline-block;
+	margin-left: 2%;
+}
+
+.tab-content {
+	width: 60%;
+	display: inline-block;
+	vertical-align: top;
+	margin-left: 2%;
+}
+</style>
 </head>
 <body>
 	<div data-role="page">
 		<!-- /panel -->
 
 		<!-- header -->
-		<div data-role="header" style="overflow:hidden;">
-				<h1>Scenario</h1>
-					<a href="#mypanel" data-icon="gear" class="ui-btn ui-btn-left ui-btn-icon-notext ui-corner-all ui-alt-icon ui-icon-bars">Simulator</a>
-					<form>
-					<div class="ui-grid-b">
-						<div class="ui-block-a">
-							<div class="ui-field-contain">
-		                       <select name="region-select" id="region-select" data-native-menu="false">
-		                            <option>Scale&hellip;</option>
-		                            <option value="NL">Country</option>
-		                            <option value="Prov">Province/County</option>
-		                            <option value="GGD">GGD/Health Services</option>
-		                            <option selected="selected" value="Stad">Municipality/City</option>
-		                            <option disabled="disabled" value="PC3">PC3</option>
-		                            <option disabled="disabled" value="PC4">PC4</option>
-		                            <option disabled="disabled" value="PC6">PC6</option>
-		                        </select>
-		                    </div><!-- /field-contain -->
-	                    </div><!-- /block-a -->
-						<div class="ui-block-b">
-						</div><!-- /block-b -->
-						<div class="ui-block-c">
-						</div><!-- /block-c -->
-					</div><!-- /grid-b -->
-					<div class="ui-grid-b">
-						<div class="ui-block-a">
-							<label for="measles-checkbox">Measles</label>
-							<input id="measles-checkbox" type="checkbox" name="measles-checkbox">
-	                    </div><!-- /block-a -->
-						<div class="ui-block-b">
-							<div class="ui-field-contain" style="margin:0 auto; text-align:center;">
-		                       <select name="vaccine-measles" id="vaccine-measles" data-native-menu="false" multiple="multiple">
-		                            <option>Vaccines&hellip;</option>
-		                            <option disabled="disabled" value="MMRV">Attenuvax</option>
-		                            <option disabled="disabled" value="MMRV">M-R-Vax II</option>
-		                            <option disabled="disabled" value="MMRV">Biavax II</option>
-		                            <option value="MMR">M-M-R II</option>
-		                            <option disabled="disabled" value="MMRV">MMRV (Proquad)</option>
-		                        </select>
-		                    </div><!-- /field-contain -->
-						</div><!-- /block-b -->
-						<div class="ui-block-c">
-							<div class="ui-field-contain" style="margin:0 auto;">
-		                       <select name="regime-measles" id="regime-measles" data-native-menu="false" multiple="multiple">
-		                            <option>Compartments&hellip;</option>
-		                            <option selected="selected" value="Susceptible">Susceptible</option>
-		                            <option disabled="disabled" value="Exposed">Exposed</option>
-		                            <option disabled="disabled" value="Infectious">Infectious</option>
-		                            <option disabled="disabled" value="Removed">Removed</option>
-		                        </select>
-		                    </div><!-- /field-contain -->
-						</div><!-- /block-c -->
-					</div><!-- /grid-b -->
-					<div class="ui-grid-b">
-						<div class="ui-block-a">
-							<label for="influenza-checkbox">Influenza</label>
-							<input id="influenza-checkbox" type="checkbox" name="influenza-checkbox">
-	                    </div><!-- /block-a -->
-						<div class="ui-block-b">
-							<div class="ui-field-contain" style="margin:0 auto; text-align:center;">
-		                       <select name="vaccine-influenza" id="vaccine-influenza" data-native-menu="false" multiple="multiple">
-		                            <option>Vaccines&hellip;</option>
-		                            <option selected="selected" value="TIV-Influvac">TIV (Influvac)</option>
-		                            <option disabled="disabled" value="TIV-Imuvac">TIV (Imuvac)</option>
-		                            <option disabled="disabled" value="TIV-Fluarix">TIV (Fluarix)</option>
-		                            <option disabled="disabled" value="TIV-Alpharix">TIV (Alpharix)</option>
-		                            <option disabled="disabled" value="TIV-Influsplit">TIV (Influsplit)</option>
-		                            <option disabled="disabled" value="TIV-Agrippal">TIV (Agrippal)</option>
-		                            <option disabled="disabled" value="TIV-Fluvirin">TIV (Fluvirin)</option>
-		                            <option disabled="disabled" value="TIV-Optaflu">TIV (Optaflu)</option>
-		                            <option disabled="disabled" value="TIV-Fluad">TIV (Fluad)</option>
-		                            <option disabled="disabled" value="TIV-Fluval AB">TIV (Fluval AB)</option>
-		                            <option disabled="disabled" value="TIV-Afluria">TIV (Afluria)</option>
-		                            <option disabled="disabled" value="TIV-Enzira">TIV (Enzira)</option>
-		                            <option disabled="disabled" value="TIV-Vaxigrip">TIV (Vaxigrip)</option>
-		                            <option disabled="disabled" value="TIV-Intanza">TIV (Intanza)</option>
-		                            <option disabled="disabled" value="QIV-Fluarix">QIV (Fluarix Tetra)</option>
-		                            <option disabled="disabled" value="QIV-Alpharix">QIV (Alpharix Tetra)</option>
-		                            <option disabled="disabled" value="QIV-Influsplit">QIV (Influsplit Tetra)</option>
-		                            <option disabled="disabled" value="LAIV">LAIV (?)</option>
-		                            <option disabled="disabled" value="LAIV4-Fluenz">LAIV4 (Fluenz tetra)</option>
-		                            <option disabled="disabled" value="LAIV4-FluMist">LAIV4 (FluMist Quadrivalent)</option>
-		                        </select>
-		                    </div><!-- /field-contain -->
-						</div><!-- /block-b -->
-						<div class="ui-block-c">
-							<div class="ui-field-contain" style="margin:0 auto;">
-		                       <select name="regime-influenza" id="regime-influenza" data-native-menu="false" multiple="multiple">
-		                            <option>Compartments&hellip;</option>
-		                            <option selected="selected" value="Susceptible">Susceptible</option>
-		                            <option disabled="disabled" value="Exposed">Exposed</option>
-		                            <option disabled="disabled" value="Infectious">Infectious</option>
-		                            <option disabled="disabled" value="Removed">Removed</option>
-		                        </select>
-		                    </div>
-						</div><!-- /block-c -->
-					</div><!-- /grid-b -->
-					<div class="ui-grid-b">
-						<div class="ui-block-a">
-							<label for="papilloma-checkbox">Papilloma</label>
-							<input id="papilloma-checkbox" type="checkbox" name="papilloma-checkbox">
-	                    </div><!-- /block-a -->
-						<div class="ui-block-b">
-							<div class="ui-field-contain" style="margin:0 auto; text-align:center;">
-		                       <select name="vaccine-papilloma" id="vaccine-papilloma" data-native-menu="false" multiple="multiple">
-		                            <option>Vaccines&hellip;</option>
-		                            <option disabled="disabled" value="HPV2v">HPV2v (Cervarix)</option>
-		                            <option value="HPV4v">HPV4v (Gardasil 4)</option>
-		                            <option disabled="disabled" value="HPV9v">HPV9v (Gardasil 9)</option>
-		                        </select>
-		                    </div><!-- /field-contain -->
-						</div><!-- /block-b -->
-						<div class="ui-block-c">
-							<div class="ui-field-contain" style="margin:0 auto;">
-		                       <select name="regime-papilloma" id="regime-papilloma" data-native-menu="false" multiple="multiple">
-		                            <option>Compartments&hellip;</option>
-		                            <option selected="selected" value="Susceptible">Susceptible</option>
-		                            <option disabled="disabled" value="Exposed">Exposed</option>
-		                            <option disabled="disabled" value="Infectious">Infectious</option>
-		                            <option disabled="disabled" value="Removed">Removed</option>
-		                        </select>
-		                    </div><!-- /field-contain -->
-						</div><!-- /block-c -->
-					</div><!-- /grid-b -->
-					</form>
-				</div><!-- /header -->
+		<div data-role="header"
+			style="overflow: hidden; background: white url(images/rivm.jpg) no-repeat; background-size: 200px;">
+			<h1>Scenario &ldquo;Papilloma à-la-carte&rdquo; &mdash; Run 3224</h1>
+			<button
+				class="ui-btn ui-mini ui-btn-right ui-shadow ui-corner-all ui-btn-icon-left ui-icon-carat-r">Resume</button>
+			<form>
+				<div class="ui-grid-a">
+					<div class="ui-block-a">
+						<fieldset data-role="controlgroup" data-type="horizontal"
+							style="text-align: right; margin-right: 2%;">
+							<input type="radio" name="infection-checkbox"
+								id="infection-checkbox-1" data-mini="true"> <label
+								for="infection-checkbox-1">Measles</label>
+							<!--  -->
+							<input type="radio" checked="checked" name="infection-checkbox"
+								id="infection-checkbox-2" data-mini="true"> <label
+								for="infection-checkbox-2">HPV</label>
+							<!--  -->
+							<input type="radio" name="infection-checkbox"
+								id="infection-checkbox-3" data-mini="true"> <label
+								for="infection-checkbox-3">Influenza</label>
+						</fieldset>
+						<fieldset data-role="controlgroup" data-type="horizontal"
+							style="text-align: right; margin-right: 2%;">
+							<input type="checkbox" name="compartment-checkbox"
+								id="compartment-checkbox-1" data-mini="true"> <label
+								for="compartment-checkbox-1">S</label>
+							<!--  -->
+							<input type="checkbox" name="compartment-checkbox"
+								id="compartment-checkbox-2" data-mini="true"> <label
+								for="compartment-checkbox-2">E</label>
+							<!--  -->
+							<input type="checkbox" checked="checked"
+								name="compartment-checkbox" id="compartment-checkbox-3"
+								data-mini="true"> <label for="compartment-checkbox-3">I</label>
+							<!--  -->
+							<input type="checkbox" name="compartment-checkbox"
+								id="compartment-checkbox-4" data-mini="true"> <label
+								for="compartment-checkbox-4">R</label>
+						</fieldset>
+					</div>
+					<!-- /block-a -->
+					<div class="ui-block-b">
+						<fieldset data-role="controlgroup" data-type="horizontal"
+							style="text-align: left; margin-left: 2%;">
+							<input type="checkbox" name="cohort-checkbox"
+								id="cohort-checkbox-1" data-mini="true"> <label
+								for="cohort-checkbox-1">0&ndash;4j</label>
+							<!--  -->
+							<input type="checkbox" checked="checked" name="cohort-checkbox"
+								id="cohort-checkbox-2" data-mini="true"> <label
+								for="cohort-checkbox-2">5&ndash;17j</label>
+							<!--  -->
+							<input type="checkbox" name="cohort-checkbox"
+								id="cohort-checkbox-3" data-mini="true"> <label
+								for="cohort-checkbox-3">18&ndash;60j</label>
+							<!--  -->
+							<input type="checkbox" name="cohort-checkbox"
+								id="cohort-checkbox-4" data-mini="true"> <label
+								for="cohort-checkbox-4">60+</label>
+						</fieldset>
+						<fieldset data-role="controlgroup" data-type="horizontal"
+							style="text-align: left; margin-left: 2%;">
+							<input type="checkbox" name="attitude-checkbox"
+								id="attitude-checkbox-1"> <label
+								for="attitude-checkbox-1">Wary</label>
+							<!--  -->
+							<input type="checkbox" name="attitude-checkbox"
+								id="attitude-checkbox-2"> <label
+								for="attitude-checkbox-2">Complacent</label>
+							<!--  -->
+							<input type="checkbox" name="attitude-checkbox"
+								id="attitude-checkbox-3"> <label
+								for="attitude-checkbox-3">Hinder</label>
+						</fieldset>
+					</div>
+					<!-- /block-b -->
+				</div>
+				<!-- /grid -->
+			</form>
+		</div>
+		<!-- /header -->
 
 		<!-- content -->
-			<div data-role="main" id="container" style="overflow:hidden;">NL</div>
-		<!-- footer -->
+		<div data-role="main">
 
+			<div data-role="tabs">
+				<ul data-role="listview" data-inset="true" class="tab-list">
+					<li><a href="#map-prov" data-ajax="false">Provincies</a></li>
+					<li><a href="#map-gem" data-ajax="false">Gemeenten</a></li>
+					<li><a href="#map-ggd" data-ajax="false">GGD stats</a></li>
+				</ul>
+
+				<div id="map-gem" class="ui-body-d tab-content kaart"
+					style="overflow: hidden;"></div>
+
+				<div id="map-prov" class="ui-body-d tab-content kaart"
+					style="overflow: hidden;"></div>
+
+				<ul id="map-ggd" data-role="listview" data-inset="true"
+					data-count-theme="b" class="tab-content">
+					<li><a href="#">Dienst Gezondheid & Jeugd Zuid-Holland
+							Zuid</a></li>
+					<li><a href="#">GGD Amsterdam<span class="ui-li-count">86%</span></a></li>
+					<li><a href="#">GGD Brabant-Zuidoost<span class="ui-li-count">85%</span></a></li>
+					<li><a href="#">GGD Drenthe<span class="ui-li-count">87%</span></a></li>
+					<li><a href="#">GGD Flevoland<span class="ui-li-count">87%</span></a></li>
+					<li><a href="#">GGD Fryslân<span class="ui-li-count">87%</span></a></li>
+					<li><a href="#">GGD Gelderland-Zuid<span class="ui-li-count">87%</span></a></li>
+					<li><a href="#">GGD Gooi en Vechtstreek<span class="ui-li-count">87%</span></a></li>
+					<li><a href="#">GGD Groningen<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Haaglanden<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Hart voor Brabant<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Hollands-Midden<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Hollands-Noorden<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD IJsselland<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Kennemerland<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Limburg-Noord<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Midden-Nederland<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Noord- en Oost-Gelderland<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Regio Twente<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Rotterdam-Rijnmond<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD West-Brabant<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Zaanstreek/Waterland<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Zeeland<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">GGD Zuid-Limburg<span class="ui-li-count">2</span></a></li>
+					<li><a href="#">Hulpverlening Gelderland-Midden<span class="ui-li-count">2</span></a></li>
+				</ul>
+			</div>
+			<!-- /tabs -->
+		</div>
+		<!-- /content -->
+
+		<!-- footer -->
+		<div data-role="footer"></div>
 	</div>
 	<!-- page -->
 
-		<!-- panel -->
-		<div data-role="panel" id="mypanel">
-			<a href="#" class="ui-btn ui-btn-icon-notext ui-corner-all ui-icon-bars ui-nodisc-icon ui-alt-icon ui-btn-left">Menu</a>
-			<a href="#" class="ui-btn ui-btn-icon-notext ui-corner-all ui-icon-search ui-nodisc-icon ui-alt-icon ui-btn-right">Search</a>
-		</div>
+	<script type='text/javascript'>
+		//<![CDATA[
+		$(function() {
+			// Initiate the charts
+			$('#map-gem').highcharts('Map', {
+				title : {
+					text : 'Vaccinatiegraad 2027'
+				},
+				//								subtitle : {
+				//									text : 'Source map: <a href="https://code.highcharts.com/mapdata/countries/nl/nl-all-all.js">The Netherlands, admin2</a>'
+				//								},
+				mapNavigation : {
+					enabled : true,
+					buttonOptions : {
+						verticalAlign : 'top'
+					}
+				},
+				colorAxis : {
+					min : 0
+				},
+				series : [ {
+					data : gem_data,
+					mapData : Highcharts.maps['countries/nl/nl-all-all'],
+					joinBy : 'hc-key',
+					name : 'Vaccinatiegraad',
+					states : {
+						hover : {
+							color : '#BADA55'
+						}
+					},
+					dataLabels : {
+						enabled : false,
+						format : '{point.name}'
+					}
+				} ]
+			});
+			$('#map-prov').highcharts('Map', {
+				title : {
+					text : 'Vaccinatiegraad 2027'
+				},
+				//								subtitle : {
+				//									text : 'Source map: <a href="https://code.highcharts.com/mapdata/countries/nl/nl-all-all.js">The Netherlands, admin2</a>'
+				//								},
+				mapNavigation : {
+					enabled : true,
+					buttonOptions : {
+						verticalAlign : 'top'
+					}
+				},
+				colorAxis : {
+					min : 0
+				},
+				series : [ {
+					data : prov_data,
+					mapData : Highcharts.maps['countries/nl/nl-all'],
+					joinBy : 'hc-key',
+					name : 'Vaccinatiegraad',
+					states : {
+						hover : {
+							color : '#BADA55'
+						}
+					},
+					dataLabels : {
+						enabled : true,
+						format : '{point.name}'
+					}
+				} ]
+			});
 
-<script type='text/javascript'>
-	//<![CDATA[
-	$(function() {
-		// Initiate the chart
-		$('#container')
-				.highcharts(
-						'Map',
-						{
-							title : {
-								text : 'Highmaps basic demo'
-							},
 
-							subtitle : {
-								text : 'Source map: <a href="https://code.highcharts.com/mapdata/countries/nl/nl-all-all.js">The Netherlands, admin2</a>'
-							},
+		    /**
+		     * In order to synchronize tooltips and crosshairs, override the
+		     * built-in events with handlers defined on the parent element.
+		     */
+		    $('#uptake').bind('mousemove touchmove touchstart', function (e) {
+		        var chart,
+		            point,
+		            i,
+		            event;
 
-							mapNavigation : {
-								enabled : true,
-								buttonOptions : {
-									verticalAlign : 'bottom'
-								}
-							},
+		        for (i = 0; i < Highcharts.charts.length; i = i + 1) {
+		            chart = Highcharts.charts[i];
+		            event = chart.pointer.normalize(e.originalEvent); // Find coordinates within the chart
+		            point = chart.series[0].searchPoint(event, true); // Get the hovered point
 
-							colorAxis : {
-								min : 0
-							},
+		            if (point) {
+		                point.highlight(e);
+		            }
+		        }
+		    });
+		    /**
+		     * Override the reset function, we don't need to hide the tooltips and crosshairs.
+		     */
+		    Highcharts.Pointer.prototype.reset = function () {
+		        return undefined;
+		    };
 
-							series : [ {
-								data : data,
-								mapData : Highcharts.maps['countries/nl/nl-all-all'],
-								joinBy : 'hc-key',
-								name : 'Random data',
-								states : {
-									hover : {
-										color : '#BADA55'
-									}
-								},
-								dataLabels : {
-									enabled : false,
-									format : '{point.name}'
-								}
-							} ]
-						});
+		    /**
+		     * Highlight a point by showing tooltip, setting hover state and draw crosshair
+		     */
+		    Highcharts.Point.prototype.highlight = function (event) {
+		        this.onMouseOver(); // Show the hover marker
+		        this.series.chart.tooltip.refresh(this); // Show the tooltip
+		        this.series.chart.xAxis[0].drawCrosshair(event, this); // Show the crosshair
+		    };
 
-	});
+		    /**
+		     * Synchronize zooming through the setExtremes event handler.
+		     */
+		    function syncExtremes(e) {
+		        var thisChart = this.chart;
 
-	//]]>
-</script>
+		        if (e.trigger !== 'syncExtremes') { // Prevent feedback loop
+		            Highcharts.each(Highcharts.charts, function (chart) {
+		                if (chart !== thisChart) {
+		                    if (chart.xAxis[0].setExtremes) { // It is null while updating
+		                        chart.xAxis[0].setExtremes(e.min, e.max, undefined, false, { trigger: 'syncExtremes' });
+		                    }
+		                }
+		            });
+		        }
+		    }
+
+		    /* // Get the data. The contents of the data file can be viewed at
+		    // https://github.com/highcharts/highcharts/blob/master/samples/data/activity.json
+		    $.getJSON('https://www.highcharts.com/samples/data/jsonp.php?filename=activity.json&callback=?', function (activity) {
+		        $.each(activity.datasets, function (i, dataset) {
+
+		            // Add X values
+		            dataset.data = Highcharts.map(dataset.data, function (val, j) {
+		                return [activity.xData[j], val];
+		            });
+
+		            $('<div class="chart">')
+		                .appendTo('#uptake')
+		                .highcharts({
+		                    chart: {
+		                        marginLeft: 40, // Keep all charts left aligned
+		                        spacingTop: 20,
+		                        spacingBottom: 20
+		                    },
+		                    title: {
+		                        text: dataset.name,
+		                        align: 'left',
+		                        margin: 0,
+		                        x: 30
+		                    },
+		                    credits: {
+		                        enabled: false
+		                    },
+		                    legend: {
+		                        enabled: false
+		                    },
+		                    xAxis: {
+		                        crosshair: true,
+		                        events: {
+		                            setExtremes: syncExtremes
+		                        },
+		                        labels: {
+		                            format: '{value} km'
+		                        }
+		                    },
+		                    yAxis: {
+		                        title: {
+		                            text: null
+		                        }
+		                    },
+		                    tooltip: {
+		                        positioner: function () {
+		                            return {
+		                                x: this.chart.chartWidth - this.label.width, // right aligned
+		                                y: -1 // align to title
+		                            };
+		                        },
+		                        borderWidth: 0,
+		                        backgroundColor: 'none',
+		                        pointFormat: '{point.y}',
+		                        headerFormat: '',
+		                        shadow: false,
+		                        style: {
+		                            fontSize: '18px'
+		                        },
+		                        valueDecimals: dataset.valueDecimals
+		                    },
+		                    series: [{
+		                        data: dataset.data,
+		                        name: dataset.name,
+		                        type: dataset.type,
+		                        color: Highcharts.getOptions().colors[i],
+		                        fillOpacity: 0.3,
+		                        tooltip: {
+		                            valueSuffix: ' ' + dataset.unit
+		                        }
+		                    }]
+		                });
+		        });
+		    }); */
+		    
+		   /*  $(document).ready(function () {
+		        Highcharts.setOptions({
+		            global: {
+		                useUTC: false
+		            }
+		        });
+
+		        $('#uptake').highcharts({
+		            chart: {
+		                type: 'spline',
+		                animation: Highcharts.svg, // don't animate in old IE
+		                marginRight: 10,
+		                events: {
+		                    load: function () {
+
+		                        // set up the updating of the chart each second
+		                        var series = this.series[0];
+		                        setInterval(function () {
+		                            var x = (new Date()).getTime(), // current time
+		                                y = Math.random();
+		                            series.addPoint([x, y], true, true);
+		                        }, 1000);
+		                    }
+		                }
+		            },
+		            title: {
+		                text: 'Live random data'
+		            },
+		            xAxis: {
+		                type: 'datetime',
+		                tickPixelInterval: 150
+		            },
+		            yAxis: {
+		                title: {
+		                    text: 'Value'
+		                },
+		                plotLines: [{
+		                    value: 0,
+		                    width: 1,
+		                    color: '#808080'
+		                }]
+		            },
+		            tooltip: {
+		                formatter: function () {
+		                    return '<b>' + this.series.name + '</b><br/>' +
+		                        Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x) + '<br/>' +
+		                        Highcharts.numberFormat(this.y, 2);
+		                }
+		            },
+		            legend: {
+		                enabled: false
+		            },
+		            exporting: {
+		                enabled: false
+		            },
+		            series: [{
+		                name: 'Random data',
+		                data: (function () {
+		                    // generate an array of random data
+		                    var data = [],
+		                        time = (new Date()).getTime(),
+		                        i;
+
+		                    for (i = -19; i <= 0; i += 1) {
+		                        data.push({
+		                            x: time + i * 1000,
+		                            y: Math.random()
+		                        });
+		                    }
+		                    return data;
+		                }())
+		            }]
+		        });
+		    }); */
+		});
+
+		//]]>
+	</script>
 </body>
 </html>
