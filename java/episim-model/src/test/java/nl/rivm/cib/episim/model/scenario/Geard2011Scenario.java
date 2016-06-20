@@ -236,7 +236,7 @@ public class Geard2011Scenario
 		final RandomNumberStream rng = Math3RandomNumberStream.Factory
 				.of( MersenneTwister.class ).create( "MAIN", seed );
 		final ProbabilityDistribution.Factory distFact = Math3ProbabilityDistribution.Factory
-				.of( rng );
+				.createDeterministic( rng );
 
 		final List<WeightedValue<Integer, BigDecimal>> ageDist = importFrequencies(
 				"sim-demog/age_dist.dat", 0, Integer::valueOf );

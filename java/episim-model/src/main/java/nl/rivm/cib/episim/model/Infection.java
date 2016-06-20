@@ -191,17 +191,17 @@ public interface Infection
 			final Duration wanePeriodConst, final Duration onsetPeriodConst,
 			final Duration symptomPeriodConst )
 		{
-			this( ProbabilityDistribution.of( forceConst ),
+			this( ProbabilityDistribution.createDeterministic( forceConst ),
 					ProbabilityDistribution
-							.of( latentPeriodConst ),
+							.createDeterministic( latentPeriodConst ),
 					ProbabilityDistribution
-							.of( recoverPeriodConst ),
+							.createDeterministic( recoverPeriodConst ),
 					ProbabilityDistribution
-							.of( wanePeriodConst ),
+							.createDeterministic( wanePeriodConst ),
 					ProbabilityDistribution
-							.of( onsetPeriodConst ),
+							.createDeterministic( onsetPeriodConst ),
 					ProbabilityDistribution
-							.of( symptomPeriodConst ) );
+							.createDeterministic( symptomPeriodConst ) );
 		}
 
 		public Simple(
