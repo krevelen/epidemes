@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
+		<version>0.0.1</version>
 		<relativePath>../..</relativePath>
 	</parent>
 	<artifactId>episim-persist-kundera</artifactId>
@@ -24,6 +24,19 @@
 	</properties>
 	
 	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
 		<repository>
 			<id>sonatype-nexus</id>
 			<name>Kundera Public Repository</name>

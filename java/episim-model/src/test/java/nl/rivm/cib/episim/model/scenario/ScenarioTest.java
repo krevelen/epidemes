@@ -141,7 +141,7 @@ public class ScenarioTest
 
 		final ProbabilityDistribution.Parser distParser = new ProbabilityDistribution.Parser(
 				Math3ProbabilityDistribution.Factory
-						.createDeterministic( Math3RandomNumberStream.Factory
+						.of( Math3RandomNumberStream.Factory
 								.of( MersenneTwister.class )
 								.create( "MAIN", 1234L ) ) );
 		final ProbabilityDistribution<Gender> genderDist = distParser

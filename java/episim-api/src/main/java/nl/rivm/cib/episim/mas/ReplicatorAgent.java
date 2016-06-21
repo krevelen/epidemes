@@ -36,8 +36,8 @@ import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.coala.Coala;
-import io.coala.config.Config;
+import io.coala.config.ConfigUtil;
+import io.coala.config.GlobalConfig;
 import io.coala.json.JsonUtil;
 import io.coala.time.x.Timing;
 
@@ -75,7 +75,7 @@ public interface ReplicatorAgent
 	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
-	interface ReplicationConfig extends Config
+	interface ReplicationConfig extends GlobalConfig
 	{
 
 		@Key( TIME_UNIT_KEY )
@@ -97,7 +97,7 @@ public interface ReplicatorAgent
 
 		/** the kind of topic {@link String}s being published by the agent */
 		@Key( TOPICS_KEY )
-		@DefaultValue( TIME_TOPIC + Coala.CONFIG_VALUE_SEP + PACE_TOPIC )
+		@DefaultValue( TIME_TOPIC + ConfigUtil.CONFIG_VALUE_SEP + PACE_TOPIC )
 		List<String> topics();
 
 		/**

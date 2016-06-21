@@ -21,6 +21,7 @@ public class Pienter2Reader
 	{
 		
 		DataContext dataContext = null;//TODO DataContextFactory.createSAS?(...);
+		@SuppressWarnings( "null" )
 		DataSet dataSet = dataContext.query()
 		    .from("libraries")
 		    .select("name")

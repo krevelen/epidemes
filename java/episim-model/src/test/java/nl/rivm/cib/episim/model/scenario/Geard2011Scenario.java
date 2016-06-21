@@ -31,7 +31,7 @@ import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.ProbabilityDistribution.ArithmeticDistribution;
-import io.coala.random.RandomNumberStream;
+import io.coala.random.PseudoRandom;
 import io.coala.resource.x.FileUtil;
 import io.coala.time.x.Instant;
 import io.coala.time.x.Rate;
@@ -233,10 +233,10 @@ public class Geard2011Scenario
 	public void init( final Scheduler scheduler ) throws IOException
 	{
 		final long seed = 12345L;
-		final RandomNumberStream rng = Math3RandomNumberStream.Factory
+		final PseudoRandom rng = Math3RandomNumberStream.Factory
 				.of( MersenneTwister.class ).create( "MAIN", seed );
 		final ProbabilityDistribution.Factory distFact = Math3ProbabilityDistribution.Factory
-				.createDeterministic( rng );
+				.of( rng );
 
 		final List<WeightedValue<Integer, BigDecimal>> ageDist = importFrequencies(
 				"sim-demog/age_dist.dat", 0, Integer::valueOf );

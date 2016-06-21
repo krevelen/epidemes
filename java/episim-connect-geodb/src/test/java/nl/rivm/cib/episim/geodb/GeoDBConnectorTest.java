@@ -1,13 +1,14 @@
 package nl.rivm.cib.episim.geodb;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * {@link GeoDBConnectorTest}
@@ -18,6 +19,7 @@ import static org.junit.Assert.*;
 public class GeoDBConnectorTest
 {
 
+	@Ignore // FIXME conditionally run inside rivm.nl domain/network only
 	@Test
 	public void test() throws SQLException
 	{

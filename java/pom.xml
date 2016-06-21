@@ -5,7 +5,7 @@
 
 	<groupId>nl.rivm.cib</groupId>
 	<artifactId>episim</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<packaging>pom</packaging>
 
 	<profiles>
@@ -86,8 +86,8 @@
 		<jetty.version>9.3.9.v20160517</jetty.version>
 
 		<!-- set reporting versions (e.g. unit test code coverage) -->
-		<cobertura-maven-plugin.version>2.6</cobertura-maven-plugin.version>
-		<jacoco-maven-plugin.version>0.7.2.201409121644</jacoco-maven-plugin.version>
+		<cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
+		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
 		<jacoco.covered-ratio>0.0</jacoco.covered-ratio>
 
 		<!-- set distribution versions -->
@@ -97,7 +97,7 @@
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}/mvn-repo</github.repository.tmpdir>
+		<github.repository.tmpdir>${user.dir}</github.repository.tmpdir>
 		<github.repository.url>https://raw.github.com/krevelen/coala/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
