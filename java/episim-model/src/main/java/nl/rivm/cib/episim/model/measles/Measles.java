@@ -1,4 +1,4 @@
-/* $Id: 08359d3cd41f899912369b552bf105bf74d39046 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -118,7 +118,7 @@ import nl.rivm.cib.episim.model.Infection;
  * </tbody>
  * </table>
  * 
- * @version $Id: 08359d3cd41f899912369b552bf105bf74d39046 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public abstract class Measles implements Infection

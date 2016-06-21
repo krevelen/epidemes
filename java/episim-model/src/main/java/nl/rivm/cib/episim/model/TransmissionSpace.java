@@ -1,4 +1,4 @@
-/* $Id: e67e3079fc342154fce540f31a263151797d8350 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -44,7 +44,7 @@ import rx.subjects.Subject;
 /**
  * {@link TransmissionSpace}
  * 
- * @version $Id: e67e3079fc342154fce540f31a263151797d8350 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface TransmissionSpace extends Timed
@@ -127,7 +127,7 @@ public interface TransmissionSpace extends Timed
 	 * {@link ContactEvent}s which in turn may trigger its transmission by
 	 * generating {@link TransmissionEvent}s.
 	 * 
-	 * @version $Id: e67e3079fc342154fce540f31a263151797d8350 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements TransmissionSpace

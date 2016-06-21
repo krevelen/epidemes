@@ -46,7 +46,7 @@ import nl.rivm.cib.episim.time.Timed;
  * </tr>
  * </table>
  * 
- * @version $Id: 9dade484b159c8240410d99c1b9d08c6f16e1340 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface InfectionMetrics extends Timed

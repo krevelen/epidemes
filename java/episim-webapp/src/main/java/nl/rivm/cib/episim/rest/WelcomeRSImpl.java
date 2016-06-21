@@ -1,4 +1,4 @@
-/* $Id: f70a5234051c27a17ee4cd152cac2f344107874d $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -28,7 +28,7 @@ import javax.ws.rs.core.Response;
 /**
  * {@link WelcomeRSImpl}
  * 
- * @version $Id: f70a5234051c27a17ee4cd152cac2f344107874d $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Path( "/" )

@@ -1,4 +1,4 @@
-/* $Id: 9dade484b159c8240410d99c1b9d08c6f16e1340 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -56,7 +56,7 @@ import rx.subjects.Subject;
  * </tr>
  * </table>
  * 
- * @version $Id: 9dade484b159c8240410d99c1b9d08c6f16e1340 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Population extends Timed

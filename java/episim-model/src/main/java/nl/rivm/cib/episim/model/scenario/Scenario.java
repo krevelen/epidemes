@@ -1,4 +1,4 @@
-/* $Id: 73665230298d3d60135602e8402f9f4afc981805 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import nl.rivm.cib.episim.time.Timed;
 /**
  * {@link Scenario}
  * 
- * @version $Id: 73665230298d3d60135602e8402f9f4afc981805 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Scenario extends Timed

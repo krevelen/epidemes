@@ -1,4 +1,4 @@
-/* $Id: 7d050621c6a3d6a11eae377c674e4b6c9903f5ed $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -30,7 +30,7 @@ import rx.subjects.Subject;
  * {@link Condition} represents the {@link Infection} bookkeeping dynamics for
  * an individual {@link Carrier}
  * 
- * @version $Id: 7d050621c6a3d6a11eae377c674e4b6c9903f5ed $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Condition extends Timed

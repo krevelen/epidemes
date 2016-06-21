@@ -1,4 +1,4 @@
-/* $Id: e67e3079fc342154fce540f31a263151797d8350 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -29,7 +29,7 @@ import org.opengis.spatialschema.geometry.geometry.Position;
  * geographical position, dimension entity?
  * (wijk/buurt/stad/gemeente/provincie/landsdeel)
  * 
- * @version $Id: e67e3079fc342154fce540f31a263151797d8350 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Place

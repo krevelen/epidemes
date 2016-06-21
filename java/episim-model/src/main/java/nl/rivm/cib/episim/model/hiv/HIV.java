@@ -1,4 +1,4 @@
-/* $Id: fd37618aea20f73be13441bd9128542a49bb4c1c $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import nl.rivm.cib.episim.model.Infection;
  * <a href="http://www.who.int/mediacentre/factsheets/fs360/en/">WHO fact
  * sheet</a>
  * 
- * @version $Id: fd37618aea20f73be13441bd9128542a49bb4c1c $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public abstract class HIV implements Infection

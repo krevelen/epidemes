@@ -1,4 +1,4 @@
-/* $Id: 8273fcb89633f13b6bb2e560d69962b344adb468 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -40,7 +40,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link CBSConnectorTest}
  * 
- * @version $Id: 8273fcb89633f13b6bb2e560d69962b344adb468 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class CBSConnectorTest

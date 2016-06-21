@@ -1,4 +1,4 @@
-/* $Id: 90c08638280569764bd6c0b9746157f787d8c3cc $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -30,7 +30,7 @@ import io.coala.time.x.Instant;
  * {@link TransmissionRoute} with some secondary (possibly) susceptible
  * {@link Carrier}
  * 
- * @version $Id: 90c08638280569764bd6c0b9746157f787d8c3cc $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class ContactEvent

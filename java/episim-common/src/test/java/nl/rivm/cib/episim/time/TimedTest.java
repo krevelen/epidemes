@@ -1,4 +1,4 @@
-/* $Id: dfc79e6adc947b0e970d847b546cafdde5f6dd26 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -39,7 +39,7 @@ import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 /**
  * {@link TimedTest}
  * 
- * @version $Id: dfc79e6adc947b0e970d847b546cafdde5f6dd26 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class TimedTest

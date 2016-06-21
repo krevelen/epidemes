@@ -1,4 +1,4 @@
-/* $Id: 02d50a7203fcffdd147257460aa6196283b4d936 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -33,7 +33,7 @@ import io.coala.json.JsonUtil;
 /**
  * {@link CBSConnector}
  * 
- * @version $Id: 02d50a7203fcffdd147257460aa6196283b4d936 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class CBSConnector
