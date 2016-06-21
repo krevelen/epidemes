@@ -1,0 +1,84 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>episim</artifactId>
+		<version>0.0.1</version>
+		<relativePath>../..</relativePath>
+	</parent>
+	<artifactId>episim-connect-geodb</artifactId>
+
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Import support for the RIVM Vaccination Acceptance Simulator
+		$Id: 598980641fb2517faa31e669511ab2e825972298 $
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+		<!-- TODO find postgresql-8.3-607.jdbc4.jar repository -->
+		<postgresql.version>8.3-606.jdbc4</postgresql.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+		<repository>
+			<name>EPISIM Public Maven Repository</name>
+			<id>episim-public</id>
+			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>coala-api</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>${postgresql.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+		</plugins>
+	</build>
+</project>

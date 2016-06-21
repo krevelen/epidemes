@@ -1,0 +1,98 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<!-- Eclipse's m2eclipse-mavenarchiver might not work correctly -->
+	<!-- Install fix from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>episim</artifactId>
+		<version>0.0.1</version>
+		<relativePath>../..</relativePath>
+	</parent>
+
+	<artifactId>episim-api</artifactId>
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Modeling Components for the RIVM Epidemics Simulator
+		$Id: 381805b87eb81e5afd4853fa7e4dd64779306abd $
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+		<hamcrest.version>1.3</hamcrest.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<name>EPISIM Public Maven Repository</name>
+			<id>episim-public</id>
+			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>coala-api-time</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>episim-common</artifactId>
+		</dependency>
+
+		<!-- javax.ws.rs-api (JSR-311=v1, JSR-339/javax.ws.rs-api=v2) -->
+		<dependency>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<version>${hamcrest.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+		</plugins>
+	</build>
+</project>
