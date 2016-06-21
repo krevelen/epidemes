@@ -5,16 +5,50 @@
 
 	<groupId>nl.rivm.cib</groupId>
 	<artifactId>episim</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<packaging>pom</packaging>
 
-	<modules>
-		<module>episim-model</module>
-		<module>episim-connect-cbs</module>
-		<module>episim-api</module>
-		<module>episim-mas</module>
-		<module>episim-dist</module>
-	</modules>
+	<profiles>
+		<profile>
+			<id>model</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<modules>
+				<module>episim-common</module>
+
+				<module>episim-connect-cbs</module>
+				<module>episim-connect-geodb</module>
+				<module>episim-connect-pienter2</module>
+				<module>episim-model</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>mas</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<modules>
+				<module>episim-persist</module>
+				<module>episim-persist-kundera</module>
+				<module>episim-api</module>
+				<module>episim-mas</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>gui</id>
+			<activation>
+				<file>
+					<!-- set system property "npm" with any value -->
+					<exists>episim-webapp/node_modules</exists>
+				</file>
+			</activation>
+			<modules>
+				<module>episim-webapp</module>
+				<!-- <module>episim-dist</module> -->
+			</modules>
+		</profile>
+	</profiles>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
@@ -46,13 +80,14 @@
 		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
 
-		<coala.version>0.2.0-SNAPSHOT</coala.version>
+		<coala.version>0.2.0-b1</coala.version>
 		<httpcomponents.version>4.5.1</httpcomponents.version>
-		<jackson.version>2.7.0</jackson.version>
+		<jackson.version>2.7.4</jackson.version>
+		<jetty.version>9.3.9.v20160517</jetty.version>
 
 		<!-- set reporting versions (e.g. unit test code coverage) -->
-		<cobertura-maven-plugin.version>2.6</cobertura-maven-plugin.version>
-		<jacoco-maven-plugin.version>0.7.2.201409121644</jacoco-maven-plugin.version>
+		<cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
+		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
 		<jacoco.covered-ratio>0.0</jacoco.covered-ratio>
 
 		<!-- set distribution versions -->
@@ -62,7 +97,7 @@
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}/mvn-repo</github.repository.tmpdir>
+		<github.repository.tmpdir>${basedir}/..</github.repository.tmpdir>
 		<github.repository.url>https://raw.github.com/krevelen/coala/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
@@ -70,28 +105,29 @@
 		<junit.version>4.11</junit.version>
 		<log4j.version>2.5</log4j.version>
 		<javaee-api.version>6.0</javaee-api.version>
-		<javax.servlet-api.version>3.0.1</javax.servlet-api.version>
+		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
+		<javax.ws.rs-api.version>2.0.1</javax.ws.rs-api.version>
 		<javax.inject.version>1</javax.inject.version>
 		<javax.inject-api.version>1.0.0-PRD</javax.inject-api.version>
 		<persistence-api.version>1.0.2</persistence-api.version>
 
 		<!-- set maven mojo execution plugin versions -->
 		<lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
-		<maven-eclipse-plugin.version>2.9</maven-eclipse-plugin.version>
-		<maven-clean-plugin.version>2.5</maven-clean-plugin.version>
-		<maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
-		<maven-surefire-plugin.version>2.15</maven-surefire-plugin.version>
-		<maven-source-plugin.version>2.3</maven-source-plugin.version>
-		<maven-antrun-plugin.version>1.7</maven-antrun-plugin.version>
-		<xmlbeans-maven-plugin.version>2.3.3</xmlbeans-maven-plugin.version>
-		<maven-war-plugin.version>2.4</maven-war-plugin.version>
-		<maven-dependency-plugin.version>2.8</maven-dependency-plugin.version>
-		<maven-deploy-plugin.version>2.8.1</maven-deploy-plugin.version>
-		<maven-resources-plugin.version>2.6</maven-resources-plugin.version>
-		<maven-jar-plugin.version>2.4</maven-jar-plugin.version>
-		<exec-maven-plugin.version>1.3.2</exec-maven-plugin.version>
-		<maven-assembly-plugin.version>2.4</maven-assembly-plugin.version>
-		<build-helper-maven-plugin.version>1.8</build-helper-maven-plugin.version>
+		<maven-clean-plugin.version>3.0.0</maven-clean-plugin.version>
+		<maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
+		<maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
+		<maven-source-plugin.version>3.0.0</maven-source-plugin.version>
+		<maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
+		<maven-war-plugin.version>2.6</maven-war-plugin.version>
+		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+		<maven-resources-plugin.version>3.0.1</maven-resources-plugin.version>
+		<!-- May not work in Eclipse Neon, for Luna/Mars.2 try m2e-mavenarchiver from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
+		<maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
+		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
+		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
+		<exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
+		<build-helper-maven-plugin.version>1.10</build-helper-maven-plugin.version>
 	</properties>
 
 	<distributionManagement>
@@ -105,6 +141,18 @@
 
 	<dependencyManagement>
 		<dependencies>
+
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>episim-common</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>episim-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 
 			<dependency>
 				<groupId>io.coala</groupId>
@@ -174,6 +222,17 @@
 			</dependency>
 
 			<dependency>
+				<groupId>org.eclipse.jetty.websocket</groupId>
+				<artifactId>javax-websocket-server-impl</artifactId>
+				<version>${jetty.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-webapp</artifactId>
+				<version>${jetty.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
 				<version>${junit.version}</version>
@@ -209,6 +268,12 @@
 				<version>${javax.servlet-api.version}</version>
 			</dependency>
 			<dependency>
+				<!-- artifactId: jsr311-api=v1; javax.ws.rs-api=JSR-339/v2 -->
+				<groupId>javax.ws.rs</groupId>
+				<artifactId>javax.ws.rs-api</artifactId>
+				<version>${javax.ws.rs-api.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>javax.inject</groupId>
 				<artifactId>inject-api</artifactId>
 				<version>${javax.inject-api.version}</version>
@@ -239,10 +304,6 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
-					<artifactId>maven-eclipse-plugin</artifactId>
-					<version>${maven-eclipse-plugin.version}</version>
-				</plugin>
-				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>${maven-compiler-plugin.version}</version>
 					<configuration>
@@ -251,7 +312,7 @@
 						<encoding>${project.build.sourceEncoding}</encoding>
 						<compilerArgument>-Xlint:deprecation</compilerArgument>
 						<compilerArgument>-Xlint:unchecked</compilerArgument>
-						<verbose>true</verbose>
+						<verbose>false</verbose>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -300,6 +361,12 @@
 						<altDeploymentRepository>${github.repository.localid}::default::file://${github.repository.tmpdir}</altDeploymentRepository>
 					</configuration>
 				</plugin>
+
+				<plugin>
+					<groupId>org.eclipse.jetty</groupId>
+					<artifactId>jetty-maven-plugin</artifactId>
+					<version>${jetty.version}</version>
+				</plugin>
 				<plugin>
 					<groupId>com.github.github</groupId>
 					<artifactId>site-maven-plugin</artifactId>
@@ -325,11 +392,6 @@
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>exec-maven-plugin</artifactId>
 					<version>${exec-maven-plugin.version}</version>
-				</plugin>
-				<plugin>
-					<groupId>org.codehaus.mojo</groupId>
-					<artifactId>xmlbeans-maven-plugin</artifactId>
-					<version>${xmlbeans-maven-plugin.version}</version>
 				</plugin>
 
 				<plugin>
@@ -384,15 +446,6 @@
 		</pluginManagement>
 
 		<plugins>
-			<!-- Have Eclipse IDE's Maven integration (specified in <pluginManagement/>) 
-				download sources and javadoc -->
-			<plugin>
-				<artifactId>maven-eclipse-plugin</artifactId>
-				<configuration>
-					<downloadSources>true</downloadSources>
-					<downloadJavadocs>true</downloadJavadocs>
-				</configuration>
-			</plugin>
 
 			<!-- Set Java compiler configuration -->
 			<plugin>
@@ -513,6 +566,11 @@
 
 	<reporting>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${maven-javadoc-plugin.version}</version>
+			</plugin>
 			<!-- see http://mojo.codehaus.org/cobertura-maven-plugin/usage.html -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

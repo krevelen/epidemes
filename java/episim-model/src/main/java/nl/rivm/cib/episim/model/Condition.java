@@ -19,7 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.exception.x.ExceptionBuilder;
+import io.coala.exception.ExceptionFactory;
+import nl.rivm.cib.episim.time.Scheduler;
 import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
 import rx.subjects.PublishSubject;
@@ -34,6 +35,8 @@ import rx.subjects.Subject;
  */
 public interface Condition extends Timed
 {
+
+	Individual getIndividual();
 
 	Infection getInfection();
 
@@ -54,8 +57,6 @@ public interface Condition extends Timed
 	 *         antigen), {@code false} otherwise
 	 */
 	//Boolean isSeropositive();
-	
-	void infect();
 
 	/**
 	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
@@ -63,9 +64,52 @@ public interface Condition extends Timed
 	 */
 	Observable<TransitionEvent<?>> emitTransitions();
 
+	/**
+	 * initiate infection (infectiousness, symptoms, etc.)
+	 */
+	void infect();
+
+	// FIXME void treat(TreatmentStage stage);
+
+	/**
+	 * {@link Simple} implementation of {@link Condition}
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
+	 */
 	class Simple implements Condition
 	{
-		private final Scheduler scheduler;
+
+		/**
+		 * @param individual the {@link Individual}
+		 * @param infection the {@link Infection}
+		 * @return a {@link Simple} instance of {@link Condition}
+		 */
+		public static Simple of( final Individual individual,
+			final Infection infection )
+		{
+			return of( individual, infection,
+					EpidemicCompartment.Simple.SUSCEPTIBLE,
+					SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
+		}
+
+		/**
+		 * @param individual the {@link Individual}
+		 * @param infection the {@link Infection}
+		 * @param compartment the {@link EpidemicCompartment}
+		 * @param symptoms the {@link SymptomPhase}
+		 * @param treatment the {@link TreatmentStage}
+		 * @return a {@link Simple} instance of {@link Condition}
+		 */
+		public static Simple of( final Individual individual,
+			final Infection infection, final EpidemicCompartment compartment,
+			final SymptomPhase symptoms, final TreatmentStage treatment )
+		{
+			return new Simple( individual, infection, compartment, symptoms,
+					treatment );
+		}
+
+		private final Individual individual;
 
 		private final Infection infection;
 
@@ -78,65 +122,54 @@ public interface Condition extends Timed
 		private final Subject<TransitionEvent<?>, TransitionEvent<?>> transitions = PublishSubject
 				.create();
 
-		public Simple( final Scheduler scheduler, final Infection infection )
-		{
-			this( scheduler, infection, EpidemicCompartment.Simple.SUSCEPTIBLE,
-					SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
-		}
-
-		public Simple( final Scheduler scheduler, final Infection infection,
+		/**
+		 * {@link Simple} constructor
+		 * 
+		 * @param individual the {@link Individual}
+		 * @param infection the {@link Infection}
+		 * @param compartment the {@link EpidemicCompartment}
+		 * @param symptoms the {@link SymptomPhase}
+		 * @param treatment the {@link TreatmentStage}
+		 */
+		public Simple( final Individual individual, final Infection infection,
 			final EpidemicCompartment compartment, final SymptomPhase symptoms,
 			final TreatmentStage treatment )
 		{
-			this.scheduler = scheduler;
+			this.individual = individual;
 			this.infection = infection;
 			this.compartment = compartment;
 			this.symptoms = symptoms;
 			this.treatment = treatment;
 		}
 
-		protected void set( final EpidemicCompartment compartment )
+		protected void setCompartment( final EpidemicCompartment compartment )
 		{
 			this.transitions.onNext( TransitionEvent.of( this, compartment ) );
 			this.compartment = compartment;
 		}
 
-		protected void set( final TreatmentStage treatment )
+		protected void setTreatmentStage( final TreatmentStage treatment )
 		{
 			this.transitions.onNext( TransitionEvent.of( this, treatment ) );
 			this.treatment = treatment;
 		}
 
-		protected void set( final SymptomPhase symptoms )
+		protected void setSymptomPhase( final SymptomPhase symptoms )
 		{
 			this.transitions.onNext( TransitionEvent.of( this, symptoms ) );
 			this.symptoms = symptoms;
 		}
 
-		public void infect()
+		@Override
+		public Individual getIndividual()
 		{
-			if( !getCompartment().isSusceptible() ) throw ExceptionBuilder
-					.unchecked( "Can't be exposed when: %s", getCompartment() )
-					.build();
-
-			set( EpidemicCompartment.Simple.EXPOSED );
-
-			after( getInfection().drawLatentPeriod() )
-					.call( this::set, EpidemicCompartment.Simple.INFECTIVE )
-					.thenAfter( getInfection().drawRecoverPeriod() )
-					.call( this::set, EpidemicCompartment.Simple.RECOVERED )
-					.thenAfter( getInfection().drawWanePeriod() )
-					.call( this::set, EpidemicCompartment.Simple.SUSCEPTIBLE );
-			after( getInfection().drawOnsetPeriod() )
-					.call( this::set, SymptomPhase.SYSTEMIC )
-					.thenAfter( getInfection().drawSymptomPeriod() )
-					.call( this::set, SymptomPhase.ASYMPTOMATIC );
+			return this.individual;
 		}
 
 		@Override
 		public Scheduler scheduler()
 		{
-			return this.scheduler;
+			return getIndividual().scheduler();
 		}
 
 		@Override
@@ -167,6 +200,30 @@ public interface Condition extends Timed
 		public Observable<TransitionEvent<?>> emitTransitions()
 		{
 			return this.transitions.asObservable();
+		}
+
+		@Override
+		public void infect()
+		{
+			if( !getCompartment().isSusceptible() )
+				throw ExceptionFactory.createUnchecked(
+						"Can't become exposed when: {}", getCompartment() );
+
+			setCompartment( EpidemicCompartment.Simple.EXPOSED );
+
+			after( getInfection().drawLatentPeriod() )
+					.call( this::setCompartment,
+							EpidemicCompartment.Simple.INFECTIVE )
+					.thenAfter( getInfection().drawRecoverPeriod() )
+					.call( this::setCompartment,
+							EpidemicCompartment.Simple.RECOVERED )
+					.thenAfter( getInfection().drawWanePeriod() )
+					.call( this::setCompartment,
+							EpidemicCompartment.Simple.SUSCEPTIBLE );
+			after( getInfection().drawOnsetPeriod() )
+					.call( this::setSymptomPhase, SymptomPhase.SYSTEMIC )
+					.thenAfter( getInfection().drawSymptomPeriod() )
+					.call( this::setSymptomPhase, SymptomPhase.ASYMPTOMATIC );
 		}
 	}
 }

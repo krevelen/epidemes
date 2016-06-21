@@ -19,8 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.x.DynaBean.BeanWrapper;
-import io.coala.json.x.Wrapper;
+import io.coala.json.Wrapper;
+import io.coala.json.DynaBean.BeanProxy;
 
 /**
  * {@link TransmissionRoute} used in transmission models of pathogen microbes,
@@ -30,7 +30,7 @@ import io.coala.json.x.Wrapper;
  * @version $Id: 4ca5b4d59ee877d6a11db57179d44bbc5c6255ec $
  * @author Rick van Krevelen
  */
-@BeanWrapper
+@BeanProxy
 public interface TransmissionRoute extends Wrapper<String>
 {
 

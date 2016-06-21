@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 9dade484b159c8240410d99c1b9d08c6f16e1340 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,25 +19,31 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.Map;
-
 import javax.measure.quantity.Dimensionless;
-import javax.measure.quantity.Frequency;
+import javax.measure.unit.Unit;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.time.x.Instant;
-import io.coala.time.x.TimeSpan;
-import nl.rivm.cib.episim.model.TransitionEvent.CompartmentEvent;
+import nl.rivm.cib.episim.model.DemographicEvent.Birth;
+import nl.rivm.cib.episim.model.DemographicEvent.CoupleDissolution;
+import nl.rivm.cib.episim.model.DemographicEvent.CoupleFormation;
+import nl.rivm.cib.episim.model.DemographicEvent.Death;
+import nl.rivm.cib.episim.model.DemographicEvent.Emigration;
+import nl.rivm.cib.episim.model.DemographicEvent.Immigration;
+import nl.rivm.cib.episim.model.DemographicEvent.NestDeparture;
+import nl.rivm.cib.episim.time.Scheduler;
+import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
-import rx.Subscription;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 /**
- * {@link Population} follows common
+ * {@link Population} provides macro-level characteristics, following common
  * <a href="https://en.wikipedia.org/wiki/Epidemic_model">epidemic models</a>
  * and approaches for <a href=
  * "https://en.wikipedia.org/wiki/Mathematical_modelling_of_infectious_disease">
- * mathematical modelling of infectious disease</a>
+ * mathematical modeling of infectious disease</a>, e.g. by
+ * <a href="http://jasss.soc.surrey.ac.uk/16/1/8.html">Geard et al. (2013)</a>
  * 
  * <table>
  * <tr>
@@ -48,64 +54,141 @@ import rx.Subscription;
  * <th>B</th>
  * <td>Average birth rate</td>
  * </tr>
- * <tr>
- * <th>M</th>
- * <td>Passively immune infants</td>
- * </tr>
- * <tr>
- * <th>S</th>
- * <td>Susceptibles</td>
- * </tr>
- * <tr>
- * <th>E</th>
- * <td>Exposed individuals in the latent period</td>
- * </tr>
- * <tr>
- * <th>I</th>
- * <td>Infectives</td>
- * </tr>
- * <tr>
- * <th>R</th>
- * <td>Recovered with immunity</td>
- * </tr>
- * <tr>
- * <th>N</th>
- * <td>Total population</td>
- * </tr>
  * </table>
  * 
- * @version $Id$
+ * @version $Id: 9dade484b159c8240410d99c1b9d08c6f16e1340 $
  * @author Rick van Krevelen
  */
-public interface Population
+public interface Population extends Timed
 {
-	// TODO apply yearly birth rates (per mother age category?)
 
-	// TODO apply yearly survival rates (per age category?)
+	void reset( Iterable<Household> households );
 
-	Subscription subscribeTo( Observable<CompartmentEvent> stageStream );
+	Amount<Dimensionless> getSize();
 
-	Map<Infection, InfectionMetrics> getDiseaseMetrics();
+	Observable<DemographicEvent> emitHouseholdEvents();
 
-	Amount<Dimensionless> getTotalNumber();
+	Population birth( Individual newborn );
 
-	interface InfectionMetrics
+	Population death( Individual diseased );
+
+	Population depart( Individual child, Household nest );
+
+	Population immigrate( Household immigrants );
+
+	Population emigrate( Household emigrants );
+
+	Population formCouple( Household merging, Household abandoning );
+
+	Population dissolveCouple( Household parting, Household dissolving );
+
+	class Simple implements Population
 	{
-		Infection getInfection();
+		public static Simple of( final Scheduler scheduler )
+		{
+			return new Simple( scheduler );
+		}
 
-		Instant getTime();
+		private final Subject<DemographicEvent, DemographicEvent> changes = PublishSubject
+				.create();
 
-		EpidemicOccurrence getOccurrence();
+		private final Scheduler scheduler;
 
-		Map<EpidemicCompartment, Amount<Dimensionless>> getCompartmentAmounts();
+		private Amount<Dimensionless> size;
 
-		/** @return the number of {@link TransmissionEvent}s */
-		Amount<Dimensionless> getEffectiveContactsNumber();
+		public Simple( final Scheduler scheduler )
+		{
+			this.scheduler = scheduler;
+		}
 
-		/**
-		 * @return &beta; = Effective contact rate (=
-		 *         {@link #getEffectiveContactsNumber()} per {@link TimeSpan})
-		 */
-		Amount<Frequency> getEffectiveContactRate();
+		@Override
+		public Scheduler scheduler()
+		{
+			return this.scheduler;
+		}
+
+		@Override
+		public void reset( final Iterable<Household> households )
+		{
+			int size = 0;
+			for( Household hh : households )
+				size += hh.getMembers().size();
+			// FIXME persist?
+			this.size = Amount.valueOf( size, Unit.ONE );
+		}
+
+		public Observable<DemographicEvent> emitHouseholdEvents()
+		{
+			return this.changes.asObservable();
+		}
+
+		@Override
+		public Amount<Dimensionless> getSize()
+		{
+			return this.size;
+		}
+
+		protected Population addSize( final int delta )
+		{
+			return addSize( Amount.valueOf( delta, Unit.ONE ) );
+		}
+
+		protected Population addSize( final Amount<Dimensionless> delta )
+		{
+			this.size = this.size.plus( delta );
+			return this;
+		}
+
+		@Override
+		public Population birth( final Individual newborn )
+		{
+			this.changes.onNext( new Birth( newborn ) );
+			return addSize( Amount.ONE );
+		}
+
+		@Override
+		public Population death( final Individual diseased )
+		{
+			this.changes.onNext( new Death( diseased ) );
+			return addSize( -1 );
+		}
+
+		@Override
+		public Population depart( final Individual child, final Household nest )
+		{
+			this.changes.onNext( new NestDeparture( child, nest ) );
+			return this;
+		}
+
+		@Override
+		public Population immigrate( final Household immigrants )
+		{
+			this.changes.onNext( new Immigration( immigrants ) );
+			return addSize( immigrants.getMembers().size() );
+		}
+
+		@Override
+		public Population emigrate( final Household emigrants )
+		{
+			this.changes.onNext( new Emigration( emigrants ) );
+			return addSize( -emigrants.getMembers().size() );
+		}
+
+		@Override
+		public Population formCouple( final Household merging,
+			final Household abandoning )
+		{
+			this.changes.onNext( new CoupleFormation( merging, abandoning ) );
+			return this;
+		}
+
+		@Override
+		public Population dissolveCouple( final Household parting,
+			final Household dissolving )
+		{
+			this.changes.onNext( new CoupleDissolution( parting, dissolving ) );
+			return this;
+		}
 	}
+
 }

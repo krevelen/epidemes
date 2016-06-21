@@ -6,21 +6,24 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
+		<version>0.0.1</version>
+		<relativePath>../..</relativePath>
 	</parent>
 
 	<artifactId>episim-mas</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
-		$Id$
+		$Id: 02aeb0fcf867c85e7be67b0a56da8f905cb3865d $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<!-- stand-alone runnable JAR config -->
+		<dist.dir>${basedir}/mas</dist.dir>
+		<main.class>nl.rivm.cib.episim.mas.eve.EpisimMasServer</main.class>
+
 		<eve.version>3.1.1</eve.version>
-		<jetty.version>9.3.7.v20160115</jetty.version>
-		<wink.version>1.4</wink.version>
 		<cors.version>1.8</cors.version>
 	</properties>
 
@@ -57,50 +60,30 @@
 
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>episim-api</artifactId>
+			<artifactId>episim-model</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>episim-api</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>eve3-coala-adapter</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.almende.eve</groupId>
-			<artifactId>eve-transport-http-jetty</artifactId>
-			<version>${eve.version}</version>
 			<exclusions>
+				<!-- websocket dependency not inside a WAR file!
 				<exclusion>
-					<groupId>org.eclipse.jetty</groupId>
-					<artifactId>jetty-maven-plugin</artifactId>
+					<groupId>org.eclipse.jetty.websocket</groupId>
+					<artifactId>javax-websocket-server-impl</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
+					<groupId>javax.websocket</groupId>
+					<artifactId>javax.websocket-api</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>jackson-datatype-joda</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.dataformat</groupId>
-					<artifactId>jackson-dataformat-yaml</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-jdk14</artifactId>
-				</exclusion>
+				 -->
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.almende.eve</groupId>
-			<artifactId>eve-scheduling-persistent</artifactId>
-			<version>${eve.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.almende.eve</groupId>
-			<artifactId>eve-deploy</artifactId>
-			<version>${eve.version}</version>
 		</dependency>
 
 		<dependency>
@@ -121,21 +104,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.eclipse.jetty.websocket</groupId>
-			<artifactId>javax-websocket-server-impl</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-webapp</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.wink</groupId>
-			<artifactId>wink-server</artifactId>
-			<version>${wink.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>com.thetransactioncompany</groupId>
 			<artifactId>cors-filter</artifactId>
 			<version>${cors.version}</version>
@@ -148,4 +116,111 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-clean-plugin</artifactId>
+				<configuration>
+					<filesets>
+						<fileset>
+							<directory>${dist.dir}</directory>
+							<includes>
+								<include>**/*.jar</include>
+								<include>**/*.log</include>
+							</includes>
+							<followSymlinks>false</followSymlinks>
+						</fileset>
+					</filesets>
+				</configuration>
+			</plugin>
+
+			<!-- copy (non-"provided"-scope) dependency jars to ${AOS}/lib/shared -->
+			<plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<excludeGroupIds>junit</excludeGroupIds>
+							<includeScope>runtime</includeScope>
+							<outputDirectory>${dist.dir}/lib</outputDirectory>
+							<silent>false</silent>
+							<overWriteIfNewer>true</overWriteIfNewer>
+							<overWriteReleases>false</overWriteReleases>
+							<overWriteSnapshots>false</overWriteSnapshots>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- set main class -->
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>${main.class}</mainClass>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>lib/</classpathPrefix>
+							<useUniqueVersions>false</useUniqueVersions>
+							<!-- below config should be default -->
+							<classpathLayoutType>custom</classpathLayoutType>
+							<customClasspathLayout>$${artifact.artifactId}-$${artifact.version}$${dashClassifier?}.$${artifact.extension}</customClasspathLayout>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-jar</id>
+						<phase>package</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<tasks>
+								<copy
+									file="${project.build.directory}/${project.build.finalName}.${project.packaging}"
+									tofile="${dist.dir}/${project.artifactId}.${project.packaging}" />
+							</tasks>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- <plugin> <artifactId>maven-shade-plugin</artifactId> <version>${maven.shade.version}</version> 
+				<executions> <execution> <phase>package</phase> <goals> <goal>shade</goal> 
+				</goals> <configuration> <finalName>${project.artifactId}-full</finalName> 
+				<outputDirectory>${dist.dir}</outputDirectory> <transformers> <transformer 
+				implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> 
+				<mainClass>${main.class}</mainClass> </transformer> </transformers> </configuration> 
+				</execution> </executions> </plugin> -->
+
+			<plugin>
+				<!-- jetty:run starts this Eve web-app in a Jetty container -->
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-maven-plugin</artifactId>
+				<configuration>
+					<scanIntervalSeconds>1</scanIntervalSeconds>
+					<systemProperties>
+						<systemProperty>
+							<name>log4j.configurationFile</name>
+							<value>mas/log4j2.yaml</value>
+						</systemProperty>
+					</systemProperties>
+					<webApp>
+						<contextPath>/</contextPath>
+					</webApp>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

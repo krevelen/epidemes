@@ -34,7 +34,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.coala.json.x.JsonUtil;
+import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 
 /**

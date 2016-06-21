@@ -19,14 +19,13 @@
  */
 package nl.rivm.cib.episim.model;
 
+import java.util.Collection;
+
 import javax.measure.quantity.Frequency;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
-import javax.measure.unit.UnitFormat;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.random.RandomDistribution;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.time.x.Duration;
 
 /**
@@ -65,6 +64,20 @@ import io.coala.time.x.Duration;
  * </tr>
  * </table>
  * 
+ * typical life cycle (compartment transitions):
+ * - passively immune
+ * - susceptible
+ *   - vaccine-infected : latent (incubation-period), infectious, recovered (1-2y), susceptible
+ *   - contact-infected : latent (incubation-period)
+ *     - asymptomatic, infectious, recovering, removed (2-7y), susceptible
+ *     - symptomatic
+ *       - mobile, recovering, removed (2-7y), susceptible
+ *       - immobilize
+ *         - convalescent, removed (2-7y), susceptible
+ *         - hospitalize
+ *           - convalescent, removed (2-7y), susceptible
+ *           - death, removed
+ * 
  * @version $Id: 50e413952a4dbeea9e3a19b9a9fee08f4c586b27 $
  * @author Rick van Krevelen
  */
@@ -98,9 +111,6 @@ public interface Infection
 	 */
 	//Collection<TransmissionRoute> getTransmissionRoutes();
 
-	/** a {@link Frequency} per {@link NonSI#DAY} */
-	Unit<Frequency> DAILY = NonSI.DAY.pow( -1 ).asType( Frequency.class );
-
 	/**
 	 * The force of infection (denoted &lambda;) is the rate ({@link Amount} of
 	 * {@link Frequency}) at which a secondary susceptible individual acquires
@@ -111,15 +121,14 @@ public interface Infection
 	 * <a href="https://en.wikipedia.org/wiki/Force_of_infection">wikipedia</a>
 	 * ), here with calibration to specific circumstances:
 	 * 
-	 * @param location the {@link Location} of contact
-	 * @param infectives the primary infective {@link Carrier}s in contact with
-	 *            their respective {@link ContactIntensity}
-	 * @param susceptible the secondary susceptible {@link Carrier}
-	 * @param duration the {@link Duration} {@link Amount} of contact
+	 * @param routes a {@link Collection} of local {@link TransmissionRoute}s
+	 * @param infectionPressure the infection pressure as
+	 *            {@link ContactIntensity} for each primary infective currently
+	 *            in contact
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	Amount<Frequency> getForceOfInfection( Location location,
-		Carrier susceptible, ContactIntensity... infectives );
+	Amount<Frequency> getForceOfInfection( Collection<TransmissionRoute> routes,
+		Collection<ContactIntensity> infectionPressure );
 
 	/**
 	 * @return the (random) period between
@@ -161,7 +170,7 @@ public interface Infection
 	 * {@link Simple} implements an {@link Infection} with a simple force of
 	 * infection that is drawn from some {link RandomDistribution} independent
 	 * of the relations between infective and susceptible {@link Carrier}s,
-	 * their current {@link Condition}s, or the contact {@link Location} (and
+	 * their current {@link Condition}s, or the contact {@link Place} (and
 	 * {@link TransmissionRoute}s)
 	 * 
 	 * @version $Id$
@@ -169,37 +178,39 @@ public interface Infection
 	 */
 	class Simple implements Infection
 	{
-		{
-			UnitFormat.getInstance().alias(DAILY, "daily");
-			UnitFormat.getInstance().label(DAILY, "daily");
-		}
-		private final RandomDistribution<Amount<Frequency>> forceDist;
+		private final ProbabilityDistribution<Amount<Frequency>> forceDist;
 
-		private final RandomDistribution<Duration> latentPeriodDist;
-		private final RandomDistribution<Duration> recoverPeriodDist;
-		private final RandomDistribution<Duration> wanePeriodDist;
-		private final RandomDistribution<Duration> onsetPeriodDist;
-		private final RandomDistribution<Duration> symptomPeriodDist;
+		private final ProbabilityDistribution<Duration> latentPeriodDist;
+		private final ProbabilityDistribution<Duration> recoverPeriodDist;
+		private final ProbabilityDistribution<Duration> wanePeriodDist;
+		private final ProbabilityDistribution<Duration> onsetPeriodDist;
+		private final ProbabilityDistribution<Duration> symptomPeriodDist;
 
 		public Simple( final Amount<Frequency> forceConst,
 			final Duration latentPeriodConst, final Duration recoverPeriodConst,
 			final Duration wanePeriodConst, final Duration onsetPeriodConst,
 			final Duration symptomPeriodConst )
 		{
-			this( RandomDistribution.Util.asConstant( forceConst ),
-					RandomDistribution.Util.asConstant( latentPeriodConst ),
-					RandomDistribution.Util.asConstant( recoverPeriodConst ),
-					RandomDistribution.Util.asConstant( wanePeriodConst ),
-					RandomDistribution.Util.asConstant( onsetPeriodConst ),
-					RandomDistribution.Util.asConstant( symptomPeriodConst ) );
+			this( ProbabilityDistribution.createDeterministic( forceConst ),
+					ProbabilityDistribution
+							.createDeterministic( latentPeriodConst ),
+					ProbabilityDistribution
+							.createDeterministic( recoverPeriodConst ),
+					ProbabilityDistribution
+							.createDeterministic( wanePeriodConst ),
+					ProbabilityDistribution
+							.createDeterministic( onsetPeriodConst ),
+					ProbabilityDistribution
+							.createDeterministic( symptomPeriodConst ) );
 		}
 
-		public Simple( final RandomDistribution<Amount<Frequency>> forceDist,
-			final RandomDistribution<Duration> latentPeriodDist,
-			final RandomDistribution<Duration> recoverPeriodDist,
-			final RandomDistribution<Duration> wanePeriodDist,
-			final RandomDistribution<Duration> onsetPeriodDist,
-			final RandomDistribution<Duration> symptomPeriodDist )
+		public Simple(
+			final ProbabilityDistribution<Amount<Frequency>> forceDist,
+			final ProbabilityDistribution<Duration> latentPeriodDist,
+			final ProbabilityDistribution<Duration> recoverPeriodDist,
+			final ProbabilityDistribution<Duration> wanePeriodDist,
+			final ProbabilityDistribution<Duration> onsetPeriodDist,
+			final ProbabilityDistribution<Duration> symptomPeriodDist )
 		{
 			this.forceDist = forceDist;
 			this.latentPeriodDist = latentPeriodDist;
@@ -210,13 +221,13 @@ public interface Infection
 		}
 
 		@Override
-		public Amount<Frequency> getForceOfInfection( final Location location,
-			final Carrier susceptible, final ContactIntensity... infectives )
+		public Amount<Frequency> getForceOfInfection(
+			final Collection<TransmissionRoute> routes,
+			final Collection<ContactIntensity> infectionPressure )
 		{
-			Amount<Frequency> result = Amount.valueOf( 0, DAILY );
-			if( infectives == null ) return result;
+			Amount<Frequency> result = Amount.valueOf( 0, Units.DAILY );
 			Amount<Frequency> force = this.forceDist.draw();
-			for( ContactIntensity intensity : infectives )
+			for( ContactIntensity intensity : infectionPressure )
 				result = result.plus( force.times( intensity.getFactor() ) );
 			return result;
 		}

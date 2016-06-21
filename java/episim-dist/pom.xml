@@ -6,125 +6,22 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
+		<version>0.0.1</version>
+		<relativePath>../..</relativePath>
 	</parent>
 
 	<artifactId>episim-dist</artifactId>
 	<packaging>pom</packaging>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
-		Distribution packager for the RIVM Epidemics Simulator
+		Distribution assembler/packager for the RIVM Epidemics Simulator
 		$Id$
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<dist.dir>${basedir}/dist</dist.dir>
-		<dist.mainClass>nl.rivm.cib.episim.eve.MAS</dist.mainClass>
-
-		<maven-clean-plugin.version>2.6.1</maven-clean-plugin.version>
-		<maven.shade.version>2.3</maven.shade.version>
 	</properties>
 
-	<repositories>
-		<repository>
-			<name>COALA Public Maven Repository</name>
-			<id>coala-public</id>
-			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
-			</snapshots>
-		</repository>
-		<repository>
-			<name>EPISIM Public Maven Repository</name>
-			<id>episim-public</id>
-			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
-			</snapshots>
-		</repository>
-	</repositories>
-
 	<build>
-
-		<plugins>
-
-			<!-- create full/uberjar with shade -->
-			<!-- <plugin> <artifactId>maven-shade-plugin</artifactId> <executions> 
-				<execution> <id>shade-agent-uberjar</id> <phase>package</phase> <goals> <goal>shade</goal> 
-				</goals> <configuration> <finalName>${project.artifactId}-full</finalName> 
-				<outputDirectory>${dist.dir}</outputDirectory> <filters> <filter> <artifact>*:*</artifact> 
-				</filter> </filters> <transformers> <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> 
-				<mainClass>${dist.mainClass}</mainClass> </transformer> </transformers> </configuration> 
-				</execution> </executions> </plugin> -->
-
-			<!-- copy (non-"provided"-scope) dependency jars to ${dist.dir}/lib -->
-			<plugin>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>copy</id>
-						<phase>package</phase>
-						<goals>
-							<goal>copy-dependencies</goal>
-						</goals>
-						<configuration>
-							<excludeGroupIds>junit</excludeGroupIds>
-							<includeScope>runtime</includeScope>
-							<outputDirectory>${dist.dir}/lib</outputDirectory>
-							<silent>false</silent>
-							<overWriteIfNewer>true</overWriteIfNewer>
-							<overWriteReleases>false</overWriteReleases>
-							<overWriteSnapshots>false</overWriteSnapshots>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<!-- set main class -->
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>${dist.mainClass}</mainClass>
-							<addClasspath>true</addClasspath>
-							<classpathPrefix>lib/</classpathPrefix>
-							<useUniqueVersions>false</useUniqueVersions>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-
-			<plugin>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>copy-jar</id>
-						<phase>package</phase>
-						<goals>
-							<goal>run</goal>
-						</goals>
-						<configuration>
-							<tasks>
-								<copy
-									file="${project.build.directory}/${project.build.finalName}.${project.packaging}"
-									tofile="${dist.dir}/${project.artifactId}.${project.packaging}" />
-							</tasks>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
 	</build>
 </project>

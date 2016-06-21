@@ -29,57 +29,34 @@ import io.coala.time.x.Instant;
  * @version $Id: 18fd2b4cf3b6654714b5baa115e415bb0e851b5d $
  * @author Rick van Krevelen
  */
-public abstract class TransmissionEvent
+public class TransmissionEvent
 {
-	/** @return the transmission {@link Instant} */
-	public abstract Instant getTime();
 
-	/** @return the transmission {@link Location} */
-	public abstract Location getLocation();
+	private Instant time;
 
-	/** @return the transmission {@link TransmissionRoute} */
-	public abstract TransmissionRoute getTransmissionRoute();
+	private ContactEvent contact;
 
-	/** @return the (infective) {@link Condition} of primary {@link Carrier} */
-	public abstract Condition getPrimaryCondition();
-
-	/** @return the (exposed) {@link Condition} of secondary {@link Carrier} */
-	public abstract Condition getSecondaryCondition();
-
-	public static TransmissionEvent of( final ContactEvent contact,
-		final Instant time, final Infection infection )
+	public TransmissionEvent( final Instant time, final ContactEvent contact )
 	{
-		return new TransmissionEvent()
-		{
-			@Override
-			public Instant getTime()
-			{
-				return time;
-			}
+		this.time = time;
+		this.contact = contact;
+	}
 
-			@Override
-			public Location getLocation()
-			{
-				return contact.getLocation();
-			}
+	/** @return the transmission {@link Instant} */
+	public Instant getTime()
+	{
+		return this.time;
+	}
 
-			@Override
-			public TransmissionRoute getTransmissionRoute()
-			{
-				return contact.getTransmissionRoute();
-			}
+	/** @return the {@link ContactEvent} */
+	public ContactEvent getContact()
+	{
+		return this.contact;
+	}
 
-			@Override
-			public Condition getPrimaryCondition()
-			{
-				return contact.getPrimaryCondition();
-			}
-
-			@Override
-			public Condition getSecondaryCondition()
-			{
-				return contact.getSecondaryCondition();
-			}
-		};
+	public static TransmissionEvent of( final Instant time,
+		final ContactEvent cause )
+	{
+		return new TransmissionEvent( time, cause );
 	}
 }

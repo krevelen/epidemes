@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 70eca220bd569894793c0df6a1d4c707d9077dbf $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -43,7 +43,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link ODataUtilTest}
  * 
- * @version $Id$
+ * @version $Id: 70eca220bd569894793c0df6a1d4c707d9077dbf $
  * @author Rick van Krevelen
  */
 public class ODataUtilTest
@@ -52,7 +52,8 @@ public class ODataUtilTest
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( ODataUtilTest.class );
 
-	private static final String serviceUrl = "http://opendata.cbs.nl/ODataApi/OData/71071ned";
+//	private static final String serviceUrl = "http://opendata.cbs.nl/ODataApi/OData/71071ned";
+	private static final String serviceUrl = "http://opendata.cbs.nl/ODataApi/OData/83190ned";
 
 	private static final String entity = "TypedDataSet";
 
@@ -100,6 +101,7 @@ public class ODataUtilTest
 					+ "'" );
 	}
 
+	@Ignore // FIXME : org.apache.olingo.client.api.communication.ODataServerErrorException: HTTP/1.1 500 Internal Server Error
 	@Test
 	public void readEntitiesTest()
 	{
