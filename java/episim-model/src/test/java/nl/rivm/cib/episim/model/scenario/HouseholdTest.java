@@ -1,4 +1,4 @@
-/* $Id: 4cd06794959ca7bd59432990ae8f934d02b9e26d $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -37,7 +37,7 @@ import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 /**
  * {@link HouseholdTest}
  * 
- * @version $Id: 4cd06794959ca7bd59432990ae8f934d02b9e26d $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class HouseholdTest

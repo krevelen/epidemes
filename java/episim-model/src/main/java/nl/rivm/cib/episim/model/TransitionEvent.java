@@ -1,4 +1,4 @@
-/* $Id: 2f7141963aaa4c17ee828105bff1527724cab23a $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -22,7 +22,7 @@ package nl.rivm.cib.episim.model;
 /**
  * {@link TransitionEvent}
  * 
- * @version $Id: 2f7141963aaa4c17ee828105bff1527724cab23a $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class TransitionEvent<T>

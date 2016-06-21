@@ -1,4 +1,4 @@
-/* $Id: c754b3b6a190657ce3524e685fce0c9bd08f1815 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -29,7 +29,7 @@ import io.coala.json.DynaBean.BeanProxy;
 /**
  * {@link ContactIntensity} is an extensible identifier for relation types
  * 
- * @version $Id: c754b3b6a190657ce3524e685fce0c9bd08f1815 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @BeanProxy

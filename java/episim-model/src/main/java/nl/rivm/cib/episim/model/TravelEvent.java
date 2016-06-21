@@ -1,4 +1,4 @@
-/* $Id: f47d1374127c003b2fe1f1f6601f0e1194188ff3 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,7 +27,7 @@ import io.coala.time.x.Instant;
  * {@link Instant} of its departure from its origin {@link Place} and the
  * {@link Instant} of its arrival to its destination {@link Place}
  * 
- * @version $Id: f47d1374127c003b2fe1f1f6601f0e1194188ff3 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class TravelEvent

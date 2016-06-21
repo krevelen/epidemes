@@ -1,4 +1,4 @@
-/* $Id: 70eca220bd569894793c0df6a1d4c707d9077dbf $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -43,7 +43,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link ODataUtilTest}
  * 
- * @version $Id: 70eca220bd569894793c0df6a1d4c707d9077dbf $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class ODataUtilTest

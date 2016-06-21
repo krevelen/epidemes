@@ -1,4 +1,4 @@
-/* $Id: e09ef6f5bdddf867d6f60848ae7ca3d5ccb0a485 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import io.coala.json.DynaBean.BeanProxy;
 /**
  * {@link SymptomPhase} is an extensible identifier for stages of treatment
  * 
- * @version $Id: e09ef6f5bdddf867d6f60848ae7ca3d5ccb0a485 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @BeanProxy

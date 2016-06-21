@@ -1,4 +1,4 @@
-/* $Id: 18fd2b4cf3b6654714b5baa115e415bb0e851b5d $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import io.coala.time.x.Instant;
  * successful invasion of a susceptible {@link Carrier} that was exposed due to
  * some {@link ContactEvent}.
  * 
- * @version $Id: 18fd2b4cf3b6654714b5baa115e415bb0e851b5d $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class TransmissionEvent

@@ -1,5 +1,5 @@
 @ECHO OFF
-REM $Id: 26d479094f7ba34c44fb1c1f50995e90d8b76b3b $
+REM $Id$
 CLS
 CD /d %~dp0
 ECHO Running EPISIM with settings:>CON

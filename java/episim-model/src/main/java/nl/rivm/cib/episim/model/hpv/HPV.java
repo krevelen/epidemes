@@ -1,4 +1,4 @@
-/* $Id: 7d8028f0f722028f7c4fec13582c7fedcd01f8a0 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -40,7 +40,7 @@ import nl.rivm.cib.episim.model.Infection;
  * sequenced.&rdquo;</li>
  * </ul>
  * 
- * @version $Id: 7d8028f0f722028f7c4fec13582c7fedcd01f8a0 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public abstract class HPV implements Infection

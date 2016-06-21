@@ -1,4 +1,4 @@
-/* $Id: 29f8beca0d938bde40a0178d73456e1827c03856 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import io.coala.json.DynaBean.BeanProxy;
 /**
  * {@link Gender} is an extensible identifier for gender classifications
  * 
- * @version $Id: 29f8beca0d938bde40a0178d73456e1827c03856 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @BeanProxy

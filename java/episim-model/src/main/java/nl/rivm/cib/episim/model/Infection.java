@@ -1,4 +1,4 @@
-/* $Id: 50e413952a4dbeea9e3a19b9a9fee08f4c586b27 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -78,7 +78,7 @@ import io.coala.time.x.Duration;
  *           - convalescent, removed (2-7y), susceptible
  *           - death, removed
  * 
- * @version $Id: 50e413952a4dbeea9e3a19b9a9fee08f4c586b27 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Infection

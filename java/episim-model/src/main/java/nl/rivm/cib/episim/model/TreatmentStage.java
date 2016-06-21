@@ -1,4 +1,4 @@
-/* $Id: 69f546cf8559f0dd178f2bfb6f3c8fbb9a08ff1c $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import io.coala.json.DynaBean.BeanProxy;
 /**
  * {@link TreatmentStage} is an extensible identifier for stages of treatment
  * 
- * @version $Id: 69f546cf8559f0dd178f2bfb6f3c8fbb9a08ff1c $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @BeanProxy
