@@ -97,7 +97,7 @@
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}</github.repository.tmpdir>
+		<github.repository.tmpdir>${basedir}/..</github.repository.tmpdir>
 		<github.repository.url>https://raw.github.com/krevelen/coala/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
