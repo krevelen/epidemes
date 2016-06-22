@@ -1,11 +1,11 @@
 package nl.rivm.cib.episim.model.scenario;
 
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Timed;
 
 /**
  * {@link PopulationGenerator}
  * 
- * @version $Id$
+ * @version $Id: bcec9251efbae6d083213e672391a360753793d8 $
  * @author Rick van Krevelen
  */
 public interface PopulationGenerator extends Timed

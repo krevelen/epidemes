@@ -10,14 +10,14 @@ import javax.measure.quantity.Length;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.decide.DecisionAnalyzer.MultiCriteriaWeightedAlternative;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Timed;
 
 /**
  * {@link VaccineAttitude} reflects perceived safety/risk due to e.g. opinions
  * observed from media, pastor, family, doctors, etc.
  * 
  * 
- * @version $Id$
+ * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
  * @author Rick van Krevelen
  */
 public interface VaccineAttitude extends Timed
@@ -70,7 +70,7 @@ public interface VaccineAttitude extends Timed
 	/**
 	 * {@link AttitudeCriterion}
 	 * 
-	 * @version $Id$
+	 * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
 	 * @author Rick van Krevelen
 	 */
 	enum AttitudeCriterion
@@ -96,7 +96,7 @@ public interface VaccineAttitude extends Timed
 	/**
 	 * {@link VaccineOpportunity}
 	 * 
-	 * @version $Id$
+	 * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
 	 * @author Rick van Krevelen
 	 */
 	interface VaccineOpportunity
@@ -119,7 +119,7 @@ public interface VaccineAttitude extends Timed
 		/**
 		 * {@link Simple}
 		 * 
-		 * @version $Id$
+		 * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements VaccineOpportunity

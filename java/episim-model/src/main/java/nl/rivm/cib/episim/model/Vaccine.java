@@ -7,14 +7,14 @@ import javax.measure.quantity.Dimensionless;
 
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.ProbabilityDistribution.ArithmeticDistribution;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 
 /**
  * {@link Vaccine}s trigger the immune system to protect against some
  * {@link Infection}
  * 
- * @version $Id$
+ * @version $Id: 61e2466aa6bbc87325a9001452de624ce2ac198e $
  * @author Rick van Krevelen
  */
 public interface Vaccine extends Timed
@@ -41,7 +41,7 @@ public interface Vaccine extends Timed
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 61e2466aa6bbc87325a9001452de624ce2ac198e $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Vaccine

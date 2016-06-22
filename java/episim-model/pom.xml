@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2-SNAPSHOT</version>
 		<relativePath>../..</relativePath>
 	</parent>
 
@@ -15,7 +15,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Vaccination Acceptance Simulator
-		$Id$
+		$Id: 8d09ddf65a201c93d7a319200f94b6a76ee624ea $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

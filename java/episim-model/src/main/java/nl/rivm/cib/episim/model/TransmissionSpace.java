@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -32,10 +32,10 @@ import javax.measure.quantity.Frequency;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.ExceptionFactory;
-import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.time.Accumulator;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Accumulator;
+import io.coala.time.Instant;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 import rx.Observable;
 import rx.Observer;
 import rx.subjects.PublishSubject;
@@ -44,7 +44,7 @@ import rx.subjects.Subject;
 /**
  * {@link TransmissionSpace}
  * 
- * @version $Id$
+ * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
  * @author Rick van Krevelen
  */
 public interface TransmissionSpace extends Timed
@@ -127,7 +127,7 @@ public interface TransmissionSpace extends Timed
 	 * {@link ContactEvent}s which in turn may trigger its transmission by
 	 * generating {@link TransmissionEvent}s.
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements TransmissionSpace
@@ -196,7 +196,7 @@ public interface TransmissionSpace extends Timed
 	/**
 	 * {@link InfectionDynamics}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	interface InfectionDynamics
@@ -223,7 +223,7 @@ public interface TransmissionSpace extends Timed
 		/**
 		 * {@link Simple} default implementation of {@link InfectionDynamics}
 		 * 
-		 * @version $Id$
+		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements InfectionDynamics
@@ -276,7 +276,7 @@ public interface TransmissionSpace extends Timed
 	/**
 	 * {@link CompartmentDynamics}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	interface CompartmentDynamics
@@ -346,7 +346,7 @@ public interface TransmissionSpace extends Timed
 		/**
 		 * {@link Simple} implementation of {@link CompartmentDynamics}
 		 * 
-		 * @version $Id$
+		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements CompartmentDynamics
@@ -417,7 +417,7 @@ public interface TransmissionSpace extends Timed
 	/**
 	 * {@link VisitorDynamics}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	interface VisitorDynamics
@@ -440,7 +440,7 @@ public interface TransmissionSpace extends Timed
 		/**
 		 * {@link Simple} implementation of {@link VisitorDynamics}
 		 * 
-		 * @version $Id$
+		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements VisitorDynamics

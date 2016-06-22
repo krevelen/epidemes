@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 42f0b51d22ab98c493fc5694961aa589b7cb0e9c $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -36,12 +36,14 @@ import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 import org.junit.Test;
 
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.time.x.Duration;
-import io.coala.time.x.Instant;
+import io.coala.time.Duration;
+import io.coala.time.Instant;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.ContactIntensity;
 import nl.rivm.cib.episim.model.Gender;
@@ -53,13 +55,11 @@ import nl.rivm.cib.episim.model.Population;
 import nl.rivm.cib.episim.model.TransmissionRoute;
 import nl.rivm.cib.episim.model.TransmissionSpace;
 import nl.rivm.cib.episim.model.Units;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
 /**
  * {@link ScenarioTest}
  * 
- * @version $Id$
+ * @version $Id: 42f0b51d22ab98c493fc5694961aa589b7cb0e9c $
  * @author Rick van Krevelen
  */
 public class ScenarioTest

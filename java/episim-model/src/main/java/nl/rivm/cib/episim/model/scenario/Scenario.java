@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 6eb6e896ff64c5101804a1f87c3a8287db474d0f $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,13 +19,13 @@
  */
 package nl.rivm.cib.episim.model.scenario;
 
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 
 /**
  * {@link Scenario}
  * 
- * @version $Id$
+ * @version $Id: 6eb6e896ff64c5101804a1f87c3a8287db474d0f $
  * @author Rick van Krevelen
  */
 public interface Scenario extends Timed

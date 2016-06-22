@@ -28,18 +28,18 @@ import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.MeasureUtil;
-import io.coala.time.x.Duration;
-import io.coala.time.x.Instant;
-import io.coala.time.x.TimeSpan;
-import io.coala.time.x.Timing;
+import io.coala.time.Duration;
+import io.coala.time.Instant;
+import io.coala.time.Scheduler;
+import io.coala.time.TimeSpan;
+import io.coala.time.Timing;
 import io.coala.util.DecimalUtil;
 import nl.rivm.cib.episim.mas.ReplicatorAgent;
 import nl.rivm.cib.episim.model.scenario.Scenario;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 import rx.Subscription;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.Subject;
@@ -47,7 +47,7 @@ import rx.subjects.Subject;
 /**
  * {@link ReplicatorAgentImpl}
  * 
- * @version $Id$
+ * @version $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $
  * @author Rick van Krevelen
  */
 public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
@@ -79,7 +79,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	@Override
 	public String getType()
 	{
-		return getClass().getSimpleName() + " $Id$";
+		return getClass().getSimpleName() + " $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $";
 	}
 
 	// FIXME FEATURE_REQ add #put(TypedKey<T>,T)

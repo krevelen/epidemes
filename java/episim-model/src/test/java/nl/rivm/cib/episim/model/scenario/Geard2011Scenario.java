@@ -32,9 +32,10 @@ import io.coala.math3.Math3RandomNumberStream;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.ProbabilityDistribution.ArithmeticDistribution;
 import io.coala.random.PseudoRandom;
-import io.coala.resource.x.FileUtil;
-import io.coala.time.x.Instant;
-import io.coala.time.x.Rate;
+import io.coala.resource.FileUtil;
+import io.coala.time.Instant;
+import io.coala.time.Rate;
+import io.coala.time.Scheduler;
 import io.coala.util.Comparison;
 import nl.rivm.cib.episim.model.Gender;
 import nl.rivm.cib.episim.model.Household;
@@ -44,12 +45,11 @@ import nl.rivm.cib.episim.model.Population;
 import nl.rivm.cib.episim.model.TransmissionSpace;
 import nl.rivm.cib.episim.model.Units;
 import nl.rivm.cib.episim.model.ZipCode;
-import nl.rivm.cib.episim.time.Scheduler;
 
 /**
  * {@link Geard2011Scenario}
  * 
- * @version $Id$
+ * @version $Id: 5e3a1f243ab46e936f50b9c59a81bada60d8a5f4 $
  * @author Rick van Krevelen
  */
 public class Geard2011Scenario
@@ -131,7 +131,7 @@ public class Geard2011Scenario
 					result.add( distFact.createCategorical( subDist ) );
 				}
 				final List<WeightedValue<Integer, BigDecimal>> subDist = new ArrayList<>();
-				LOG.trace( "Filter: {} =< x", bound_a );
+				LOG.trace( "Filter age: {} =< x", bound_a );
 				for( WeightedValue<Integer, BigDecimal> wv : ageDist )
 					if( wv.getValue() >= bound_a ) subDist.add( wv );
 				result.add( distFact.createCategorical( subDist ) );

@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2-SNAPSHOT</version>
 		<relativePath>../..</relativePath>
 	</parent>
 
@@ -17,7 +17,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
-		$Id$
+		$Id: 6719a89b803baa5381cf4a0511d41b426656f6e6 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

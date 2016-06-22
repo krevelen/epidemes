@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -22,10 +22,10 @@ package nl.rivm.cib.episim.model;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.coala.time.x.Duration;
-import io.coala.time.x.Instant;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Duration;
+import io.coala.time.Instant;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -103,7 +103,7 @@ public interface Individual extends Carrier, Timed
 	/**
 	 * {@link Simple} implementation of {@link Individual}
 	 * 
-	 * @version $Id$
+	 * @version $Id: df183d79abaee941f3131012d3302d076bbcab74 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Individual

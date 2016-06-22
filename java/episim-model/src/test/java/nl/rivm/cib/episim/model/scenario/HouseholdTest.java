@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 276c926515013cd391932010126debe6aec6ac89 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,17 +27,17 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
-import io.coala.time.x.Duration;
-import io.coala.time.x.Instant;
+import io.coala.time.Duration;
+import io.coala.time.Instant;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.Units;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.dsol3.Dsol3Scheduler;
 
 /**
  * {@link HouseholdTest}
  * 
- * @version $Id$
+ * @version $Id: 276c926515013cd391932010126debe6aec6ac89 $
  * @author Rick van Krevelen
  */
 public class HouseholdTest

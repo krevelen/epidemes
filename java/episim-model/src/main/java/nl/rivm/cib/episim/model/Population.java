@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -24,6 +24,8 @@ import javax.measure.unit.Unit;
 
 import org.jscience.physics.amount.Amount;
 
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 import nl.rivm.cib.episim.model.DemographicEvent.Birth;
 import nl.rivm.cib.episim.model.DemographicEvent.CoupleDissolution;
 import nl.rivm.cib.episim.model.DemographicEvent.CoupleFormation;
@@ -31,8 +33,6 @@ import nl.rivm.cib.episim.model.DemographicEvent.Death;
 import nl.rivm.cib.episim.model.DemographicEvent.Emigration;
 import nl.rivm.cib.episim.model.DemographicEvent.Immigration;
 import nl.rivm.cib.episim.model.DemographicEvent.NestDeparture;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -56,7 +56,7 @@ import rx.subjects.Subject;
  * </tr>
  * </table>
  * 
- * @version $Id$
+ * @version $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
  * @author Rick van Krevelen
  */
 public interface Population extends Timed

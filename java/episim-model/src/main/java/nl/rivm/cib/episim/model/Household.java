@@ -3,14 +3,14 @@ package nl.rivm.cib.episim.model;
 import java.util.Collection;
 import java.util.HashSet;
 
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 
 /**
  * {@link Household} includes elements adapted from
  * <a href= "https://github.com/nlgn/sim-demog">Python code by Nic Geard</a>
  * 
- * @version $Id$
+ * @version $Id: 88e3618b2571332669cc3266f9d0836962e886d3 $
  * @author Rick van Krevelen
  */
 public interface Household extends Timed
@@ -58,7 +58,7 @@ public interface Household extends Timed
 	/**
 	 * {@link Simple} implementation of {@link Household}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 88e3618b2571332669cc3266f9d0836962e886d3 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Household

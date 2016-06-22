@@ -8,13 +8,13 @@ import javax.measure.unit.Unit;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.time.x.Instant;
+import io.coala.time.Indicator;
+import io.coala.time.Instant;
+import io.coala.time.Signal;
+import io.coala.time.Timed;
 import nl.rivm.cib.episim.model.EpidemicCompartment;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.TransmissionEvent;
-import nl.rivm.cib.episim.time.Indicator;
-import nl.rivm.cib.episim.time.Signal;
-import nl.rivm.cib.episim.time.Timed;
 
 /**
  * {@link InfectionMetrics} follows common
@@ -46,7 +46,7 @@ import nl.rivm.cib.episim.time.Timed;
  * </tr>
  * </table>
  * 
- * @version $Id$
+ * @version $Id: 7aa57c407ea079fca3643e1dc055a7880ace72ed $
  * @author Rick van Krevelen
  */
 public interface InfectionMetrics extends Timed

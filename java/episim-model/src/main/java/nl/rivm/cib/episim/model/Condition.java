@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -20,8 +20,8 @@
 package nl.rivm.cib.episim.model;
 
 import io.coala.exception.ExceptionFactory;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -30,7 +30,7 @@ import rx.subjects.Subject;
  * {@link Condition} represents the {@link Infection} bookkeeping dynamics for
  * an individual {@link Carrier}
  * 
- * @version $Id$
+ * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
  * @author Rick van Krevelen
  */
 public interface Condition extends Timed
@@ -74,7 +74,7 @@ public interface Condition extends Timed
 	/**
 	 * {@link Simple} implementation of {@link Condition}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Condition

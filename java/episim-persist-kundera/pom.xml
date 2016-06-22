@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2-SNAPSHOT</version>
 		<relativePath>../..</relativePath>
 	</parent>
 	<artifactId>episim-persist-kundera</artifactId>
@@ -14,7 +14,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id$
+		$Id: fcbe5b8a95c4737c8471ddc8a7731331615483ee $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 	

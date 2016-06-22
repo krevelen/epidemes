@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: c6080295706e65dec4fef8c59bdb099fff2b1f3a $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,11 +27,11 @@ import javax.measure.quantity.Dimensionless;
 
 import org.jscience.physics.amount.Amount;
 
+import io.coala.time.Indicator;
+import io.coala.time.Scheduler;
+import io.coala.time.Timed;
 import nl.rivm.cib.episim.model.Infection;
 import nl.rivm.cib.episim.model.Population;
-import nl.rivm.cib.episim.time.Indicator;
-import nl.rivm.cib.episim.time.Scheduler;
-import nl.rivm.cib.episim.time.Timed;
 
 /**
  * {@link PopulationMetrics} follows common
@@ -55,7 +55,7 @@ import nl.rivm.cib.episim.time.Timed;
  * </tr>
  * </table>
  * 
- * @version $Id$
+ * @version $Id: c6080295706e65dec4fef8c59bdb099fff2b1f3a $
  * @author Rick van Krevelen
  */
 public interface PopulationMetrics extends Timed

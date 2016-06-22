@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import javax.measure.quantity.Frequency;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.random.ProbabilityDistribution;
-import io.coala.time.x.Duration;
+import io.coala.time.Duration;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious
@@ -78,7 +78,7 @@ import io.coala.time.x.Duration;
  *           - convalescent, removed (2-7y), susceptible
  *           - death, removed
  * 
- * @version $Id$
+ * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
  * @author Rick van Krevelen
  */
 public interface Infection
@@ -173,7 +173,7 @@ public interface Infection
 	 * their current {@link Condition}s, or the contact {@link Place} (and
 	 * {@link TransmissionRoute}s)
 	 * 
-	 * @version $Id$
+	 * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Infection
