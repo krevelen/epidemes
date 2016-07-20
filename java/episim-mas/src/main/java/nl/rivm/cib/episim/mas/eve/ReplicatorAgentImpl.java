@@ -277,10 +277,10 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 										: this.myDuration.getValue()
 												.subtract( t.unwrap()
 														.to( TimeSpan.MILLIS,
-																DecimalUtil.DECIMAL_PRECISION )
+																DecimalUtil.DEFAULT_CONTEXT )
 														.getValue() )
 												.divide( pace.virtualMS,
-														DecimalUtil.DECIMAL_PRECISION )
+														DecimalUtil.DEFAULT_CONTEXT )
 												.multiply( pace.actualMS )
 												.longValue() ) );
 	}

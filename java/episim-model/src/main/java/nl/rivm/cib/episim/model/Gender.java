@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 1f7d981c1e2a81f203b5a4261733b3acd98f9897 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,27 +19,70 @@
  */
 package nl.rivm.cib.episim.model;
 
-import io.coala.json.Wrapper;
 import io.coala.json.DynaBean.BeanProxy;
+import io.coala.json.Wrapper;
 
 /**
  * {@link Gender} is an extensible identifier for gender classifications
  * 
- * @version $Id$
+ * @version $Id: 1f7d981c1e2a81f203b5a4261733b3acd98f9897 $
  * @author Rick van Krevelen
  */
 @BeanProxy
-public interface Gender extends Wrapper<String>
+public interface Gender extends Wrapper.Ordinal<String>
 {
 	/** the MALE {@link Gender} */
-	Gender MALE = Util.valueOf( "male", Gender.class );
+	Gender MALE = of( "male" );
 
 	/** the FEMALE {@link Gender} */
-	Gender FEMALE = Util.valueOf( "female", Gender.class );
+	Gender FEMALE = of( "female" );
 
 	/** the TRANSSEXUAL_MALE {@link Gender}, previously {@link #FEMALE} */
-	Gender TRANSSEXUAL_MALE = Util.valueOf( "trans-male", Gender.class );
+	Gender TRANSSEXUAL_MALE = of( "trans-male" );
 
 	/** the TRANSSEXUAL_FEMALE {@link Gender}, previously {@link #MALE} */
-	Gender TRANSSEXUAL_FEMALE = Util.valueOf( "trans-female", Gender.class );
+	Gender TRANSSEXUAL_FEMALE = of( "trans-female" );
+
+	static Gender of( final String name )
+	{
+		return new Gender()
+		{
+			@Override
+			public String unwrap()
+			{
+				return name;
+			}
+
+			@Override
+			public Gender wrap( final String value )
+			{
+				throw new UnsupportedOperationException();
+			}
+
+			@SuppressWarnings( "rawtypes" )
+			@Override
+			public int compareTo( final Comparable o )
+			{
+				return Util.compare( this, o );
+			}
+
+			@Override
+			public int hashCode()
+			{
+				return Util.hashCode( this );
+			}
+
+			@Override
+			public boolean equals( final Object rhs )
+			{
+				return Util.equals( this, rhs );
+			}
+
+			@Override
+			public String toString()
+			{
+				return Util.toString( this );
+			}
+		};
+	}
 }

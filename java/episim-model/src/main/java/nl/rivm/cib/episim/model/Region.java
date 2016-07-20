@@ -8,17 +8,20 @@ import java.util.Map;
 
 import javax.measure.quantity.Angle;
 import javax.measure.quantity.Area;
+import javax.measure.unit.Unit;
 
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.json.Wrapper;
+import io.coala.time.Units;
+
 import static io.coala.math.MeasureUtil.angularDistance;
 
 /**
  * {@link Region}
  * 
- * @version $Id$
+ * @version $Id: e6c9b6b9dc29f3775464a9a9e2400236f22ef50c $
  * @author Rick van Krevelen
  */
 public interface Region
@@ -53,14 +56,14 @@ public interface Region
 
 	default Amount<?> getPopulationDensity()
 	{
-		return getPopulation().getSize().divide( getArea() )
-				.to( Units.PER_KM2 );
+		return Amount.valueOf( getPopulation().size(), Unit.ONE )
+				.divide( getArea() ).to( Units.PER_KM2 );
 	}
 
 	/**
 	 * {@link RegionType}
 	 * 
-	 * @version $Id$
+	 * @version $Id: e6c9b6b9dc29f3775464a9a9e2400236f22ef50c $
 	 * @author Rick van Krevelen
 	 */
 	interface RegionType extends Wrapper<String>

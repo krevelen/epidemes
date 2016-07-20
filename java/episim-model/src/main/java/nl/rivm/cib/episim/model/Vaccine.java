@@ -5,8 +5,8 @@ import java.util.Collections;
 
 import javax.measure.quantity.Dimensionless;
 
+import io.coala.random.AmountDistribution;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.random.ProbabilityDistribution.ArithmeticDistribution;
 import io.coala.time.Scheduler;
 import io.coala.time.Timed;
 
@@ -36,7 +36,7 @@ public interface Vaccine extends Timed
 	 *         oral, micro-needle arrays, stratum corneum disruption) for
 	 *         specified {@link Individual}'s traits (age, sex, &hellip;)
 	 */
-	ArithmeticDistribution<Dimensionless> getComfort( Individual person );
+	AmountDistribution<Dimensionless> getComfort( Individual person );
 
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
@@ -58,7 +58,7 @@ public interface Vaccine extends Timed
 		public static Simple of( final Scheduler scheduler,
 			final Infection target,
 			final ProbabilityDistribution<Boolean> efficacy,
-			final ArithmeticDistribution<Dimensionless> comfort )
+			final AmountDistribution<Dimensionless> comfort )
 		{
 			return new Simple( scheduler, Collections.singleton( target ),
 					efficacy, comfort );
@@ -70,7 +70,7 @@ public interface Vaccine extends Timed
 
 		private final ProbabilityDistribution<Boolean> efficacy;
 
-		private final ArithmeticDistribution<Dimensionless> comfort;
+		private final AmountDistribution<Dimensionless> comfort;
 
 		/**
 		 * {@link Simple} constructor
@@ -81,7 +81,7 @@ public interface Vaccine extends Timed
 		public Simple( final Scheduler scheduler,
 			final Collection<Infection> targets,
 			final ProbabilityDistribution<Boolean> efficacy,
-			final ArithmeticDistribution<Dimensionless> comfort )
+			final AmountDistribution<Dimensionless> comfort )
 		{
 			this.scheduler = scheduler;
 			this.targets = targets;
@@ -109,7 +109,7 @@ public interface Vaccine extends Timed
 		}
 
 		@Override
-		public ArithmeticDistribution<Dimensionless>
+		public AmountDistribution<Dimensionless>
 			getComfort( final Individual person )
 		{
 			return this.comfort;

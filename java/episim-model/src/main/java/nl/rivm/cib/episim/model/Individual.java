@@ -100,6 +100,21 @@ public interface Individual extends Carrier, Timed
 		return this;
 	}
 
+	Map<Individual, Instant> partners();
+
+	/**
+	 * @return
+	 */
+	default boolean isSingle()
+	{
+		return partners().isEmpty();
+	}
+
+	/**
+	 * @return {@code true} if this {@link Individual} can't leave home
+	 */
+	boolean isHomeMaker();
+
 	/**
 	 * {@link Simple} implementation of {@link Individual}
 	 * 
@@ -119,9 +134,11 @@ public interface Individual extends Carrier, Timed
 		 * @return a {@link Simple} instance of {@link Individual}
 		 */
 		public static Simple of( final Household household, final Instant birth,
-			final Gender gender, final TransmissionSpace currentSpace )
+			final Gender gender, final TransmissionSpace currentSpace,
+			final boolean homeMaker )
 		{
-			return new Simple( household, birth, gender, currentSpace );
+			return new Simple( household, birth, gender, currentSpace,
+					homeMaker );
 		}
 
 		private final Instant birth;
@@ -130,12 +147,16 @@ public interface Individual extends Carrier, Timed
 
 		private final Household household;
 
+		private final Map<Individual, Instant> partners = new HashMap<>();
+
 		private final Map<Infection, Condition> conditions = new HashMap<>();
 
 		private final Map<Vaccine, VaccineAttitude> beliefs = new HashMap<>();
 
 		private final transient Subject<TravelEvent, TravelEvent> travels = PublishSubject
 				.create();
+
+		private final boolean homeMaker;
 
 		private TransmissionSpace space;
 
@@ -151,12 +172,14 @@ public interface Individual extends Carrier, Timed
 		 * @param attitudes
 		 */
 		public Simple( final Household household, final Instant birth,
-			final Gender gender, final TransmissionSpace currentSpace )
+			final Gender gender, final TransmissionSpace currentSpace,
+			final boolean homeMaker )
 		{
 			this.birth = birth;
 			this.gender = gender;
 			this.household = household;
 			this.space = currentSpace;
+			this.homeMaker = homeMaker;
 		}
 
 		@Override
@@ -220,6 +243,18 @@ public interface Individual extends Carrier, Timed
 		public void move( final TransmissionSpace newSpace )
 		{
 			this.space = newSpace;
+		}
+
+		@Override
+		public Map<Individual, Instant> partners()
+		{
+			return this.partners;
+		}
+
+		@Override
+		public boolean isHomeMaker()
+		{
+			return this.homeMaker;
 		}
 	}
 }

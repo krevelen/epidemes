@@ -7,7 +7,7 @@ import io.coala.time.Scheduler;
 import io.coala.time.Timed;
 
 /**
- * {@link Household} includes elements adapted from
+ * {@link Household} adopts elements from
  * <a href= "https://github.com/nlgn/sim-demog">Python code by Nic Geard</a>
  * 
  * @version $Id: 88e3618b2571332669cc3266f9d0836962e886d3 $
@@ -15,43 +15,60 @@ import io.coala.time.Timed;
  */
 public interface Household extends Timed
 {
+	/** @return the overall {@link Population} */
 	Population getPopulation();
 
-	Collection<Individual> getMembers();
+	/** @return the member {@link Individual}s */
+	Collection<Individual> members();
 
-	/** @return the home {@link Place} */
+	/** @return the (main) {@link Place} of residence */
 	Place getHome();
 
 	// TODO change daily routines: schools, commute, etc.
 	void move( Place newHome );
 
+	/**
+	 * @param member the {@link Individual} to add
+	 * @return this {@link Household} to allow chaining
+	 */
 	default Household join( Individual member )
 	{
-		getMembers().add( member );
+		members().add( member );
 		return this;
 	}
 
 	default Household join( Household extra )
 	{
-		getMembers().addAll( extra.getMembers() );
+		members().addAll( extra.members() );
 		return this;
 	}
 
+	/**
+	 * @param member the {@link Individual} to remove
+	 * @return this {@link Household} to allow chaining
+	 */
 	default Household part( Individual member )
 	{
-		getMembers().remove( member );
+		members().remove( member );
 		return this;
 	}
 
+	/**
+	 * @param member the {@link Individual} to remove
+	 * @return this {@link Household} to allow chaining
+	 */
 	default Household part( Household leavers )
 	{
-		getMembers().removeAll( leavers.getMembers() );
+		members().removeAll( leavers.members() );
 		return this;
 	}
 
+	/**
+	 * @return this {@link Household} (after clearing) to allow chaining
+	 */
 	default Household abandon()
 	{
-		getMembers().clear();
+		members().clear();
 		return this;
 	}
 
@@ -123,7 +140,7 @@ public interface Household extends Timed
 		}
 
 		@Override
-		public Collection<Individual> getMembers()
+		public Collection<Individual> members()
 		{
 			return this.members;
 		}

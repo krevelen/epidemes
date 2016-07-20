@@ -19,10 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import javax.measure.quantity.Dimensionless;
-import javax.measure.unit.Unit;
-
-import org.jscience.physics.amount.Amount;
+import java.util.HashSet;
+import java.util.Set;
 
 import io.coala.time.Scheduler;
 import io.coala.time.Timed;
@@ -62,11 +60,13 @@ import rx.subjects.Subject;
 public interface Population extends Timed
 {
 
+	Iterable<Household> households();
+
 	void reset( Iterable<Household> households );
 
-	Amount<Dimensionless> getSize();
+	long size();
 
-	Observable<DemographicEvent> emitHouseholdEvents();
+	Observable<DemographicEvent> emitDemographicEvents();
 
 	Population birth( Individual newborn );
 
@@ -94,7 +94,7 @@ public interface Population extends Timed
 
 		private final Scheduler scheduler;
 
-		private Amount<Dimensionless> size;
+		private long size;
 
 		public Simple( final Scheduler scheduler )
 		{
@@ -107,35 +107,43 @@ public interface Population extends Timed
 			return this.scheduler;
 		}
 
+		// TODO apply sorting?
+		private Set<Household> households = new HashSet<>();
+
+		@Override
+		public Iterable<Household> households()
+		{
+			return this.households;
+		}
+
 		@Override
 		public void reset( final Iterable<Household> households )
 		{
+			this.households.clear();
 			int size = 0;
 			for( Household hh : households )
-				size += hh.getMembers().size();
+			{
+				size += hh.members().size();
+				this.households.add( hh );
+			}
 			// FIXME persist?
-			this.size = Amount.valueOf( size, Unit.ONE );
+			this.size = size;
 		}
 
-		public Observable<DemographicEvent> emitHouseholdEvents()
+		public Observable<DemographicEvent> emitDemographicEvents()
 		{
 			return this.changes.asObservable();
 		}
 
 		@Override
-		public Amount<Dimensionless> getSize()
+		public long size()
 		{
 			return this.size;
 		}
 
-		protected Population addSize( final int delta )
+		protected Population addSize( final long delta )
 		{
-			return addSize( Amount.valueOf( delta, Unit.ONE ) );
-		}
-
-		protected Population addSize( final Amount<Dimensionless> delta )
-		{
-			this.size = this.size.plus( delta );
+			this.size += delta;
 			return this;
 		}
 
@@ -143,7 +151,7 @@ public interface Population extends Timed
 		public Population birth( final Individual newborn )
 		{
 			this.changes.onNext( new Birth( newborn ) );
-			return addSize( Amount.ONE );
+			return addSize( 1 );
 		}
 
 		@Override
@@ -164,14 +172,14 @@ public interface Population extends Timed
 		public Population immigrate( final Household immigrants )
 		{
 			this.changes.onNext( new Immigration( immigrants ) );
-			return addSize( immigrants.getMembers().size() );
+			return addSize( immigrants.members().size() );
 		}
 
 		@Override
 		public Population emigrate( final Household emigrants )
 		{
 			this.changes.onNext( new Emigration( emigrants ) );
-			return addSize( -emigrants.getMembers().size() );
+			return addSize( -emigrants.members().size() );
 		}
 
 		@Override

@@ -27,6 +27,7 @@ import org.jscience.physics.amount.Amount;
 
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
+import io.coala.time.Units;
 
 /**
  * {@link Infection} results in infectious/transmissible/communicable/contagious

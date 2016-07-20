@@ -137,7 +137,7 @@ public abstract class DemographicEvent
 	{
 		public Immigration( final Household immigrants )
 		{
-			super( immigrants.now(), immigrants.getMembers(), immigrants );
+			super( immigrants.now(), immigrants.members(), immigrants );
 		}
 	}
 
@@ -145,7 +145,7 @@ public abstract class DemographicEvent
 	{
 		public Emigration( final Household emigrants )
 		{
-			super( emigrants.now(), emigrants.getMembers(), emigrants );
+			super( emigrants.now(), emigrants.members(), emigrants );
 		}
 	}
 
@@ -154,7 +154,7 @@ public abstract class DemographicEvent
 		public CoupleFormation( final Household merging,
 			final Household abandoning )
 		{
-			super( merging.now(), merging.join( abandoning ).getMembers(),
+			super( merging.now(), merging.join( abandoning ).members(),
 					abandoning.abandon() );
 		}
 	}
@@ -164,7 +164,7 @@ public abstract class DemographicEvent
 		public CoupleDissolution( final Household parting,
 			final Household dissolving )
 		{
-			super( parting.now(), parting.getMembers(),
+			super( parting.now(), parting.members(),
 					dissolving.part( parting ) );
 		}
 	}

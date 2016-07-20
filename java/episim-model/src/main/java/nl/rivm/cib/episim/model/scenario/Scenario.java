@@ -30,28 +30,30 @@ import io.coala.time.Timed;
  */
 public interface Scenario extends Timed
 {
+	void init( Scheduler scheduler ) throws Exception;
 
 	class Simple implements Scenario
 	{
 
 		public static Simple of( final String id, final Scheduler s )
 		{
-			return new Simple( s );
+			final Simple result = new Simple();
+			result.scheduler = s;
+			return result;
 		}
 
-		private final Scheduler scheduler;
-
-		public Simple( final Scheduler scheduler )
-		{
-			this.scheduler = scheduler;
-			
-			// TODO create/load model components
-		}
+		private Scheduler scheduler;
 
 		@Override
 		public Scheduler scheduler()
 		{
 			return this.scheduler;
+		}
+
+		@Override
+		public void init( final Scheduler scheduler ) throws Exception
+		{
+			this.scheduler = scheduler;
 		}
 	}
 }

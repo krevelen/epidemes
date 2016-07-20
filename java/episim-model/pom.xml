@@ -51,7 +51,7 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
-		
+
 		<repository>
 			<name>EPISIM Public Maven Repository</name>
 			<id>episim-public</id>
@@ -70,6 +70,13 @@
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>episim-common</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>guice4-coala-adapter</artifactId>
+			<version>${coala.version}</version>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>

@@ -21,18 +21,26 @@ package nl.rivm.cib.episim.model.scenario;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.bind.LocalBinder;
+import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
+import io.coala.guice4.Guice4LocalBinder;
 import io.coala.log.LogUtil;
+import io.coala.math3.Math3ProbabilityDistribution;
+import io.coala.math3.Math3PseudoRandom;
+import io.coala.random.ProbabilityDistribution;
+import io.coala.random.PseudoRandom;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.Units;
+import io.coala.time.Units;
 
 /**
  * {@link HouseholdTest}
@@ -57,16 +65,32 @@ public class HouseholdTest
 	{
 		LOG.trace( "Initializing household composition scenario..." );
 
-		Units.DAILY.toString();
+		Units.DAILY.toString(); // FIXME initialize Units.class more elegantly
+		final long seed = 1234L; // FIXME put in some replicator config somehow
+
+		@SuppressWarnings( "serial" )
+		final LocalBinder binder = Guice4LocalBinder.of( LocalConfig.builder()
+				.withProvider( Scenario.class, Geard2011Scenario.class )
+				.withProvider( ProbabilityDistribution.Factory.class,
+						Math3ProbabilityDistribution.Factory.class )
+				.build(), new HashMap<Class<?>, Object>()
+				{
+					{
+						put( PseudoRandom.class, Math3PseudoRandom.Factory
+								.ofMersenneTwister().create( "rng", seed ) );
+					}
+				} );
+
+		// TODO initiate scheduler through (replication-specific) binder
 		final Scheduler scheduler = Dsol3Scheduler.of( "householdTest",
 				Instant.of( "0 days" ), Duration.of( "100 days" ),
-				new Geard2011Scenario()::init );
+				binder.inject( Scenario.class )::init );
 
 		LOG.trace( "Starting household composition scenario..." );
 		final CountDownLatch latch = new CountDownLatch( 1 );
 		scheduler.time().subscribe( t ->
 		{
-			LOG.trace( "t = {}", t.prettify( 4 ) );
+			LOG.trace( "t = {}", t.prettify( 1 ) );
 		}, e ->
 		{
 			LOG.warn( "Problem in scheduler", e );
@@ -75,7 +99,7 @@ public class HouseholdTest
 			latch.countDown();
 		} );
 		scheduler.resume();
-		latch.await( 3, TimeUnit.SECONDS );
+		latch.await( 20, TimeUnit.SECONDS );
 		assertEquals( "Should have completed", 0, latch.getCount() );
 	}
 

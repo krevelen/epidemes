@@ -39,11 +39,13 @@ import org.junit.Test;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
-import io.coala.math3.Math3RandomNumberStream;
+import io.coala.math3.Math3PseudoRandom;
+import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
+import io.coala.time.Units;
 import nl.rivm.cib.episim.model.Condition;
 import nl.rivm.cib.episim.model.ContactIntensity;
 import nl.rivm.cib.episim.model.Gender;
@@ -54,7 +56,6 @@ import nl.rivm.cib.episim.model.Place;
 import nl.rivm.cib.episim.model.Population;
 import nl.rivm.cib.episim.model.TransmissionRoute;
 import nl.rivm.cib.episim.model.TransmissionSpace;
-import nl.rivm.cib.episim.model.Units;
 
 /**
  * {@link ScenarioTest}
@@ -139,9 +140,9 @@ public class ScenarioTest
 				contactPeriod, Arrays.asList( contactTypes ),
 				infectLikelihood );
 
-		final ProbabilityDistribution.Parser distParser = new ProbabilityDistribution.Parser(
+		final DistributionParser distParser = new DistributionParser(
 				Math3ProbabilityDistribution.Factory
-						.of( Math3RandomNumberStream.Factory
+						.of( Math3PseudoRandom.Factory
 								.of( MersenneTwister.class )
 								.create( "MAIN", 1234L ) ) );
 		final ProbabilityDistribution<Gender> genderDist = distParser
@@ -166,7 +167,7 @@ public class ScenarioTest
 					birth.prettify( NonSI.DAY, 1 ) );
 			final Individual ind = Individual.Simple.of(
 					Household.Simple.of( pop, rivm ), birth, gender,
-					rivm.getSpace() );
+					rivm.getSpace(), false );
 			ind.with( Condition.Simple.of( ind, measles ) );
 //			pop.add( ind );
 			final int nr = i;
@@ -190,7 +191,7 @@ public class ScenarioTest
 						.call( ind.getConditions().get( measles )::infect );
 			}
 		}
-		scheduler.time().subscribe( ( Instant t ) ->
+		scheduler.time().subscribe( t ->
 		{
 			LOG.trace( "t = {}", t.prettify( NonSI.DAY, 1 ) );
 		}, ( Throwable e ) ->
