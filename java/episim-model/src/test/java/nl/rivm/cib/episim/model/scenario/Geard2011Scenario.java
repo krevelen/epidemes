@@ -3,9 +3,11 @@ package nl.rivm.cib.episim.model.scenario;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 
@@ -16,8 +18,9 @@ import javax.measure.quantity.Duration;
 import javax.measure.unit.Unit;
 
 import org.apache.logging.log4j.Logger;
-import org.jscience.geography.coordinates.LatLong;
 import org.jscience.physics.amount.Amount;
+
+import com.eaio.uuid.UUID;
 
 import io.coala.bind.LocalBinder;
 import io.coala.config.InjectConfig;
@@ -35,12 +38,15 @@ import io.coala.time.Scheduler;
 import io.coala.time.Signal;
 import io.coala.time.Units;
 import nl.rivm.cib.episim.model.Gender;
-import nl.rivm.cib.episim.model.Household;
 import nl.rivm.cib.episim.model.Individual;
-import nl.rivm.cib.episim.model.Place;
-import nl.rivm.cib.episim.model.Population;
-import nl.rivm.cib.episim.model.TransmissionSpace;
-import nl.rivm.cib.episim.model.ZipCode;
+import nl.rivm.cib.episim.model.Partner;
+import nl.rivm.cib.episim.model.populate.MotherPicker;
+import nl.rivm.cib.episim.model.populate.family.Household;
+import nl.rivm.cib.episim.model.populate.family.HouseholdPopulation;
+import nl.rivm.cib.episim.model.populate.family.Participant;
+import rx.Observable;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 /**
  * {@link Geard2011Scenario}
@@ -70,9 +76,8 @@ public class Geard2011Scenario implements Scenario
 		 */
 		public GenderAge( final Individual individual )
 		{
-			super( Arrays.asList( individual.getGender(),
-					individual.now().subtract( individual.getBirth() )
-							.intValue( Units.ANNUM ) ) );
+			super( Arrays.asList( individual.gender(), individual.now()
+					.subtract( individual.birth() ).intValue( Units.ANNUM ) ) );
 		}
 
 		public Gender gender()
@@ -83,6 +88,218 @@ public class Geard2011Scenario implements Scenario
 		public Integer age()
 		{
 			return (Integer) values().get( 1 );
+		}
+
+	}
+
+	interface GeardPopulation extends HouseholdPopulation<GeardIndividual>
+	{
+
+		@Override
+		Map<GeardHousehold, Instant> households();
+
+		/**
+		 * @param scheduler
+		 * @return
+		 */
+		static GeardPopulation of( final Scheduler scheduler )
+		{
+			return new GeardPopulation()
+			{
+
+				private final ID id = ID.of( "pop" );
+
+				private final Subject<DemographicEvent, DemographicEvent> events = PublishSubject
+						.create();
+
+				private final Map<GeardHousehold, Instant> households = new HashMap<>();
+
+				private final Map<GeardIndividual, Instant> members = new HashMap<>();
+
+				@Override
+				public Scheduler scheduler()
+				{
+					return scheduler;
+				}
+
+				@Override
+				public ID id()
+				{
+					return this.id;
+				}
+
+				@Override
+				public Observable<DemographicEvent> emitEvents()
+				{
+					return this.events.asObservable();
+				}
+
+				@Override
+				public Map<GeardHousehold, Instant> households()
+				{
+					return this.households;
+				}
+
+				@Override
+				public Map<GeardIndividual, Instant> members()
+				{
+					return this.members;
+				}
+			};
+		}
+
+	}
+
+	interface GeardHousehold extends Household<GeardIndividual>
+	{
+		GeardPopulation population();
+
+		static GeardHousehold of( final GeardPopulation population )
+		{
+			final GeardHousehold result = new GeardHousehold()
+			{
+				private final ID id = ID.of( new UUID().toString() );
+
+				private final Subject<DemographicEvent, DemographicEvent> events = PublishSubject
+						.create();
+
+				private final Map<GeardIndividual, Instant> members = new HashMap<>();
+
+				@Override
+				public Scheduler scheduler()
+				{
+					return population.scheduler();
+				}
+
+				@Override
+				public ID id()
+				{
+					return this.id;
+				}
+
+				@Override
+				public Observable<DemographicEvent> emitEvents()
+				{
+					return this.events.asObservable();
+				}
+
+				@Override
+				public Map<GeardIndividual, Instant> members()
+				{
+					return this.members;
+				}
+
+				@Override
+				public GeardPopulation population()
+				{
+					return population;
+				}
+			};
+			population.households().put( result, result.now() );
+			return result;
+		}
+	}
+
+	interface GeardIndividual extends Partner, Participant, MotherPicker.Mother
+	{
+
+		GeardHousehold household();
+
+		void death();
+
+		void join( GeardHousehold hh );
+
+		/**
+		 * @param household
+		 * @param birth
+		 * @param gender
+		 * @param homeMaker
+		 * @return
+		 */
+		static GeardIndividual of( final GeardHousehold household,
+			final Instant birth, final Gender gender, boolean homeMaker,
+			final Range<Integer> fertilityAges,
+			final io.coala.time.Duration recoveryPeriod )
+		{
+			final Range<Instant> fertilityInterval = fertilityAges == null
+					? null
+					: MotherPicker.birthToAgeInterval( birth, fertilityAges );
+			final GeardIndividual result = new GeardIndividual()
+			{
+				private final Map<GeardIndividual, Instant> partners = new HashMap<>();
+
+				@Override
+				public Scheduler scheduler()
+				{
+					return household.scheduler();
+				}
+
+				@Override
+				public GeardHousehold household()
+				{
+					return household;
+				}
+
+				@Override
+				public Map<GeardIndividual, Instant> partners()
+				{
+					return this.partners;
+				}
+
+				@Override
+				public Instant birth()
+				{
+					return birth;
+				}
+
+				@Override
+				public Gender gender()
+				{
+					return gender;
+				}
+
+				@Override
+				public boolean isHomeMaker()
+				{
+					return homeMaker;
+				}
+
+				@Override
+				public Range<Instant> fertilityInterval()
+				{
+					return fertilityInterval;
+				}
+
+				@Override
+				public io.coala.time.Duration recoveryPeriod()
+				{
+					return recoveryPeriod;
+				}
+
+				@Override
+				public void death()
+				{
+					at( now() ).call( () ->
+					{
+						// TODO handle orphans
+						household().population().members().remove( this );
+						household().members().remove( this );
+					} );
+				}
+
+				@Override
+				public void join( final GeardHousehold hh )
+				{
+					at( now() ).call( () ->
+					{
+						household().members().remove( this );
+						hh.members().put( this, now() );
+					} );
+				}
+			};
+			household.population().members().put( result, result.now() );
+			household.members().put( result, result.now() );
+			return result;
 		}
 
 	}
@@ -99,6 +316,23 @@ public class Geard2011Scenario implements Scenario
 	}
 
 	private Scheduler scheduler;
+
+	@Inject
+	private LocalBinder binder;
+
+	@Inject
+	private ProbabilityDistribution.Factory distFact;
+
+	@InjectConfig
+	private Geard2011Config conf;
+
+	private Amount<Duration> dt;
+
+	private Amount<Dimensionless> yearsPerDt;
+
+	private GeardPopulation pop;
+
+	private MotherPicker<GeardIndividual> momPicker;
 
 	// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
 	// http://statline.cbs.nl/StatWeb/publication/?VW=T&DM=SLNL&PA=70895ned&LA=NL
@@ -137,31 +371,18 @@ public class Geard2011Scenario implements Scenario
 
 	ProbabilityDistribution<Gender> gender_dist;
 
-	Amount<Duration> dt;
-	Signal<Rate> organicGrowthRate;
+	Signal<Rate> growthRate;
 	Signal<Rate> immigrationRate;
 	ProbabilityDistribution<Boolean> dtCoupleDist;
 	ProbabilityDistribution<Boolean> dtLeaveHomeDist;
 	ProbabilityDistribution<Boolean> dtDivorceDist;
 
+	Signal<Range<Integer>> ageBirthing;
 	Signal<Range<Integer>> ageCoupling;
 	Signal<Range<Integer>> ageLeaving;
 	Signal<Range<Integer>> ageDivorcing;
 	AmountDistribution<Duration> agePartner;
 	AmountDistribution<Duration> birthGap;
-
-	io.coala.time.Duration stepSize;
-
-	Amount<Dimensionless> yearsPerDt;
-
-	@Inject
-	LocalBinder binder;
-
-	@Inject
-	ProbabilityDistribution.Factory distFact;
-
-	@InjectConfig
-	Geard2011Config conf;
 
 	@Override
 	public Scheduler scheduler()
@@ -176,11 +397,13 @@ public class Geard2011Scenario implements Scenario
 
 		this.scheduler = scheduler;
 
+		this.dt = Amount.valueOf( 10, Units.DAYS );
+		this.yearsPerDt = Amount.valueOf( 1, Units.ANNUAL ).times( this.dt )
+				.to( Unit.ONE );
+
 		final List<WeightedValue<Integer>> ageDist = Geard2011Config
 				.importFrequencies( this.conf.age_dist(), 0, Integer::valueOf );
 		this.age_dist = this.distFact.createCategorical( ageDist );
-
-		// TODO create Bernoulli draw for death conditional on (sex, age)
 
 		final NavigableMap<Integer, BigDecimal> femaleDeathRates = Geard2011Config
 				.importMap( this.conf.death_rates_female(), 1,
@@ -190,21 +413,19 @@ public class Geard2011Scenario implements Scenario
 		this.deathRates = ConditionalDistribution
 				.of( this.distFact::createBernoulli, tuple ->
 				{
-					final Integer age = (Integer) tuple.values().get( 1 );
-					final BigDecimal p = Gender.MALE
-							.equals( tuple.values().get( 0 ) )
-									? maleDeathRates.computeIfAbsent( age,
-											key ->
-											{
-												return femaleDeathRates
-														.lastEntry().getValue();
-											} )
-									: femaleDeathRates.computeIfAbsent( age,
-											key ->
-											{
-												return femaleDeathRates
-														.lastEntry().getValue();
-											} );
+					final BigDecimal p = Gender.MALE.equals( tuple.gender() )
+							? maleDeathRates.computeIfAbsent( tuple.age(),
+									key ->
+									{
+										return maleDeathRates.lastEntry()
+												.getValue();
+									} )
+							: femaleDeathRates.computeIfAbsent( tuple.age(),
+									key ->
+									{
+										return femaleDeathRates.lastEntry()
+												.getValue();
+									} );
 					return adjust( MeasureUtil.toAmount( p, Unit.ONE ),
 							this.yearsPerDt );
 				} );
@@ -233,12 +454,7 @@ public class Geard2011Scenario implements Scenario
 		this.gender_dist = distFact.createUniformCategorical( Gender.FEMALE,
 				Gender.MALE );
 
-		this.dt = Amount.valueOf( 10, Units.DAYS );
-		this.stepSize = io.coala.time.Duration.of( this.dt );
-		this.yearsPerDt = Amount.valueOf( 1, Units.ANNUAL ).times( this.dt )
-				.to( Unit.ONE );
-
-		this.organicGrowthRate = Signal.Simple.of( scheduler,
+		this.growthRate = Signal.Simple.of( scheduler,
 				Rate.of( 0.01, Units.ANNUAL ) );
 		this.immigrationRate = Signal.Simple.of( scheduler,
 				Rate.of( 0, Units.ANNUAL ) );
@@ -251,6 +467,7 @@ public class Geard2011Scenario implements Scenario
 		this.dtDivorceDist = this.distFact.createBernoulli(
 				adjust( this.conf.annualIndividualDivorcingProbability(),
 						this.yearsPerDt ) );
+		this.ageBirthing = Signal.Simple.of( scheduler, Range.of( 15, 50 ) );
 		this.ageCoupling = Signal.Simple.of( scheduler, Range.of( 21, 60 ) );
 		this.ageLeaving = Signal.Simple.of( scheduler, Range.of( 18, null ) );
 		this.ageDivorcing = Signal.Simple.of( scheduler, Range.of( 24, 60 ) );
@@ -259,48 +476,73 @@ public class Geard2011Scenario implements Scenario
 		this.birthGap = this.distFact.createDeterministic( 270 )
 				.toAmounts( Units.DAYS );
 
-		this.pop = Population.Simple.of( scheduler );
-
-		final Set<Household> households = new HashSet<>();
+		this.momPicker = MotherPicker.of( scheduler );
+		this.pop = GeardPopulation.of( scheduler );
 		final int popSize = 20000;
-		for( int size = 0; size < popSize; )
-		{
-			final Geard2011HouseholdComposition hh_comp = this.hh_comp_dist
-					.draw();
+		while( this.pop.members().size() < popSize )
+			createHousehold();
 
-			final LatLong position = null; // TODO conditional on hh_comp?
-			final ZipCode zip = null; // TODO draw conditional on hh_comp?
-			final TransmissionSpace space = null;
-			final Place home = Place.Simple.of( position, zip, space );
-			final Household hh = Household.Simple.of( pop, home );
-			households.add( hh );
-
-			for( int i = 0; i < this.age_dist_sub.size(); i++ )
-				for( int j = 0; j < hh_comp.counts[i].intValue(); j++ )
-				{
-					final double age = distFact.getStream().nextDouble()
-							+ this.age_dist_sub.get( i ).draw();
-					final Instant birth = Instant.of(
-							Amount.valueOf( age, Units.ANNUM ).opposite() );
-//						LOG.trace( "Birth {}: {}", i,
-//								MeasureUtil.toString( birth.toMeasure(), 1 ) );
-					final Gender gender = this.gender_dist.draw();
-					boolean homeMaker = i == 0;
-					hh.members().add( Individual.Simple.of( hh, birth, gender,
-							home.getSpace(), homeMaker ) );
-					size++;
-				}
-		}
-		this.pop.reset( households );
-
-		scheduler.at( scheduler.now() ).call( this::updateAll );
-		LOG.trace( "{} households initialized, total={}", households.size(),
-				pop.size() );
+		scheduler.at( scheduler.now() ).call( this::updateAll,
+				io.coala.time.Duration.of( this.dt ) );
+		LOG.trace( "{} households initialized, total={}",
+				this.pop.households().size(), this.pop.members().size() );
 	}
 
-	Population pop;
+	protected GeardIndividual createIndividual( final GeardHousehold household,
+		final Instant birth, boolean homeMaker )
+	{
+		final Gender gender = this.gender_dist.draw();
+		if( !Gender.FEMALE.equals( gender ) ) return GeardIndividual
+				.of( household, birth, gender, homeMaker, null, null );
 
-//	int growth = 0, draw = 0;
+		final Range<Integer> fertilityAges = this.ageBirthing.current();
+		final io.coala.time.Duration recoveryPeriod = io.coala.time.Duration
+				.of( this.birthGap.draw() );
+		final GeardIndividual result = GeardIndividual.of( household, birth,
+				gender, homeMaker, fertilityAges, recoveryPeriod );
+		this.momPicker.register( result );
+		return result;
+	}
+
+	protected GeardHousehold createHousehold()
+	{
+		final GeardHousehold result = GeardHousehold.of( this.pop );
+		final Geard2011HouseholdComposition hh_comp = this.hh_comp_dist.draw();
+		for( int i = 0; i < hh_comp.counts.length; i++ )
+			for( int j = 0; j < hh_comp.counts[i].intValue(); j++ )
+			{
+				final double age = this.distFact.getStream().nextDouble()
+						+ this.age_dist_sub.get( i ).draw();
+				final Instant birth = Instant
+						.of( Amount.valueOf( age, Units.ANNUM ).opposite() );
+				boolean homeMaker = i == 0;
+				createIndividual( result, birth, homeMaker );
+			}
+		return result;
+	}
+
+	protected boolean leaveHome( final GeardIndividual ind,
+		final GenderAge tuple )
+	{
+		return !ind.isHomeMaker()
+				&& this.ageLeaving.current().contains( tuple.age() )
+				&& this.dtLeaveHomeDist.draw();
+	}
+
+	protected boolean couple( final GeardIndividual ind, final GenderAge tuple )
+	{
+		return ind.isSingle()
+				&& this.ageCoupling.current().contains( tuple.age() )
+				&& this.dtCoupleDist.draw();
+	}
+
+	protected boolean separate( final GeardIndividual ind,
+		final GenderAge tuple )
+	{
+		return !ind.isSingle()
+				&& this.ageDivorcing.current().contains( tuple.age() )
+				&& this.dtDivorceDist.draw();
+	}
 
 	/**
 	 * Geard (simulation.py, pop_hh.py):
@@ -325,92 +567,92 @@ public class Geard2011Scenario implements Scenario
 	 * </li>
 	 * </ul>
 	 */
-	protected void updateAll()
+	protected void updateAll( final io.coala.time.Duration stepSize )
 	{
 		// generate events per dt
 		int emptyHhs = 0, death = 0, coupled = 0, left = 0, divorced = 0;
-		for( Iterator<Household> h = this.pop.households().iterator(); h
-				.hasNext(); )
+		for( Iterator<GeardIndividual> i = this.pop.members().keySet()
+				.iterator(); i.hasNext(); )
 		{
-			final Household hh = h.next();
-			for( Iterator<Individual> i = hh.members().iterator(); i
-					.hasNext(); )
+			final GeardIndividual ind = i.next();
+			final GenderAge tuple = new GenderAge( ind );
+			if( this.deathRates.draw( tuple ) )
 			{
-				final Individual ind = i.next();
-				final GenderAge tuple = new GenderAge( ind );
-				if( this.deathRates.draw( tuple ) )
-				{
-					// death/birth
-					i.remove();
-					death++;
-					if( hh.members().isEmpty() )
-					{
-						h.remove();
-						emptyHhs++;
-					}
-					this.pop.death( ind );
-//					this.pop.birth( newborn ); // FIXME
-					continue;
-				}
-				final Integer age = tuple.age();
-				if( !ind.isHomeMaker()
-						&& this.ageLeaving.current().contains( age )
-						&& this.dtLeaveHomeDist.draw() )
-				{
-					// leave home
-					i.remove();
-					// TODO create Household
-					this.pop.depart( ind, hh );
-					left++;
-				} //else 
-				if( ind.isSingle() && Gender.MALE.equals( ind.getGender() ) // TODO check
-						&& this.ageCoupling.current().contains( age )
-						&& this.dtCoupleDist.draw() )
-				{
-					// partner
-//					this.pop.formCouple( newHh, hh ); // FIXME
-					coupled++;
-				} else if( !ind.isSingle()
-						&& this.ageDivorcing.current().contains( age )
-						&& this.dtDivorceDist.draw() )
-				{
-					// separate
-//					this.pop.dissolveCouple( newHh, hh ); // FIXME
-					divorced++;
-				}
+				if( ind.household().members().size() == 1 ) emptyHhs++;
+				ind.death();
+				death++;
+				continue;
+			}
+			if( leaveHome( ind, tuple ) )
+			{
+				ind.join( GeardHousehold.of( this.pop ) );
+				left++;
+			} //else 
+			if( couple( ind, tuple ) )
+			{
+//				this.pop.formCouple( newHh, hh ); // FIXME
+				coupled++;
+			} else if( separate( ind, tuple ) )
+			{
+//				this.pop.dissolveCouple( newHh, hh ); // FIXME
+				divorced++;
 			}
 		}
 
-		// pop growth
-		final double annGrowthRate = this.organicGrowthRate.current()
-				.doubleValue( Units.ANNUAL ); // update only annually?
-		final long growth = this.distFact
-				.createBinomial( annGrowthRate * this.pop.size(),
-						this.yearsPerDt.doubleValue( Unit.ONE ) )
-				.draw();
-//		for( long i = growthDraw; i > 0; i-- )
-//		{
-//		this.pop.birth( newborn ); // FIXME
-//		}
+		final long popSize = this.pop.members().size(); // update only annually?
+
+		long growth = 0;
+		if( this.momPicker.total() <= 0 )
+			LOG.warn( "No eligible mothers?" );
+		else
+		{
+			// pop birth + growth
+			growth = death
+					+ this.distFact
+							.createBinomial(
+									this.growthRate.current().doubleValue(
+											Units.ANNUAL ) * popSize,
+									this.yearsPerDt.doubleValue( Unit.ONE ) )
+							.draw();
+
+			for( long i = growth; i > 0; i-- )
+			{
+				GeardIndividual mom = null;
+				int attempt = 0;
+				Set<Integer> ages = new HashSet<>();
+				while( mom == null && attempt++ < 30 )
+				{
+					int age = this.fertility_age_dist.draw();
+					while( ages.contains( age ) )
+						age = this.fertility_age_dist.draw();
+					ages.add( age );
+					mom = this.momPicker.pick( age, this.distFact.getStream() );
+					LOG.trace(
+							"baby remaining {} attempt {} age {} candidates {} mom: {}",
+							i, attempt, age,
+							this.momPicker.candidatesOfAge( age ), mom );
+				}
+				if( mom == null ) break;
+				createIndividual( mom.household(), now(), false );
+			}
+		}
 
 		// immigration
-		final double annImmRate = this.immigrationRate.current()
-				.doubleValue( Units.ANNUAL ); // update only annually?
 		final long immigration = this.distFact
-				.createBinomial( annImmRate * this.pop.size(),
+				.createBinomial(
+						this.immigrationRate.current()
+								.doubleValue( Units.ANNUAL ) * popSize,
 						this.yearsPerDt.doubleValue( Unit.ONE ) )
 				.draw();
-//		for( long i = immigrationDraw; i > 0; i-- )
-//		{
-//		this.pop.immigrate( immigrants ); // FIXME
-//		}
+		for( long i = immigration; i > 0; )
+			i -= createHousehold().members().size();
 
 		LOG.trace( "-{}+{}+{} individuals, -{}+{} households, -{}+{} couples",
 				death, growth + death, immigration, emptyHhs, left, divorced,
 				coupled );
 
 		// repeat indefinitely
-		after( this.stepSize ).call( this::updateAll );
+		after( stepSize ).call( this::updateAll, stepSize );
 	}
 
 //	if( this.dtGrowth.draw() )

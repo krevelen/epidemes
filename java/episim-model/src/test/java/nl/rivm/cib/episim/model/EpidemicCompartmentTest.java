@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -23,10 +23,12 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+
 /**
  * {@link EpidemicCompartmentTest}
  * 
- * @version $Id$
+ * @version $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
  * @author Rick van Krevelen
  */
 public class EpidemicCompartmentTest
@@ -34,7 +36,7 @@ public class EpidemicCompartmentTest
 
 	/**
 	 * Test method for
-	 * {@link nl.rivm.cib.episim.model.EpidemicCompartment#isInfective()}.
+	 * {@link nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment#isInfective()}.
 	 */
 	@Test
 	public void testIsInfective()

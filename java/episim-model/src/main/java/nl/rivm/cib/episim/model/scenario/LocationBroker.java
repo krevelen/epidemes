@@ -12,9 +12,9 @@ import io.coala.name.Id;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
-import io.coala.time.Timed;
+import io.coala.time.Proactive;
 import nl.rivm.cib.episim.model.Individual;
-import nl.rivm.cib.episim.model.Place;
+import nl.rivm.cib.episim.model.locate.Place;
 
 /**
  * {@link LocationBroker}
@@ -22,7 +22,7 @@ import nl.rivm.cib.episim.model.Place;
  * @version $Id: 3c99429c361fa162b51c103df86446077a0b9913 $
  * @author Rick van Krevelen
  */
-public interface LocationBroker extends Timed
+public interface LocationBroker extends Proactive
 {
 	/**
 	 * {@link Registration}

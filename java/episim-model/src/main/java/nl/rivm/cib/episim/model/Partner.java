@@ -1,4 +1,4 @@
-/* $Id: 6eb6e896ff64c5101804a1f87c3a8287db474d0f $
+/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,43 +17,28 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.scenario;
+package nl.rivm.cib.episim.model;
 
-import io.coala.time.Scheduler;
-import io.coala.time.Proactive;
+import java.util.Map;
+
+import io.coala.time.Instant;
 
 /**
- * {@link Scenario}
+ * {@link Partner}
  * 
- * @version $Id: 6eb6e896ff64c5101804a1f87c3a8287db474d0f $
+ * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Scenario extends Proactive
+public interface Partner extends Individual
 {
-	void init( Scheduler scheduler ) throws Exception;
 
-	class Simple implements Scenario
+	Map<? extends Partner, Instant> partners();
+
+	/**
+	 * @return
+	 */
+	default boolean isSingle()
 	{
-
-		public static Simple of( final String id, final Scheduler s )
-		{
-			final Simple result = new Simple();
-			result.scheduler = s;
-			return result;
-		}
-
-		private Scheduler scheduler;
-
-		@Override
-		public Scheduler scheduler()
-		{
-			return this.scheduler;
-		}
-
-		@Override
-		public void init( final Scheduler scheduler ) throws Exception
-		{
-			this.scheduler = scheduler;
-		}
+		return partners().isEmpty();
 	}
 }
