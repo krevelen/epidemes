@@ -82,15 +82,14 @@ public class HouseholdTest
 				} );
 
 		// TODO initiate scheduler through (replication-specific) binder
+		final Scenario scen = binder.inject( Scenario.class );
 		final Scheduler scheduler = Dsol3Scheduler.of( "householdTest",
-				Instant.of( "0 days" ), Duration.of( "100 days" ),
-				binder.inject( Scenario.class )::init );
+				Instant.of( "0 days" ), Duration.of( "100 days" ), scen::init );
 
 		LOG.trace( "Starting household composition scenario..." );
 		final CountDownLatch latch = new CountDownLatch( 1 );
 		scheduler.time().subscribe( t ->
 		{
-			LOG.trace( "t = {}", t.prettify( 1 ) );
 		}, e ->
 		{
 			LOG.warn( "Problem in scheduler", e );

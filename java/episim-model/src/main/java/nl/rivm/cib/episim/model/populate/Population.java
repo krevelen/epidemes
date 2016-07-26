@@ -21,15 +21,16 @@ package nl.rivm.cib.episim.model.populate;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.Objects;
 
 import io.coala.name.Id;
 import io.coala.name.Identified;
-import io.coala.time.Instant;
 import io.coala.time.Proactive;
-import io.coala.time.Timed;
-import nl.rivm.cib.episim.model.populate.family.Participant;
+import io.coala.time.Scheduler;
+import nl.rivm.cib.episim.model.Store;
 import rx.Observable;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 /**
  * {@link Population} provides macro-level characteristics, following common
@@ -53,15 +54,9 @@ import rx.Observable;
  * @version $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
  * @author Rick van Krevelen
  */
-public interface Population<T> extends Proactive, Identified<Population.ID>
+public interface Population<T extends Participant>
+	extends Proactive, Identified<Population.ID>
 {
-
-	//Signal<Integer> size();
-
-	Observable<DemographicEvent> emitEvents();
-
-	/** @return the {@link Participant}s */
-	Map<T, Instant> members();
 
 	class ID extends Id.Ordinal<String>
 	{
@@ -71,211 +66,107 @@ public interface Population<T> extends Proactive, Identified<Population.ID>
 		}
 	}
 
-	/**
-	 * {@link DemographicEvent} represents {@link Population} changes due to
-	 * birth, death, migration, couple formation or separation, or people
-	 * leaving home
-	 * 
-	 * @version $Id: cc8c7dbaad3f0f805c5fec7ed16af65acf3e1a9d $
-	 * @author Rick van Krevelen
-	 */
-	abstract class DemographicEvent implements Timed
+	Observable<DemographicEvent<T>> emitEvents();
+
+	Store<T> members();
+
+	void on( final DemographicEvent<T> event );
+
+	@SuppressWarnings( "unchecked" )
+	default void onBirth( final T newborn )
 	{
-
-		private Instant time;
-
-		private int deltaSize;
-
-		/** the {@link Collection} of arrived {@link Participant}s */
-		private Collection<Participant> arrivals;
-
-		/** the {@link Collection} of departed {@link Participant}s */
-		private Collection<Participant> departures;
-
-		protected DemographicEvent( final Instant time,
-			final Collection<Participant> arrivals,
-			final Collection<Participant> departures )
-		{
-			this.time = time;
-			this.arrivals = arrivals == null ? Collections.emptySet()
-					: arrivals;
-			this.departures = departures == null ? Collections.emptySet()
-					: departures;
-			this.deltaSize = this.arrivals.size() - this.departures.size();
-		}
-
-		@Override
-		public Instant now()
-		{
-			return this.time;
-		}
-
-		public int deltaSize()
-		{
-			return this.deltaSize;
-		}
-
-		/** @return a {@link Collection} of {@link Participant}s who arrived */
-		public Collection<Participant> arrivals()
-		{
-			return this.arrivals;
-		}
-
-		/** @return a {@link Collection} of {@link Participant}s who departed */
-		public Collection<Participant> departures()
-		{
-			return this.departures;
-		}
+		Objects.requireNonNull( newborn );
+		on( DemographicEvent.Builder.of( Birth.class, now() )
+				.withArrivals( Collections.singleton( newborn ) ).build() );
 	}
 
-	public static class Birth extends DemographicEvent
+	@SuppressWarnings( "unchecked" )
+	default void onDeath( final T diseased )
 	{
-		public Birth( final Participant newborn )
-		{
-			super( newborn.now(), Collections.singleton( newborn ), null );
-		}
+		Objects.requireNonNull( diseased );
+		members().remove( diseased );
+		on( DemographicEvent.Builder.of( Death.class, now() )
+				.withDepartures( Collections.singleton( diseased ) ).build() );
 	}
 
-	public static class Death extends DemographicEvent
+	@SuppressWarnings( "unchecked" )
+	default void onImmigration( final Collection<T> immigrants )
 	{
-		public Death( final Participant diseased )
-		{
-			super( diseased.now(), null, Collections.singleton( diseased ) );
-		}
+		Objects.requireNonNull( immigrants );
+		if( immigrants.isEmpty() ) throw new IllegalArgumentException();
+		on( DemographicEvent.Builder.of( Immigration.class, now() )
+				.withArrivals( immigrants ).build() );
 	}
 
-	public static class Immigration extends DemographicEvent
+	@SuppressWarnings( "unchecked" )
+	default void onEmigration( final Collection<T> emigrants )
 	{
-		public Immigration( final Instant time,
-			final Collection<Participant> immigrants )
-		{
-			super( time, immigrants, null );
-		}
+		Objects.requireNonNull( emigrants );
+		if( emigrants.isEmpty() ) throw new IllegalArgumentException();
+		on( DemographicEvent.Builder.of( Emigration.class, now() )
+				.withDepartures( emigrants ).build() );
 	}
 
-	public static class Emigration extends DemographicEvent
+	static <T extends Participant> Population<T> of( final String name,
+		final Store<T> members )
 	{
-		public Emigration( final Instant time,
-			final Collection<Participant> emigrants )
+		return new Population<T>()
 		{
-			super( time, null, emigrants );
-		}
-	}
-//	class Simple implements Population
-//	{
-//		public static Simple of( final Scheduler scheduler )
-//		{
-//			return new Simple( scheduler );
-//		}
-//
-//		private final Subject<DemographicEvent, DemographicEvent> changes = PublishSubject
-//				.create();
-//
-//		private final Scheduler scheduler;
-//
-//		private long size;
-//
-//		public Simple( final Scheduler scheduler )
-//		{
-//			this.scheduler = scheduler;
-//		}
-//
-//		@Override
-//		public Scheduler scheduler()
-//		{
-//			return this.scheduler;
-//		}
-//
-//		// TODO apply sorting?
-//		private Set<Household> households = new HashSet<>();
-//
-//		@Override
-//		public Iterable<Household> households()
-//		{
-//			return this.households;
-//		}
-//
-//		@Override
-//		public void reset( final Iterable<Household> households )
-//		{
-//			this.households.clear();
-//			int size = 0;
-//			for( Household hh : households )
-//			{
-//				size += hh.members().size();
-//				this.households.add( hh );
-//			}
-//			// FIXME persist?
-//			this.size = size;
-//		}
-//
-//		public Observable<DemographicEvent> emitDemographicEvents()
-//		{
-//			return this.changes.asObservable();
-//		}
-//
-//		@Override
-//		public long size()
-//		{
-//			return this.size;
-//		}
-//
-//		protected Population addSize( final long delta )
-//		{
-//			this.size += delta;
-//			return this;
-//		}
-//
-//		@Override
-//		public Population birth( final Individual newborn )
-//		{
-//			this.changes.onNext( new Birth( newborn ) );
-//			return addSize( 1 );
-//		}
-//
-//		@Override
-//		public Population death( final Individual diseased )
-//		{
-//			this.changes.onNext( new Death( diseased ) );
-//			return addSize( -1 );
-//		}
-//
-//		@Override
-//		public Population depart( final Individual child, final Household nest )
-//		{
-//			this.changes.onNext( new NestDeparture( child, nest ) );
-//			return this;
-//		}
-//
-//		@Override
-//		public Population immigrate( final Household immigrants )
-//		{
-//			this.changes.onNext( new Immigration( immigrants ) );
-//			return addSize( immigrants.members().size() );
-//		}
-//
-//		@Override
-//		public Population emigrate( final Household emigrants )
-//		{
-//			this.changes.onNext( new Emigration( emigrants ) );
-//			return addSize( -emigrants.members().size() );
-//		}
-//
-//		@Override
-//		public Population formCouple( final Household merging,
-//			final Household abandoning )
-//		{
-//			this.changes.onNext( new CoupleFormation( merging, abandoning ) );
-//			return this;
-//		}
-//
-//		@Override
-//		public Population dissolveCouple( final Household parting,
-//			final Household dissolving )
-//		{
-//			this.changes.onNext( new CoupleDissolution( parting, dissolving ) );
-//			return this;
-//		}
-//	}
+			private final ID id = ID.of( name );
 
+			private final Subject<DemographicEvent<T>, DemographicEvent<T>> events = PublishSubject
+					.create();
+
+			@Override
+			public Scheduler scheduler()
+			{
+				return members.scheduler();
+			}
+
+			@Override
+			public Store<T> members()
+			{
+				return members;
+			}
+
+			@Override
+			public ID id()
+			{
+				return this.id;
+			}
+
+			@Override
+			public Observable<DemographicEvent<T>> emitEvents()
+			{
+				return this.events.asObservable();
+			}
+
+			@Override
+			public void on( final DemographicEvent<T> event )
+			{
+				at( now() ).call( t ->
+				{
+					this.events.onNext( event );
+				} );
+			}
+		};
+	}
+
+	public static class Birth<T extends Participant> extends DemographicEvent<T>
+	{
+	}
+
+	public static class Death<T extends Participant> extends DemographicEvent<T>
+	{
+	}
+
+	public static class Immigration<T extends Participant>
+		extends DemographicEvent<T>
+	{
+	}
+
+	public static class Emigration<T extends Participant>
+		extends DemographicEvent<T>
+	{
+	}
 }

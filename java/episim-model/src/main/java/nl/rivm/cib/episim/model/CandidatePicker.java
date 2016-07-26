@@ -20,6 +20,7 @@
 package nl.rivm.cib.episim.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -41,7 +42,35 @@ public interface CandidatePicker<T extends CandidatePicker.Candidate>
 
 	void register( T candidate );
 
+	default <S extends T> void register( final Collection<S> candidates )
+	{
+		for( S candidate : candidates )
+			register( candidate );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	default <S extends T> void register( final S... candidates )
+	{
+		if( candidates != null && candidates.length != 0 )
+			for( S candidate : candidates )
+			register( candidate );
+	}
+
 	void unregister( T candidate );
+
+	default <S extends T> void unregister( final Collection<S> candidates )
+	{
+		for( S candidate : candidates )
+			unregister( candidate );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	default <S extends T> void unregister( final S... candidates )
+	{
+		if( candidates != null && candidates.length != 0 )
+			for( S candidate : candidates )
+			unregister( candidate );
+	}
 
 	Integer total();
 
@@ -127,6 +156,8 @@ public interface CandidatePicker<T extends CandidatePicker.Candidate>
 								.flatList( ((Cluster) candidate).candidates ) );
 					else
 						result.add( (T) candidate );
+//				if( result.isEmpty() )
+//					throw new IllegalArgumentException( "Empty" );
 				return result;
 			}
 		}

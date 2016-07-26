@@ -39,7 +39,6 @@ import io.coala.time.TimeSpan;
 import io.coala.time.Timing;
 import io.coala.util.DecimalUtil;
 import nl.rivm.cib.episim.mas.ReplicatorAgent;
-import nl.rivm.cib.episim.model.scenario.Scenario;
 import rx.Subscription;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.Subject;
@@ -79,7 +78,8 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	@Override
 	public String getType()
 	{
-		return getClass().getSimpleName() + " $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $";
+		return getClass().getSimpleName()
+				+ " $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $";
 	}
 
 	// FIXME FEATURE_REQ add #put(TypedKey<T>,T)
@@ -135,7 +135,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		this.scheduler = Dsol3Scheduler.of( getId(), Instant.of( 0, timeUnit ),
 				Duration.of( this.myDuration ), s ->
 				{
-					Scenario.Simple.of( this.getId(), s );
+//					Scenario.of( Store.of( s, Collections.emptySet() ) );
 					this.time.onNext( s.now() ); // emit start time
 					s.time().subscribe( this.time ); // emit new time
 					LOG.trace( "{} initialized, t={}", getId(),

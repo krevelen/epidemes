@@ -19,10 +19,15 @@
  */
 package nl.rivm.cib.episim.model.populate.family;
 
-import java.util.Map;
+import java.util.Objects;
 
-import io.coala.time.Instant;
+import io.coala.time.Scheduler;
+import nl.rivm.cib.episim.model.Store;
+import nl.rivm.cib.episim.model.populate.DemographicEvent;
 import nl.rivm.cib.episim.model.populate.Population;
+import rx.Observable;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 /**
  * {@link HouseholdPopulation}
@@ -30,12 +35,70 @@ import nl.rivm.cib.episim.model.populate.Population;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface HouseholdPopulation<T extends Participant>
+public interface HouseholdPopulation<T extends HouseholdParticipant>
 	extends Population<T>
 {
 
-	Map<? extends Household<T>, Instant> households();
+	Store<Household<T>> households();
 
-//	void reset( Iterable<Household> households );
+	default void onImmigration( final Household<T> immigrants )
+	{
+		Objects.requireNonNull( immigrants );
+		onImmigration( immigrants.members() );
+	}
 
+	default void onEmigration( final Household<T> emigrants )
+	{
+		Objects.requireNonNull( emigrants );
+		onImmigration( emigrants.members() );
+	}
+
+	static <T extends HouseholdParticipant> HouseholdPopulation<T> of(
+		final String name, final Store<T> members,
+		final Store<Household<T>> households )
+	{
+		return new HouseholdPopulation<T>()
+		{
+			private final ID id = ID.of( name );
+
+			private final Subject<DemographicEvent<T>, DemographicEvent<T>> events = PublishSubject
+					.create();
+
+			@Override
+			public Scheduler scheduler()
+			{
+				return members.scheduler();
+			}
+
+			@Override
+			public Store<T> members()
+			{
+				return members;
+			}
+
+			@Override
+			public ID id()
+			{
+				return this.id;
+			}
+
+			@Override
+			public Observable<DemographicEvent<T>> emitEvents()
+			{
+				return this.events.asObservable();
+			}
+
+			@Override
+			public void on( final DemographicEvent<T> event )
+			{
+				this.events.onNext( event );
+			}
+
+			@Override
+			public Store<Household<T>> households()
+			{
+				return households;
+			}
+		};
+	}
 }

@@ -19,10 +19,6 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.Map;
-
-import io.coala.time.Instant;
-
 /**
  * {@link Partner}
  * 
@@ -32,7 +28,7 @@ import io.coala.time.Instant;
 public interface Partner extends Individual
 {
 
-	Map<? extends Partner, Instant> partners();
+	Store<? extends Partner> partners();
 
 	/**
 	 * @return

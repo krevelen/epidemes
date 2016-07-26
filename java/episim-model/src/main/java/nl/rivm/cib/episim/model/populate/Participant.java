@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate.family;
+package nl.rivm.cib.episim.model.populate;
 
 import io.coala.time.Proactive;
 
@@ -30,9 +30,5 @@ import io.coala.time.Proactive;
 public interface Participant extends Proactive
 {
 
-	/**
-	 * @return {@code true} if this {@link Participant} can't leave home
-	 */
-	boolean isHomeMaker();
-
+	Population<?> population();
 }

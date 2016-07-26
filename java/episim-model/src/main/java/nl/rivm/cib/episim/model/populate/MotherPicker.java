@@ -27,6 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.BiFunction;
 
+import javax.measure.Measurable;
+import javax.measure.quantity.Duration;
+
 import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 
@@ -34,7 +37,6 @@ import io.coala.log.LogUtil;
 import io.coala.math.MeasureUtil;
 import io.coala.math.Range;
 import io.coala.random.PseudoRandom;
-import io.coala.time.Duration;
 import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
@@ -57,7 +59,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		// TODO make fertility/recovery as abstract (un/re)registration schedule
 		Range<Instant> fertilityInterval();
 
-		Duration recoveryPeriod();
+		Measurable<Duration> recoveryPeriod();
 	}
 
 	default Iterable<Candidate> candidatesOfAge( final Integer ageFilter )
@@ -190,15 +192,13 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 				}
 				final Instant end = candidate.fertilityInterval().getMaximum()
 						.getValue();
-				this.byBirth.computeIfPresent( candidate.birth(),
-						( birth, current ) ->
-						{
-							return Cluster.of( current, candidate );
-						} );
+				this.byBirth.compute( candidate.birth(), ( birth, current ) ->
+				{
+					return current == null ? candidate
+							: Cluster.of( current, candidate );
+				} );
 				this.candidates.put( candidate, end == null ? null
 						: at( end ).call( this::unregister, candidate ) );
-				LOG.trace( "registered mom born {} fertility {}",
-						candidate.birth(), candidate.fertilityInterval() );
 			}
 
 			@Override

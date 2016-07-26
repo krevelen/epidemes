@@ -19,8 +19,8 @@
  */
 package nl.rivm.cib.episim.model.scenario;
 
-import io.coala.time.Scheduler;
 import io.coala.time.Proactive;
+import io.coala.time.Scheduler;
 
 /**
  * {@link Scenario}
@@ -32,28 +32,4 @@ public interface Scenario extends Proactive
 {
 	void init( Scheduler scheduler ) throws Exception;
 
-	class Simple implements Scenario
-	{
-
-		public static Simple of( final String id, final Scheduler s )
-		{
-			final Simple result = new Simple();
-			result.scheduler = s;
-			return result;
-		}
-
-		private Scheduler scheduler;
-
-		@Override
-		public Scheduler scheduler()
-		{
-			return this.scheduler;
-		}
-
-		@Override
-		public void init( final Scheduler scheduler ) throws Exception
-		{
-			this.scheduler = scheduler;
-		}
-	}
 }
