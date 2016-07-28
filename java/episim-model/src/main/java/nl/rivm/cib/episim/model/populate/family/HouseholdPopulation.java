@@ -44,13 +44,13 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 	default void onImmigration( final Household<T> immigrants )
 	{
 		Objects.requireNonNull( immigrants );
-		onImmigration( immigrants.members() );
+		immigrate( immigrants.members() );
 	}
 
 	default void onEmigration( final Household<T> emigrants )
 	{
 		Objects.requireNonNull( emigrants );
-		onImmigration( emigrants.members() );
+		immigrate( emigrants.members() );
 	}
 
 	static <T extends HouseholdParticipant> HouseholdPopulation<T> of(
@@ -83,13 +83,13 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 			}
 
 			@Override
-			public Observable<DemographicEvent<T>> emitEvents()
+			public Observable<DemographicEvent<T>> events()
 			{
 				return this.events.asObservable();
 			}
 
 			@Override
-			public void on( final DemographicEvent<T> event )
+			public void emit( final DemographicEvent<T> event )
 			{
 				this.events.onNext( event );
 			}

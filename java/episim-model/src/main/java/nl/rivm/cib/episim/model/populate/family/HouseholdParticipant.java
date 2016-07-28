@@ -40,7 +40,7 @@ public interface HouseholdParticipant extends Participant
 		moveHouse( Household<T> newHome )
 	{
 		newHome.members().add( (T) this );
-		newHome.on( DemographicEvent.Builder.of( MoveHouse.class, now() )
+		newHome.emit( DemographicEvent.Builder.of( MoveHouse.class, now() )
 				.withDepartures( Collections.singleton( this ) ).build() );
 		household().members().remove( this );
 		if( household().members().isEmpty() )

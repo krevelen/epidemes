@@ -19,19 +19,18 @@
  */
 package nl.rivm.cib.episim.model.populate;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import javax.measure.quantity.Dimensionless;
+import javax.measure.unit.Unit;
 
 import org.jscience.physics.amount.Amount;
 
 import io.coala.time.Indicator;
-import io.coala.time.Scheduler;
 import io.coala.time.Proactive;
-import nl.rivm.cib.episim.model.disease.infection.Infection;
-import nl.rivm.cib.episim.model.disease.infection.InfectionMetrics;
+import io.coala.time.Scheduler;
+import nl.rivm.cib.episim.model.populate.Population.Birth;
+import nl.rivm.cib.episim.model.populate.Population.Death;
+import nl.rivm.cib.episim.model.populate.Population.Emigration;
+import nl.rivm.cib.episim.model.populate.Population.Immigration;
 
 /**
  * {@link PopulationMetrics} follows common
@@ -61,111 +60,108 @@ import nl.rivm.cib.episim.model.disease.infection.InfectionMetrics;
 public interface PopulationMetrics extends Proactive
 {
 
-	Population<?> getPopulation();
+//	Population<?> population();
 
-	InfectionMetrics metricsOf( Infection infection );
+	Indicator<Dimensionless> size();
 
-	Indicator<Dimensionless> getSize();
+	Indicator<Dimensionless> births();
 
-	Indicator<Dimensionless> getBirths();
+	Indicator<Dimensionless> deaths();
 
-	Indicator<Dimensionless> getDeaths();
+	Indicator<Dimensionless> immigrated();
 
-	Indicator<Dimensionless> getImmigrations();
+	Indicator<Dimensionless> emigrated();
 
-	Indicator<Dimensionless> getEmigrations();
-
-	class Simple implements PopulationMetrics
+	static PopulationMetrics of( final Population<?> population )
 	{
+		return of( population, Amount.ZERO, Amount.ZERO, Amount.ZERO,
+				Amount.ZERO );
+	}
 
-		/** */
-		private final Population<?> population;
-
-		/** */
-		private final Indicator<Dimensionless> size;
-
-		/** */
-		private final Indicator<Dimensionless> births;
-
-		/** */
-		private final Indicator<Dimensionless> deaths;
-
-		/** */
-		private final Indicator<Dimensionless> immigrations;
-
-		/** */
-		private final Indicator<Dimensionless> emigrations;
-
-		public Simple( final Population<?> population )
+	static PopulationMetrics of( final Population<?> population,
+		final Amount<Dimensionless> initialBirths,
+		final Amount<Dimensionless> initialDeaths,
+		final Amount<Dimensionless> initialImmigrated,
+		final Amount<Dimensionless> initialEmigrated )
+	{
+		final Indicator<Dimensionless> size = Indicator.of(
+				population.scheduler(),
+				Amount.valueOf( population.members().size(), Unit.ONE ) );
+		final Indicator<Dimensionless> births = Indicator
+				.of( population.scheduler(), initialBirths );
+		final Indicator<Dimensionless> deaths = Indicator
+				.of( population.scheduler(), initialDeaths );
+		final Indicator<Dimensionless> immigrations = Indicator
+				.of( population.scheduler(), initialImmigrated );
+		final Indicator<Dimensionless> emigrations = Indicator
+				.of( population.scheduler(), initialEmigrated );
+		population.on( Birth.class ).doOnNext( birth ->
 		{
-			this.population = population;
-			this.size = Indicator.of( population.scheduler(), Amount.ZERO );
-			this.births = Indicator.of( population.scheduler(), Amount.ZERO );
-			this.deaths = Indicator.of( population.scheduler(), Amount.ZERO );
-			this.immigrations = Indicator.of( population.scheduler(),
-					Amount.ZERO );
-			this.emigrations = Indicator.of( population.scheduler(),
-					Amount.ZERO );
-		}
-
-		@Override
-		public Population<?> getPopulation()
+			births.add( birth.arrivals().size() );
+		} );
+		population.on( Death.class ).doOnNext( death ->
 		{
-			return this.population;
-		}
-
-		@Override
-		public Scheduler scheduler()
+			deaths.add( death.departures().size() );
+		} );
+		population.on( Immigration.class ).doOnNext( immigration ->
 		{
-			return getPopulation().scheduler();
-		}
-
-		private final Map<Infection, InfectionMetrics> infections = Collections
-				.synchronizedMap( new HashMap<>() );
-
-		@Override
-		public InfectionMetrics metricsOf( final Infection infection )
+			immigrations.add( immigration.arrivals.size() );
+		} );
+		population.on( Emigration.class ).doOnNext( emigration ->
 		{
-			synchronized( this.infections )
+			emigrations.add( emigration.departures().size() );
+		} );
+		population.members().onSize().map( i ->
+		{
+			return Amount.valueOf( i, Unit.ONE );
+		} ).doOnNext( i ->
+		{
+			size.setValue( i );
+		} );
+
+		return new PopulationMetrics()
+		{
+//			@Override
+//			public Population<?> population()
+//			{
+//				return population;
+//			}
+
+			@Override
+			public Scheduler scheduler()
 			{
-				InfectionMetrics result = this.infections.get( infection );
-				if(result == null)
-				{
-					//result = InfectionMetrics.
-				}
-				return result;
+				return population.scheduler();
 			}
-		}
 
-		@Override
-		public Indicator<Dimensionless> getSize()
-		{
-			return this.size;
-		}
+			@Override
+			public Indicator<Dimensionless> size()
+			{
+				return size;
+			}
 
-		@Override
-		public Indicator<Dimensionless> getBirths()
-		{
-			return this.births;
-		}
+			@Override
+			public Indicator<Dimensionless> births()
+			{
+				return births;
+			}
 
-		@Override
-		public Indicator<Dimensionless> getDeaths()
-		{
-			return this.deaths;
-		}
+			@Override
+			public Indicator<Dimensionless> deaths()
+			{
+				return deaths;
+			}
 
-		@Override
-		public Indicator<Dimensionless> getImmigrations()
-		{
-			return this.immigrations;
-		}
+			@Override
+			public Indicator<Dimensionless> immigrated()
+			{
+				return immigrations;
+			}
 
-		@Override
-		public Indicator<Dimensionless> getEmigrations()
-		{
-			return this.emigrations;
-		}
-
+			@Override
+			public Indicator<Dimensionless> emigrated()
+			{
+				return emigrations;
+			}
+		};
 	}
 }

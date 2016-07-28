@@ -28,7 +28,7 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 	default void onMoveHouse( final T homeLeaver )
 	{
 		Objects.requireNonNull( homeLeaver );
-		on( DemographicEvent.Builder.of( MoveHouse.class, now() )
+		emit( DemographicEvent.Builder.of( MoveHouse.class, now() )
 				.withDepartures( Collections.singleton( homeLeaver ) )
 				.build() );
 	}
@@ -36,7 +36,7 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 	@SuppressWarnings( "unchecked" )
 	default void onAbandoned()
 	{
-		on( DemographicEvent.Builder.of( Abandon.class, now() ).build() );
+		emit( DemographicEvent.Builder.of( Abandon.class, now() ).build() );
 	}
 
 	/**
@@ -94,21 +94,21 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 			}
 
 			@Override
-			public Observable<DemographicEvent<T>> emitEvents()
+			public Observable<DemographicEvent<T>> events()
 			{
 				return this.events.asObservable();
 			}
 
 			@Override
-			public void on( final DemographicEvent<T> event )
+			public void emit( final DemographicEvent<T> event )
 			{
 				this.events.onNext( event );
 			}
 		};
 		population.households().add( result );
-		result.emitEvents().subscribe( event ->
+		result.events().subscribe( event ->
 		{
-			population.on( event );
+			population.emit( event );
 		}, error ->
 		{
 		} );

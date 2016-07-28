@@ -1,12 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	
+
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.2-SNAPSHOT</version>
+		<version>0.0.2</version>
 		<relativePath>../..</relativePath>
 	</parent>
 	<artifactId>episim-persist-kundera</artifactId>
@@ -17,12 +17,13 @@
 		$Id: fcbe5b8a95c4737c8471ddc8a7731331615483ee $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
-	
+
 	<properties>
-		<kundera.version>2.9</kundera.version>
+		<kundera.version>3.5</kundera.version>
 		<neo4j.version>2.3.2</neo4j.version>
+		<hsqldb.version>2.3.4</hsqldb.version>
 	</properties>
-	
+
 	<repositories>
 		<repository>
 			<name>COALA Public Maven Repository</name>
@@ -60,24 +61,43 @@
 			</snapshots>
 		</repository>
 	</repositories>
-	
+
 	<dependencies>
 		<dependency>
-			<groupId>io.coala</groupId>
-			<artifactId>coala-api</artifactId>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>episim-persist</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
-			<groupId>com.impetus.client</groupId>
+			<groupId>com.impetus.kundera.client</groupId>
 			<artifactId>kundera-neo4j</artifactId>
 			<version>${kundera.version}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>com.impetus.kundera.client</groupId>
+			<artifactId>kundera-spark-mongodb</artifactId>
+			<version>${kundera.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.impetus.kundera.client</groupId>
+			<artifactId>kundera-rdbms</artifactId>
+			<version>${kundera.version}</version>
+		</dependency>
+		
 		<!-- FIXME use more specific dependencies rather than entire toolkit -->
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j</artifactId>
 			<version>${neo4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>

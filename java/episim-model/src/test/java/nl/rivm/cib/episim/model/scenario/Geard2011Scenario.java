@@ -364,7 +364,7 @@ public class Geard2011Scenario implements Scenario
 				Store.of( scheduler, new HashSet<GeardIndividual>() ),
 				Store.of( scheduler,
 						new HashSet<Household<GeardIndividual>>() ) );
-		this.pop.emitEvents().ofType( Population.Birth.class ).subscribe( e ->
+		this.pop.events().ofType( Population.Birth.class ).subscribe( e ->
 		{
 			for( GeardIndividual i : ((Population.Birth<GeardIndividual>) e)
 					.arrivals() )
@@ -380,7 +380,7 @@ public class Geard2011Scenario implements Scenario
 		LOG.trace( "{} households initialized, total={}",
 				this.pop.households().size(), this.pop.members().size() );
 
-		this.pop.emitEvents().subscribe( e ->
+		this.pop.events().subscribe( e ->
 		{
 			LOG.trace( "Observed: {}", e );
 		}, e ->
@@ -484,7 +484,7 @@ public class Geard2011Scenario implements Scenario
 			if( this.deathRates.draw( tuple ) )
 			{
 				if( ind.household().members().size() == 1 ) emptyHhs++;
-				ind.household().onDeath( ind );
+				ind.household().death( ind );
 				death++;
 				continue;
 			}
@@ -538,7 +538,7 @@ public class Geard2011Scenario implements Scenario
 				{
 					final GeardIndividual newborn = drawIndividual(
 							mom.household(), now(), false );
-					mom.household().onBirth( newborn );
+					mom.household().birth( newborn );
 				} else
 					LOG.warn( "No candidate mothers available!" );
 			}

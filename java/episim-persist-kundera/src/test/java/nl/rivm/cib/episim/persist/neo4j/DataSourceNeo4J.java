@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 2596764476bd6170ba5eb0a206706f65aaecc4ee $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -32,7 +32,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link DataSourceNeo4J}
  * 
- * @version $Id$
+ * @version $Id: 2596764476bd6170ba5eb0a206706f65aaecc4ee $
  * @author Rick van Krevelen
  */
 public class DataSourceNeo4J
@@ -74,15 +74,11 @@ public class DataSourceNeo4J
 			// Registers a shutdown hook for the Neo4j instance so that it
 			// shuts down nicely when the VM exits (even if you "Ctrl-C" the
 			// running application).
-			Runtime.getRuntime().addShutdownHook( new Thread()
+			Runtime.getRuntime().addShutdownHook( new Thread( () ->
 			{
-				@Override
-				public void run()
-				{
-					LOG.trace( "Shutting down Neo4J" );
-					INSTANCE.shutdown();
-				}
-			} );
+				LOG.trace( "Shutting down Neo4J" );
+				INSTANCE.shutdown();
+			} ) );
 		}
 		return INSTANCE;
 	}

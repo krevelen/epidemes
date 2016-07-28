@@ -66,44 +66,51 @@ public interface Population<T extends Participant>
 		}
 	}
 
-	Observable<DemographicEvent<T>> emitEvents();
-
 	Store<T> members();
 
-	void on( final DemographicEvent<T> event );
+	Observable<DemographicEvent<T>> events();
+
+	@SuppressWarnings( "rawtypes" )
+	default <E extends DemographicEvent> Observable<E>
+		on( final Class<E> eventType )
+	{
+		return events().ofType( eventType );
+	}
+
+	void emit( final DemographicEvent<T> event );
 
 	@SuppressWarnings( "unchecked" )
-	default void onBirth( final T newborn )
+	default void birth( final T newborn )
 	{
 		Objects.requireNonNull( newborn );
-		on( DemographicEvent.Builder.of( Birth.class, now() )
+		emit( DemographicEvent.Builder.of( Birth.class, now() )
 				.withArrivals( Collections.singleton( newborn ) ).build() );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default void onDeath( final T diseased )
+	default void death( final T diseased )
 	{
 		Objects.requireNonNull( diseased );
 		members().remove( diseased );
-		on( DemographicEvent.Builder.of( Death.class, now() )
+		emit( DemographicEvent.Builder.of( Death.class, now() )
 				.withDepartures( Collections.singleton( diseased ) ).build() );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default void onImmigration( final Collection<T> immigrants )
+	default void immigrate( final Collection<T> immigrants )
 	{
 		Objects.requireNonNull( immigrants );
 		if( immigrants.isEmpty() ) throw new IllegalArgumentException();
-		on( DemographicEvent.Builder.of( Immigration.class, now() )
+		emit( DemographicEvent.Builder.of( Immigration.class, now() )
 				.withArrivals( immigrants ).build() );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default void onEmigration( final Collection<T> emigrants )
+	default void emigrate( final Collection<T> emigrants )
 	{
 		Objects.requireNonNull( emigrants );
 		if( emigrants.isEmpty() ) throw new IllegalArgumentException();
-		on( DemographicEvent.Builder.of( Emigration.class, now() )
+		emit( DemographicEvent.Builder.of( Emigration.class, now() )
 				.withDepartures( emigrants ).build() );
 	}
 
@@ -136,13 +143,13 @@ public interface Population<T extends Participant>
 			}
 
 			@Override
-			public Observable<DemographicEvent<T>> emitEvents()
+			public Observable<DemographicEvent<T>> events()
 			{
 				return this.events.asObservable();
 			}
 
 			@Override
-			public void on( final DemographicEvent<T> event )
+			public void emit( final DemographicEvent<T> event )
 			{
 				at( now() ).call( t ->
 				{
