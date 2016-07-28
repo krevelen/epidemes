@@ -1,0 +1,27 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>episim</artifactId>
+		<version>0.0.2</version>
+		<relativePath>../..</relativePath>
+	</parent>
+
+	<artifactId>episim-dist</artifactId>
+	<packaging>pom</packaging>
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Distribution assembler/packager for the RIVM Epidemics Simulator
+		$Id: 272935d8f841a99a3932f9fafe7713a6e5ddef97 $
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+	</properties>
+
+	<build>
+	</build>
+</project>

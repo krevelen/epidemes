@@ -1,0 +1,253 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>episim</artifactId>
+		<version>0.0.2</version>
+		<relativePath>../..</relativePath>
+	</parent>
+
+	<artifactId>episim-webapp</artifactId>
+	<packaging>war</packaging>
+
+	<properties>
+		<cxf.version>3.1.6</cxf.version>
+		<!-- front-end -->
+		<jsp-api.version>2.2</jsp-api.version>
+		<node.version>v6.2.1</node.version>
+		<npm.version>1.4.9</npm.version>
+		<npm.install.dir>${basedir}</npm.install.dir>
+		<npm.build.dir>src/main/frontend</npm.build.dir>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+		<repository>
+			<name>EPISIM Public Maven Repository</name>
+			<id>episim-public</id>
+			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>episim-mas</artifactId>
+			<version>${project.version}</version>
+			<exclusions>
+				<!-- websocket dependency not inside a WAR file! -->
+				<exclusion>
+					<groupId>org.eclipse.jetty.websocket</groupId>
+					<artifactId>javax-websocket-server-impl</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>javax.websocket</groupId>
+					<artifactId>javax.websocket-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- Freemarker IDE for Eclipse (4.5 Mars, 4.6 Neon) at: http://download.jboss.org/jbosstools/neon/snapshots/builds/jbosstools-freemarker_master/latest/all/repo/ -->
+		<dependency>
+			<groupId>org.freemarker</groupId>
+			<artifactId>freemarker</artifactId>
+			<version>2.3.24-incubating</version>
+		</dependency>
+
+		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-frontend-jaxrs</artifactId> 
+			<version>${cxf.version}</version> </dependency> -->
+
+		<!-- javax.ws.rs-api (JSR-311=v1, JSR-339/javax.ws.rs-api=v2) -->
+		<dependency>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet.jsp</groupId>
+			<artifactId>jsp-api</artifactId>
+			<version>${jsp-api.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<profiles>
+		<profile>
+			<activation>
+				<file>
+					<missing>${npm.install.dir}/node/npm</missing>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<version>1.0</version>
+
+						<configuration>
+							<nodeVersion>${node.version}</nodeVersion>
+							<npmVersion>${npm.version}</npmVersion>
+							<installDirectory>${npm.install.dir}</installDirectory>
+						</configuration>
+
+						<executions>
+							<execution>
+								<id>node install</id>
+								<goals>
+									<goal>install-node-and-npm</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<!-- Configure the Maven2 Eclipse IDE Integration (m2e) for non-standard 
+						plug-in executions during the compile-test-run life-cycles by the IDE -->
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+
+								<!-- Configure "org.codehaus.mojo:exec-maven-plugin:exec" goal execution 
+									in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-antrun-plugin</artifactId>
+										<versionRange>[1.8,)</versionRange>
+										<goals>
+											<goal>run</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+
+								<!-- Configure "org.eclipse.jetty:jetty-maven-plugin:stop" goal execution 
+									in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.eclipse.jetty</groupId>
+										<artifactId>jetty-maven-plugin</artifactId>
+										<versionRange>[9.0,)</versionRange>
+										<goals>
+											<goal>start</goal>
+											<goal>stop</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-antrun-plugin</artifactId> 
+				<executions> <execution> <id>exec-npm-install</id> <phase>pre-integration-test</phase> 
+				<goals> <goal>run</goal> </goals> <configuration> <tasks> <taskdef resource="net/sf/antcontrib/antcontrib.properties" 
+				/> <if> <available file="node_modules" /> <then> <echo>NPM was used</echo> 
+				</then> <else> <echo>NPM never used</echo> </else> </if> </tasks> <target> 
+				<exec executable="cmd.exe" failOnError="true"> <arg line="/c npm install" 
+				/> </exec> </target> </configuration> </execution> <execution> <id>exec-bower-install</id> 
+				<phase>generate-sources</phase> <goals> <goal>run</goal> </goals> <configuration> 
+				<target> <exec executable="cmd.exe" failOnError="true"> <arg value="/c bower 
+				install" /> </exec> </target> </configuration> </execution> </executions> 
+				<dependencies> <dependency> <groupId>ant-contrib</groupId> <artifactId>ant-contrib</artifactId> 
+				<version>20020829</version> </dependency> </dependencies> </plugin> -->
+			<plugin>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>1.0</version>
+
+				<configuration>
+					<installDirectory>${npm.install.dir}</installDirectory>
+					<workingDirectory>${npm.build.dir}</workingDirectory>
+				</configuration>
+
+				<executions>
+					<execution>
+						<id>npm-bower-grunt</id>
+						<goals>
+							<goal>npm</goal>
+							<goal>bower</goal>
+							<goal>grunt</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<!-- jetty:run starts the JAX-RS webapp in a Jetty container -->
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-maven-plugin</artifactId>
+				<configuration>
+					<scanIntervalSeconds>10</scanIntervalSeconds>
+					<stopKey>alpha</stopKey>
+					<stopPort>9099</stopPort>
+					<webApp>
+						<contextPath>/</contextPath>
+					</webApp>
+				</configuration>
+				<executions>
+					<execution>
+						<id>stop-jetty</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>stop</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>

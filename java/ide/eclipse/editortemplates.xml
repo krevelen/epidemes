@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><templates><template autoinsert="true" context="java" deleted="false" description="Adds Log4j logging using COALA's LogUtil" enabled="true" name="log-coala">${:import(org.apache.log4j.Logger,io.coala.log.LogUtil)}/** */&#13;
+private static final Logger LOG = LogUtil.getLogger( ${enclosing_type}.class );</template><template autoinsert="true" context="java" deleted="false" description="Add Log4j2 logger" enabled="true" name="log2">${:import(org.apache.logging.log4j.Logger,org.apache.logging.log4j.LogManager)}/** */
+private static final Logger LOG = LogManager.getLogger( ${enclosing_type}.class );
+</template></templates>

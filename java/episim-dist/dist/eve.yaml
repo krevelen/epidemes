@@ -1,0 +1,29 @@
+
+templates:
+   defaultAgent:
+     transport:
+     -  class: com.almende.eve.transport.http.HttpTransportBuilder
+        servletUrl: http://localhost:8081/agents/
+        servletLauncher: JettyLauncher
+        servletClass: com.almende.eve.transport.http.DebugServlet
+        doShortcut: true
+        doAuthentication: false
+        jetty: 
+           port: 8081
+           cors:
+             class: com.thetransactioncompany.cors.CORSFilter
+             path: /*
+     state:
+       class: com.almende.eve.state.file.FileStateBuilder
+       path: .eve_agents
+     scheduler:
+       class: com.almende.eve.scheduling.SimpleSchedulerBuilder
+     protocols:
+     - class: com.almende.eve.protocol.jsonrpc.JSONRpcProtocolBuilder
+       rpcTimeout: 20
+
+agents:
+-  id: scenario
+   class: com.almende.inertia.lch.ScenarioAgent
+   extends: templates/defaultAgent
+   
