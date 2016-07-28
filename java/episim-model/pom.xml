@@ -75,7 +75,18 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>guice4-coala-adapter</artifactId>
-			<version>${coala.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
 			<scope>test</scope>
 		</dependency>
 

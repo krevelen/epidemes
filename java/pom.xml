@@ -174,7 +174,7 @@
 
 			<dependency>
 				<groupId>io.coala</groupId>
-				<artifactId>guice3-coala-adapter</artifactId>
+				<artifactId>guice4-coala-adapter</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 

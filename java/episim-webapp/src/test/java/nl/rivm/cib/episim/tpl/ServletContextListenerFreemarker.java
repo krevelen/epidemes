@@ -11,7 +11,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link ServletContextListenerFreemarker}
  * 
- * @version $Id$
+ * @version $Id: 5e9de26bf65bbebf957cec5d5201536f44c73fc1 $
  * @author Rick van Krevelen
  */
 public class ServletContextListenerFreemarker implements ServletContextListener
@@ -27,6 +27,7 @@ public class ServletContextListenerFreemarker implements ServletContextListener
 		final ServletContext sc = sce.getServletContext();
 
 		// TODO boot Eve?
+		LOG.trace( "Got servlet context: {}", sc );
 	}
 
 	@Override
