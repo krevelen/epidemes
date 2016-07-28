@@ -1,0 +1,109 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>episim</artifactId>
+		<version>0.0.2</version>
+		<relativePath>../..</relativePath>
+	</parent>
+	<artifactId>episim-persist-kundera</artifactId>
+
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Import support for the RIVM Vaccination Acceptance Simulator
+		$Id: fcbe5b8a95c4737c8471ddc8a7731331615483ee $
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+		<kundera.version>3.5</kundera.version>
+		<neo4j.version>2.3.2</neo4j.version>
+		<hsqldb.version>2.3.4</hsqldb.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>sonatype-nexus</id>
+			<name>Kundera Public Repository</name>
+			<url>https://oss.sonatype.org/content/repositories/releases</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>kundera-missing</id>
+			<name>Kundera Public Missing Resources Repository</name>
+			<url>http://kundera.googlecode.com/svn/maven2/maven-missing-resources</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>episim-persist</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.impetus.kundera.client</groupId>
+			<artifactId>kundera-neo4j</artifactId>
+			<version>${kundera.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.impetus.kundera.client</groupId>
+			<artifactId>kundera-spark-mongodb</artifactId>
+			<version>${kundera.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.impetus.kundera.client</groupId>
+			<artifactId>kundera-rdbms</artifactId>
+			<version>${kundera.version}</version>
+		</dependency>
+		
+		<!-- FIXME use more specific dependencies rather than entire toolkit -->
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j</artifactId>
+			<version>${neo4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>
