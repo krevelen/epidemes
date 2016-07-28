@@ -93,11 +93,11 @@
 		<!-- set distribution versions -->
 		<wagon-ssh.version>1.0-beta-7</wagon-ssh.version>
 		<github.global.server>github</github.global.server>
-		<github.repository.name>coala</github.repository.name>
+		<github.repository.name>rivm-episim</github.repository.name>
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}/../..</github.repository.tmpdir>
+		<github.repository.tmpdir>${user.dir}/..</github.repository.tmpdir>
 		<github.repository.url>https://raw.github.com/krevelen/rivm-episim/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
