@@ -1,4 +1,5 @@
 Configuration:
+#  shutdownHook: disabled
   status: warn
 
   Appenders:
@@ -18,3 +19,8 @@ Configuration:
         name: javax.management
         AppenderRef:
           ref: Console
+      - level: info
+        name: com.google.inject
+        AppenderRef:
+          ref: Console
+          

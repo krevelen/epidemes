@@ -1,4 +1,4 @@
-/* $Id: 2f7141963aaa4c17ee828105bff1527724cab23a $
+/* $Id: 03a6f266df7741da3277d78567f9417b9d1459b7 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -19,16 +19,21 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.time.Instant;
+import io.coala.time.Timed;
+
 /**
  * {@link TransitionEvent}
  * 
- * @version $Id: 2f7141963aaa4c17ee828105bff1527724cab23a $
+ * @version $Id: 03a6f266df7741da3277d78567f9417b9d1459b7 $
  * @author Rick van Krevelen
  */
-public class TransitionEvent<T>
+public class TransitionEvent<T> implements Timed
 {
-	/** the {@link Condition} undergoing a {@link TransitionEvent} */
-	protected Condition condition;
+	protected Instant time;
+
+//	/** the {@link Condition} undergoing a {@link TransitionEvent} */
+//	protected Condition condition;
 
 	/** */
 	protected T oldValue;
@@ -44,11 +49,17 @@ public class TransitionEvent<T>
 		//
 	}
 
-	/** @return the {@link Condition} that is progressing */
-	public Condition getCondition()
+	@Override
+	public Instant now()
 	{
-		return this.condition;
+		return this.time;
 	}
+
+//	/** @return the {@link Condition} that is progressing */
+//	public Condition getCondition()
+//	{
+//		return this.condition;
+//	}
 
 	/** */
 	public T getOldValue()
@@ -68,73 +79,5 @@ public class TransitionEvent<T>
 		return new StringBuffer( getClass().getSimpleName() ).append( '[' )
 				.append( getOldValue() ).append( "->" ).append( getNewValue() )
 				.append( ']' ).toString();
-	}
-
-	public static class CompartmentEvent
-		extends TransitionEvent<EpidemicCompartment>
-	{
-
-	}
-
-	public static class TreatmentEvent extends TransitionEvent<TreatmentStage>
-	{
-
-	}
-
-	public static class SymptomEvent extends TransitionEvent<SymptomPhase>
-	{
-
-	}
-
-	public static CompartmentEvent of( final TransmissionEvent transmission,
-		final EpidemicCompartment newStage )
-	{
-		return of( transmission.getContact().getSecondaryCondition(),
-				newStage );
-	}
-
-	/**
-	 * @param condition
-	 * @param compartment
-	 * @return an {@link CompartmentEvent}
-	 */
-	public static CompartmentEvent of( final Condition condition,
-		final EpidemicCompartment compartment )
-	{
-		final CompartmentEvent result = new CompartmentEvent();
-		result.condition = condition;
-		result.oldValue = condition.getCompartment();
-		result.newValue = compartment;
-		return result;
-	}
-
-	/**
-	 * @param condition
-	 * @param treatment
-	 * @return a {@link TreatmentEvent}
-	 */
-	public static TreatmentEvent of( final Condition condition,
-		final TreatmentStage treatment )
-	{
-		final TreatmentEvent result = new TreatmentEvent();
-		result.condition = condition;
-		result.oldValue = condition.getTreatmentStage();
-		result.newValue = treatment;
-		return result;
-	}
-
-	/**
-	 * @param condition
-	 * @param phase
-	 * @return a {@link SymptomEvent}
-	 */
-	public static SymptomEvent of( final Condition condition,
-		final SymptomPhase phase )
-	{
-		final SymptomEvent result = new SymptomEvent();
-		result.condition = condition;
-		result.oldValue = condition.getSymptomPhase();
-		result.newValue = phase;
-		return result;
 	}
 }

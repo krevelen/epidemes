@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2</version>
 		<relativePath>../..</relativePath>
 	</parent>
 	<artifactId>episim-connect-pienter2</artifactId>
@@ -14,7 +14,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id: ff87019c7890c404abc2ca5ab6fc3e0e7c565e9f $
+		$Id: 9ad58cedeb45ffc1e9a677d7c40f0a4df177cd62 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

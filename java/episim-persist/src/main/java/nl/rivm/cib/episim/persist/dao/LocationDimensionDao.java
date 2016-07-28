@@ -3,18 +3,13 @@ package nl.rivm.cib.episim.persist.dao;
 import javax.measure.unit.NonSI;
 import javax.persistence.Entity;
 
-import org.jscience.geography.coordinates.LatLong;
-
-import nl.rivm.cib.episim.model.Place;
-import nl.rivm.cib.episim.model.TransmissionSpace;
-import nl.rivm.cib.episim.model.ZipCode;
-import nl.rivm.cib.episim.time.Scheduler;
+import nl.rivm.cib.episim.model.locate.Place;
 
 /**
  * {@link LocationDimensionDao} is a data access object for the location
  * dimension
  * 
- * @version $Id$
+ * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
  * @author Rick van Krevelen
  */
 @Entity
@@ -163,23 +158,23 @@ public class LocationDimensionDao
 	public static LocationDimensionDao of( final Place location )
 	{
 		final LocationDimensionDao result = new LocationDimensionDao();
-		result.latitude = location.getCentroid()
+		result.latitude = location.centroid()
 				.latitudeValue( NonSI.DEGREE_ANGLE );
-		result.longitude = location.getCentroid()
+		result.longitude = location.centroid()
 				.longitudeValue( NonSI.DEGREE_ANGLE );
-		result.postCode3 = location.getZip().toPostCode3();
-		result.postCode4 = location.getZip().toPostCode4();
-		result.postCode6 = location.getZip().toPostCode6();
+		result.postCode3 = location.zipCode().toPostCode3();
+		result.postCode4 = location.zipCode().toPostCode4();
+		result.postCode6 = location.zipCode().toPostCode6();
 		return result;
 	}
 
-	public Place toLocation( final Scheduler scheduler )
-	{
-		final TransmissionSpace space = null;
-		return Place.Simple.of(
-				LatLong.valueOf( this.latitude, this.longitude,
-						NonSI.DEGREE_ANGLE ),
-				ZipCode.valueOf( this.zipCode ), space );
-	}
+//	public Place toLocation( final Scheduler scheduler )
+//	{
+//		final TransmissionSpace space = null;
+//		return Place.Simple.of(
+//				LatLong.valueOf( this.latitude, this.longitude,
+//						NonSI.DEGREE_ANGLE ),
+//				ZipCode.valueOf( this.zipCode ), space );
+//	}
 
 }

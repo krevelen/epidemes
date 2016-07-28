@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.log.LogUtil;
-import io.coala.resource.x.FileUtil;
+import io.coala.resource.FileUtil;
 
 /**
  * {@link MasServletContextListener} allows {@code init-param}s:
@@ -29,7 +29,7 @@ import io.coala.resource.x.FileUtil;
  * Default is {@code null}.</dd>
  * </dl>
  * 
- * @version $Id$
+ * @version $Id: 7ec6ff55beca389a4dab838cac7275ae06213c90 $
  * @author Rick van Krevelen
  */
 @SuppressWarnings( "deprecation" )

@@ -1,4 +1,4 @@
-/* $Id: 5d9e7c1ed3ccfced243cecfbff29647d70388ac7 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -35,7 +35,7 @@ import io.coala.util.FileUtil;
 /**
  * {@link EpisimMasServer}
  * 
- * @version $Id: 5d9e7c1ed3ccfced243cecfbff29647d70388ac7 $
+ * @version $Id$
  * @author Rick van Krevelen
  * 
  * TODO try RxNetty server?

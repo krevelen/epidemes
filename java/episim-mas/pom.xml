@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2</version>
 		<relativePath>../..</relativePath>
 	</parent>
 
@@ -14,7 +14,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
-		$Id: 02aeb0fcf867c85e7be67b0a56da8f905cb3865d $
+		$Id: 514940c972c3e6aa5bf0bb0d0a222644d7e65c37 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
@@ -52,6 +52,21 @@
 			<snapshots>
 				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
 			</snapshots>
 		</repository>
 	</repositories>

@@ -152,3 +152,6 @@ convalescent
 rescaling
 unsubscribe
 serializable
+iterable
+proportionate
+strata

@@ -1,4 +1,4 @@
-/* $Id: 4c5c9ab3d7cb06790466accd0b398fba7f07c33c $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 /**
  * {@link AggregatorAgent}
  * 
- * @version $Id: 4c5c9ab3d7cb06790466accd0b398fba7f07c33c $
+ * @version $Id$
  * @author <a href="mailto:rick.van.krevelen@rivm.nl">Rick van Krevelen</a>
  *
  */

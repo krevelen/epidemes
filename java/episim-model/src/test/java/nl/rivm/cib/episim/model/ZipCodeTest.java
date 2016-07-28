@@ -4,10 +4,12 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import nl.rivm.cib.episim.model.locate.ZipCode;
+
 /**
  * {@link ZipCodeTest} tests {@link ZipCode}
  * 
- * @version $Id$
+ * @version $Id: e0ef6d1eaf79e3d56d75415a3e9194589bb224db $
  * @author Rick van Krevelen
  */
 public class ZipCodeTest

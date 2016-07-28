@@ -6,53 +6,27 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>episim</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.2</version>
 		<relativePath>../..</relativePath>
 	</parent>
 	<artifactId>episim-persist</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
-		$Id: cc46229c3f1137b55f0569b1f04a2b6c01c403b0 $
+		$Id: 2999ccb02abd4dbb4e12bdec6165b8bc1f8cc59c $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
 		<hamcrest.version>1.3</hamcrest.version>
+		<hsqldb.version>2.3.4</hsqldb.version>
 	</properties>
 
 	<repositories>
 		<repository>
-			<name>COALA Public Maven Repository</name>
-			<id>coala-public</id>
-			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
 			<name>EPISIM Public Maven Repository</name>
 			<id>episim-public</id>
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-
-		<!-- TU Delft simulation repository -->
-		<repository>
-			<name>DSOL Public Repository</name>
-			<id>dsol</id>
-			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
-			<url>http://simulation.tudelft.nl/maven</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
@@ -85,6 +59,13 @@
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest-all</artifactId>
 			<version>${hamcrest.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
