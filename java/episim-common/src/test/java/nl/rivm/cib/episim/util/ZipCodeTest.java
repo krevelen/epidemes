@@ -1,10 +1,10 @@
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.util;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import nl.rivm.cib.episim.model.locate.ZipCode;
+import nl.rivm.cib.episim.util.ZipCode;
 
 /**
  * {@link ZipCodeTest} tests {@link ZipCode}

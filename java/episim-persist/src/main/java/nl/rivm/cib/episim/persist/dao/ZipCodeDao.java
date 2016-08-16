@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,36 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.persist.dao;
 
-import nl.rivm.cib.episim.util.Store;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+
+import nl.rivm.cib.episim.persist.AbstractDao;
+import nl.rivm.cib.episim.util.ZipCode;
 
 /**
- * {@link Partner}
+ * {@link ZipCodeDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Partner extends Individual
+@Embeddable
+public class ZipCodeDao extends AbstractDao
 {
 
-	Store<? extends Partner> partners();
+	@Column( name = "PC6", length = 6, updatable = false )
+	protected String pc6;
 
-	/**
-	 * @return
-	 */
-	default boolean isSingle()
+	public ZipCode toZipCode()
 	{
-		return partners().isEmpty();
+		return ZipCode.valueOf( this.pc6 );
+	}
+
+	public static ZipCodeDao of( final ZipCode zip )
+	{
+		final ZipCodeDao result = new ZipCodeDao();
+		result.pc6 = zip.toPostCode6();
+		return result;
 	}
 }

@@ -1,4 +1,4 @@
-package nl.rivm.cib.episim.model.locate;
+package nl.rivm.cib.episim.util;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

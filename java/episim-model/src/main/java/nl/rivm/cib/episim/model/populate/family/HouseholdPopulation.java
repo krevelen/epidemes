@@ -22,9 +22,9 @@ package nl.rivm.cib.episim.model.populate.family;
 import java.util.Objects;
 
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.Store;
 import nl.rivm.cib.episim.model.populate.DemographicEvent;
 import nl.rivm.cib.episim.model.populate.Population;
+import nl.rivm.cib.episim.util.Store;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;

@@ -105,7 +105,7 @@ public interface PopulationMetrics extends Proactive
 		} );
 		population.on( Immigration.class ).doOnNext( immigration ->
 		{
-			immigrations.add( immigration.arrivals.size() );
+			immigrations.add( immigration.arrivals().size() );
 		} );
 		population.on( Emigration.class ).doOnNext( emigration ->
 		{

@@ -35,9 +35,9 @@ import org.jscience.physics.amount.Amount;
 import org.opengis.spatialschema.geometry.geometry.Position;
 
 import io.coala.time.Units;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 import nl.rivm.cib.episim.model.populate.Population;
+import nl.rivm.cib.episim.util.ZipCode;
 
 /**
  * {@link Place} is a stationary {@link TransmissionSpace} located at a
@@ -65,17 +65,35 @@ public interface Place
 	/** @return the {@link ZipCode} */
 	ZipCode zipCode();
 
-	interface Inhabited extends Place
+	/**
+	 * @param position the (centroid) {@link LatLong} position
+	 * @param zip the {@link ZipCode}, if any
+	 * @param region the {@link Region}
+	 * @return a {@link Place}
+	 */
+	public static Place of( final LatLong position, final ZipCode zip,
+		final Region region )
 	{
-
-		Population<?> population();
-
-		default Amount<?> populationDensity()
+		return new Place()
 		{
-			return Amount.valueOf( population().members().size(), Unit.ONE )
-					.divide( region().surfaceArea() ).to( Units.PER_KM2 );
-		}
+			@Override
+			public LatLong centroid()
+			{
+				return position;
+			}
 
+			@Override
+			public ZipCode zipCode()
+			{
+				return zip;
+			}
+
+			@Override
+			public Region region()
+			{
+				return region;
+			}
+		};
 	}
 
 	static Iterable<Place> sortByDistance( final Iterable<Place> places,
@@ -99,64 +117,16 @@ public interface Place
 		return result;
 	}
 
-	/**
-	 * {@link Simple} implementation of {@link Place}
-	 * 
-	 * @version $Id: 7d10f131de96809298e2af9ae72b548a24a90817 $
-	 * @author Rick van Krevelen
-	 */
-	class Simple implements Place
+	interface Inhabited extends Place
 	{
 
-		/**
-		 * @param position the (centroid) {@link LatLong} position
-		 * @param zip the {@link ZipCode}, if any
-		 * @param routes the {@link TransmissionRoute}s
-		 * @return a {@link Simple} instance of {@link Place}
-		 */
-		public static Place of( final LatLong position, final ZipCode zip,
-			final Region region )
+		Population<?> population();
+
+		default Amount<?> populationDensity()
 		{
-			return new Simple( position, zip, region );
+			return Amount.valueOf( population().members().size(), Unit.ONE )
+					.divide( region().surfaceArea() ).to( Units.PER_KM2 );
 		}
 
-		private final Region region;
-
-		private final LatLong position;
-
-		private final ZipCode zip;
-
-		/**
-		 * {@link Simple} constructor
-		 * 
-		 * @param position the {@link LatLong} position
-		 * @param zip the {@link ZipCode}
-		 * @param routes the {@link TransmissionRoute}s
-		 */
-		public Simple( final LatLong position, final ZipCode zip,
-			final Region region )
-		{
-			this.position = position;
-			this.zip = zip;
-			this.region = region;
-		}
-
-		@Override
-		public LatLong centroid()
-		{
-			return this.position;
-		}
-
-		@Override
-		public ZipCode zipCode()
-		{
-			return this.zip;
-		}
-
-		@Override
-		public Region region()
-		{
-			return this.region;
-		}
 	}
 }

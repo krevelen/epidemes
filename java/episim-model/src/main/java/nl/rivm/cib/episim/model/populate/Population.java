@@ -27,7 +27,7 @@ import io.coala.name.Id;
 import io.coala.name.Identified;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.Store;
+import nl.rivm.cib.episim.util.Store;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;

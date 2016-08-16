@@ -36,13 +36,13 @@ import io.coala.time.Units;
 import nl.rivm.cib.episim.model.Gender;
 import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.Partner;
-import nl.rivm.cib.episim.model.Store;
 import nl.rivm.cib.episim.model.populate.MotherPicker;
 import nl.rivm.cib.episim.model.populate.Participant;
 import nl.rivm.cib.episim.model.populate.Population;
 import nl.rivm.cib.episim.model.populate.family.Household;
 import nl.rivm.cib.episim.model.populate.family.HouseholdParticipant;
 import nl.rivm.cib.episim.model.populate.family.HouseholdPopulation;
+import nl.rivm.cib.episim.util.Store;
 
 /**
  * {@link Geard2011Scenario}
@@ -521,27 +521,9 @@ public class Geard2011Scenario implements Scenario
 									this.yearsPerDt.doubleValue( Unit.ONE ) )
 							.draw();
 
-			Set<Integer> agesTried = new HashSet<>();
+			final Set<Integer> momUnavailableAges = new HashSet<>();
 			for( long i = growth; i > 0; i-- )
-			{
-				GeardIndividual mom = null;
-				int attempt = 0;
-				while( mom == null && attempt++ < 30 )
-				{
-					int age = this.fertility_age_dist.draw();
-					while( agesTried.contains( age ) )
-						age = this.fertility_age_dist.draw();
-					agesTried.add( age );
-					mom = this.momPicker.pick( age, this.distFact.getStream() );
-				}
-				if( mom != null )
-				{
-					final GeardIndividual newborn = drawIndividual(
-							mom.household(), now(), false );
-					mom.household().birth( newborn );
-				} else
-					LOG.warn( "No candidate mothers available!" );
-			}
+				growPop( momUnavailableAges );
 		}
 
 		// immigration
@@ -560,6 +542,27 @@ public class Geard2011Scenario implements Scenario
 
 		// repeat indefinitely
 		after( stepSize ).call( this::updateAll, stepSize );
+	}
+
+	protected void growPop( final Set<Integer> momUnavailableAges )
+	{
+		GeardIndividual mom = null;
+		int attempt = 0;
+		while( mom == null && attempt++ < 30 )
+		{
+			int age = this.fertility_age_dist.draw();
+			while( momUnavailableAges.contains( age ) )
+				age = this.fertility_age_dist.draw();
+			momUnavailableAges.add( age );
+			mom = this.momPicker.pick( age, this.distFact.getStream() );
+		}
+		if( mom != null )
+		{
+			final GeardIndividual newborn = drawIndividual( mom.household(),
+					now(), false );
+			mom.household().birth( newborn );
+		} else
+			LOG.warn( "No candidate mothers available!" );
 	}
 
 //	if( this.dtGrowth.draw() )

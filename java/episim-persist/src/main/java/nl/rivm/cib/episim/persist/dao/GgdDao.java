@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,42 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.persist.dao;
 
-import nl.rivm.cib.episim.util.Store;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+
+import nl.rivm.cib.episim.persist.AbstractDao;
+import nl.rivm.cib.episim.persist.CBSUtil;
+import nl.rivm.cib.episim.util.ZipCode;
 
 /**
- * {@link Partner}
+ * {@link GgdDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Partner extends Individual
+@Entity( name = "GGD" )
+public class GgdDao extends AbstractDao
 {
+	@Id
+	@Column( name = "CODE", unique = true )
+	protected int code;
 
-	Store<? extends Partner> partners();
+	@Column( name = "NAME", length = 100 )
+	protected String name;
 
 	/**
+	 * @param zipCode
 	 * @return
 	 */
-	default boolean isSingle()
+	public static GgdDao of( final ZipCode zipCode )
 	{
-		return partners().isEmpty();
+		final GgdDao result = new GgdDao();
+		result.code = CBSUtil.toGGDCode( zipCode );
+		result.name = CBSUtil.toGGDNaam( zipCode );
+		return result;
 	}
+
 }
