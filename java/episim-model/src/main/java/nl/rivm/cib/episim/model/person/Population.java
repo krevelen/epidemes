@@ -17,18 +17,20 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate;
+package nl.rivm.cib.episim.model.person;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import io.coala.name.Id;
 import io.coala.name.Identified;
+import io.coala.rx.RxCollection;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.util.Store;
 import rx.Observable;
+import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -66,7 +68,7 @@ public interface Population<T extends Participant>
 		}
 	}
 
-	Store<T> members();
+	RxCollection<T> members();
 
 	Observable<DemographicEvent<T>> events();
 
@@ -75,6 +77,18 @@ public interface Population<T extends Participant>
 		on( final Class<E> eventType )
 	{
 		return events().ofType( eventType );
+	}
+
+	@SuppressWarnings( "rawtypes" )
+	default <E extends DemographicEvent> Subscription
+		on( final Class<E> eventType, final Consumer<E> consumer )
+	{
+		return on( eventType ).subscribe( event ->
+		{
+			consumer.accept( event );
+		}, error ->
+		{
+		} );
 	}
 
 	void emit( final DemographicEvent<T> event );
@@ -115,7 +129,7 @@ public interface Population<T extends Participant>
 	}
 
 	static <T extends Participant> Population<T> of( final String name,
-		final Store<T> members )
+		final RxCollection<T> members, final Scheduler scheduler )
 	{
 		return new Population<T>()
 		{
@@ -127,11 +141,11 @@ public interface Population<T extends Participant>
 			@Override
 			public Scheduler scheduler()
 			{
-				return members.scheduler();
+				return scheduler;
 			}
 
 			@Override
-			public Store<T> members()
+			public RxCollection<T> members()
 			{
 				return members;
 			}

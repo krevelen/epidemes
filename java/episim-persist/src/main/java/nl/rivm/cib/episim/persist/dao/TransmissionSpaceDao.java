@@ -19,48 +19,40 @@
  */
 package nl.rivm.cib.episim.persist.dao;
 
-import javax.measure.unit.NonSI;
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import javax.persistence.Entity;
+import javax.persistence.Id;
 
-import org.jscience.geography.coordinates.LatLong;
-
+import io.coala.time.Scheduler;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 import nl.rivm.cib.episim.persist.AbstractDao;
 
 /**
- * {@link LatLongDao}
+ * {@link TransmissionSpaceDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Embeddable
-public class LatLongDao extends AbstractDao
+@Entity( name = "TRANSMISSION_SPACE" )
+public class TransmissionSpaceDao extends AbstractDao
 {
+	@Id
+	@Column( name = "ID", unique = true, nullable = false )
+	protected String id;
 
-	@Column( name = "LAT", nullable = false, updatable = false )//, precision = 3, scale = 18
-	protected double latitude;
-
-	@Column( name = "LON", nullable = false, updatable = false )//, precision = 3, scale = 18
-	protected double longitude;
-
-	/**
-	 * @return
-	 */
-	public LatLong toLatLong()
+	public TransmissionSpace toSpace( final Scheduler scheduler )
 	{
-		return LatLong.valueOf( this.latitude, this.longitude,
-				NonSI.DEGREE_ANGLE );
+		return TransmissionSpace.of( this.id, scheduler );
 	}
 
 	/**
-	 * @param centroid
+	 * @param space
 	 * @return
 	 */
-	public static LatLongDao of( final LatLong position )
+	public static TransmissionSpaceDao of( final TransmissionSpace space )
 	{
-		final LatLongDao result = new LatLongDao();
-		result.latitude = position.latitudeValue( NonSI.DEGREE_ANGLE );
-		result.longitude = position.longitudeValue( NonSI.DEGREE_ANGLE );
+		final TransmissionSpaceDao result = new TransmissionSpaceDao();
+		result.id = space.id();
 		return result;
 	}
 }

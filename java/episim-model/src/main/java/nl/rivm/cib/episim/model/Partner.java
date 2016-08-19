@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.model;
 
-import nl.rivm.cib.episim.util.Store;
+import io.coala.rx.RxCollection;
 
 /**
  * {@link Partner}
@@ -30,7 +30,7 @@ import nl.rivm.cib.episim.util.Store;
 public interface Partner extends Individual
 {
 
-	Store<? extends Partner> partners();
+	RxCollection<? extends Partner> partners();
 
 	/**
 	 * @return

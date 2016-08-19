@@ -103,6 +103,8 @@
 
 		<!-- set dependency versions -->
 		<junit.version>4.11</junit.version>
+		<hamcrest.version>1.3</hamcrest.version>
+		<concurrentunit.version>0.4.2</concurrentunit.version>
 		<log4j.version>2.6.2</log4j.version>
 		<javaee-api.version>7.0</javaee-api.version>
 		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
@@ -140,13 +142,11 @@
 
 	<dependencyManagement>
 		<dependencies>
-
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>episim-common</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>episim-api</artifactId>
@@ -158,31 +158,31 @@
 				<artifactId>coala-api</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>coala-api-capability</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>coala-api-time</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
-
+			<dependency>
+				<groupId>io.coala</groupId>
+				<artifactId>coala-api-enterprise</artifactId>
+				<version>${coala.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>guice4-coala-adapter</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>eve3-coala-adapter</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>dsol3-coala-adapter</artifactId>
@@ -235,6 +235,16 @@
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
 				<version>${junit.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.jodah</groupId>
+				<artifactId>concurrentunit</artifactId>
+				<version>${concurrentunit.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-all</artifactId>
+				<version>${hamcrest.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.logging.log4j</groupId>

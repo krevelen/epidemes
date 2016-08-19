@@ -35,9 +35,9 @@ import org.jscience.physics.amount.Amount;
 import org.opengis.spatialschema.geometry.geometry.Position;
 
 import io.coala.time.Units;
+import nl.rivm.cib.episim.model.ZipCode;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
-import nl.rivm.cib.episim.model.populate.Population;
-import nl.rivm.cib.episim.util.ZipCode;
+import nl.rivm.cib.episim.model.person.Population;
 
 /**
  * {@link Place} is a stationary {@link TransmissionSpace} located at a

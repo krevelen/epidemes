@@ -17,42 +17,18 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.persist.dao;
+package nl.rivm.cib.episim.model.person;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-
-import nl.rivm.cib.episim.model.ZipCode;
-import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.persist.CBSUtil;
+import io.coala.time.Proactive;
 
 /**
- * {@link GemeenteDao}
+ * {@link Participant}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Entity( name = "GEMEENTE" )
-public class GemeenteDao extends AbstractDao
+public interface Participant extends Proactive
 {
-	@Id
-	@Column( name = "CODE", unique = true )
-	protected int code;
 
-	@Column( name = "NAME", length = 100 )
-	protected String name;
-
-	/**
-	 * @param zipCode
-	 * @return
-	 */
-	public static GemeenteDao of( final ZipCode zipCode )
-	{
-		final GemeenteDao result = new GemeenteDao();
-		result.code = CBSUtil.toGemeenteCode( zipCode );
-		result.name = CBSUtil.toGemeenteNaam( zipCode );
-		return result;
-	}
-
+	Population<?> population();
 }

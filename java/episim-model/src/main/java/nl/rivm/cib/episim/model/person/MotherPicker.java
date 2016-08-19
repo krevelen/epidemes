@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate;
+package nl.rivm.cib.episim.model.person;
 
 import java.util.Iterator;
 import java.util.List;
@@ -54,7 +54,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 	interface Mother extends Candidate
 	{
 		// TODO make birth as abstract Attribute to map (and sort) candidates
-		Instant birth();
+		Instant born();
 
 		// TODO make fertility/recovery as abstract (un/re)registration schedule
 		Range<Instant> fertilityInterval();
@@ -192,7 +192,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 				}
 				final Instant end = candidate.fertilityInterval().getMaximum()
 						.getValue();
-				this.byBirth.compute( candidate.birth(), ( birth, current ) ->
+				this.byBirth.compute( candidate.born(), ( birth, current ) ->
 				{
 					return current == null ? candidate
 							: Cluster.of( current, candidate );
@@ -206,7 +206,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			{
 				final Expectation exp = this.candidates.remove( candidate );
 				if( exp != null ) exp.remove();
-				this.byBirth.computeIfPresent( candidate.birth(),
+				this.byBirth.computeIfPresent( candidate.born(),
 						( birth, current ) ->
 						{
 							return current instanceof Cluster

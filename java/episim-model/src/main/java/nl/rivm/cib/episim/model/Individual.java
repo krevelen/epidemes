@@ -52,7 +52,7 @@ public interface Individual extends Proactive
 {
 
 	/** @return the birth {@link Instant} */
-	Instant birth();
+	Instant born();
 
 	/** @return the {@link Gender} */
 	Gender gender();

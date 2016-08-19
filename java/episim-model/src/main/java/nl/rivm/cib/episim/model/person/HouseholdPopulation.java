@@ -17,14 +17,12 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate.family;
+package nl.rivm.cib.episim.model.person;
 
 import java.util.Objects;
 
+import io.coala.rx.RxCollection;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.populate.DemographicEvent;
-import nl.rivm.cib.episim.model.populate.Population;
-import nl.rivm.cib.episim.util.Store;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -39,7 +37,7 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 	extends Population<T>
 {
 
-	Store<Household<T>> households();
+	RxCollection<Household<T>> households();
 
 	default void onImmigration( final Household<T> immigrants )
 	{
@@ -54,8 +52,8 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 	}
 
 	static <T extends HouseholdParticipant> HouseholdPopulation<T> of(
-		final String name, final Store<T> members,
-		final Store<Household<T>> households )
+		final String name, final RxCollection<T> members,
+		final RxCollection<Household<T>> households, final Scheduler scheduler )
 	{
 		return new HouseholdPopulation<T>()
 		{
@@ -67,11 +65,11 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 			@Override
 			public Scheduler scheduler()
 			{
-				return members.scheduler();
+				return scheduler;
 			}
 
 			@Override
-			public Store<T> members()
+			public RxCollection<T> members()
 			{
 				return members;
 			}
@@ -95,7 +93,7 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 			}
 
 			@Override
-			public Store<Household<T>> households()
+			public RxCollection<Household<T>> households()
 			{
 				return households;
 			}

@@ -19,28 +19,27 @@
  */
 package nl.rivm.cib.episim.model.scenario;
 
-import static org.junit.Assert.assertEquals;
+import static org.aeonbits.owner.util.Collections.entry;
 
 import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
-import io.coala.dsol3.Dsol3Scheduler;
+import io.coala.dsol3.Dsol3Config;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
-import io.coala.time.Duration;
-import io.coala.time.Instant;
 import io.coala.time.Scheduler;
 import io.coala.time.Units;
+import net.jodah.concurrentunit.Waiter;
 
 /**
  * {@link HouseholdTest}
@@ -61,7 +60,7 @@ public class HouseholdTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void householdCompositionTest() throws Throwable
+	public void householdCompositionTest() throws TimeoutException
 	{
 		LOG.trace( "Initializing household composition scenario..." );
 
@@ -82,24 +81,29 @@ public class HouseholdTest
 				} );
 
 		// TODO initiate scheduler through (replication-specific) binder
-		final Scenario scen = binder.inject( Scenario.class );
-		final Scheduler scheduler = Dsol3Scheduler.of( "householdTest",
-				Instant.of( "0 days" ), Duration.of( "100 days" ), scen::init );
+		final Dsol3Config config = Dsol3Config.of(
+				entry( Dsol3Config.ID_KEY, "geardTest" ),
+				entry( Dsol3Config.START_TIME_KEY, "0 day" ),
+				entry( Dsol3Config.RUN_LENGTH_KEY, "100" ) );
+		LOG.info( "Starting household test, config: {}", config.toYAML() );
+		final Scheduler scheduler = config
+				.create( binder.inject( Scenario.class )::init );
 
-		LOG.trace( "Starting household composition scenario..." );
-		final CountDownLatch latch = new CountDownLatch( 1 );
-		scheduler.time().subscribe( t ->
+		final Waiter waiter = new Waiter();
+		scheduler.time().subscribe( time ->
 		{
-		}, e ->
+			// virtual time passes...
+		}, error ->
 		{
-			LOG.warn( "Problem in scheduler", e );
+			waiter.rethrow( error );
 		}, () ->
 		{
-			latch.countDown();
+			waiter.resume();
 		} );
 		scheduler.resume();
-		latch.await( 20, TimeUnit.SECONDS );
-		assertEquals( "Should have completed", 0, latch.getCount() );
+		waiter.await( 20, TimeUnit.SECONDS );
+
+		LOG.info( "completed, t={}", scheduler.now() );
 	}
 
 }

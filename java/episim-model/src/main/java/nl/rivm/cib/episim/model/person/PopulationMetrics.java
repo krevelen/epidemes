@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate;
+package nl.rivm.cib.episim.model.person;
 
 import javax.measure.quantity.Dimensionless;
 import javax.measure.unit.Unit;
@@ -27,10 +27,10 @@ import org.jscience.physics.amount.Amount;
 import io.coala.time.Indicator;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.populate.Population.Birth;
-import nl.rivm.cib.episim.model.populate.Population.Death;
-import nl.rivm.cib.episim.model.populate.Population.Emigration;
-import nl.rivm.cib.episim.model.populate.Population.Immigration;
+import nl.rivm.cib.episim.model.person.Population.Birth;
+import nl.rivm.cib.episim.model.person.Population.Death;
+import nl.rivm.cib.episim.model.person.Population.Emigration;
+import nl.rivm.cib.episim.model.person.Population.Immigration;
 
 /**
  * {@link PopulationMetrics} follows common

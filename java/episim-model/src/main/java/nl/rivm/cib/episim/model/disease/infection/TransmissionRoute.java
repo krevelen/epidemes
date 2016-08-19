@@ -102,4 +102,13 @@ public interface TransmissionRoute extends Wrapper<String>
 	TransmissionRoute VECTOR_BORNE = Util.valueOf( "vector-borne",
 			TransmissionRoute.class );
 
+	/**
+	 * @param route
+	 * @return
+	 */
+	static TransmissionRoute of( String route )
+	{
+		return Util.valueOf( route, TransmissionRoute.class );
+	}
+
 }

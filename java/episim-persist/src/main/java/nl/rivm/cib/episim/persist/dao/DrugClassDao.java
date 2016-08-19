@@ -19,48 +19,26 @@
  */
 package nl.rivm.cib.episim.persist.dao;
 
-import javax.measure.unit.NonSI;
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
-
-import org.jscience.geography.coordinates.LatLong;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 
 import nl.rivm.cib.episim.persist.AbstractDao;
 
 /**
- * {@link LatLongDao}
+ * {@link DrugClassDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Embeddable
-public class LatLongDao extends AbstractDao
+public class DrugClassDao extends AbstractDao
 {
+	@Id
+	@GeneratedValue
+	@Column( name = "ID" )
+	protected int id;
+	
+	@Column( name = "NAME", unique = true, nullable = false )
+	protected String name;
 
-	@Column( name = "LAT", nullable = false, updatable = false )//, precision = 3, scale = 18
-	protected double latitude;
-
-	@Column( name = "LON", nullable = false, updatable = false )//, precision = 3, scale = 18
-	protected double longitude;
-
-	/**
-	 * @return
-	 */
-	public LatLong toLatLong()
-	{
-		return LatLong.valueOf( this.latitude, this.longitude,
-				NonSI.DEGREE_ANGLE );
-	}
-
-	/**
-	 * @param centroid
-	 * @return
-	 */
-	public static LatLongDao of( final LatLong position )
-	{
-		final LatLongDao result = new LatLongDao();
-		result.latitude = position.latitudeValue( NonSI.DEGREE_ANGLE );
-		result.longitude = position.longitudeValue( NonSI.DEGREE_ANGLE );
-		return result;
-	}
 }

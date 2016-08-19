@@ -25,6 +25,7 @@ import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -33,6 +34,14 @@ import io.coala.config.ConfigUtil;
 import io.coala.log.LogUtil;
 import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
 import io.coala.persist.JPAUtil;
+import io.coala.time.Duration;
+import io.coala.time.Instant;
+import io.coala.time.Units;
+import nl.rivm.cib.episim.model.disease.Condition;
+import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionEvent;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.persist.fact.TransmissionFactDao;
@@ -78,12 +87,25 @@ public class PersistTest
 	@Test
 	public void testDAOs() throws Exception
 	{
+		final DateTime offset = DateTime.parse( "2010-01-01T00:00+00:00" );
+		final Region region = Region.of( "NL", null, null, null );
+		final Place site = Place.of( Place.RIVM_POSITION, Place.NO_ZIP,
+				region );
+		final Instant start = null;
+		final Duration duration = null;
+		final TransmissionSpace space = null;
+		final TransmissionRoute route = null;
+		final Condition primary = null;
+		final Condition secondary = null;
+		final ContactEvent cause = ContactEvent.of( start, duration, space,
+				route, primary, secondary );
+		final Instant time = Instant.of( 3.456, Units.ANNUM );
+		final TransmissionEvent event = TransmissionEvent.of( time, site,
+				cause );
 		JPAUtil.transact( EMF, em ->
 		{
-			final Region region = Region.of( "NL", null, null, null );
-			final Place site = Place.of( Place.RIVM_POSITION, Place.NO_ZIP,
-					region );
-			final TransmissionFactDao fact = TransmissionFactDao.of( em, site );
+			final TransmissionFactDao fact = TransmissionFactDao.of( em, offset,
+					event );
 			LOG.trace( "Persisting: {}", fact );
 			em.persist( fact );
 		} );
@@ -91,8 +113,8 @@ public class PersistTest
 		{
 			LOG.trace( "Read table, result: {}",
 					em.createQuery( "SELECT f FROM "
-							+ PersistenceConfig.TRANSMISSION_FACT_ENTITY + " f" )
-							.getResultList() );
+							+ PersistenceConfig.TRANSMISSION_FACT_ENTITY
+							+ " f" ).getResultList() );
 		} );
 	}
 }

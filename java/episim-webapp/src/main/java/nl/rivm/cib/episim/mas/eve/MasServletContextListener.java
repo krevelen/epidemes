@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.log.LogUtil;
-import io.coala.resource.FileUtil;
+import io.coala.util.FileUtil;
 
 /**
  * {@link MasServletContextListener} allows {@code init-param}s:

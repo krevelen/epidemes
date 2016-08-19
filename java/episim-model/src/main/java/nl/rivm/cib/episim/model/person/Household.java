@@ -1,13 +1,10 @@
-package nl.rivm.cib.episim.model.populate.family;
+package nl.rivm.cib.episim.model.person;
 
 import java.util.Collections;
 import java.util.Objects;
 
+import io.coala.rx.RxCollection;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.populate.DemographicEvent;
-import nl.rivm.cib.episim.model.populate.Participant;
-import nl.rivm.cib.episim.model.populate.Population;
-import nl.rivm.cib.episim.util.Store;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -60,7 +57,7 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 	}
 
 	static <T extends HouseholdParticipant> Household<T> of( final String name,
-		final HouseholdPopulation<T> population, final Store<T> members )
+		final HouseholdPopulation<T> population, final RxCollection<T> members )
 	{
 		final Household<T> result = new Household<T>()
 		{
@@ -82,7 +79,7 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 			}
 
 			@Override
-			public Store<T> members()
+			public RxCollection<T> members()
 			{
 				return members;
 			}

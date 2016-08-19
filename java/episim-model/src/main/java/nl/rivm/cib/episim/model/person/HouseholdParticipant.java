@@ -17,18 +17,34 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate;
+package nl.rivm.cib.episim.model.person;
 
-import io.coala.time.Proactive;
+import java.util.Collections;
+
+import nl.rivm.cib.episim.model.person.Household.MoveHouse;
 
 /**
- * {@link Participant}
+ * {@link HouseholdParticipant}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Participant extends Proactive
+public interface HouseholdParticipant extends Participant
 {
+	Household<? extends HouseholdParticipant> household();
 
-	Population<?> population();
+	@SuppressWarnings( "unchecked" )
+	default <T extends HouseholdParticipant> void
+		moveHouse( Household<T> newHome )
+	{
+		newHome.members().add( (T) this );
+		newHome.emit( DemographicEvent.Builder.of( MoveHouse.class, now() )
+				.withDepartures( Collections.singleton( this ) ).build() );
+		household().members().remove( this );
+		if( household().members().isEmpty() )
+		{
+			household().population().households().remove( this );
+			household().onAbandoned();
+		}
+	}
 }

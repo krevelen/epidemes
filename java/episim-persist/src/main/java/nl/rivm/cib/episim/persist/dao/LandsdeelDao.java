@@ -23,9 +23,9 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
+import nl.rivm.cib.episim.model.ZipCode;
 import nl.rivm.cib.episim.persist.AbstractDao;
 import nl.rivm.cib.episim.persist.CBSUtil;
-import nl.rivm.cib.episim.util.ZipCode;
 
 /**
  * {@link LandsdeelDao}

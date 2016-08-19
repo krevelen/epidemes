@@ -22,8 +22,8 @@ package nl.rivm.cib.episim.persist.dao;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
+import nl.rivm.cib.episim.model.ZipCode;
 import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.util.ZipCode;
 
 /**
  * {@link ZipCodeDao}

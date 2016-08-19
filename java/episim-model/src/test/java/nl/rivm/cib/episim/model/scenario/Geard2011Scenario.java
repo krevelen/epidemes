@@ -25,9 +25,11 @@ import io.coala.math.MeasureUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
 import io.coala.math.WeightedValue;
+import io.coala.name.Identified;
 import io.coala.random.AmountDistribution;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
+import io.coala.rx.RxCollection;
 import io.coala.time.Instant;
 import io.coala.time.Rate;
 import io.coala.time.Scheduler;
@@ -36,13 +38,12 @@ import io.coala.time.Units;
 import nl.rivm.cib.episim.model.Gender;
 import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.Partner;
-import nl.rivm.cib.episim.model.populate.MotherPicker;
-import nl.rivm.cib.episim.model.populate.Participant;
-import nl.rivm.cib.episim.model.populate.Population;
-import nl.rivm.cib.episim.model.populate.family.Household;
-import nl.rivm.cib.episim.model.populate.family.HouseholdParticipant;
-import nl.rivm.cib.episim.model.populate.family.HouseholdPopulation;
-import nl.rivm.cib.episim.util.Store;
+import nl.rivm.cib.episim.model.person.Household;
+import nl.rivm.cib.episim.model.person.HouseholdParticipant;
+import nl.rivm.cib.episim.model.person.HouseholdPopulation;
+import nl.rivm.cib.episim.model.person.MotherPicker;
+import nl.rivm.cib.episim.model.person.Participant;
+import nl.rivm.cib.episim.model.person.Population;
 
 /**
  * {@link Geard2011Scenario}
@@ -73,7 +74,7 @@ public class Geard2011Scenario implements Scenario
 		public GenderAge( final Individual individual )
 		{
 			super( Arrays.asList( individual.gender(), individual.now()
-					.subtract( individual.birth() ).intValue( Units.ANNUM ) ) );
+					.subtract( individual.born() ).intValue( Units.ANNUM ) ) );
 		}
 
 		public Gender gender()
@@ -88,8 +89,10 @@ public class Geard2011Scenario implements Scenario
 
 	}
 
-	interface GeardIndividual
-		extends Partner, HouseholdParticipant, MotherPicker.Mother
+	private static long INDIVIDUAL_COUNT = 0;
+
+	interface GeardIndividual extends Partner, HouseholdParticipant,
+		MotherPicker.Mother, Identified.Ordinal<String>
 	{
 		/**
 		 * @return {@code true} if this {@link Participant} can't leave home
@@ -112,8 +115,10 @@ public class Geard2011Scenario implements Scenario
 		{
 			final GeardIndividual result = new GeardIndividual()
 			{
-				private final Store<GeardIndividual> partners = Store
-						.of( household.scheduler(), new HashSet<>() );
+				private final String id = "IND" + INDIVIDUAL_COUNT++;
+
+				private final RxCollection<GeardIndividual> partners = RxCollection
+						.of( new HashSet<>() );
 
 				private final Range<Instant> fertilityInterval = fertilityAges == null
 						? null
@@ -133,13 +138,13 @@ public class Geard2011Scenario implements Scenario
 				}
 
 				@Override
-				public Store<GeardIndividual> partners()
+				public RxCollection<GeardIndividual> partners()
 				{
 					return this.partners;
 				}
 
 				@Override
-				public Instant birth()
+				public Instant born()
 				{
 					return birth;
 				}
@@ -178,6 +183,12 @@ public class Geard2011Scenario implements Scenario
 				public Population<?> population()
 				{
 					return household.population();
+				}
+
+				@Override
+				public String id()
+				{
+					return id;
 				}
 			};
 			household.population().members().add( result );
@@ -361,9 +372,9 @@ public class Geard2011Scenario implements Scenario
 
 		this.momPicker = MotherPicker.of( scheduler );
 		this.pop = HouseholdPopulation.of( "pop",
-				Store.of( scheduler, new HashSet<GeardIndividual>() ),
-				Store.of( scheduler,
-						new HashSet<Household<GeardIndividual>>() ) );
+				RxCollection.of( new HashSet<GeardIndividual>() ),
+				RxCollection.of( new HashSet<Household<GeardIndividual>>() ),
+				scheduler );
 		this.pop.events().ofType( Population.Birth.class ).subscribe( e ->
 		{
 			for( GeardIndividual i : ((Population.Birth<GeardIndividual>) e)
@@ -410,7 +421,7 @@ public class Geard2011Scenario implements Scenario
 	{
 		final Household<GeardIndividual> result = Household.of(
 				"hh" + System.currentTimeMillis(), this.pop,
-				Store.of( scheduler(), new HashSet<>() ) );
+				RxCollection.of( new HashSet<>() ) );
 		final Geard2011HouseholdComposition hh_comp = this.hh_comp_dist.draw();
 		for( int i = 0; i < hh_comp.counts.length; i++ )
 			for( int j = 0; j < hh_comp.counts[i].intValue(); j++ )
@@ -491,7 +502,7 @@ public class Geard2011Scenario implements Scenario
 			if( drawLeavingHome( ind, tuple ) )
 			{
 				ind.moveHouse( Household.of( "hh" + System.currentTimeMillis(),
-						this.pop, Store.of( scheduler(), new HashSet<>() ) ) );
+						this.pop, RxCollection.of( new HashSet<>() ) ) );
 				left++;
 			} //else 
 			if( drawCoupling( ind, tuple ) )

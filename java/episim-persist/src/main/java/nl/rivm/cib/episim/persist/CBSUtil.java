@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.persist;
 
-import nl.rivm.cib.episim.util.ZipCode;
+import nl.rivm.cib.episim.model.ZipCode;
 
 /**
  * {@link CBSUtil}

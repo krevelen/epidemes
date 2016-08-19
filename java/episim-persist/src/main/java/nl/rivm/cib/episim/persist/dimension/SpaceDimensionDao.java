@@ -20,19 +20,19 @@ import nl.rivm.cib.episim.persist.dao.ProvincieDao;
 import nl.rivm.cib.episim.persist.dao.WijkDao;
 
 /**
- * {@link LocationDimensionDao} is a data access object for the location
+ * {@link SpaceDimensionDao} is a data access object for the location
  * dimension
  * 
  * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
  * @author Rick van Krevelen
  */
 @Entity( name = "DIM_LOCATION" )
-public class LocationDimensionDao extends AbstractDao
+public class SpaceDimensionDao extends AbstractDao
 {
 	@Id
 	@GeneratedValue
 	@Column( name = "ID" )
-	protected int id;
+	protected long id;
 
 	@Embedded
 	protected PlaceDao place;
@@ -61,10 +61,10 @@ public class LocationDimensionDao extends AbstractDao
 	@JoinColumn( name = "GGD", nullable = false, updatable = false )
 	protected GgdDao ggd;
 
-	public static LocationDimensionDao of( final EntityManager em,
+	public static SpaceDimensionDao of( final EntityManager em,
 		final Place location )
 	{
-		final LocationDimensionDao result = new LocationDimensionDao();
+		final SpaceDimensionDao result = new SpaceDimensionDao();
 		result.place = PlaceDao.of( em, location );
 		result.wijk = WijkDao.of( location.zipCode() );
 		result.buurt = BuurtDao.of( location.zipCode() );

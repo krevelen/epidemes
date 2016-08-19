@@ -19,48 +19,23 @@
  */
 package nl.rivm.cib.episim.persist.dao;
 
-import javax.measure.unit.NonSI;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-
-import org.jscience.geography.coordinates.LatLong;
 
 import nl.rivm.cib.episim.persist.AbstractDao;
 
 /**
- * {@link LatLongDao}
+ * {@link FaithDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
 @Embeddable
-public class LatLongDao extends AbstractDao
+public class FaithDao extends AbstractDao
 {
+	@Column( name = "DENOM", unique = true, nullable = false, updatable = false )
+	protected String denomination;
 
-	@Column( name = "LAT", nullable = false, updatable = false )//, precision = 3, scale = 18
-	protected double latitude;
-
-	@Column( name = "LON", nullable = false, updatable = false )//, precision = 3, scale = 18
-	protected double longitude;
-
-	/**
-	 * @return
-	 */
-	public LatLong toLatLong()
-	{
-		return LatLong.valueOf( this.latitude, this.longitude,
-				NonSI.DEGREE_ANGLE );
-	}
-
-	/**
-	 * @param centroid
-	 * @return
-	 */
-	public static LatLongDao of( final LatLong position )
-	{
-		final LatLongDao result = new LatLongDao();
-		result.latitude = position.latitudeValue( NonSI.DEGREE_ANGLE );
-		result.longitude = position.longitudeValue( NonSI.DEGREE_ANGLE );
-		return result;
-	}
+	@Column( name = "FAITH", nullable = true, updatable = false )
+	protected String faith;
 }

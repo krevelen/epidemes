@@ -19,7 +19,8 @@
 		<class>nl.rivm.cib.episim.persist.dao.RegionDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.WijkDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.ZipCodeDao</class>
-		<class>nl.rivm.cib.episim.persist.dimension.LocationDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.SpaceDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.TimeDimensionDao</class>
 		<class>nl.rivm.cib.episim.persist.fact.TransmissionFactDao</class>
 		<!-- <shared-cache-mode>ALL</shared-cache-mode> -->
 		<!-- <validation-mode>AUTO</validation-mode> -->

@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.populate;
+package nl.rivm.cib.episim.model.person;
 
 import java.util.Collection;
 import java.util.Collections;
