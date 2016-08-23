@@ -6,6 +6,7 @@ import static org.aeonbits.owner.util.Collections.entry;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.dsol3.Dsol3Config;
+import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.MeasureUtil;
@@ -261,7 +263,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					value );
 		} catch( final IOException e )
 		{
-			LOG.error( LogUtil.toMessage( "{} - Unsubscribing {} from '{}'",
+			LOG.error( LogUtil.messageOf( "{} - Unsubscribing {} from '{}'",
 					getId(), listener, topic ), e );
 			unsubscribe( subKey );
 		}
@@ -313,10 +315,10 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					listener, TIME_TOPIC, timing );
 			if( timing != null ) // poll the time periodically
 				sub = this.scheduler
-						.atEach( timing.asObservable( this.myOffset.toDate() ) )
-						.subscribe( scheduler ->
+						.atEach( timing.offset( this.myOffset ).stream() )
+						.subscribe( t ->
 						{
-							publishTime( result, listener, scheduler.now() );
+							publishTime( result, listener, t );
 						} );
 			else // subscribe to all time changes directly
 				sub = this.time.subscribe( time ->
@@ -329,12 +331,18 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					listener, PACE_TOPIC, timing );
 			if( timing != null ) // poll the pace periodically
 			{
-				this.scheduler
-						.atEach( timing.asObservable( this.myOffset.toDate() ) )
-						.subscribe( scheduler ->
-						{
-							publishPace( result, listener, this.myPace );
-						} );
+				try
+				{
+					this.scheduler
+							.atEach( timing.offset( this.myOffset ).iterate() )
+							.subscribe( scheduler ->
+							{
+								publishPace( result, listener, this.myPace );
+							} );
+				} catch( final ParseException e )
+				{
+					Thrower.rethrowUnchecked( e );
+				}
 				sub = null;
 			} else // subscribe to all pace changes directly
 				sub = this.pace.subscribe( pace ->

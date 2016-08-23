@@ -136,9 +136,10 @@ public class EcosystemScenarioTest
 					} ).subscribe();
 
 			// spawn initial transactions with self
-			// FIXME recursive splitting to async stream join
+			// FIXME recursive splitting in Scheduler to async stream join
 			scheduler.atEach(
-					Timing.of( "0 0 0 14 * ? *" ).asObservable( offset ), t ->
+					Timing.of( "0 0 0 14 * ? *" ).offset( offset ).iterate(),
+					t ->
 					{
 						sales.createRequest( BirthFact.class, org1.id(), null,
 								t.add( 1 ), Collections.singletonMap(
@@ -160,7 +161,7 @@ public class EcosystemScenarioTest
 		final Dsol3Config dsol = Dsol3Config.of(
 				entry( Dsol3Config.ID_KEY, "ecosystemTest" ),
 				entry( Dsol3Config.START_TIME_KEY,
-						"0 " + config.duration().unwrap().getUnit() ),
+						"0 " + config.duration().unit() ),
 				entry( Dsol3Config.RUN_LENGTH_KEY,
 						config.duration().unwrap().getValue().toString() ) );
 		LOG.info( "Starting ecosystem test, config: {}", config.toYAML() );
