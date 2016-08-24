@@ -22,7 +22,9 @@ package nl.rivm.cib.episim.persist;
 import io.coala.persist.HibernateJPAConfig;
 
 /**
- * {@link PersistenceConfig}
+ * {@link PersistenceConfig} serves to configure persistence units
+ * <p>
+ * TODO explore use of guice-persist, e.g. for annotating @Transactional methods
  * 
  * @version $Id$
  * @author Rick van Krevelen
