@@ -20,7 +20,6 @@
 package nl.rivm.cib.episim.model.scenario;
 
 import io.coala.time.Proactive;
-import io.coala.time.Scheduler;
 
 /**
  * {@link Scenario}
@@ -30,6 +29,7 @@ import io.coala.time.Scheduler;
  */
 public interface Scenario extends Proactive
 {
-	void init( Scheduler scheduler ) throws Exception;
+
+	// define factories for behaviors, persistence, interactions, etc.
 
 }

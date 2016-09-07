@@ -19,32 +19,42 @@
  */
 package nl.rivm.cib.episim.model;
 
-import static org.aeonbits.owner.util.Collections.entry;
-
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.measure.unit.NonSI;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
-import io.coala.dsol3.Dsol3Config;
+import com.almende.eve.protocol.jsonrpc.annotation.Access;
+import com.almende.eve.protocol.jsonrpc.annotation.AccessType;
+
+import io.coala.bind.LocalConfig;
+import io.coala.config.InjectConfig;
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.enterprise.CompositeActor;
 import io.coala.enterprise.CoordinationFact;
 import io.coala.enterprise.CoordinationFactType;
 import io.coala.enterprise.Organization;
+import io.coala.eve3.Eve3Exposer;
+import io.coala.guice4.Guice4LocalBinder;
+import io.coala.inter.Exposer;
+import io.coala.log.InjectLogger;
 import io.coala.log.LogUtil;
 import io.coala.time.Duration;
+import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
 import io.coala.time.Timing;
-import io.coala.time.Units;
 import net.jodah.concurrentunit.Waiter;
 import nl.rivm.cib.episim.model.scenario.Scenario;
-import nl.rivm.cib.episim.model.scenario.ScenarioConfig;
 
 /**
  * {@link EcosystemScenarioTest}
@@ -59,7 +69,21 @@ public class EcosystemScenarioTest
 	private static final Logger LOG = LogUtil
 			.getLogger( EcosystemScenarioTest.class );
 
-	public static class EcosystemScenario implements Scenario
+	interface FactBank
+	{
+		void save( CoordinationFact fact );
+
+		<T extends CoordinationFact> Iterable<T> find( Class<T> factType );
+	}
+
+	interface FactViewer
+	{
+		@Access( AccessType.PUBLIC )
+		List<CoordinationFact> facts();
+	}
+
+	@Singleton
+	public static class EcosystemScenario implements Scenario, FactViewer
 	{
 
 		interface BirthFact extends CoordinationFact
@@ -67,15 +91,23 @@ public class EcosystemScenarioTest
 			// empty 
 		}
 
-		// FIXME @InjectLogger
-		private static final Logger LOG = LogUtil
-				.getLogger( EcosystemScenario.class );
+		private final Scheduler scheduler;
 
-		// FIXME @Inject
-		private Scheduler scheduler;
+		@Inject
+		private Organization.Factory orgFactory;
 
-		// FIXME @Inject
-		private CoordinationFact.Factory factFactory = new CoordinationFact.SimpleFactory();
+		@InjectLogger
+		private Logger LOG;
+
+		@InjectConfig
+		private ReplicateConfig config;
+
+		@Inject
+		public EcosystemScenario( final Scheduler scheduler )
+		{
+			this.scheduler = scheduler;
+			scheduler.onReset( this::init );
+		}
 
 		@Override
 		public Scheduler scheduler()
@@ -83,30 +115,13 @@ public class EcosystemScenarioTest
 			return this.scheduler;
 		}
 
-		@Override
-		public void init( final Scheduler scheduler ) throws Exception
+		private void init() throws ParseException
 		{
 			LOG.info( "initializing..." );
-			this.scheduler = scheduler;
-
-			final ScenarioConfig config = ConfigCache
-					.getOrCreate( ScenarioConfig.class );
-			final Date offset = config.offset().toDate();
-			scheduler.time().subscribe( t ->
-			{
-				LOG.trace( "t={}, date: {}", t.prettify( Units.DAYS, 2 ),
-						t.prettify( offset ) );
-			}, e ->
-			{
-				LOG.error( "Problem in model", e );
-			}, () ->
-			{
-				LOG.info( "completed, t={}", scheduler.now() );
-			} );
+			final Date offset = Date.from( this.config.offset() );
 
 			// create organization
-			final Organization org1 = Organization.of( scheduler, "ind1",
-					this.factFactory );
+			final Organization org1 = this.orgFactory.create( "org1" );
 			final CompositeActor sales = org1.actor( "sales" );
 
 			// add business rule(s)
@@ -117,18 +132,12 @@ public class EcosystemScenarioTest
 					final BirthFact response = sales.createResponse( fact,
 							CoordinationFactType.STATED, true, null, Collections
 									.singletonMap( "myParam1", "myValue1" ) );
-					LOG.trace( "t={}, {} responded: {} for incoming: {}", t,
-							sales.id(), response, fact );
-//					throw new Exception();
+					LOG.trace( "t={}, {} responded: {} for incoming: {}",
+							t.prettify( offset ), sales.id(), response, fact );
 				} );
 			} );
 
-			// observe generated facts
-			org1.outgoing().subscribe( fact ->
-			{
-				LOG.trace( "t={}, outgoing: {}", org1.now(), fact );
-			} );
-
+			// consume own outgoing Birth requests
 			org1.outgoing( BirthFact.class, CoordinationFactType.REQUESTED )
 					.doOnNext( f ->
 					{
@@ -136,15 +145,21 @@ public class EcosystemScenarioTest
 					} ).subscribe();
 
 			// spawn initial transactions with self
-			// FIXME recursive splitting in Scheduler to async stream join
-			scheduler.atEach(
+			org1.atEach(
 					Timing.of( "0 0 0 14 * ? *" ).offset( offset ).iterate(),
 					t ->
 					{
 						sales.createRequest( BirthFact.class, org1.id(), null,
 								t.add( 1 ), Collections.singletonMap(
-										"myParam2", "myValue2" ) );
+										"myParam0", "myValue0" ) );
 					} );
+		}
+
+		@Override
+		public List<CoordinationFact> facts()
+		{
+			// TODO Auto-generated method stub
+			return null;
 		}
 	}
 
@@ -152,23 +167,33 @@ public class EcosystemScenarioTest
 	public void testEcosystem()
 		throws TimeoutException, InstantiationException, IllegalAccessException
 	{
-		final ScenarioConfig config = ConfigCache
-				.getOrCreate( ScenarioConfig.class,
-						Collections.singletonMap(
-								ScenarioConfig.INITIALIZER_KEY,
-								EcosystemScenario.class.getName() ) );
+		// configure replication FIXME via LocalConfig?
+		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
+				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 500 ) );
 
-		final Dsol3Config dsol = Dsol3Config.of(
-				entry( Dsol3Config.ID_KEY, "ecosystemTest" ),
-				entry( Dsol3Config.START_TIME_KEY,
-						"0 " + config.duration().unit() ),
-				entry( Dsol3Config.RUN_LENGTH_KEY,
-						config.duration().unwrap().getValue().toString() ) );
-		LOG.info( "Starting ecosystem test, config: {}", config.toYAML() );
-		final Scheduler scheduler = dsol.create( config.initializer() );
+		// configure tooling
+		final LocalConfig config = LocalConfig.builder().withId( "ecosysSim" )
+				.withProvider( Scheduler.class, Dsol3Scheduler.class )
+				.withProvider( Organization.Factory.class,
+						Organization.Factory.Simple.class )
+				.withProvider( Exposer.class, Eve3Exposer.class )
+//				.withProvider( Invoker.class, Eve3Invoker.class )
+//				.withProvider( PseudoRandom.Factory.class,
+//				Math3PseudoRandom.MersenneTwisterFactory.class )
+//				.withProvider( ProbabilityDistribution.Factory.class,
+//						Math3ProbabilityDistribution.Factory.class )
+//				.withProvider( ProbabilityDistribution.Parser.class,
+//						DistributionParser.class )
+				.withProvider( CoordinationFact.Factory.class,
+						CoordinationFact.SimpleFactory.class )
+				.build();
+
+		LOG.info( "Starting Ecosystem test, config: {}", config );
+		final EcosystemScenario model = Guice4LocalBinder.of( config )
+				.inject( EcosystemScenario.class );
 
 		final Waiter waiter = new Waiter();
-		scheduler.time().subscribe( time ->
+		model.scheduler().time().subscribe( time ->
 		{
 			// virtual time passes...
 		}, error ->
@@ -178,7 +203,7 @@ public class EcosystemScenarioTest
 		{
 			waiter.resume();
 		} );
-		scheduler.resume();
+		model.scheduler().resume();
 		waiter.await( 1, TimeUnit.SECONDS );
 		LOG.info( "Ecosystem test complete" );
 	}

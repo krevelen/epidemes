@@ -10,6 +10,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.measure.Measurable;
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Duration;
@@ -51,6 +52,7 @@ import nl.rivm.cib.episim.model.person.Population;
  * @version $Id: 5e3a1f243ab46e936f50b9c59a81bada60d8a5f4 $
  * @author Rick van Krevelen
  */
+@Singleton
 public class Geard2011Scenario implements Scenario
 {
 	/** */
@@ -208,7 +210,7 @@ public class Geard2011Scenario implements Scenario
 		return result;
 	}
 
-	private Scheduler scheduler;
+	private final Scheduler scheduler;
 
 	@Inject
 	private LocalBinder binder;
@@ -275,7 +277,16 @@ public class Geard2011Scenario implements Scenario
 	Signal<Range<Integer>> ageLeaving;
 	Signal<Range<Integer>> ageDivorcing;
 	AmountDistribution<Duration> agePartner;
+	
+	// TODO @InjectConfig(configType=Geard2011Config.class, methodName=...)
 	AmountDistribution<Duration> birthGap;
+
+	@Inject
+	public Geard2011Scenario( final Scheduler scheduler )
+	{
+		this.scheduler = scheduler;
+		scheduler.onReset( this::init );
+	}
 
 	@Override
 	public Scheduler scheduler()
@@ -284,12 +295,10 @@ public class Geard2011Scenario implements Scenario
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public void init( final Scheduler scheduler ) throws IOException
+	public void init() throws IOException
 	{
 		LOG.trace( "Initializing, binder: {}, factory: {}", this.binder,
 				this.distFact );
-
-		this.scheduler = scheduler;
 
 		this.dt = Amount.valueOf( 5, Units.DAYS );
 		this.yearsPerDt = Amount.valueOf( 1, Units.ANNUAL ).times( this.dt )

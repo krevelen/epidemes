@@ -19,26 +19,25 @@
  */
 package nl.rivm.cib.episim.model.scenario;
 
-import static org.aeonbits.owner.util.Collections.entry;
-
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
-import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
-import io.coala.dsol3.Dsol3Config;
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
+import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
+import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
-import io.coala.time.Units;
 import net.jodah.concurrentunit.Waiter;
 
 /**
@@ -64,30 +63,24 @@ public class HouseholdTest
 	{
 		LOG.trace( "Initializing household composition scenario..." );
 
-		Units.DAILY.toString(); // FIXME initialize Units.class more elegantly
-		final long seed = 1234L; // FIXME put in some replicator config somehow
+		// configure replication 
+		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
+				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 100 ) );
 
-		@SuppressWarnings( "serial" )
-		final LocalBinder binder = Guice4LocalBinder.of( LocalConfig.builder()
-				.withProvider( Scenario.class, Geard2011Scenario.class )
+		// configure tooling
+		final LocalConfig config = LocalConfig.builder().withId( "geardSim" )
+				.withProvider( Scheduler.class, Dsol3Scheduler.class )
+				.withProvider( PseudoRandom.Factory.class,
+						Math3PseudoRandom.MersenneTwisterFactory.class )
 				.withProvider( ProbabilityDistribution.Factory.class,
 						Math3ProbabilityDistribution.Factory.class )
-				.build(), new HashMap<Class<?>, Object>()
-				{
-					{
-						put( PseudoRandom.class, Math3PseudoRandom.Factory
-								.ofMersenneTwister().create( "rng", seed ) );
-					}
-				} );
+				.withProvider( ProbabilityDistribution.Parser.class,
+						DistributionParser.class )
+				.build();
 
-		// TODO initiate scheduler through (replication-specific) binder
-		final Dsol3Config config = Dsol3Config.of(
-				entry( Dsol3Config.ID_KEY, "geardTest" ),
-				entry( Dsol3Config.START_TIME_KEY, "0 day" ),
-				entry( Dsol3Config.RUN_LENGTH_KEY, "100" ) );
 		LOG.info( "Starting household test, config: {}", config.toYAML() );
-		final Scheduler scheduler = config
-				.create( binder.inject( Scenario.class )::init );
+		final Scheduler scheduler = Guice4LocalBinder.of( config )
+				.inject( Geard2011Scenario.class ).scheduler();
 
 		final Waiter waiter = new Waiter();
 		scheduler.time().subscribe( time ->

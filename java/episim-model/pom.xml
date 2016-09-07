@@ -95,6 +95,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>eve3-coala-adapter</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
