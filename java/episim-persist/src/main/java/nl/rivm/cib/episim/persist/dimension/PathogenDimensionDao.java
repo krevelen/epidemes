@@ -74,7 +74,7 @@ public class PathogenDimensionDao extends AbstractDao
 	@Column( name = "SPECIES", nullable = false, updatable = false )
 	protected String species;
 
-	protected String type;
-
-	protected String strain;
+//	protected String type;
+//
+//	protected String strain;
 }

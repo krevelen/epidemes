@@ -16,19 +16,12 @@ Configuration:
     Logger:
       - level: warn
         name: javax.management
-        AppenderRef:
-          ref: Console
 #      - name: com.impetus.kundera
 #        level: debug
-#        AppenderRef:
-#          ref: Console
       - name: com.zaxxer.hikari
         level: warn
-        AppenderRef:
-          ref: Console
       - name: org.hibernate
         level: info
-        additivity: false
-        AppenderRef:
-          ref: Console
-          
+      - name: hsqldb.db
+        level: warn
+        

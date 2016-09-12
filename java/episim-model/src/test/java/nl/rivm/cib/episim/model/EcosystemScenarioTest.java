@@ -44,6 +44,7 @@ import io.coala.enterprise.CompositeActor;
 import io.coala.enterprise.CoordinationFact;
 import io.coala.enterprise.CoordinationFactType;
 import io.coala.enterprise.Organization;
+import io.coala.enterprise.Transaction;
 import io.coala.eve3.Eve3Exposer;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.inter.Exposer;
@@ -125,7 +126,7 @@ public class EcosystemScenarioTest
 			final CompositeActor sales = org1.actor( "sales" );
 
 			// add business rule(s)
-			sales.on( BirthFact.class, org1.id(), fact ->
+			sales.on( BirthFact.class, sales.id(), fact ->
 			{
 				sales.after( Duration.of( 1, NonSI.DAY ) ).call( t ->
 				{
@@ -149,7 +150,7 @@ public class EcosystemScenarioTest
 					Timing.of( "0 0 0 14 * ? *" ).offset( offset ).iterate(),
 					t ->
 					{
-						sales.createRequest( BirthFact.class, org1.id(), null,
+						sales.createRequest( BirthFact.class, sales, null,
 								t.add( 1 ), Collections.singletonMap(
 										"myParam0", "myValue0" ) );
 					} );
@@ -175,7 +176,11 @@ public class EcosystemScenarioTest
 		final LocalConfig config = LocalConfig.builder().withId( "ecosysSim" )
 				.withProvider( Scheduler.class, Dsol3Scheduler.class )
 				.withProvider( Organization.Factory.class,
-						Organization.Factory.Simple.class )
+						Organization.Factory.LocalCaching.class )
+				.withProvider( Transaction.Factory.class,
+						Transaction.Factory.LocalCaching.class )
+				.withProvider( CoordinationFact.Factory.class,
+						CoordinationFact.Factory.Simple.class )
 				.withProvider( Exposer.class, Eve3Exposer.class )
 //				.withProvider( Invoker.class, Eve3Invoker.class )
 //				.withProvider( PseudoRandom.Factory.class,
@@ -184,8 +189,6 @@ public class EcosystemScenarioTest
 //						Math3ProbabilityDistribution.Factory.class )
 //				.withProvider( ProbabilityDistribution.Parser.class,
 //						DistributionParser.class )
-				.withProvider( CoordinationFact.Factory.class,
-						CoordinationFact.SimpleFactory.class )
 				.build();
 
 		LOG.info( "Starting Ecosystem test, config: {}", config );

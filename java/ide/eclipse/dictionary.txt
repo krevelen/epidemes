@@ -155,3 +155,4 @@ serializable
 iterable
 proportionate
 strata
+embeddable

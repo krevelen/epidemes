@@ -80,7 +80,7 @@
 		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
 
-		<coala.version>0.2.0-b4-SNAPSHOT</coala.version>
+		<coala.version>0.2.0-b4</coala.version>
 		<httpcomponents.version>4.5.1</httpcomponents.version>
 		<jackson.version>2.7.4</jackson.version>
 		<jetty.version>9.3.9.v20160517</jetty.version>

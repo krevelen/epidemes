@@ -75,7 +75,7 @@ public class PersistTest
 //				new SubTypesScanner( false ),new TypeAnnotationsScanner() )
 //						.getTypesAnnotatedWith( Entity.class ) )
 //			EMF.getMetamodel().managedType( entity );
-		EMF.getMetamodel().managedType( TransmissionFactDao.class );
+//		EMF.getMetamodel().managedType( TransmissionFactDao.class );
 	}
 
 	@AfterClass
