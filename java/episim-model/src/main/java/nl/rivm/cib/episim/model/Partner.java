@@ -19,6 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
+import io.coala.rx.RxCollection;
+
 /**
  * {@link Partner}
  * 
@@ -28,7 +30,7 @@ package nl.rivm.cib.episim.model;
 public interface Partner extends Individual
 {
 
-	Store<? extends Partner> partners();
+	RxCollection<? extends Partner> partners();
 
 	/**
 	 * @return

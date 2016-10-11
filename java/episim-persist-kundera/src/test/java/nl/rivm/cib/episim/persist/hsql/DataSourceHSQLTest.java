@@ -26,8 +26,8 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
-import nl.rivm.cib.episim.persist.jdbc.JDBCConfig;
-import nl.rivm.cib.episim.persist.jdbc.JDBCUtil;
+import io.coala.persist.JDBCConfig;
+import io.coala.persist.JDBCUtil;
 
 /**
  * {@link DataSourceHSQLTest}

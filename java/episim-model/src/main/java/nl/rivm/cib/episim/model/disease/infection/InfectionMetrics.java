@@ -11,8 +11,8 @@ import org.jscience.physics.amount.Amount;
 import io.coala.time.Indicator;
 import io.coala.time.Instant;
 import io.coala.time.Signal;
+import nl.rivm.cib.episim.model.person.PopulationMetrics;
 import io.coala.time.Proactive;
-import nl.rivm.cib.episim.model.populate.PopulationMetrics;
 
 /**
  * {@link InfectionMetrics} follows common

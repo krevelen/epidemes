@@ -62,7 +62,7 @@ public interface Condition extends Proactive
 	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
 	 *            this {@link Infection}
 	 */
-	Observable<TransitionEvent<?>> emitTransitions();
+	Observable<TransitionEvent<?>> transitions();
 
 	/**
 	 * initiate infection (infectiousness, symptoms, etc.)

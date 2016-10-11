@@ -19,28 +19,26 @@
  */
 package nl.rivm.cib.episim.model.scenario;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
-import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
+import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
-import io.coala.time.Duration;
-import io.coala.time.Instant;
+import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
-import io.coala.time.Units;
+import net.jodah.concurrentunit.Waiter;
 
 /**
  * {@link HouseholdTest}
@@ -61,45 +59,44 @@ public class HouseholdTest
 	 * @throws Throwable
 	 */
 	@Test
-	public void householdCompositionTest() throws Throwable
+	public void householdCompositionTest() throws TimeoutException
 	{
 		LOG.trace( "Initializing household composition scenario..." );
 
-		Units.DAILY.toString(); // FIXME initialize Units.class more elegantly
-		final long seed = 1234L; // FIXME put in some replicator config somehow
+		// configure replication 
+		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
+				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 100 ) );
 
-		@SuppressWarnings( "serial" )
-		final LocalBinder binder = Guice4LocalBinder.of( LocalConfig.builder()
-				.withProvider( Scenario.class, Geard2011Scenario.class )
+		// configure tooling
+		final LocalConfig config = LocalConfig.builder().withId( "geardSim" )
+				.withProvider( Scheduler.class, Dsol3Scheduler.class )
+				.withProvider( PseudoRandom.Factory.class,
+						Math3PseudoRandom.MersenneTwisterFactory.class )
 				.withProvider( ProbabilityDistribution.Factory.class,
 						Math3ProbabilityDistribution.Factory.class )
-				.build(), new HashMap<Class<?>, Object>()
-				{
-					{
-						put( PseudoRandom.class, Math3PseudoRandom.Factory
-								.ofMersenneTwister().create( "rng", seed ) );
-					}
-				} );
+				.withProvider( ProbabilityDistribution.Parser.class,
+						DistributionParser.class )
+				.build();
 
-		// TODO initiate scheduler through (replication-specific) binder
-		final Scenario scen = binder.inject( Scenario.class );
-		final Scheduler scheduler = Dsol3Scheduler.of( "householdTest",
-				Instant.of( "0 days" ), Duration.of( "100 days" ), scen::init );
+		LOG.info( "Starting household test, config: {}", config.toYAML() );
+		final Scheduler scheduler = Guice4LocalBinder.of( config )
+				.inject( Geard2011Scenario.class ).scheduler();
 
-		LOG.trace( "Starting household composition scenario..." );
-		final CountDownLatch latch = new CountDownLatch( 1 );
-		scheduler.time().subscribe( t ->
+		final Waiter waiter = new Waiter();
+		scheduler.time().subscribe( time ->
 		{
-		}, e ->
+			// virtual time passes...
+		}, error ->
 		{
-			LOG.warn( "Problem in scheduler", e );
+			waiter.rethrow( error );
 		}, () ->
 		{
-			latch.countDown();
+			waiter.resume();
 		} );
 		scheduler.resume();
-		latch.await( 20, TimeUnit.SECONDS );
-		assertEquals( "Should have completed", 0, latch.getCount() );
+		waiter.await( 20, TimeUnit.SECONDS );
+
+		LOG.info( "completed, t={}", scheduler.now() );
 	}
 
 }

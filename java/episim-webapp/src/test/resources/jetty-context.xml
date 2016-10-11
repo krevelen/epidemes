@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- $Id: jetty-context.xml 1063 2014-09-16 09:16:10Z krevelen $ -->
+<!-- this file reconfigures the WebAppContext after it is loaded -->
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
+<Configure class="org.eclipse.jetty.webapp.WebAppContext">
+	<!-- to avoid slow development, skip annotation scanning (see http://wiki.eclipse.org/Jetty/Howto/Avoid_slow_deployment) -->
+	<Call name="setAttribute">
+		<Arg>org.eclipse.jetty.server.webapp.WebInfIncludeJarPattern</Arg>
+		<!-- empty string: don't look for any annotations within any jars, cq. 
+			http://www.benoitschweblin.com/2013/03/run-jetty-in-maven-life-cycle.html -->
+		<Arg>^$</Arg>
+	</Call>
+	<!-- to prevent file locking due to memory mapping in Windows file system -->
+	<Set name="copyWebDir">true</Set>
+</Configure>

@@ -1,13 +1,12 @@
 package nl.rivm.cib.episim.model.locate;
 
-import java.util.Map;
-
 import javax.measure.quantity.Area;
 
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.json.Wrapper;
+import io.coala.name.Identified;
 
 /**
  * {@link Region}
@@ -15,9 +14,9 @@ import io.coala.json.Wrapper;
  * @version $Id: e6c9b6b9dc29f3775464a9a9e2400236f22ef50c $
  * @author Rick van Krevelen
  */
-public interface Region
+public interface Region extends Identified<String>
 {
-	Map<RegionType, Region> partOf();
+	Region parent();
 
 	Amount<Area> surfaceArea();
 
@@ -26,6 +25,49 @@ public interface Region
 	default Iterable<Place> getPlacesByDistance( final LatLong origin )
 	{
 		return Place.sortByDistance( places(), origin );
+	}
+
+	static Region of( final String name, final Region parent,
+		final Amount<Area> surfaceArea, final Iterable<Place> places )
+	{
+		return new Region()
+		{
+			@Override
+			public String id()
+			{
+				return name;
+			}
+
+			@Override
+			public Region parent()
+			{
+				return parent;
+			}
+
+			@Override
+			public Amount<Area> surfaceArea()
+			{
+				return surfaceArea;
+			}
+
+			@Override
+			public Iterable<Place> places()
+			{
+				return places;
+			}
+
+			@Override
+			public int hashCode()
+			{
+				return Identified.hashCode( this );
+			}
+
+			@Override
+			public boolean equals( final Object that )
+			{
+				return Identified.equals( this, that );
+			}
+		};
 	}
 
 	/**

@@ -1,10 +1,12 @@
 package nl.rivm.cib.episim.mas.eve;
 
 import static java.lang.System.currentTimeMillis;
+import static org.aeonbits.owner.util.Collections.entry;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,15 +30,16 @@ import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.coala.dsol3.Dsol3Scheduler;
+import io.coala.dsol3.Dsol3Config;
+import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.MeasureUtil;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
-import io.coala.time.TimeSpan;
 import io.coala.time.Timing;
+import io.coala.time.Units;
 import io.coala.util.DecimalUtil;
 import nl.rivm.cib.episim.mas.ReplicatorAgent;
 import rx.Subscription;
@@ -129,18 +132,23 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		this.myOffset = offset;
 		this.myDuration = DecimalMeasure.valueOf(
 				BigDecimal.valueOf( until.getMillis() - offset.getMillis() ),
-				TimeSpan.MILLIS );
+				Units.MILLIS );
 		this.pace.onNext( zeroPace );
 		this.myPace = zeroPace;
-		this.scheduler = Dsol3Scheduler.of( getId(), Instant.of( 0, timeUnit ),
-				Duration.of( this.myDuration ), s ->
-				{
+		final Dsol3Config config = Dsol3Config
+				.of( entry( Dsol3Config.ID_KEY, getId() ),
+						entry( Dsol3Config.START_TIME_KEY, "0 " + timeUnit ),
+						entry( Dsol3Config.RUN_LENGTH_KEY, MeasureUtil
+								.toBigDecimal( this.myDuration, timeUnit )
+								.toString() ) );
+		LOG.info( "Starting replication, config: {}", config.toYAML() );
+		this.scheduler = config.create( s ->
+		{
 //					Scenario.of( Store.of( s, Collections.emptySet() ) );
-					this.time.onNext( s.now() ); // emit start time
-					s.time().subscribe( this.time ); // emit new time
-					LOG.trace( "{} initialized, t={}", getId(),
-							s.now().prettify( 1 ) );
-				} );
+			this.time.onNext( s.now() ); // emit start time
+			s.time().subscribe( this.time ); // emit new time
+			LOG.trace( "{} initialized, t={}", getId(), s.now().prettify( 1 ) );
+		} );
 	}
 
 	@SuppressWarnings( "unchecked" )
@@ -209,8 +217,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 //			LOG.trace( "Cancelling delays, pace: {}", this.myPace );
 			return;
 		}
-		final Duration dt = Duration.of( this.myPace.virtualMS,
-				TimeSpan.MILLIS );
+		final Duration dt = Duration.of( this.myPace.virtualMS, Units.MILLIS );
 		final DateTime until = new DateTime(
 				currentTimeMillis() + this.myPace.actualMS.longValue() );
 //		LOG.trace( "{} - Scheduled block at {} until {}", getId(), dt, until );
@@ -256,7 +263,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					value );
 		} catch( final IOException e )
 		{
-			LOG.error( LogUtil.toMessage( "{} - Unsubscribing {} from '{}'",
+			LOG.error( LogUtil.messageOf( "{} - Unsubscribing {} from '{}'",
 					getId(), listener, topic ), e );
 			unsubscribe( subKey );
 		}
@@ -275,9 +282,9 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 						.put( "remaining_ms",
 								pace.virtualMS.equals( BigDecimal.ZERO ) ? -1L
 										: this.myDuration.getValue()
-												.subtract( t.unwrap()
-														.to( TimeSpan.MILLIS,
-																DecimalUtil.DEFAULT_CONTEXT )
+												.subtract( MeasureUtil
+														.toUnit( t.unwrap(),
+																Units.MILLIS )
 														.getValue() )
 												.divide( pace.virtualMS,
 														DecimalUtil.DEFAULT_CONTEXT )
@@ -308,10 +315,10 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					listener, TIME_TOPIC, timing );
 			if( timing != null ) // poll the time periodically
 				sub = this.scheduler
-						.atEach( timing.asObservable( this.myOffset.toDate() ) )
-						.subscribe( scheduler ->
+						.atEach( timing.offset( this.myOffset ).stream() )
+						.subscribe( t ->
 						{
-							publishTime( result, listener, scheduler.now() );
+							publishTime( result, listener, t );
 						} );
 			else // subscribe to all time changes directly
 				sub = this.time.subscribe( time ->
@@ -324,12 +331,18 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					listener, PACE_TOPIC, timing );
 			if( timing != null ) // poll the pace periodically
 			{
-				this.scheduler
-						.atEach( timing.asObservable( this.myOffset.toDate() ) )
-						.subscribe( scheduler ->
-						{
-							publishPace( result, listener, this.myPace );
-						} );
+				try
+				{
+					this.scheduler
+							.atEach( timing.offset( this.myOffset ).iterate() )
+							.subscribe( scheduler ->
+							{
+								publishPace( result, listener, this.myPace );
+							} );
+				} catch( final ParseException e )
+				{
+					Thrower.rethrowUnchecked( e );
+				}
 				sub = null;
 			} else // subscribe to all pace changes directly
 				sub = this.pace.subscribe( pace ->

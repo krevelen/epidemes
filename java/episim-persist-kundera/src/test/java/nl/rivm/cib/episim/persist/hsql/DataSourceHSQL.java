@@ -27,10 +27,10 @@ import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 import org.hsqldb.jdbc.JDBCDriver;
 
-import io.coala.exception.ExceptionFactory;
+import io.coala.exception.Thrower;
 import io.coala.log.LogUtil;
-import nl.rivm.cib.episim.persist.jdbc.JDBCConfig;
-import nl.rivm.cib.episim.persist.jdbc.JDBCUtil;
+import io.coala.persist.JDBCConfig;
+import io.coala.persist.JDBCUtil;
 
 /**
  * {@link DataSourceHSQL}
@@ -74,7 +74,7 @@ public class DataSourceHSQL
 	public void execute( final String sql, final Consumer<ResultSet> consumer )
 		throws SQLException
 	{
-		JDBCUtil.execute( this.conf, sql, consumer );
+		this.conf.execute( sql, consumer );
 	}
 
 	private final JDBCConfig conf;
@@ -87,8 +87,7 @@ public class DataSourceHSQL
 			Class.forName( this.conf.driver() );
 		} catch( ClassNotFoundException e )
 		{
-			throw ExceptionFactory.createUnchecked( "Problem loading driver",
-					e );
+			Thrower.rethrowUnchecked( e );
 		}
 		LOG.trace( "Loaded Hypersonic JDBC driver: {}", JDBCDriver.class );
 	}

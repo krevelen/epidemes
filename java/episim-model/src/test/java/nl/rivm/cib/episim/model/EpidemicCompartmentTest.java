@@ -19,7 +19,8 @@
  */
 package nl.rivm.cib.episim.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -35,8 +36,7 @@ public class EpidemicCompartmentTest
 {
 
 	/**
-	 * Test method for
-	 * {@link nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment#isInfective()}.
+	 * Test method for {@link EpidemicCompartment#isInfective()}.
 	 */
 	@Test
 	public void testIsInfective()
