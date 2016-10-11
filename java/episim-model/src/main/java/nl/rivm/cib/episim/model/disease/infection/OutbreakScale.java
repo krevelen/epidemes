@@ -20,7 +20,7 @@
 package nl.rivm.cib.episim.model.disease.infection;
 
 import io.coala.json.Wrapper;
-import nl.rivm.cib.episim.model.populate.Population;
+import nl.rivm.cib.episim.model.person.Population;
 
 /**
  * {@link OutbreakScale} is an extensible classifier to characterize evolution

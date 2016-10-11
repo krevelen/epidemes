@@ -1,10 +1,9 @@
 package nl.rivm.cib.episim.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import org.junit.Test;
-
-import nl.rivm.cib.episim.model.locate.ZipCode;
 
 /**
  * {@link ZipCodeTest} tests {@link ZipCode}

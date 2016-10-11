@@ -35,6 +35,24 @@ import nl.rivm.cib.episim.model.disease.Condition;
  * @version $Id: 14a474927d6edfc812c1107ca6057531008db526 $
  * @author Rick van Krevelen
  */
+/**
+ * {@link ContactEvent}
+ * 
+ * @version $Id$
+ * @author Rick van Krevelen
+ */
+/**
+ * {@link ContactEvent}
+ * 
+ * @version $Id$
+ * @author Rick van Krevelen
+ */
+/**
+ * {@link ContactEvent}
+ * 
+ * @version $Id$
+ * @author Rick van Krevelen
+ */
 public class ContactEvent
 {
 
@@ -81,7 +99,7 @@ public class ContactEvent
 	}
 
 	/** @return the contact transmission {@link TransmissionRoute} */
-	public TransmissionRoute getTransmissionRoute()
+	public TransmissionRoute getRoute()
 	{
 		return this.route;
 	}
@@ -102,6 +120,23 @@ public class ContactEvent
 	public Condition getSecondaryCondition()
 	{
 		return this.secondary;
+	}
+
+	/**
+	 * @param start
+	 * @param duration
+	 * @param space
+	 * @param route
+	 * @param primary
+	 * @param secondary
+	 * @return
+	 */
+	public static ContactEvent of( final Instant start, final Duration duration,
+		final TransmissionSpace space, final TransmissionRoute route,
+		final Condition primary, final Condition secondary )
+	{
+		return new ContactEvent( start, duration, space, route, primary,
+				secondary );
 	}
 
 }

@@ -45,8 +45,8 @@ import io.coala.config.YamlConfig;
 import io.coala.log.LogUtil;
 import io.coala.math.WeightedValue;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.resource.FileUtil;
 import io.coala.util.Comparison;
+import io.coala.util.FileUtil;
 
 interface Geard2011Config extends YamlConfig
 {

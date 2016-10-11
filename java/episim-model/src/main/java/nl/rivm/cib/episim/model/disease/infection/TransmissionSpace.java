@@ -32,10 +32,11 @@ import javax.measure.quantity.Frequency;
 import org.jscience.physics.amount.Amount;
 
 import io.coala.exception.ExceptionFactory;
+import io.coala.name.Identified;
 import io.coala.time.Accumulator;
 import io.coala.time.Instant;
-import io.coala.time.Scheduler;
 import io.coala.time.Proactive;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.disease.Afflicted;
 import rx.Observable;
 import rx.Observer;
@@ -48,7 +49,7 @@ import rx.subjects.Subject;
  * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
  * @author Rick van Krevelen
  */
-public interface TransmissionSpace extends Proactive
+public interface TransmissionSpace extends Proactive, Identified<String>
 {
 
 	Collection<TransmissionRoute> getTransmissionRoutes();
@@ -122,10 +123,10 @@ public interface TransmissionSpace extends Proactive
 	/**
 	 * @return a {@link Simple} instance of {@link TransmissionSpace}
 	 */
-	static TransmissionSpace of( final Scheduler scheduler,
+	static TransmissionSpace of( final String id, final Scheduler scheduler,
 		final TransmissionRoute... routes )
 	{
-		return new Simple( scheduler, routes );
+		return new Simple( id, scheduler, routes );
 	}
 
 	/**
@@ -139,6 +140,8 @@ public interface TransmissionSpace extends Proactive
 	class Simple implements TransmissionSpace
 	{
 
+		private final String id;
+
 		private final Scheduler scheduler;
 
 		private final Collection<TransmissionRoute> routes;
@@ -151,9 +154,10 @@ public interface TransmissionSpace extends Proactive
 		private final transient Subject<TransmissionEvent, TransmissionEvent> transmissions = PublishSubject
 				.create();
 
-		public Simple( final Scheduler scheduler,
+		public Simple( final String id, final Scheduler scheduler,
 			final TransmissionRoute... routes )
 		{
+			this.id = id;
 			this.scheduler = scheduler;
 			this.routes = routes == null ? Collections.emptyList()
 					: Arrays.asList( routes );
@@ -196,6 +200,12 @@ public interface TransmissionSpace extends Proactive
 		public Observable<TransmissionEvent> emitTransmissions()
 		{
 			return this.transmissions.asObservable();
+		}
+
+		@Override
+		public String id()
+		{
+			return this.id;
 		}
 	}
 
