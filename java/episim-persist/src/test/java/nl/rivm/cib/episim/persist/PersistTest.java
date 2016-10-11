@@ -102,14 +102,14 @@ public class PersistTest
 		final Instant time = Instant.of( 3.456, Units.ANNUM );
 		final TransmissionEvent event = TransmissionEvent.of( time, site,
 				cause );
-		JPAUtil.transact( EMF, em ->
+		JPAUtil.session( EMF, em ->
 		{
 			final TransmissionFactDao fact = TransmissionFactDao.of( em, offset,
 					event );
 			LOG.trace( "Persisting: {}", fact );
 			em.persist( fact );
 		} );
-		JPAUtil.transact( EMF, em ->
+		JPAUtil.session( EMF, em ->
 		{
 			LOG.trace( "Read table, result: {}",
 					em.createQuery( "SELECT f FROM "

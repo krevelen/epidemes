@@ -2,6 +2,8 @@ Configuration:
 #  shutdownHook: disabled
   status: warn
 
+  messageFactory: org.apache.logging.log4j.message.FormattedMessageFactory
+  
   Appenders:
     Console:
       name: Console

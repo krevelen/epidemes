@@ -19,25 +19,51 @@
  */
 package nl.rivm.cib.episim.model.vaccine.attitude;
 
-import java.util.EnumMap;
-import java.util.Map;
-
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Length;
 
 import org.jscience.physics.amount.Amount;
 
-import io.coala.decide.DecisionAnalyzer.MultiCriteriaWeightedAlternative;
-import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.vaccine.Vaccine;
+import io.coala.time.Instant;
 
 /**
  * {@link Hesitancy3C}
  * 
+ * <style type='text/css'> table.topcenter td { text-align:center;
+ * vertical-align:top; } </style>
+ * <table class="topcenter">
+ * <tr>
+ * <th>Pro</th>
+ * <th>Vaccination Hesitancy Driver</th>
+ * <th>Con</th>
+ * </tr>
+ * <tr>
+ * <td>raise</td>
+ * <td>confidence / expected medical utility <br/>
+ * (safety/risk framing, comfort, anticipated regret, recommendations)</td>
+ * <td>lower</td>
+ * </tr>
+ * <tr>
+ * <td>raise</td>
+ * <td>coherence / expected social utility<br/>
+ * (social benefit, perceived social norm/defaults)</td>
+ * <td>lower</td>
+ * </tr>
+ * <tr>
+ * <td>raise</td>
+ * <td>convenience / expected temporal utility <br/>
+ * (reminders, proximity, availability, affordability)</td>
+ * <td>-</td>
+ * </tr>
+ * <caption align="bottom"><em>(adapted from
+ * <a href="http://dx.doi.org/10.1177/2372732215600716">Betsch et al.,
+ * 2015)</a></em></caption>
+ * </table>
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class Hesitancy3C implements VaccineAttitude
+public class Hesitancy3C implements Immunizable.Attitude
 {
 
 	/**
@@ -64,102 +90,6 @@ public class Hesitancy3C implements VaccineAttitude
 		CONVENIENCE,
 
 		;
-	}
-
-	/**
-	 * {@link VaccineOpportunity}
-	 * 
-	 * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
-	 * @author Rick van Krevelen
-	 */
-	interface VaccineOpportunity
-		extends MultiCriteriaWeightedAlternative<AttitudeCriterion>
-	{
-
-		Vaccine getVaccine();
-
-		/**
-		 * @param attitude
-		 * @param distance the
-		 * @return
-		 */
-		static VaccineOpportunity of( final Hesitancy3C attitude,
-			final Amount<Length> distance )
-		{
-			return new Simple( attitude, distance );
-		}
-
-		/**
-		 * {@link Simple}
-		 * 
-		 * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
-		 * @author Rick van Krevelen
-		 */
-		class Simple implements VaccineOpportunity
-		{
-
-			private final Vaccine vaccine;
-
-			private final Map<AttitudeCriterion, Number> values = new EnumMap<>(
-					AttitudeCriterion.class );
-
-			public Simple( final Hesitancy3C attitude,
-				final Amount<Length> distance )
-			{
-				this.vaccine = attitude.getVaccine();
-				with( AttitudeCriterion.CONFIDENCE, attitude.getConfidence() );
-				with( AttitudeCriterion.COMPLACENCY,
-						attitude.getComplacency() );
-				with( AttitudeCriterion.CONVENIENCE,
-						attitude.getConvenience( distance ) );
-			}
-
-			public Simple with( final AttitudeCriterion criterion,
-				final Amount<Dimensionless> value )
-			{
-				return with( criterion, value.getEstimatedValue() );
-			}
-
-			public Simple with( final AttitudeCriterion criterion,
-				final Number value )
-			{
-				this.values.put( criterion, value );
-				return this;
-			}
-
-			@Override
-			public Number evaluate( final AttitudeCriterion criterion )
-			{
-				return this.values.get( criterion );
-			}
-
-			@Override
-			public Vaccine getVaccine()
-			{
-				return this.vaccine;
-			}
-		}
-	}
-
-	@Override
-	public Scheduler scheduler()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Vaccine getVaccine()
-	{
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean isWilling()
-	{
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 	/**
@@ -196,6 +126,20 @@ public class Hesitancy3C implements VaccineAttitude
 	public Amount<Dimensionless> getConvenience( Amount<Length> distance )
 	{
 		return null; // FIXME
+	}
+
+	@Override
+	public Instant now()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isPositive()
+	{
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 	/**

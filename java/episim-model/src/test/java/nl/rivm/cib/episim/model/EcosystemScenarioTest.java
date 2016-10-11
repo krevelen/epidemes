@@ -21,14 +21,12 @@ package nl.rivm.cib.episim.model;
 
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.measure.unit.NonSI;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
@@ -38,24 +36,21 @@ import com.almende.eve.protocol.jsonrpc.annotation.Access;
 import com.almende.eve.protocol.jsonrpc.annotation.AccessType;
 
 import io.coala.bind.LocalConfig;
-import io.coala.config.InjectConfig;
 import io.coala.dsol3.Dsol3Scheduler;
-import io.coala.enterprise.CompositeActor;
-import io.coala.enterprise.CoordinationFact;
-import io.coala.enterprise.CoordinationFactType;
-import io.coala.enterprise.Organization;
+import io.coala.enterprise.Actor;
+import io.coala.enterprise.EnterpriseTest.World.Sale;
+import io.coala.enterprise.Fact;
+import io.coala.enterprise.FactBank;
 import io.coala.enterprise.Transaction;
 import io.coala.eve3.Eve3Exposer;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.inter.Exposer;
-import io.coala.log.InjectLogger;
 import io.coala.log.LogUtil;
-import io.coala.time.Duration;
+import io.coala.time.Proactive;
 import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
-import io.coala.time.Timing;
+import io.coala.util.DecimalUtil;
 import net.jodah.concurrentunit.Waiter;
-import nl.rivm.cib.episim.model.scenario.Scenario;
 
 /**
  * {@link EcosystemScenarioTest}
@@ -70,38 +65,74 @@ public class EcosystemScenarioTest
 	private static final Logger LOG = LogUtil
 			.getLogger( EcosystemScenarioTest.class );
 
-	interface FactBank
-	{
-		void save( CoordinationFact fact );
-
-		<T extends CoordinationFact> Iterable<T> find( Class<T> factType );
-	}
-
 	interface FactViewer
 	{
 		@Access( AccessType.PUBLIC )
-		List<CoordinationFact> facts();
+		List<Fact> facts();
 	}
 
 	@Singleton
-	public static class EcosystemScenario implements Scenario, FactViewer
+	public static class EcosystemScenario implements Proactive
 	{
 
-		interface BirthFact extends CoordinationFact
+		interface Mother extends Actor<Birth>
 		{
-			// empty 
+
+		}
+
+		/**
+		 * {@link Birth} initiator: population, executor: mother
+		 */
+		interface Birth extends Fact
+		{
+			/**
+			 * implemented by proxy, using {@link #properties()}
+			 * 
+			 * @return the {@link java.time.Instant posix-time} ETA
+			 */
+			java.time.Instant getPosixETA();
+
+			/**
+			 * implemented by proxy, using {@link #properties()}
+			 * 
+			 * @param value the {@link java.time.Instant posix-time} ETA
+			 */
+			void setPosixETA( java.time.Instant value );
+
+			/**
+			 * @param value the {@link java.time.Instant posix-time} ETA
+			 * @return this {@link Sale} object, to allow chaining
+			 */
+			default Birth withPosixETA( java.time.Instant value )
+			{
+				setPosixETA( value );
+				return this;
+			}
+
+			/**
+			 * @param offset the {@link java.time.Instant posix-time} offset to
+			 *            convert from
+			 * @return a virtual {@link io.coala.time.Instant} conversion
+			 */
+			default io.coala.time.Instant
+				getVirtualETA( java.time.Instant offset )
+			{
+				return io.coala.time.Instant.of( getPosixETA(), offset );
+			}
+		}
+
+		/**
+		 * {@link Death} initiator: population, executor: person
+		 */
+		interface Death extends Fact
+		{
+
 		}
 
 		private final Scheduler scheduler;
 
 		@Inject
-		private Organization.Factory orgFactory;
-
-		@InjectLogger
-		private Logger LOG;
-
-		@InjectConfig
-		private ReplicateConfig config;
+		private Actor.Factory actors;
 
 		@Inject
 		public EcosystemScenario( final Scheduler scheduler )
@@ -119,48 +150,50 @@ public class EcosystemScenarioTest
 		private void init() throws ParseException
 		{
 			LOG.info( "initializing..." );
-			final Date offset = Date.from( this.config.offset() );
 
 			// create organization
-			final Organization org1 = this.orgFactory.create( "org1" );
-			final CompositeActor sales = org1.actor( "sales" );
-
-			// add business rule(s)
-			sales.on( BirthFact.class, sales.id(), fact ->
+			int total = 160000;
+			long clock = System.currentTimeMillis();
+			for( int i = 0; i < total; i++ )
 			{
-				sales.after( Duration.of( 1, NonSI.DAY ) ).call( t ->
+				if( System.currentTimeMillis()-clock>1000 )
 				{
-					final BirthFact response = sales.createResponse( fact,
-							CoordinationFactType.STATED, true, null, Collections
-									.singletonMap( "myParam1", "myValue1" ) );
-					LOG.trace( "t={}, {} responded: {} for incoming: {}",
-							t.prettify( offset ), sales.id(), response, fact );
-				} );
-			} );
-
-			// consume own outgoing Birth requests
-			org1.outgoing( BirthFact.class, CoordinationFactType.REQUESTED )
-					.doOnNext( f ->
-					{
-						org1.consume( f );
-					} ).subscribe();
-
-			// spawn initial transactions with self
-			org1.atEach(
-					Timing.of( "0 0 0 14 * ? *" ).offset( offset ).iterate(),
-					t ->
-					{
-						sales.createRequest( BirthFact.class, sales, null,
-								t.add( 1 ), Collections.singletonMap(
-										"myParam0", "myValue0" ) );
-					} );
-		}
-
-		@Override
-		public List<CoordinationFact> facts()
-		{
-			// TODO Auto-generated method stub
-			return null;
+					LOG.trace( LogUtil.messageOf(
+							"{0} ({1,number,#.##%}) persons added, "
+							+ "jvm free: ~{2,number,#,#00.#}MB (~{3,number,#.#%})",
+							i, DecimalUtil.divide( i, total ),
+							DecimalUtil.divide(Runtime.getRuntime().freeMemory(),1024*1024),
+							DecimalUtil.divide(
+									Runtime.getRuntime().freeMemory(), Runtime
+											.getRuntime().totalMemory() ) ) );
+					clock = System.currentTimeMillis();
+				}
+				final Actor<Fact> person = this.actors.create( "person" + i );
+//				final Mother mother = person.asExecutor( //Birth.class,
+//						Mother.class );
+//
+//				// add business rule(s)
+//				mother.emit( FactKind.REQUESTED ).subscribe( fact ->
+//				{
+//					after( Duration.of( 1, Units.DAYS ) ).call( t ->
+//					{
+//						final Birth st = mother.respond( fact, FactKind.STATED )
+//								.with( "myParam1", "myValue1" ).commit( true );
+//						LOG.trace( "t={}, {} responded: {} for incoming: {}",
+//								t.prettify( this.actors.offset() ), mother.id(),
+//								st, fact );
+//					} );
+//				} );
+//
+//				// initiate transactions with self
+//				atEach( Timing.of( "0 0 0 14 * ? *" )
+//						.offset( this.actors.offset() ).iterate(), t ->
+//						{
+//							mother.initiate( Birth.class, mother.id(), null,
+//									t.add( 1 ), Collections.singletonMap(
+//											"myParam0", "myValue0" ) );
+//						} );
+			}
 		}
 	}
 
@@ -175,12 +208,14 @@ public class EcosystemScenarioTest
 		// configure tooling
 		final LocalConfig config = LocalConfig.builder().withId( "ecosysSim" )
 				.withProvider( Scheduler.class, Dsol3Scheduler.class )
-				.withProvider( Organization.Factory.class,
-						Organization.Factory.LocalCaching.class )
+				.withProvider( Actor.Factory.class,
+						Actor.Factory.LocalCaching.class )
 				.withProvider( Transaction.Factory.class,
 						Transaction.Factory.LocalCaching.class )
-				.withProvider( CoordinationFact.Factory.class,
-						CoordinationFact.Factory.Simple.class )
+				.withProvider( Fact.Factory.class,
+						Fact.Factory.SimpleProxies.class )
+				.withProvider( FactBank.Factory.class,
+						FactBank.Factory.InMemory.class )
 				.withProvider( Exposer.class, Eve3Exposer.class )
 //				.withProvider( Invoker.class, Eve3Invoker.class )
 //				.withProvider( PseudoRandom.Factory.class,
@@ -195,19 +230,15 @@ public class EcosystemScenarioTest
 		final EcosystemScenario model = Guice4LocalBinder.of( config )
 				.inject( EcosystemScenario.class );
 
+		// FIXME apply outcome-driven event generation pruning
+
 		final Waiter waiter = new Waiter();
 		model.scheduler().time().subscribe( time ->
 		{
 			// virtual time passes...
-		}, error ->
-		{
-			waiter.rethrow( error );
-		}, () ->
-		{
-			waiter.resume();
-		} );
+		}, waiter::rethrow, waiter::resume );
 		model.scheduler().resume();
-		waiter.await( 1, TimeUnit.SECONDS );
+		waiter.await( 1, TimeUnit.HOURS );
 		LOG.info( "Ecosystem test complete" );
 	}
 
