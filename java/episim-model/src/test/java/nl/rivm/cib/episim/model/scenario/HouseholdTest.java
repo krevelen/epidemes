@@ -86,13 +86,7 @@ public class HouseholdTest
 		scheduler.time().subscribe( time ->
 		{
 			// virtual time passes...
-		}, error ->
-		{
-			waiter.rethrow( error );
-		}, () ->
-		{
-			waiter.resume();
-		} );
+		}, waiter::rethrow, waiter::resume );
 		scheduler.resume();
 		waiter.await( 20, TimeUnit.SECONDS );
 

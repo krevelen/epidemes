@@ -19,10 +19,16 @@
  */
 package nl.rivm.cib.episim.model.scenario;
 
+import java.util.Comparator;
+
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.enterprise.Fact;
 import io.coala.log.LogUtil;
+import io.coala.name.Id;
+import io.coala.name.Identified;
+import io.coala.time.Duration;
 
 /**
  * {@link ScenarioTest}
@@ -52,6 +58,135 @@ public class ScenarioTest
 	 */
 	public void testTraffic()
 	{
+
+	}
+
+	interface Step<THIS extends Step<?>> extends Identified<Step.ID>
+	{
+		Duration duration(); // e.g. drawn from random distribution
+
+		THIS next(); // e.g. drawn from random distribution
+
+		class ID extends Id<String>
+		{
+
+		}
+	}
+
+	interface Activity extends Step<Activity>
+	{
+	}
+
+	interface Meeting extends Activity
+	{
+		String destination();
+
+		String deadline();
+
+		String purpose();
+
+		String relations(); // e.g. decided by broker
+
+		String persons(); // e.g. decided by broker
+	}
+
+	interface Transit extends Activity
+	{
+		String destination();
+
+		String modality(); // e.g. decided by broker
+
+		String vehicle(); // e.g. decided by broker
+	}
+
+	interface Condition extends Step<Condition>
+	{
+		String symptoms();
+
+		String stage( String diseaseId );
+
+		String compartment( String diseaseId ); // SIR
+	}
+
+	interface Broker<T extends Comparable<? super T>>
+	{
+		void register( T registrant );
+
+		void unregister( T registrant );
+
+		Iterable<T> rank( Comparator<T> comparator ); // prioritize by some distance metric
+
+		default T first( Comparator<T> comparator )
+		{
+			for( T t : rank( comparator ) )
+				return t;
+			return null;
+		}
+
+		/**
+		 * Apply the objects' {@link T#compareTo(Object) natural ordering}
+		 * @param ascend {@code true} to order ascending, {@code false} for descending
+		 * @return an {@link Iterable} object, e.g. a sorted list or db query
+		 */
+		Iterable<T> rank( boolean ascend );
+
+		default T smallest()
+		{
+			for( T t : rank( true ) )
+				return t;
+			return null;
+		}
+
+		default T largest()
+		{
+			for( T t : rank( false ) )
+				return t;
+			return null;
+		}
+	}
+
+	interface VaccineAttitude extends Step<VaccineAttitude>
+	{
+		interface Persuasion extends Fact // e.g. media, peer, experience
+		{
+
+		}
+
+		void absorb( String mediaEvent );
+
+		void consume( String opinionEvent );
+
+		void handle( String experienceEvent );
+
+		Boolean isConfident( String vaccinationId ); // e.g. based on "life experience"
+
+		Boolean isComplacent( String vaccinationId ); // e.g. based on "life experience"
+
+		Boolean isConvenient( String vaccinationId ); // e.g. based on "life experience"
+
+		Boolean isCalculated( String vaccinationId ); // e.g. based on "life experience"
+	}
+
+	interface Person extends Identified<Person.ID>
+	{
+		String birth();
+
+		String gender();
+
+		String lifephase(); // automaton based on age
+
+		Condition condition(); // default fall-back?
+
+		VaccineAttitude attitude(); // default fall-back?
+
+		Activity activity(); // belongs to a (common) routine pattern instance
+
+		String location(); // should be consistent with activity site/vehicle
+
+		class ID extends Id<String>
+		{
+
+		}
 	}
 
 	/**
@@ -70,6 +205,14 @@ public class ScenarioTest
 	public void scenarioTest() throws Throwable
 	{
 		LOG.trace( "Starting scenario..." );
+
+		// person: { activity[stepId], disease[ condition[stepId], attitude[stepId] ] }
+
+		// calculate vaccination degree = #vacc / #non-vacc, given:
+		//   disease/vaccine v 
+		//   region(s) r
+		//   cohort birth range [t1,t2]
+
 //
 //		Units.DAILY.toString(); // init new unit
 //		final Scheduler scheduler = Dsol3Scheduler.of( "scenarioTest",
@@ -142,7 +285,7 @@ public class ScenarioTest
 //					.subscribe( ( t ) ->
 //					{
 //						LOG.trace( "Transition for #{} at t={}: {}", nr,
-//								scheduler.now().prettify( NonSI.HOUR, 1 ), t );
+//								scheduler.now().prettify( Units.HOURS, 1 ), t );
 //					}, ( e ) ->
 //					{
 //						LOG.warn( "Problem in transition", e );
@@ -161,19 +304,11 @@ public class ScenarioTest
 //		scheduler.time().subscribe( t ->
 //		{
 //			LOG.trace( "t = {}", t.prettify( NonSI.DAY, 1 ) );
-//		}, ( Throwable e ) ->
-//		{
-//			LOG.warn( "Problem in scheduler", e );
-//		}, () ->
-//		{
-//			latch.countDown();
-//		} );
+//		}, e -> LOG.warn( "Problem in scheduler", e ), latch::countDown );
 //		scheduler.resume();
 //		latch.await( 3, TimeUnit.SECONDS );
 //		assertEquals( "Should have completed", 0, latch.getCount() );
 //
-//		// CBS overledenen in huishouden per leeftijd: 83190ned
-//		// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83190ned&D1=0&D2=0&D3=a&D4=0%2c2-3%2c5&D5=a&HDR=T%2cG2%2cG3&STB=G1%2cG4&VW=T
 	}
 
 }
