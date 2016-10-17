@@ -38,7 +38,6 @@ import com.almende.eve.protocol.jsonrpc.annotation.AccessType;
 import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.enterprise.Actor;
-import io.coala.enterprise.EnterpriseTest.World.Sale;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactBank;
 import io.coala.enterprise.Transaction;
