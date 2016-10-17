@@ -69,7 +69,7 @@ public class Hesitancy3C implements Immunizable.Attitude
 	/**
 	 * {@link AttitudeCriterion}
 	 * 
-	 * @version $Id: f5d8e89c5356937430b94f625ecfe4fbd38401f8 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	enum AttitudeCriterion

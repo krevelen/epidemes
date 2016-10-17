@@ -1,4 +1,4 @@
-/* $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -83,7 +83,7 @@ import nl.rivm.cib.episim.model.locate.Place;
  *           - convalescent, removed (2-7y), susceptible
  *           - death, removed
  * 
- * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Infection extends Disease
@@ -178,7 +178,7 @@ public interface Infection extends Disease
 	 * their current {@link Condition}s, or the contact {@link Place} (and
 	 * {@link TransmissionRoute}s)
 	 * 
-	 * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Infection

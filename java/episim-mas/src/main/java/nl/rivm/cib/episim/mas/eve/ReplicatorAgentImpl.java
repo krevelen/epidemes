@@ -49,7 +49,7 @@ import rx.subjects.Subject;
 /**
  * {@link ReplicatorAgentImpl}
  * 
- * @version $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
@@ -82,7 +82,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	public String getType()
 	{
 		return getClass().getSimpleName()
-				+ " $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $";
+				+ " $Id$";
 	}
 
 	// FIXME FEATURE_REQ add #put(TypedKey<T>,T)

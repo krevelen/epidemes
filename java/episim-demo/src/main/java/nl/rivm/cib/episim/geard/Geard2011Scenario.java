@@ -51,7 +51,7 @@ import nl.rivm.cib.episim.model.person.Population;
 /**
  * {@link Geard2011Scenario}
  * 
- * @version $Id: 5e3a1f243ab46e936f50b9c59a81bada60d8a5f4 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Singleton

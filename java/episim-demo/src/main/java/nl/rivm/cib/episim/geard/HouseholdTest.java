@@ -1,4 +1,4 @@
-/* $Id: 276c926515013cd391932010126debe6aec6ac89 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -43,7 +43,7 @@ import io.coala.time.Scheduler;
 /**
  * {@link HouseholdTest}
  * 
- * @version $Id: 276c926515013cd391932010126debe6aec6ac89 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class HouseholdTest

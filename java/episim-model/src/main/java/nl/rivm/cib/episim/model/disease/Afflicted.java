@@ -1,4 +1,4 @@
-/* $Id: a8bf68b6634dba22075c105a65ea77fc0d8ccf05 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,7 +27,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * {@link Afflicted} can be a (secondary or even primary) host to multiple
  * {@link Infection}s, each with their own {@link Condition} dynamics
  * 
- * @version $Id: a8bf68b6634dba22075c105a65ea77fc0d8ccf05 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Afflicted

@@ -24,7 +24,7 @@ import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
 /**
  * {@link BirthFactDao} is a data access object for the location dimension
  * 
- * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Entity( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- $Id: jetty-context.xml 1063 2014-09-16 09:16:10Z krevelen $ -->
+<!-- $Id$ -->
 <!-- this file reconfigures the WebAppContext after it is loaded -->
 <!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure.dtd">
 <Configure class="org.eclipse.jetty.webapp.WebAppContext">

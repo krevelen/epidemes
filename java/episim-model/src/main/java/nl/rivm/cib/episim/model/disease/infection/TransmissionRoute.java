@@ -1,4 +1,4 @@
-/* $Id: df9654b8e002356dfb1601943bc8801d2193edfb $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,7 +27,7 @@ import io.coala.json.DynaBean.BeanProxy;
  * see
  * <a href="https://en.wikipedia.org/wiki/Transmission_(medicine)">wikipedia</a>
  * 
- * @version $Id: df9654b8e002356dfb1601943bc8801d2193edfb $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @BeanProxy

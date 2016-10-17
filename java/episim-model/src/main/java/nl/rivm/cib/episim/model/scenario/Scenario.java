@@ -1,4 +1,4 @@
-/* $Id: 6eb6e896ff64c5101804a1f87c3a8287db474d0f $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -24,7 +24,7 @@ import io.coala.time.Proactive;
 /**
  * {@link Scenario}
  * 
- * @version $Id: 6eb6e896ff64c5101804a1f87c3a8287db474d0f $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Scenario extends Proactive

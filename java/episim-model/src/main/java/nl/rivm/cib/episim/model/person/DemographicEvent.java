@@ -31,7 +31,7 @@ import io.coala.util.Instantiator;
  * {@link DemographicEvent} represents {@link Population} changes due to birth,
  * death, migration, couple formation or separation, or people leaving home
  * 
- * @version $Id: cc8c7dbaad3f0f805c5fec7ed16af65acf3e1a9d $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public abstract class DemographicEvent<T extends Participant> implements Timed

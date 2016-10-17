@@ -1,4 +1,4 @@
-/* $Id: 2596764476bd6170ba5eb0a206706f65aaecc4ee $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -32,7 +32,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link DataSourceNeo4J}
  * 
- * @version $Id: 2596764476bd6170ba5eb0a206706f65aaecc4ee $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class DataSourceNeo4J

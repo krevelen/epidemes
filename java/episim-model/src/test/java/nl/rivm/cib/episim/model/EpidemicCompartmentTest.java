@@ -1,4 +1,4 @@
-/* $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
 /**
  * {@link EpidemicCompartmentTest}
  * 
- * @version $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class EpidemicCompartmentTest

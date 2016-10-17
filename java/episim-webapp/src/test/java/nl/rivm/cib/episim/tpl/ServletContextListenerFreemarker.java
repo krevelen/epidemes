@@ -11,7 +11,7 @@ import io.coala.log.LogUtil;
 /**
  * {@link ServletContextListenerFreemarker}
  * 
- * @version $Id: 5e9de26bf65bbebf957cec5d5201536f44c73fc1 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class ServletContextListenerFreemarker implements ServletContextListener

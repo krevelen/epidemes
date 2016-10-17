@@ -1,4 +1,4 @@
-/* $Id: 1f7d981c1e2a81f203b5a4261733b3acd98f9897 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import io.coala.json.Wrapper;
 /**
  * {@link Gender} is an extensible identifier for gender classifications
  * 
- * @version $Id: 1f7d981c1e2a81f203b5a4261733b3acd98f9897 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @BeanProxy

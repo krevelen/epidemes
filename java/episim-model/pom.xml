@@ -15,7 +15,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Vaccination Acceptance Simulator
-		$Id: 8d09ddf65a201c93d7a319200f94b6a76ee624ea $
+		$Id$
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

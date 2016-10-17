@@ -19,7 +19,7 @@ import nl.rivm.cib.episim.model.locate.Place;
 /**
  * {@link LocationBroker}
  * 
- * @version $Id: 3c99429c361fa162b51c103df86446077a0b9913 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface LocationBroker extends Proactive
@@ -27,7 +27,7 @@ public interface LocationBroker extends Proactive
 	/**
 	 * {@link Registration}
 	 * 
-	 * @version $Id: 3c99429c361fa162b51c103df86446077a0b9913 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	class Registration extends Id.Ordinal<UUID>
