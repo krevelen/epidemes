@@ -23,9 +23,7 @@ import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import io.coala.log.LogUtil;
-import io.coala.time.Duration;
 import io.coala.time.Timed;
-import io.coala.time.Units;
 import nl.rivm.cib.episim.model.vaccine.Vaccine;
 
 /**
@@ -50,7 +48,8 @@ public interface Immunizable
 						target.respond( rq, FactKind.DECLINED ).commit();
 						return;
 					}
-					final VaccinationOccasion pm = target.respond( rq, FactKind.PROMISED ).commit();
+//					final VaccinationOccasion pm = 
+							target.respond( rq, FactKind.PROMISED ).commit();
 					// TODO schedule logistics (getting to the occasion, stating success, accepting result, etc)
 				}, e -> LogUtil.getLogger( Immunizable.class ).error( "Problem",
 						e ) );

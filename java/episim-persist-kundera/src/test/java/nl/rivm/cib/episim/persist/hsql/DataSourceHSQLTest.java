@@ -42,7 +42,7 @@ public class DataSourceHSQLTest
 			.getLogger( DataSourceHSQLTest.class );
 
 	@Test
-	public void testJDBC() throws SQLException
+	public void testJDBC() throws SQLException, ClassNotFoundException
 	{
 //		final DataSourceHSQL jdbc = DataSourceHSQL.getInstance();
 		final JDBCConfig jdbc = ConfigCache.getOrCreate( JDBCConfig.class );

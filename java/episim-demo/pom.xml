@@ -10,12 +10,12 @@
 		<relativePath>../..</relativePath>
 	</parent>
 
-	<artifactId>episim-model</artifactId>
+	<artifactId>episim-demo</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
-		Modeling Components for the RIVM Vaccination Acceptance Simulator
-		$Id: 8d09ddf65a201c93d7a319200f94b6a76ee624ea $
+		Common Components for the RIVM Vaccination Acceptance Simulator
+		$Id: 4346f90595f5546fec70eb5cefd04a38d0020829 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
@@ -23,34 +23,6 @@
 	</properties>
 
 	<repositories>
-		<repository>
-			<name>COALA Public Maven Repository</name>
-			<id>coala-public</id>
-			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-
-		<!-- TU Delft simulation repository -->
-		<repository>
-			<name>DSOL Public Repository</name>
-			<id>dsol</id>
-			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
-			<url>http://simulation.tudelft.nl/maven</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-
 		<repository>
 			<name>EPISIM Public Maven Repository</name>
 			<id>episim-public</id>
@@ -66,19 +38,36 @@
 	</repositories>
 
 	<dependencies>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>episim-model</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>io.coala</groupId>
-			<artifactId>coala-api-enterprise</artifactId>
+			<artifactId>guice4-coala-adapter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>eve3-coala-adapter</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.jodah</groupId>
-			<artifactId>concurrentunit</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -97,4 +86,5 @@
 		<plugins>
 		</plugins>
 	</build>
+
 </project>

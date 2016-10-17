@@ -15,8 +15,6 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<modules>
-				<module>episim-common</module>
-
 				<module>episim-connect-cbs</module>
 				<module>episim-connect-geodb</module>
 				<module>episim-connect-pienter2</module>
@@ -33,6 +31,7 @@
 				<module>episim-persist-kundera</module>
 				<module>episim-api</module>
 				<module>episim-mas</module>
+				<module>episim-demo</module>
 			</modules>
 		</profile>
 		<profile>

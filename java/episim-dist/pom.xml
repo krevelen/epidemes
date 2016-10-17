@@ -14,7 +14,7 @@
 	<packaging>pom</packaging>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
-		Distribution assembler/packager for the RIVM Epidemics Simulator
+		Distribution assembler/packager for the Epidemicron Simulator
 		$Id: 272935d8f841a99a3932f9fafe7713a6e5ddef97 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>

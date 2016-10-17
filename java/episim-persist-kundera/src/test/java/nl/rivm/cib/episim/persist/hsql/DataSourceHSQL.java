@@ -72,7 +72,7 @@ public class DataSourceHSQL
 	}
 
 	public void execute( final String sql, final Consumer<ResultSet> consumer )
-		throws SQLException
+		throws SQLException, ClassNotFoundException
 	{
 		this.conf.execute( sql, consumer );
 	}
