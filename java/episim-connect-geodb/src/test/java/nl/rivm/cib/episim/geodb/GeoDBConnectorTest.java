@@ -1,5 +1,6 @@
 package nl.rivm.cib.episim.geodb;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.function.Consumer;
@@ -7,7 +8,6 @@ import java.util.function.Consumer;
 import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.coala.log.LogUtil;
@@ -54,9 +54,8 @@ public class GeoDBConnectorTest
 	private static final Logger LOG = LogUtil
 			.getLogger( GeoDBConnectorTest.class );
 
-	@Ignore // FIXME conditionally run inside rivm.nl domain/network only
 	@Test
-	public void test() throws SQLException, ClassNotFoundException
+	public void test() throws SQLException, ClassNotFoundException, IOException
 	{
 		GeoDBConfig.exec( "SELECT * FROM ``",
 				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );

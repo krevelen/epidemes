@@ -21,6 +21,7 @@ package nl.rivm.cib.episim.model.vaccine.attitude;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import io.coala.enterprise.Actor;
 import io.coala.log.LogUtil;
@@ -53,25 +54,39 @@ public class HesitantTest
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
 				hes.isHesitant( occ ) );
+		assertTrue("should be hesitant by default", hes.isHesitant( occ ));
+		
 		hes.observe( Actor.ID.of( "pro-vax", null ), 0, 1 );
 		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 );
-		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 );
-
+		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 ); // will overwrite
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
 				hes.isHesitant( occ ) );
+		assertFalse("should become non-hesitant", hes.isHesitant( occ ));
+		
 		hes.observe( Actor.ID.of( "anti-vax2", null ), 1, 0 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
 				hes.isHesitant( occ ) );
+		assertTrue("should become hesitant again", hes.isHesitant( occ ));
+		
+		hes.observe( Actor.ID.of( "pro-vax2", null ), 0, 1 );
+		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
+				hes.getCalculation(), occ, hes.getConvenience( occ ),
+				hes.getConfidence(), hes.getComplacency(),
+				hes.isHesitant( occ ) );
+		assertFalse("should be non-hesitant again", hes.isHesitant( occ ));
+
 		hes.setCalculation( 0 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
 				hes.isHesitant( occ ) );
 		LOG.trace( "hes1: {}", hes );
+		assertTrue("should be hesitant again", hes.isHesitant( occ ));
+		
 		LOG.info( "Completed test of {}", VaxHesitant.class.getSimpleName() );
 	}
 

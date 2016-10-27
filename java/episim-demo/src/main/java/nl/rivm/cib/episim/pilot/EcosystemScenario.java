@@ -19,12 +19,20 @@
  */
 package nl.rivm.cib.episim.pilot;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.Comparator;
+import java.util.List;
+import java.util.function.Consumer;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 
 import io.coala.enterprise.Actor;
@@ -32,10 +40,13 @@ import io.coala.enterprise.Fact;
 import io.coala.log.LogUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
+import io.coala.persist.JDBCConfig;
+import io.coala.persist.JDBCUtil;
 import io.coala.time.Duration;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.coala.util.DecimalUtil;
+import io.coala.util.FileUtil;
 
 @Singleton
 public class EcosystemScenario implements Proactive
@@ -61,14 +72,18 @@ public class EcosystemScenario implements Proactive
 	interface Meeting extends Activity
 	{
 		String deadline();
+
 		String purpose();
+
 		String relations(); // e.g. decided by broker
+
 		String persons(); // e.g. decided by broker
 	}
 
 	interface Transit extends Activity
 	{
 		String destination();
+
 		String modality(); // e.g. decided by broker
 		//String vehicle(); // e.g. decided by broker
 	}
@@ -76,7 +91,9 @@ public class EcosystemScenario implements Proactive
 	interface Condition extends Step<Condition>
 	{
 		String compartment( String diseaseId ); // SIR
+
 		String stage( String diseaseId );
+
 		String symptoms();
 	}
 
@@ -84,9 +101,9 @@ public class EcosystemScenario implements Proactive
 	{
 		interface Registration extends Fact
 		{
-			
+
 		}
-		
+
 //		void register( Actor<F> registrant );
 //
 //		void unregister( Actor<F> registrant );
@@ -126,10 +143,6 @@ public class EcosystemScenario implements Proactive
 
 	interface VaccineAttitude extends Step<VaccineAttitude>
 	{
-		interface Persuasion extends Fact // e.g. media, peer, experience
-		{
-
-		}
 
 		void absorb( String mediaEvent );
 
@@ -146,46 +159,110 @@ public class EcosystemScenario implements Proactive
 		Boolean isCalculated( String vaccinationId ); // e.g. based on "life experience"
 	}
 
-	interface Person extends Identified<Person.ID>
+	/** */
+	public interface Motivation extends Fact // e.g. media, peer, experience
+	{
+
+	}
+
+	public interface Motivator extends Actor<Motivation>
+	{
+		
+	}
+
+	public interface Deme extends Actor<DemeFact>
+	{
+		
+	}
+	
+	public interface DemeFact extends Fact
+	{
+		
+	}
+
+	public interface Individual extends Actor<IndividualFact>
 	{
 		String birth();
 
 		String gender();
 
-		String lifephase(); // automaton based on age
-
-		Condition condition(); // default fall-back?
-
-		VaccineAttitude attitude(); // default fall-back?
-
-		Activity activity(); // belongs to a (common) routine pattern instance
-
 		String location(); // should be consistent with activity site/vehicle
 
-		class ID extends Id<String>
-		{
-
-		}
+//		String lifephase(); // automaton based on age
+//
+//		Condition condition(); // default fall-back?
+//
+//		VaccineAttitude attitude(); // default fall-back?
+//
+//		Activity activity(); // belongs to a (common) routine pattern instance
+	}
+	
+	public interface IndividualFact extends Fact
+	{
+		
 	}
 
-	interface Mother extends Actor<EcosystemScenario.Birth>
+	public interface Health extends Actor<HealthFact>
 	{
-
+		
+	}
+	
+	public interface HealthFact extends Fact
+	{
+		
 	}
 
-	/**
-	 * {@link Birth} initiator: population, executor: mother
-	 */
-	interface Birth extends Fact
+	public interface Mobility extends Actor<MobilityFact>
 	{
+		
+	}
+	
+	public interface MobilityFact extends Fact
+	{
+		
 	}
 
-	/**
-	 * {@link Death} initiator: population, executor: person
-	 */
-	interface Death extends Fact
+	public interface Media extends Actor<MediaFact>
 	{
+		
+	}
+	
+	public interface MediaFact extends Fact
+	{
+		
+	}
 
+	public interface Contagium extends Actor<ContagiumFact>
+	{
+		
+	}
+	
+	public interface ContagiumFact extends Fact
+	{
+		
+	}
+
+	/** A12 {@link Guardian} executes T12 {@link Population} requests */
+	public interface Demographer extends Actor<Population>
+	{
+		
+	}
+	
+	/** T12 {@link Population} initiator(s): {@link Deme} */
+	public interface Population extends DemeFact
+	{
+		
+	}
+	
+	/** A05 {@link Guardian} */
+	public interface Guardian extends Actor<Guardianship>
+	{
+		List<Guardianship> wards(); // typically children
+	}
+
+	/** T05 {@link Guardianship} initiator(s): {@link Demographer} */
+	public interface Guardianship extends DemeFact, IndividualFact
+	{
 	}
 
 	/** */
@@ -210,7 +287,7 @@ public class EcosystemScenario implements Proactive
 		return this.scheduler;
 	}
 
-	private void logProgress(int i, int total)
+	private void logProgress( int i, int total )
 	{
 		LOG.trace( LogUtil.messageOf(
 				"{0} ({1,number,#.##%}) persons added, "
@@ -244,7 +321,7 @@ public class EcosystemScenario implements Proactive
 		{
 			if( System.currentTimeMillis() - clock > 1000 )
 			{
-				logProgress(i,total);
+				logProgress( i, total );
 				clock = System.currentTimeMillis();
 			}
 //			final Actor<Fact> person = 
@@ -370,6 +447,69 @@ public class EcosystemScenario implements Proactive
 //			latch.await( 3, TimeUnit.SECONDS );
 //			assertEquals( "Should have completed", 0, latch.getCount() );
 			//
+		}
+	}
+
+	// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
+	// http://statline.cbs.nl/StatWeb/publication/?VW=T&DM=SLNL&PA=70895ned&LA=NL
+
+	// CBS 83190ned: overledenen in huishouden per leeftijd
+	// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83190ned&D1=0&D2=0&D3=a&D4=0%2c2-3%2c5&D5=a&HDR=T%2cG2%2cG3&STB=G1%2cG4&VW=T
+
+	interface MyHypersonicConfig extends JDBCConfig
+	{
+		@DefaultValue( "org.hsqldb.jdbc.JDBCDriver" )
+		String driver();
+
+//		@DefaultValue( "jdbc:mysql://localhost/testdb" )
+//		@DefaultValue( "jdbc:hsqldb:mem:mymemdb" )
+		@DefaultValue( "jdbc:hsqldb:file:target/testdb" )
+		String url();
+
+		@DefaultValue( "SA" )
+		String username();
+
+		@DefaultValue( "" )
+		String password();
+
+		static void exec( final String sql, final Consumer<ResultSet> consumer )
+			throws ClassNotFoundException, SQLException
+		{
+			ConfigCache.getOrCreate( MyHypersonicConfig.class ).execute( sql,
+					consumer );
+		}
+	}
+
+	public static void main( final String[] args )
+		throws IOException, ClassNotFoundException
+	{
+		final String path = "../../data/mobility/voorz_ziekenh_2014.sql";
+		try( final BufferedReader in = new BufferedReader(
+				new InputStreamReader( FileUtil.toInputStream( path ) ) ) )
+		{
+			String line = null, prev = null;
+			for( int lineNr = 1; (line = in.readLine()) != null; lineNr++ )
+			{
+				line = line.trim();
+				if( line.isEmpty() || line.startsWith( "--" ) ) continue;
+				final String sql = prev == null ? line : prev + "\r\n" + line;
+				if( !line.endsWith( ";" ) )
+				{
+					prev = sql;
+					continue;
+				} else
+					prev = null;
+				try
+				{
+					final int nr = lineNr;
+					MyHypersonicConfig.exec( line,
+							rs -> LOG.trace( "{}: {} - {}", nr, sql,
+									JDBCUtil.toString( rs ) ) );
+				} catch( final SQLException e )
+				{
+					LOG.warn( "{}: {} - {}", lineNr, line, e.getMessage() );
+				}
+			}
 		}
 	}
 

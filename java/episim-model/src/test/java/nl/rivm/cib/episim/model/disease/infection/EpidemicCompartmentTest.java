@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.disease.infection;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
 /**
  * {@link EpidemicCompartmentTest}
  * 
- * @version $Id$
+ * @version $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
  * @author Rick van Krevelen
  */
 public class EpidemicCompartmentTest

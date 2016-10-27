@@ -8,16 +8,16 @@
 
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
-		<artifactId>episim</artifactId>
+		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 		<relativePath>../..</relativePath>
 	</parent>
 
-	<artifactId>episim-api</artifactId>
+	<artifactId>epidemes-api</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
-		$Id$
+		$Id: 6719a89b803baa5381cf4a0511d41b426656f6e6 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
@@ -58,11 +58,6 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>coala-api-time</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>episim-common</artifactId>
 		</dependency>
 
 		<!-- javax.ws.rs-api (JSR-311=v1, JSR-339/javax.ws.rs-api=v2) -->

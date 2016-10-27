@@ -36,7 +36,8 @@ import io.coala.util.Compare;
 import io.coala.util.DecimalUtil;
 
 /**
- * {@link VaxHesitant} implements the Four C model (Betsch et al., 2015)
+ * {@link VaxHesitant} implements the Four C model (adapted from
+ * <a href="http://dx.doi.org/10.1177/2372732215600716">Betsch et al., 2015</a>)
  * 
  * @version $Id$
  * @author Rick van Krevelen
