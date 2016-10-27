@@ -36,8 +36,8 @@ import io.coala.util.Compare;
 import io.coala.util.DecimalUtil;
 
 /**
- * {@link VaxHesitant} implements the Four C model (adapted from
- * <a href="http://dx.doi.org/10.1177/2372732215600716">Betsch et al., 2015</a>)
+ * {@link VaxHesitant} provides an implementation of the Four C model by
+ * <a href="http://dx.doi.org/10.1177/2372732215600716">Betsch et al., 2015</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -211,7 +211,9 @@ public interface VaxHesitant extends Identified<Actor.ID>
 	 * {@link WeightedAverager} averages own and all observed and filtered
 	 * {@link VaxPosition}s. In theory one could set the weight for their own
 	 * {@link VaxPosition} to 0 by giving oneself a reputation below the
-	 * (inverse) calculation threshold, so this weight is minimized to 1.
+	 * (inverse) calculation threshold, effectively ignoring one's own position.
+	 * However, if all relevant positions' weights sum to 0, then the defaul
+	 * position carries all the weight.
 	 */
 	class WeightedAverager implements VaxHesitant
 	{
@@ -229,6 +231,14 @@ public interface VaxHesitant extends Identified<Actor.ID>
 		private transient BigDecimal[] myPosition = null;
 
 		private BigDecimal calculation;
+
+		public WeightedAverager( final Actor.ID myRef,
+			final Number myVaccineRisk, final Number myDiseaseRisk,
+			final Number myCalculation )
+		{
+			this( myRef, myVaccineRisk, myDiseaseRisk, myCalculation,
+					id -> BigDecimal.ONE );
+		}
 
 		public WeightedAverager( final Actor.ID myRef,
 			final Number myVaccineRisk, final Number myDiseaseRisk,
