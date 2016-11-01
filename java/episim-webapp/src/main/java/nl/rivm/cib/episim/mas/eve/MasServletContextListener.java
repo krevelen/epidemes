@@ -29,7 +29,7 @@ import io.coala.util.FileUtil;
  * Default is {@code null}.</dd>
  * </dl>
  * 
- * @version $Id$
+ * @version $Id: 7ec6ff55beca389a4dab838cac7275ae06213c90 $
  * @author Rick van Krevelen
  */
 @SuppressWarnings( "deprecation" )

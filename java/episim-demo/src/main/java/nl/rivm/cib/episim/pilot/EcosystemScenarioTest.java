@@ -21,8 +21,6 @@ package nl.rivm.cib.episim.pilot;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +35,6 @@ import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactBank;
 import io.coala.enterprise.Transaction;
 import io.coala.eve3.Eve3Exposer;
-import io.coala.exception.Thrower;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.inter.Exposer;
 import io.coala.log.LogUtil;
@@ -102,13 +99,7 @@ public class EcosystemScenarioTest
 		//   region(s) r
 		//   cohort birth range [t1,t2]
 
-		final CountDownLatch latch = new CountDownLatch( 1 );
-		model.scheduler().time().subscribe( time ->
-		{
-			// virtual time passes...
-		}, Thrower::rethrowUnchecked, latch::countDown );
-		model.scheduler().resume();
-		latch.await( 1, TimeUnit.HOURS );
+		model.scheduler().run();
 		LOG.info( "Ecosystem test complete" );
 	}
 

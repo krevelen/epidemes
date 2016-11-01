@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -46,7 +46,7 @@ import rx.subjects.Subject;
 /**
  * {@link TransmissionSpace}
  * 
- * @version $Id$
+ * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
  * @author Rick van Krevelen
  */
 public interface TransmissionSpace extends Proactive, Identified<String>
@@ -134,7 +134,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 	 * {@link ContactEvent}s which in turn may trigger its transmission by
 	 * generating {@link TransmissionEvent}s.
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements TransmissionSpace
@@ -212,7 +212,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 	/**
 	 * {@link InfectionDynamics}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	interface InfectionDynamics
@@ -239,7 +239,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 		/**
 		 * {@link Simple} default implementation of {@link InfectionDynamics}
 		 * 
-		 * @version $Id$
+		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements InfectionDynamics
@@ -292,7 +292,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 	/**
 	 * {@link CompartmentDynamics}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	interface CompartmentDynamics
@@ -362,7 +362,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 		/**
 		 * {@link Simple} implementation of {@link CompartmentDynamics}
 		 * 
-		 * @version $Id$
+		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements CompartmentDynamics
@@ -433,7 +433,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 	/**
 	 * {@link VisitorDynamics}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 	 * @author Rick van Krevelen
 	 */
 	interface VisitorDynamics
@@ -456,7 +456,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 		/**
 		 * {@link Simple} implementation of {@link VisitorDynamics}
 		 * 
-		 * @version $Id$
+		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements VisitorDynamics

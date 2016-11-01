@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.model.locate.Place;
  * successful invasion of a susceptible {@link Afflicted} that was exposed due
  * to some {@link ContactEvent}.
  * 
- * @version $Id$
+ * @version $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
  * @author Rick van Krevelen
  */
 public class TransmissionEvent implements Timed

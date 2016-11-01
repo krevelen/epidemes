@@ -39,8 +39,8 @@
 			</snapshots>
 		</repository>
 		<repository>
-			<name>EPISIM Public Maven Repository</name>
-			<id>episim-public</id>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>

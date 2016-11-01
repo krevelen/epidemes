@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -332,9 +331,9 @@ public interface VaxHesitant extends Identified<Actor.ID>
 		{
 			final BigDecimal weight = DecimalUtil
 					.valueOf( reputationWeight( id ) );
-			if( !BigDecimal.ZERO.equals( weight ) ) IntStream
-					.range( 0, sums.length ).forEach( i -> sums[i] = sums[i]
-							.add( augend[i].multiply( weight ) ) );
+			if( !BigDecimal.ZERO.equals( weight ) )
+				for( int i = 0; i < sums.length; i++ )
+				sums[i] = sums[i].add( augend[i].multiply( weight ) );
 			return weight;
 		}
 
@@ -355,7 +354,7 @@ public interface VaxHesitant extends Identified<Actor.ID>
 			final BigDecimal[] sums = new BigDecimal[] { BigDecimal.ZERO,
 					BigDecimal.ZERO };
 			final BigDecimal w = weightedAddition( sums, id(), this.myDefault )
-					.add( this.positions.entrySet().stream()
+					.add( this.positions.entrySet().parallelStream()
 							.map( entry -> weightedAddition( sums,
 									entry.getKey(), entry.getValue() ) )
 							.reduce( BigDecimal::add )
@@ -365,9 +364,8 @@ public interface VaxHesitant extends Identified<Actor.ID>
 			if( BigDecimal.ZERO.equals( w ) ) // zero weights: assume default
 				System.arraycopy( this.myDefault, 0, this.myPosition, 0, len );
 			else // final division for the weighted average
-				IntStream.range( 0, len )
-						.forEach( i -> this.myPosition[i] = DecimalUtil
-								.divide( sums[i], w ) );
+				for( int i = 0; i < sums.length; i++ )
+					this.myPosition[i] = DecimalUtil.divide( sums[i], w );
 			return this.myPosition;
 		}
 

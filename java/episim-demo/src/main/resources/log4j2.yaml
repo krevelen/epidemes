@@ -26,4 +26,6 @@ Configuration:
         level: warn
       - name: hsqldb.db
         level: warn
+      - name: io.coala.guice4
+        level: info
           

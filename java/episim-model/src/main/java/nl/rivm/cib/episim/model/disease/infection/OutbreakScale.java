@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 1293d8982ef777d789749789be048f42852af586 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.model.person.Population;
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>
  * 
- * @version $Id$
+ * @version $Id: 1293d8982ef777d789749789be048f42852af586 $
  * @author Rick van Krevelen
  */
 public interface OutbreakScale extends Wrapper<String>

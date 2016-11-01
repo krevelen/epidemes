@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: c7fde65ca5b752da73a2422971867884017a49fb $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -32,7 +32,7 @@ import nl.rivm.cib.episim.model.disease.Condition;
  * <a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology">
  * compartmental models</a>
  * 
- * @version $Id$
+ * @version $Id: c7fde65ca5b752da73a2422971867884017a49fb $
  * @author Rick van Krevelen
  */
 public interface EpidemicCompartment
@@ -81,7 +81,7 @@ public interface EpidemicCompartment
 	/**
 	 * {@link Simple}
 	 * 
-	 * @version $Id$
+	 * @version $Id: c7fde65ca5b752da73a2422971867884017a49fb $
 	 * @author Rick van Krevelen
 	 */
 	enum Simple implements EpidemicCompartment

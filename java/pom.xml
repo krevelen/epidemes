@@ -52,7 +52,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 	<description> 
-		RIVM Vaccination Acceptance Simulator
+		EPIDEMES Simulator
 	</description>
 	<organization>
 		<name>RIVM</name>
@@ -79,7 +79,7 @@
 		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
 
-		<coala.version>0.2.0-b4</coala.version>
+		<coala.version>0.2.0-b5-SNAPSHOT</coala.version>
 		<httpcomponents.version>4.5.1</httpcomponents.version>
 		<jackson.version>2.7.4</jackson.version>
 		<jetty.version>9.3.9.v20160517</jetty.version>
@@ -92,12 +92,12 @@
 		<!-- set distribution versions -->
 		<wagon-ssh.version>1.0-beta-7</wagon-ssh.version>
 		<github.global.server>github</github.global.server>
-		<github.repository.name>rivm-episim</github.repository.name>
+		<github.repository.name>epidemes</github.repository.name>
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
 		<github.repository.tmpdir>${user.dir}/..</github.repository.tmpdir>
-		<github.repository.url>https://raw.github.com/krevelen/rivm-episim/mvn-repo/</github.repository.url>
+		<github.repository.url>https://raw.github.com/krevelen/epidemes/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
 		<!-- set dependency versions -->
@@ -131,7 +131,7 @@
 	</properties>
 
 	<distributionManagement>
-		<downloadUrl>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</downloadUrl>
+		<downloadUrl>https://github.com/krevelen/epidemes/raw/mvn-repo/</downloadUrl>
 		<repository>
 			<id>${github.repository.localid}</id>
 			<name>Temporary Staging Repository</name>
@@ -143,12 +143,12 @@
 		<dependencies>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>episim-common</artifactId>
+				<artifactId>epidemes-api</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>episim-api</artifactId>
+				<artifactId>epidemes-model</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 

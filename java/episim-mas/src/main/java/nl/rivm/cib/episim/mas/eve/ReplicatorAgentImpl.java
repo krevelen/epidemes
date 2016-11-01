@@ -49,7 +49,7 @@ import rx.subjects.Subject;
 /**
  * {@link ReplicatorAgentImpl}
  * 
- * @version $Id$
+ * @version $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $
  * @author Rick van Krevelen
  */
 public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
@@ -82,7 +82,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	public String getType()
 	{
 		return getClass().getSimpleName()
-				+ " $Id$";
+				+ " $Id: e21d2c1535cc51676c70e74c6ce9374ac0ebdfe0 $";
 	}
 
 	// FIXME FEATURE_REQ add #put(TypedKey<T>,T)
@@ -200,13 +200,13 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					pace );
 			this.myPace = pace;
 			scheduleBlock();
-			this.scheduler.resume();
+			this.scheduler.run();
 		} else
 		{
 			LOG.trace( "{} - CMD: now unpaced {} -> {}", getId(), this.myPace,
 					pace );
 			this.myPace = pace;
-			if( pace.virtualMS.signum() == 1 ) this.scheduler.resume();
+			if( pace.virtualMS.signum() == 1 ) this.scheduler.run();
 		}
 	}
 
@@ -316,15 +316,12 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 			if( timing != null ) // poll the time periodically
 				sub = this.scheduler
 						.atEach( timing.offset( this.myOffset ).stream() )
-						.subscribe( t ->
-						{
-							publishTime( result, listener, t );
-						} );
+						.subscribe( t -> publishTime( result, listener, t ),
+								e -> LOG.error( "Problem", e ) );
 			else // subscribe to all time changes directly
-				sub = this.time.subscribe( time ->
-				{
-					publishTime( result, listener, time );
-				} );
+				sub = this.time.subscribe(
+						time -> publishTime( result, listener, time ),
+						e -> LOG.error( "Problem", e ) );
 		} else if( topic.equalsIgnoreCase( PACE_TOPIC ) )
 		{
 			LOG.trace( "{} - Subscribing {} to '{}', timing: {}", getId(),

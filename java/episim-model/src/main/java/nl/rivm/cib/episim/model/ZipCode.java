@@ -8,7 +8,7 @@ import io.coala.json.Wrapper;
 /**
  * {@link ZipCode} is a simple {@link Wrapper} of {@link String} values
  * 
- * @version $Id$
+ * @version $Id: b982370873248279b0a036896e18ecdfca28e257 $
  * @author Rick van Krevelen
  */
 public class ZipCode extends Wrapper.Simple<String>

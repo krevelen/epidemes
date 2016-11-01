@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 2596764476bd6170ba5eb0a206706f65aaecc4ee $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -35,7 +35,7 @@ import io.coala.persist.JDBCUtil;
 /**
  * {@link DataSourceHSQL}
  * 
- * @version $Id$
+ * @version $Id: 2596764476bd6170ba5eb0a206706f65aaecc4ee $
  * @author Rick van Krevelen
  */
 public class DataSourceHSQL

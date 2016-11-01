@@ -44,7 +44,7 @@ import io.coala.time.Proactive;
  * </tr>
  * </table>
  * 
- * @version $Id$
+ * @version $Id: 7aa57c407ea079fca3643e1dc055a7880ace72ed $
  * @author Rick van Krevelen
  */
 public interface InfectionMetrics extends Proactive

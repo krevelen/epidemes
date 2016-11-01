@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import io.coala.json.Wrapper;
 /**
  * {@link SymptomPhase} is an extensible identifier for stages of treatment
  * 
- * @version $Id$
+ * @version $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
  * @author Rick van Krevelen
  */
 @BeanProxy

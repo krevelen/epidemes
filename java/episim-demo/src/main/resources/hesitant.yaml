@@ -1,0 +1,34 @@
+# default configuration for all binders
+
+binder:
+  providers:
+
+# the Scheduler implementations
+  - impl: "io.coala.dsol3.Dsol3Scheduler"
+    bindings:
+    - type: "io.coala.time.Scheduler"
+        
+# the pseudo-random implementations
+  - impl: "io.coala.math3.Math3PseudoRandom$MersenneTwisterFactory"
+    bindings:
+    - type: "io.coala.random.PseudoRandom$Factory"
+  - impl: "io.coala.math3.Math3ProbabilityDistribution$Factory"
+    bindings:
+    - type: "io.coala.random.ProbabilityDistribution$Factory"
+  - impl: "io.coala.random.DistributionParser"
+    bindings:
+    - type: "io.coala.random.ProbabilityDistribution$Parser"
+
+# the enterprise ontology implementation
+  - impl: "io.coala.enterprise.Actor$Factory$LocalCaching"
+    bindings:
+    - type: "io.coala.enterprise.Actor$Factory"
+  - impl: "io.coala.enterprise.Transaction$Factory$LocalCaching"
+    bindings:
+    - type: "io.coala.enterprise.Transaction$Factory"
+  - impl: "io.coala.enterprise.Fact$Factory$SimpleProxies"
+    bindings:
+    - type: "io.coala.enterprise.Fact$Factory"
+  - impl: "io.coala.enterprise.FactBank$Factory$InMemory"
+    bindings:
+    - type: "io.coala.enterprise.FactBank$Factory"

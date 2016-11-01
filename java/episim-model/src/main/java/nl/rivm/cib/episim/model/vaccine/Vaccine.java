@@ -17,7 +17,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * {@link Vaccine}s trigger the immune system to protect against some
  * {@link Infection}
  * 
- * @version $Id$
+ * @version $Id: 61e2466aa6bbc87325a9001452de624ce2ac198e $
  * @author Rick van Krevelen
  */
 public interface Vaccine extends Proactive
@@ -44,7 +44,7 @@ public interface Vaccine extends Proactive
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 61e2466aa6bbc87325a9001452de624ce2ac198e $
 	 * @author Rick van Krevelen
 	 */
 	class Simple implements Vaccine

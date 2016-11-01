@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -30,7 +30,7 @@ import rx.Observable;
  * {@link Condition} represents the {@link Infection} bookkeeping dynamics for
  * an individual {@link Afflicted}
  * 
- * @version $Id$
+ * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
  * @author Rick van Krevelen
  */
 public interface Condition extends Proactive
@@ -74,7 +74,7 @@ public interface Condition extends Proactive
 //	/**
 //	 * {@link Simple} implementation of {@link Condition}
 //	 * 
-//	 * @version $Id$
+//	 * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
 //	 * @author Rick van Krevelen
 //	 */
 //	class Simple implements Condition

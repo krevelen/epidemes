@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 7c4f8baff3c6ddc96bb7fadbd6202abb0132f0e9 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import io.coala.json.Wrapper;
 /**
  * {@link TreatmentStage} is an extensible identifier for stages of treatment
  * 
- * @version $Id$
+ * @version $Id: 7c4f8baff3c6ddc96bb7fadbd6202abb0132f0e9 $
  * @author Rick van Krevelen
  */
 @BeanProxy

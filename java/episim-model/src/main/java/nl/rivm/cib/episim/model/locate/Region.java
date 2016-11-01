@@ -11,7 +11,7 @@ import io.coala.name.Identified;
 /**
  * {@link Region}
  * 
- * @version $Id$
+ * @version $Id: e6c9b6b9dc29f3775464a9a9e2400236f22ef50c $
  * @author Rick van Krevelen
  */
 public interface Region extends Identified<String>
@@ -73,7 +73,7 @@ public interface Region extends Identified<String>
 	/**
 	 * {@link RegionType}
 	 * 
-	 * @version $Id$
+	 * @version $Id: e6c9b6b9dc29f3775464a9a9e2400236f22ef50c $
 	 * @author Rick van Krevelen
 	 */
 	interface RegionType extends Wrapper<String>

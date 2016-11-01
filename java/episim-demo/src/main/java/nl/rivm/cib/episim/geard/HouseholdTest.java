@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 276c926515013cd391932010126debe6aec6ac89 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -20,16 +20,12 @@
 package nl.rivm.cib.episim.geard;
 
 import java.util.Collections;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
-import org.junit.Test;
 
 import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
-import io.coala.exception.Thrower;
 import io.coala.guice4.Guice4LocalBinder;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
@@ -43,7 +39,7 @@ import io.coala.time.Scheduler;
 /**
  * {@link HouseholdTest}
  * 
- * @version $Id$
+ * @version $Id: 276c926515013cd391932010126debe6aec6ac89 $
  * @author Rick van Krevelen
  */
 public class HouseholdTest
@@ -52,10 +48,10 @@ public class HouseholdTest
 	private static final Logger LOG = LogUtil.getLogger( HouseholdTest.class );
 
 	/**
-	 * This test should:
+	 * @param args the command line arguments
+	 * @throws Exception
 	 */
-	@Test
-	public void householdCompositionTest() throws InterruptedException
+	public static void main( final String[] args ) throws Exception
 	{
 		LOG.trace( "Initializing household composition scenario..." );
 
@@ -78,13 +74,7 @@ public class HouseholdTest
 		final Scheduler scheduler = Guice4LocalBinder.of( config )
 				.inject( Geard2011Scenario.class ).scheduler();
 
-		final CountDownLatch latch = new CountDownLatch( 1 );
-		scheduler.time().subscribe( time ->
-		{
-			// virtual time passes...
-		}, Thrower::rethrowUnchecked, latch::countDown );
-		scheduler.resume();
-		latch.await( 20, TimeUnit.SECONDS );
+		scheduler.run();
 
 		LOG.info( "completed, t={}", scheduler.now() );
 	}

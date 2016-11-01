@@ -20,8 +20,8 @@ import javax.measure.unit.Unit;
 import org.apache.logging.log4j.Logger;
 import org.jscience.physics.amount.Amount;
 
+import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
-import io.coala.config.InjectConfig;
 import io.coala.log.LogUtil;
 import io.coala.math.MeasureUtil;
 import io.coala.math.Range;
@@ -51,7 +51,7 @@ import nl.rivm.cib.episim.model.person.Population;
 /**
  * {@link Geard2011Scenario}
  * 
- * @version $Id$
+ * @version $Id: 5e3a1f243ab46e936f50b9c59a81bada60d8a5f4 $
  * @author Rick van Krevelen
  */
 @Singleton
@@ -421,13 +421,13 @@ public class Geard2011Scenario implements Proactive
 				RxCollection.of( new HashSet<GeardIndividual>() ),
 				RxCollection.of( new HashSet<Household<GeardIndividual>>() ),
 				scheduler );
-		this.pop.events().ofType( Population.Birth.class ).subscribe( e ->
+		this.pop.events().ofType( Population.Birth.class ).subscribe( b ->
 		{
-			for( GeardIndividual i : ((Population.Birth<GeardIndividual>) e)
+			for( GeardIndividual i : ((Population.Birth<GeardIndividual>) b)
 					.arrivals() )
 				if( Gender.FEMALE.equals( i.gender() ) )
 					this.momPicker.register( i );
-		} );
+		}, e -> LOG.error( "Problem", e ) );
 		final int popSize = 20000;
 		while( this.pop.members().size() < popSize )
 			drawHousehold();
