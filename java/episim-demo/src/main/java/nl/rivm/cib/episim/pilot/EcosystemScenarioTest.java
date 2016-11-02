@@ -33,6 +33,7 @@ import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactBank;
+import io.coala.enterprise.FactExchange;
 import io.coala.enterprise.Transaction;
 import io.coala.eve3.Eve3Exposer;
 import io.coala.guice4.Guice4LocalBinder;
@@ -74,8 +75,9 @@ public class EcosystemScenarioTest
 						Transaction.Factory.LocalCaching.class )
 				.withProvider( Fact.Factory.class,
 						Fact.Factory.SimpleProxies.class )
-				.withProvider( FactBank.Factory.class,
-						FactBank.Factory.InMemory.class )
+				.withProvider( FactBank.class, FactBank.SimpleCache.class )
+				.withProvider( FactExchange.class,
+						FactExchange.SimpleBus.class )
 				.withProvider( Exposer.class, Eve3Exposer.class )
 //				.withProvider( Invoker.class, Eve3Invoker.class )
 //				.withProvider( PseudoRandom.Factory.class,

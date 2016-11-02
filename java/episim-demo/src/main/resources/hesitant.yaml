@@ -29,6 +29,10 @@ binder:
   - impl: "io.coala.enterprise.Fact$Factory$SimpleProxies"
     bindings:
     - type: "io.coala.enterprise.Fact$Factory"
-  - impl: "io.coala.enterprise.FactBank$Factory$InMemory"
+  - impl: "io.coala.enterprise.FactBank$SimpleCache"
     bindings:
-    - type: "io.coala.enterprise.FactBank$Factory"
+    - type: "io.coala.enterprise.FactBank"
+  - impl: "io.coala.enterprise.FactExchange$SimpleBus"
+    bindings:
+    - type: "io.coala.enterprise.FactExchange"
+    

@@ -303,9 +303,9 @@ public class HesitantScenario implements Scenario
 		@DefaultValue( "0 0 0 L-3 * ? *" )
 		Timing adviceRqTiming();
 
-		@DefaultValue( " Normal ( 10 h; 0.5 day )" )
+		@DefaultValue( " Normal ( -0.5 day;1 h )" )
 		@ConverterClass( DistributionParsable.FromString.class )
-		DistributionParsable<Double> adviceStDelay();
+		DistributionParsable<?> adviceStDelay();
 
 		default Actor<Fact> init( final Actor<Fact> actor )
 			throws ParseException
@@ -322,12 +322,12 @@ public class HesitantScenario implements Scenario
 			// add request handling behavior
 			final Set<Actor.ID> cohort = new HashSet<>();
 			final AmountDistribution<Duration> stDelay = adviceStDelay()
-					.parse( distParser, Duration.class );
+					.parse( distParser, Duration.class ).abs();
 			advisor.emit( FactKind.REQUESTED ).subscribe( rq ->
 			{
 				final Amount<Duration> delay = stDelay.draw();
-				LOG.trace( "Handling {}, delay: {}, cohort: {}", rq, delay,
-						cohort );
+				LOG.trace( "{} handling {}, delay: {}, cohort: {}",
+						advisor.id(), rq, delay, cohort );
 				if( rq.creatorRef().equals( advisor.id() ) )
 				{
 					// execute national campaign
@@ -342,7 +342,7 @@ public class HesitantScenario implements Scenario
 				} else // respond to external request
 				{
 					// FIXME schedule addition/deletion per cohort
-					cohort.add( rq.creatorRef() );
+					cohort.add( rq.creatorRef().organizationRef() );
 
 					advisor.after( delay ).call( t -> LOG.trace(
 							"Response (ext): {}",
@@ -438,7 +438,7 @@ public class HesitantScenario implements Scenario
 	public void init() throws Exception
 	{
 		// FIXME how do actors communicate with each other, e.g. message bus ??
-		
+
 		// Add RIVM (O05)
 		final HealthConfig hcfg = this.config.actorConfig( "health",
 				HealthConfig.class );
