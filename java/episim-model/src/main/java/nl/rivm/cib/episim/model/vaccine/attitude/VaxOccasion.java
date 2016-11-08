@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.json.JsonUtil;
-import io.coala.util.DecimalUtil;
+import io.coala.math.DecimalUtil;
 
 /**
  * The convenience of a {@link VaxOccasion} depends on the {@link VaxHesitant}'s

@@ -1,11 +1,10 @@
 package nl.rivm.cib.episim.model.locate;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Area;
 
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.physics.amount.Amount;
-
 import io.coala.json.Wrapper;
+import io.coala.math.LatLong;
 import io.coala.name.Identified;
 
 /**
@@ -18,7 +17,7 @@ public interface Region extends Identified<String>
 {
 	Region parent();
 
-	Amount<Area> surfaceArea();
+	Quantity<Area> surfaceArea();
 
 	Iterable<Place> places();
 
@@ -28,7 +27,7 @@ public interface Region extends Identified<String>
 	}
 
 	static Region of( final String name, final Region parent,
-		final Amount<Area> surfaceArea, final Iterable<Place> places )
+		final Quantity<Area> surfaceArea, final Iterable<Place> places )
 	{
 		return new Region()
 		{
@@ -45,7 +44,7 @@ public interface Region extends Identified<String>
 			}
 
 			@Override
-			public Amount<Area> surfaceArea()
+			public Quantity<Area> surfaceArea()
 			{
 				return surfaceArea;
 			}

@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.log.LogUtil;
+import io.coala.math.DecimalUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
 import io.coala.persist.JDBCConfig;
@@ -45,7 +46,6 @@ import io.coala.persist.JDBCUtil;
 import io.coala.time.Duration;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import io.coala.util.DecimalUtil;
 import io.coala.util.FileUtil;
 
 @Singleton

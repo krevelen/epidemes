@@ -11,10 +11,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.measure.DecimalMeasure;
+import javax.measure.Quantity;
+import javax.measure.Unit;
 import javax.measure.quantity.Dimensionless;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
+import javax.measure.quantity.Time;
 
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
@@ -34,17 +34,17 @@ import io.coala.dsol3.Dsol3Config;
 import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
-import io.coala.math.MeasureUtil;
+import io.coala.math.QuantityUtil;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
+import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
-import io.coala.time.Units;
-import io.coala.util.DecimalUtil;
 import nl.rivm.cib.episim.mas.ReplicatorAgent;
 import rx.Subscription;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.Subject;
+import tec.uom.se.unit.Units;
 
 /**
  * {@link ReplicatorAgentImpl}
@@ -73,7 +73,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	// FIXME BUG in FileState#get(TypedKey): "java.lang.Long cannot be cast to org.joda.time.DateTime"
 	private transient volatile DateTime myOffset = null;
 
-	private transient volatile DecimalMeasure<javax.measure.quantity.Duration> myDuration = null;
+	private transient volatile Quantity<Time> myDuration = null;
 
 	/** */
 	private transient Map<UUID, Subscription> subscriptions = new HashMap<>();
@@ -119,7 +119,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 
 		final StepRatio zeroPace = StepRatio.of( BigDecimal.ZERO,
 				BigDecimal.ZERO );
-		final Unit<javax.measure.quantity.Duration> timeUnit = conf.timeUnit();
+		final Unit<?> timeUnit = conf.timeUnit();
 		final DateTime offset = conf.offset();
 		final DateTime until = conf.until();
 
@@ -130,15 +130,15 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		put( MY_PACE_KEY, zeroPace );
 
 		this.myOffset = offset;
-		this.myDuration = DecimalMeasure.valueOf(
+		this.myDuration = QuantityUtil.valueOf(
 				BigDecimal.valueOf( until.getMillis() - offset.getMillis() ),
-				Units.MILLIS );
+				TimeUnits.MILLIS );
 		this.pace.onNext( zeroPace );
 		this.myPace = zeroPace;
 		final Dsol3Config config = Dsol3Config
 				.of( entry( Dsol3Config.ID_KEY, getId() ),
 						entry( Dsol3Config.START_TIME_KEY, "0 " + timeUnit ),
-						entry( Dsol3Config.RUN_LENGTH_KEY, MeasureUtil
+						entry( Dsol3Config.RUN_LENGTH_KEY, QuantityUtil
 								.toBigDecimal( this.myDuration, timeUnit )
 								.toString() ) );
 		LOG.info( "Starting replication, config: {}", config.toYAML() );
@@ -152,7 +152,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	}
 
 	@SuppressWarnings( "unchecked" )
-	protected DecimalMeasure<Dimensionless> fraction( final Instant t )
+	protected Quantity<Dimensionless> fraction( final Instant t )
 	{
 		return t.unwrap().divide( this.myDuration );
 	}
@@ -162,8 +162,8 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	{
 		this.time.subscribe( t ->
 		{
-			LOG.trace( "{} - t = {}, {}", getId(), t.prettify( 4 ), MeasureUtil
-					.toString( fraction( t ).to( NonSI.PERCENT ), 4 ) );
+			LOG.trace( "{} - t = {}, {}", getId(), t.prettify( 4 ), QuantityUtil
+					.toString( fraction( t ).to( Units.PERCENT ), 4 ) );
 		}, e ->
 		{
 			LOG.warn( "{} - Problem in scheduler", getId(), e );
@@ -217,7 +217,8 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 //			LOG.trace( "Cancelling delays, pace: {}", this.myPace );
 			return;
 		}
-		final Duration dt = Duration.of( this.myPace.virtualMS, Units.MILLIS );
+		final Duration dt = Duration.of( this.myPace.virtualMS,
+				TimeUnits.MILLIS );
 		final DateTime until = new DateTime(
 				currentTimeMillis() + this.myPace.actualMS.longValue() );
 //		LOG.trace( "{} - Scheduled block at {} until {}", getId(), dt, until );
@@ -274,22 +275,19 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		final Instant t )
 	{
 		final StepRatio pace = this.myPace;
-		publish( subKey, listener, TIME_TOPIC,
-				JsonUtil.getJOM().createObjectNode()
-						.put( "time", t.unwrap().getValue() )
-						.put( "fraction",
-								fraction( t ).to( Unit.ONE ).getValue() )
-						.put( "remaining_ms",
-								pace.virtualMS.equals( BigDecimal.ZERO ) ? -1L
-										: this.myDuration.getValue()
-												.subtract( MeasureUtil
-														.toUnit( t.unwrap(),
-																Units.MILLIS )
-														.getValue() )
-												.divide( pace.virtualMS,
-														DecimalUtil.DEFAULT_CONTEXT )
-												.multiply( pace.actualMS )
-												.longValue() ) );
+		publish( subKey, listener, TIME_TOPIC, JsonUtil.getJOM()
+				.createObjectNode()
+				.put( "time", QuantityUtil.toBigDecimal( t.unwrap() ) )
+				.put( "fraction",
+						QuantityUtil.floatValue( fraction( t ),
+								QuantityUtil.PURE ) )
+				.put( "remaining_ms", pace.virtualMS.equals( BigDecimal.ZERO )
+						? -1L
+						: this.myDuration
+								.subtract( t.unwrap().to( TimeUnits.MILLIS ) )
+								.divide( pace.virtualMS )
+								.multiply( pace.actualMS ).getValue()
+								.longValue() ) );
 	}
 
 	protected void publishPace( final UUID subKey, final URI listener,

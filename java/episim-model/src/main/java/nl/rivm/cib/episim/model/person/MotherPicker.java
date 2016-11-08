@@ -19,6 +19,7 @@
  */
 package nl.rivm.cib.episim.model.person;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -27,20 +28,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.BiFunction;
 
-import javax.measure.Measurable;
-import javax.measure.quantity.Duration;
+import javax.measure.Quantity;
+import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
-import org.jscience.physics.amount.Amount;
 
 import io.coala.log.LogUtil;
-import io.coala.math.MeasureUtil;
+import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.random.PseudoRandom;
 import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
-import io.coala.time.Units;
+import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.CandidatePicker;
 import nl.rivm.cib.episim.model.CandidatePicker.Candidate.Cluster;
 import rx.Observable;
@@ -59,7 +59,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		// TODO make fertility/recovery as abstract (un/re)registration schedule
 		Range<Instant> fertilityInterval();
 
-		Measurable<Duration> recoveryPeriod();
+		Quantity<Time> recoveryPeriod();
 	}
 
 	default Iterable<Candidate> candidatesOfAge( final Integer ageFilter )
@@ -101,13 +101,15 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		final Integer max = ageRange.getMaximum().getValue();
 		return Range.of(
 				min == null ? null
-						: birth.add( MeasureUtil
-								.toAmount( ageRange.getMinimum().getValue(),
-										Units.ANNUM )
-								.plus( Amount.valueOf( 1, Units.ANNUM ) ) ),
+						: birth.add( QuantityUtil
+								.valueOf( ageRange.getMinimum().getValue(),
+										TimeUnits.ANNUM )
+								.add( QuantityUtil.valueOf( BigDecimal.ONE,
+										TimeUnits.ANNUM ) ) ),
 				true,
 				max == null ? null
-						: birth.add( Amount.valueOf( max, Units.ANNUM ) ),
+						: birth.add(
+								QuantityUtil.valueOf( max, TimeUnits.ANNUM ) ),
 				false );
 	}
 
@@ -118,13 +120,15 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		final Integer max = ageRange.getMaximum().getValue();
 		return Range.of(
 				min == null ? null
-						: now.subtract( MeasureUtil
-								.toAmount( ageRange.getMinimum().getValue(),
-										Units.ANNUM )
-								.plus( Amount.valueOf( 1, Units.ANNUM ) ) ),
+						: now.subtract( QuantityUtil
+								.valueOf( ageRange.getMinimum().getValue(),
+										TimeUnits.ANNUM )
+								.add( QuantityUtil.valueOf( BigDecimal.ONE,
+										TimeUnits.ANNUM ) ) ),
 				false,
 				max == null ? null
-						: now.subtract( Amount.valueOf( max, Units.ANNUM ) ),
+						: now.subtract(
+								QuantityUtil.valueOf( max, TimeUnits.ANNUM ) ),
 				true );
 	}
 

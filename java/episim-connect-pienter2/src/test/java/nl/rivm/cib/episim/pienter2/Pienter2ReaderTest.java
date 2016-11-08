@@ -72,80 +72,158 @@ public class Pienter2ReaderTest
 		String PARTICIPANT_ID_COL = "ParticipantId";
 
 		// demographics
+		/** */
 		String HH_PROV_COL = "Provincie";
+		/** */
 		String HH_CITY_COL = "Gemeente";
+		/** */
 		String HH_PC4_COL = "ZipCode";
+		/** */
 		String HH_SIZE_COL = "pershuis";
+		/** */
 		String HH_INCOME_COL = "netink";
+		/** */
 		String HH_AGE_1_COL = "Lftpershuis1";
+		/** */
 		String HH_AGE_2_COL = "Lftpershuis2";
+		/** */
 		String HH_AGE_3_COL = "Lftpershuis3";
+		/** */
 		String HH_AGE_4_COL = "Lftpershuis4";
+		/** */
 		String HH_AGE_5_COL = "Lftpershuis5";
+		/** */
 		String HH_AGE_6_COL = "Lftpershuis6";
+		/** */
 		String HH_AGE_7_COL = "Lftpershuis7";
+		/** */
 		String HH_AGE_8_COL = "Lftpershuis8";
+		/** */
 		String HH_AGE_9_COL = "Lftpershuis9";
+		/** */
 		String HH_AGE_10_COL = "Lftpershuis10";
+		/** */
 		String MY_BIRTH_COL = "gebdat2";
+		/** */
 		String MY_AGE_FLOATYR_COL = "age"; // age in years (float), derived
+		/** */
 		String MY_AGE_INTYEAR_COL = "LFTB"; // age in years (int), derived
+		/** */
 		String MY_AGE_GROUP_COL = "Lftgroeb";
+		/** */
 		String MY_SEX_COL = "gesl2";
+		/** */
 		String MY_MARITAL_COL = "burg";
+		/** */
 		String MY_NATIONALITY_COL = "nl"; // 1=NL, 2=Surinaamse, 3=Antilliaanse, 4=Arubaanse, 5=Turkse,  6=Marokkaanse, 7=andnatio
+		/** */
 		String MY_NATIONALITY_EXT_COL = "natioand";
+		/** */
 		String MY_ORIGIN_COL = "gebland"; // 1=NL, 2=Surinaamse, 3=Antilliaanse, 4=Arubaanse, 5=Turkse,  6=Marokkaanse, 7=andnatio
+		/** */
 		String MY_ORIGIN_EXT_COL = "geblandand";
+		/** */
 		String MY_NL_ARRIVAL_YEAR_COL = "jaarnl";
+		/** */
 		String MY_EDU_LEVEL_COL = "oplzelf";
+		/** */
 		String MY_RELIGION_COL = "geloof";
+		/** */
 		String MY_DENOMINATION_COL = "pckgeloof"; //pckgeloofa
 		
 		// contact
+		/** */
 		String HH_DAYCARE1_COL = "crechhuis"; // 1=+, 2=-
+		/** */
 		String HH_DAYCARE2_COL = "crechkind"; // 1=+, 2=-
+		/** */
 		String HH_DAYCARE1_SEMIDAYS_COL = "crechhuisdeel"; // 0..10
+		/** */
 		String HH_DAYCARE2_SEMIDAYS_COL = "crechkinddeel"; // 0..10
+		/** */
 		String MY_CONTACT_PATIENTS_COL = "beroepgrcont_patient";
+		/** */
 		String MY_CONTACT_CLIENTS_COL = "beroepgrcont_client";
+		/** */
 		String MY_CONTACT_PUPILS_COL = "beroepgrcont_kind";
+		/** */
 		String MY_SEX_AGE_COL = "sekslft";
+		/** */
 		String MY_SEX_PARTNER_COL = "vastpart";//1=+,2=-,3=?
+		/** */
 		String MY_SEX_PARTNER_ORIGIN_COL = "Landvastpart";//1=nl, 2... see natio
+		/** */
 		String MY_SEX_PARTNER_COUNT_HY_COL = "aantalsekspartgetal";
 		// TODO add contact age groups and frequencies...
 		
 		// vaccine
+		/** 15. Heeft u als kind meegedaan aan het toen gangbare vaccinatieprogramma/inentingsprogramma? 1=+,2=-,3=?*/
 		String MY_VACC_COL = "rvp";
+		/** 16a. Bent u vanwege uw beroep ingeënt? */
 		String MY_VACC_PROF_COL = "beroepinent"; // 1=+, 2=-
-		String MY_VAC_ATT_COL = "houdingvac";
-		String MY_VAC_ATT_INF_COL = "";// 1=antro, 2=homeo, 3=natuur, 4=geloof, 5=anders, 6=geen
-		String MY_VAC_ATT_KID_COL = "toekvactoedien"; //1=surely...6=surely not,7=n/a
-		String MY_VAC_ATT_KID_POS_COL = "redenvacja"; // 1=+,2=-
-		String MY_VAC_ATT_KID_NEG_COL = "redenvacnee"; // 1=+,2=-
-		String MY_VAC_ATT_KID_CONFIDENT_COL = "kindvacbescherm"; // 1=agree...5=disagree
-		String MY_VAC_ATT_KID_COMPLACENT_COL = "noodzaakvac"; // 1=agree...5=disagree
-		String MY_VAC_ATT_KID_WARY_COL = "veiligvac"; // 1=agree...5=disagree
-		String MY_VAC_ATT_KID_ADVERSE_COL = "afweeropbvac"; // 1=agree...5=disagree
-		String MY_VAC_ATT_KID_HERD_COL = "gezondhandvac"; // 1=agree...5=disagree
-		String MY_GENITAL_WARTS_COL = "Genitwrat"; // 1=+, 2=-, 3=? HPV?
+		/** 16a1. Ja, via militaire dienst/ beroepsmilitair */
+		String MY_VACC_PROF_MIL_COL ="militairinent";
+		/** 16a2. Ja, via een (para)medisch beroep */
+		String MY_VACC_PROF_MED_COL ="beroepmedischinent";
+		/** 16a3. Ja, anders namelijk */
+		String MY_VACC_PROF_OTH_COL ="andberoepinent";
+		/** 1=+, 2=-, 3=? HPV? */
+		String MY_GENITAL_WARTS_COL = "Genitwrat";
+		/** */
 		String MY_MEASLES_BMR1_COL = "bmr1";// datum
+		/** */
 		String MY_MEASLES_BMR2_COL = "bmr2";// datum
+		/** */
 		String MY_MEASLES_BMR3_COL = "bmr3";// datum
+		/** */
 		String MY_MEASLES_BMR4_COL = "bmr4";// datum
+		/** */
 		String MY_MEASLES_BMR1_REP_COL = "bmr1_rep";
+		/** */
 		String MY_MEASLES_BMR_REP_COL = "bmr_rep";
-		String MY_MEASLES1_COL = "mazelen1";// datum
-		String MY_MEASLES2_COL = "mazelen2";// datum
-		String MY_MEASLES3_COL = "mazelen3";// datum
+		/** datum */
+		String MY_MEASLES1_COL = "mazelen1";
+		/** datum */
+		String MY_MEASLES2_COL = "mazelen2";
+		/** datum */
+		String MY_MEASLES3_COL = "mazelen3";
+		/** */
 		String MY_MEASLES1_REP_COL = "mazelen1_rep";
-		String MY_INFLUENZA1_COL = "Influenza1";// datum
-		String MY_INFLUENZA2_COL = "Influenza2";// datum
-		String MY_INFLUENZA_REP_COL = "influenza_rep";//Influenza1..2 (datum) influenza_rep
-
+		/** datum */
+		String MY_INFLUENZA1_COL = "Influenza1";
+		/** datum */
+		String MY_INFLUENZA2_COL = "Influenza2";
+		/** */
+		String MY_INFLUENZA_REP_COL = "influenza_rep";
+		
+		// attitude
+		/** 27. Is uw mening over wel of niet vaccineren in de afgelopen 5 jaar veranderd? 1=Nee, 2=Ja, meer geneigd tot vaccineren, 3=Ja, minder, 4=? */
+		String MY_VAC_ATT_COL = "houdingvac";
+		/** 28. Heeft een van de onderstaande zaken invloed op uw denkwijze over vaccinaties? */
+		String MY_VAC_ATT_ANT_COL = "denkwvac_antro";
+		String MY_VAC_ATT_HOM_COL = "denkwvac_homeo";
+		String MY_VAC_ATT_NAT_COL = "denkwvac_natuur";
+		String MY_VAC_ATT_REL_COL = "denkwvac_geloof";
+		String MY_VAC_ATT_OTH_COL = "anddenkwv	ac";
+		String MY_VAC_ATT_NA_COL = "denkwvac_geen";
+		/** 1=surely...6=surely not,7=n/a */
+		String MY_VAC_ATT_KID_COL = "toekvactoedien";
+		/** 1=+,2=- */
+		String MY_VAC_ATT_KID_POS_COL = "redenvacja";
+		/** 1=+,2=- */
+		String MY_VAC_ATT_KID_NEG_COL = "redenvacnee";
+		/**  1=agree...5=disagree*/
+		String MY_VAC_ATT_KID_CONFIDENT_COL = "kindvacbescherm";
+		/**  1=agree...5=disagree*/
+		String MY_VAC_ATT_KID_COMPLACENT_COL = "noodzaakvac";
+		/**  1=agree...5=disagree*/
+		String MY_VAC_ATT_KID_WARY_COL = "veiligvac";
+		/**  1=agree...5=disagree*/
+		String MY_VAC_ATT_KID_ADVERSE_COL = "afweeropbvac";
+		/**  1=agree...5=disagree*/
+		String MY_VAC_ATT_KID_HERD_COL = "gezondhandvac";
+		
 		JAXBCache<?> jaxb = JAXBCache.of( PienterEntry.class );
-
 	}
 
 	@XmlRootElement( name = SASPienter.ROOT_ELEMENT )

@@ -30,9 +30,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Actor.ID;
 import io.coala.json.JsonUtil;
+import io.coala.math.DecimalUtil;
 import io.coala.name.Identified;
 import io.coala.util.Compare;
-import io.coala.util.DecimalUtil;
 
 /**
  * {@link VaxHesitant} provides an implementation of the Four C model by
@@ -92,24 +92,25 @@ public interface VaxHesitant extends Identified<Actor.ID>
 
 	void observe( Actor.ID sourceRef, Number vaccineRisk, Number diseaseRisk );
 
-	Number getReputation( Actor.ID sourceRef );
+	Number getAppreciation( Actor.ID sourceRef );
 
 	/**
 	 * @param sourceRef the source to check reputation for exclusion from
 	 *            attitude computation
 	 * @return a positive weight or zero iff
-	 *         {@linkplain #getReputation(Actor.ID) Reputation} does not meet
-	 *         the current {@linkplain #getCalculation() Calculation} level
+	 *         {@linkplain #getAppreciation(Actor.ID) Appreciation} does not
+	 *         meet the current {@linkplain #getCalculation() Calculation} level
 	 *         <p>
 	 *         <table style="width:300; border:1px solid black;
 	 *         cell-padding:2px; cell-spacing:0px;">
 	 *         <caption><em><b>default</b> weight of another's
 	 *         {@link VaxPosition} based on their
-	 *         {@linkplain #getReputation(Actor.ID) Reputation} and someone's
-	 *         {@linkplain #getCalculation() Calculation} level</em></caption>
+	 *         {@linkplain #getAppreciation(Actor.ID) Appreciation} and
+	 *         someone's {@linkplain #getCalculation() Calculation}
+	 *         level</em></caption>
 	 *         <tr>
 	 *         <th rowSpan=2 vAlign=bottom>source
-	 *         {@linkplain #getReputation(Actor.ID) Reputation} level</th>
+	 *         {@linkplain #getAppreciation(Actor.ID) Appreciation} level</th>
 	 *         <th colSpan=3>own {@linkplain #getCalculation() Calculation}
 	 *         level</th>
 	 *         </tr>
@@ -138,15 +139,15 @@ public interface VaxHesitant extends Identified<Actor.ID>
 	 *         </tr>
 	 *         </table>
 	 */
-	default Number reputationWeight( final Actor.ID sourceRef )
+	default Number appreciationWeight( final Actor.ID sourceRef )
 	{
 		return Compare.max( BigDecimal.ZERO,
-				DecimalUtil.valueOf( getReputation( sourceRef ) )
-						.subtract( REPUTATION_WEIGHT_MINIMUM )
+				DecimalUtil.valueOf( getAppreciation( sourceRef ) )
+						.subtract( APPRECIATION_WEIGHT_MINIMUM )
 						.add( DecimalUtil.valueOf( getCalculation() ) ) );
 	}
 
-	BigDecimal REPUTATION_WEIGHT_MINIMUM = BigDecimal.valueOf( 5, 1 );
+	BigDecimal APPRECIATION_WEIGHT_MINIMUM = BigDecimal.valueOf( 5, 1 );
 
 	/**
 	 * perceived barriers may cause an "intention-behavior gap" (Sheeran, 2002)
@@ -201,9 +202,9 @@ public interface VaxHesitant extends Identified<Actor.ID>
 	 */
 	default boolean isHesitant( final VaxOccasion occ )
 	{
-		return DecimalUtil.valueOf( getConvenience( occ ) )
-				.compareTo( DecimalUtil.valueOf( getComplacency() ).subtract(
-						DecimalUtil.valueOf( getConfidence() ) ) ) <= 0;
+		return Compare.le( DecimalUtil.valueOf( getConvenience( occ ) ),
+				DecimalUtil.binaryEntropy( getComplacency() )
+						.multiply( DecimalUtil.binaryEntropy( getConfidence() ) ) );
 	}
 
 	/**
@@ -281,7 +282,7 @@ public interface VaxHesitant extends Identified<Actor.ID>
 		}
 
 		@Override
-		public BigDecimal getReputation( final Actor.ID sourceRef )
+		public BigDecimal getAppreciation( final Actor.ID sourceRef )
 		{
 			return this.reputer.apply( sourceRef );
 		}
@@ -330,7 +331,7 @@ public interface VaxHesitant extends Identified<Actor.ID>
 			final Actor.ID id, final BigDecimal[] augend )
 		{
 			final BigDecimal weight = DecimalUtil
-					.valueOf( reputationWeight( id ) );
+					.valueOf( appreciationWeight( id ) );
 			if( !BigDecimal.ZERO.equals( weight ) )
 				for( int i = 0; i < sums.length; i++ )
 				sums[i] = sums[i].add( augend[i].multiply( weight ) );

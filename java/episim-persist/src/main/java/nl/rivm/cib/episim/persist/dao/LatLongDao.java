@@ -19,13 +19,13 @@
  */
 package nl.rivm.cib.episim.persist.dao;
 
-import javax.measure.unit.NonSI;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
-import org.jscience.geography.coordinates.LatLong;
-
+import io.coala.math.LatLong;
+import io.coala.math.QuantityUtil;
 import nl.rivm.cib.episim.persist.AbstractDao;
+import tec.uom.se.unit.Units;
 
 /**
  * {@link LatLongDao}
@@ -37,10 +37,10 @@ import nl.rivm.cib.episim.persist.AbstractDao;
 public class LatLongDao extends AbstractDao
 {
 
-	@Column( name = "LAT", nullable = false, updatable = false )//, precision = 3, scale = 18
+	@Column( name = "LAT", nullable = false, updatable = false ) //, precision = 3, scale = 18
 	protected double latitude;
 
-	@Column( name = "LON", nullable = false, updatable = false )//, precision = 3, scale = 18
+	@Column( name = "LON", nullable = false, updatable = false ) //, precision = 3, scale = 18
 	protected double longitude;
 
 	/**
@@ -48,8 +48,7 @@ public class LatLongDao extends AbstractDao
 	 */
 	public LatLong toLatLong()
 	{
-		return LatLong.valueOf( this.latitude, this.longitude,
-				NonSI.DEGREE_ANGLE );
+		return LatLong.of( this.latitude, this.longitude, Units.DEGREE_ANGLE );
 	}
 
 	/**
@@ -59,8 +58,10 @@ public class LatLongDao extends AbstractDao
 	public static LatLongDao of( final LatLong position )
 	{
 		final LatLongDao result = new LatLongDao();
-		result.latitude = position.latitudeValue( NonSI.DEGREE_ANGLE );
-		result.longitude = position.longitudeValue( NonSI.DEGREE_ANGLE );
+		result.latitude = QuantityUtil.doubleValue(
+				position.getCoordinates().get( 0 ), Units.DEGREE_ANGLE );
+		result.longitude = QuantityUtil.doubleValue(
+				position.getCoordinates().get( 1 ), Units.DEGREE_ANGLE );
 		return result;
 	}
 }

@@ -19,11 +19,10 @@
  */
 package nl.rivm.cib.episim.model.person;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
-import javax.measure.unit.Unit;
 
-import org.jscience.physics.amount.Amount;
-
+import io.coala.math.QuantityUtil;
 import io.coala.time.Indicator;
 import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.person.Population.Birth;
@@ -55,96 +54,65 @@ public interface HouseholdPopulationMetrics extends PopulationMetrics
 	static HouseholdPopulationMetrics
 		of( final HouseholdPopulation<?> population )
 	{
-		return of( population, Amount.ZERO, Amount.ZERO, Amount.ZERO,
-				Amount.ZERO, Amount.ZERO, Amount.ZERO, Amount.ZERO,
-				Amount.ZERO );
+		return of( population, QuantityUtil.ZERO, QuantityUtil.ZERO,
+				QuantityUtil.ZERO, QuantityUtil.ZERO, QuantityUtil.ZERO,
+				QuantityUtil.ZERO, QuantityUtil.ZERO, QuantityUtil.ZERO );
 	}
 
 	static HouseholdPopulationMetrics of(
 		final HouseholdPopulation<?> population,
-		final Amount<Dimensionless> initialBirths,
-		final Amount<Dimensionless> initialDeaths,
-		final Amount<Dimensionless> initialImmigrated,
-		final Amount<Dimensionless> initialEmigrated,
-		final Amount<Dimensionless> initialMerges,
-		final Amount<Dimensionless> initialSplits,
-		final Amount<Dimensionless> initialLeaves,
-		final Amount<Dimensionless> initialEmpties )
+		final Quantity<Dimensionless> initialBirths,
+		final Quantity<Dimensionless> initialDeaths,
+		final Quantity<Dimensionless> initialImmigrated,
+		final Quantity<Dimensionless> initialEmigrated,
+		final Quantity<Dimensionless> initialMerges,
+		final Quantity<Dimensionless> initialSplits,
+		final Quantity<Dimensionless> initialLeaves,
+		final Quantity<Dimensionless> initialEmpties )
 	{
 		final Indicator<Dimensionless> size = Indicator.of(
 				population.scheduler(),
-				Amount.valueOf( population.members().size(), Unit.ONE ) );
-		population.members().onSize().map( i ->
-		{
-			return Amount.valueOf( i, Unit.ONE );
-		} ).doOnNext( i ->
-		{
-			size.setValue( i );
-		} );
+				QuantityUtil.valueOf( population.members().size() ) );
+		population.members().onSize().map( i -> QuantityUtil.valueOf( i ) )
+				.doOnNext( i -> size.setValue( i ) );
 
 		final Indicator<Dimensionless> hhCount = Indicator.of(
 				population.scheduler(),
-				Amount.valueOf( population.households().size(), Unit.ONE ) );
-		population.households().onSize().map( i ->
-		{
-			return Amount.valueOf( i, Unit.ONE );
-		} ).doOnNext( i ->
-		{
-			hhCount.setValue( i );
-		} );
+				QuantityUtil.valueOf( population.households().size() ) );
+		population.households().onSize().map( i -> QuantityUtil.valueOf( i ) )
+				.doOnNext( i -> hhCount.setValue( i ) );
 
 		final Indicator<Dimensionless> births = Indicator
 				.of( population.scheduler(), initialBirths );
-		population.on( Birth.class, birth ->
-		{
-			births.add( birth.arrivals().size() );
-		} );
+		population.on( Birth.class,
+				birth -> births.add( birth.arrivals().size() ) );
 		final Indicator<Dimensionless> deaths = Indicator
 				.of( population.scheduler(), initialDeaths );
-		population.on( Death.class, death ->
-		{
-			deaths.add( death.departures().size() );
-		} );
+		population.on( Death.class,
+				death -> deaths.add( death.departures().size() ) );
 		final Indicator<Dimensionless> immigrations = Indicator
 				.of( population.scheduler(), initialImmigrated );
-		population.on( Immigration.class, immigration ->
-		{
-			immigrations.add( immigration.arrivals().size() );
-		} );
+		population.on( Immigration.class, immigration -> immigrations
+				.add( immigration.arrivals().size() ) );
 		final Indicator<Dimensionless> emigrations = Indicator
 				.of( population.scheduler(), initialEmigrated );
-		population.on( Emigration.class, emigration ->
-		{
-			emigrations.add( emigration.departures().size() );
-		} );
+		population.on( Emigration.class, emigration -> emigrations
+				.add( emigration.departures().size() ) );
 		final Indicator<Dimensionless> merges = Indicator
 				.of( population.scheduler(), initialMerges );
-		population.on( Merge.class, merge ->
-		{
-			emigrations.add( 1 );
-		} );
+		population.on( Merge.class, merge -> emigrations.add( 1 ) );
 		final Indicator<Dimensionless> splits = Indicator
 				.of( population.scheduler(), initialSplits );
-		population.on( Split.class, split ->
-		{
-			emigrations.add( 1 );
-		} );
+		population.on( Split.class, split -> emigrations.add( 1 ) );
 		final Indicator<Dimensionless> leaves = Indicator
 				.of( population.scheduler(), initialLeaves );
-		population.on( Leave.class, leave ->
-		{
-			emigrations.add( 1 );
-		} );
+		population.on( Leave.class, leave -> emigrations.add( 1 ) );
 		final Indicator<Dimensionless> disbands = Indicator
 				.of( population.scheduler(), initialEmpties );
-		population.on( Empty.class, empty ->
-		{
-			emigrations.add( 1 );
-		} );
+		population.on( Empty.class, empty -> emigrations.add( 1 ) );
 
 		return new HouseholdPopulationMetrics()
 		{
-
 			@Override
 			public Scheduler scheduler()
 			{

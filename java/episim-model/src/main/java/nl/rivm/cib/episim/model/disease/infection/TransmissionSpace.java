@@ -26,12 +26,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
 
-import org.jscience.physics.amount.Amount;
-
 import io.coala.exception.ExceptionFactory;
+import io.coala.math.QuantityUtil;
 import io.coala.name.Identified;
 import io.coala.time.Accumulator;
 import io.coala.time.Instant;
@@ -339,7 +339,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 			if( (arrival = getArrivals().remove( visitor )) == null )
 				throw ExceptionFactory.createUnchecked( "{} already left {}",
 						visitor, getSpace() );
-			arrival.toAmount();
+			arrival.toMeasure();
 //			final Instant departure = getLocation().now();
 //			for( Map.Entry<Individual, Instant> entry : getOccupantArrivals()
 //					.entrySet() )
@@ -419,9 +419,10 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 							.get( visitor );
 					if( result == null )
 					{
-						final Amount<Frequency> rate = null;
-						result = VisitorDynamics.of( visitor, Accumulator.of(
-								getSpace().scheduler(), Amount.ZERO, rate ) );
+						final Quantity<Frequency> rate = null;
+						result = VisitorDynamics.of( visitor,
+								Accumulator.of( getSpace().scheduler(),
+										QuantityUtil.ZERO, rate ) );
 						this.visitorDynamics.put( visitor, result );
 					}
 					return result;

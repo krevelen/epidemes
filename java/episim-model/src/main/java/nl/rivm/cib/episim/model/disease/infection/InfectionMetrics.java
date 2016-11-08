@@ -2,17 +2,16 @@ package nl.rivm.cib.episim.model.disease.infection;
 
 import java.util.Map;
 
+import javax.measure.Quantity;
+import javax.measure.Unit;
 import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
-import javax.measure.unit.Unit;
-
-import org.jscience.physics.amount.Amount;
 
 import io.coala.time.Indicator;
 import io.coala.time.Instant;
+import io.coala.time.Proactive;
 import io.coala.time.Signal;
 import nl.rivm.cib.episim.model.person.PopulationMetrics;
-import io.coala.time.Proactive;
 
 /**
  * {@link InfectionMetrics} follows common
@@ -69,7 +68,7 @@ public interface InfectionMetrics extends Proactive
 	 * @return an {@link Amount} of (point) prevalence, i.e. the proportion of
 	 *         the current population that is or was infected (ignores deaths)
 	 */
-	Amount<Dimensionless> getPrevalence();
+	Quantity<Dimensionless> getPrevalence();
 
 	/**
 	 * @return the number of {@link TransmissionEvent}s, i.e. 'successful'
@@ -83,13 +82,12 @@ public interface InfectionMetrics extends Proactive
 	 * @param unit the {@link Frequency} to calculate
 	 * @return &beta; = Effective contact rate
 	 */
-	default Signal<Amount<Frequency>>
+	default Signal<Quantity<Frequency>>
 		getEffectiveContactRate( final Unit<Frequency> unit )
 	{
-		return getEffectiveContactsNumber().transform( ( n ) ->
-		{
-			return n.divide( scheduler().now().toAmount() ).to( unit );
-		} );
+		return getEffectiveContactsNumber()
+				.transform( n -> n.divide( scheduler().now().toMeasure() )
+						.asType( Frequency.class ).to( unit ) );
 	}
 
 	// Indicator<Dimensionless> getVaccineCosts();

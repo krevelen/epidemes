@@ -12,7 +12,7 @@ import org.joda.time.DateTime;
 
 import io.coala.time.Duration;
 import io.coala.time.Scheduler;
-import io.coala.time.Units;
+import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
 import nl.rivm.cib.episim.persist.AbstractDao;
@@ -66,7 +66,7 @@ public class ContactFactDao extends AbstractDao
 		final DateTime offset )
 	{
 		return ContactEvent.of( this.begin.toInstant( offset ),
-				Duration.of( this.duration, Units.MILLIS ),
+				Duration.of( this.duration, TimeUnits.MILLIS ),
 				this.space.toSpace( scheduler ),
 				TransmissionRoute.of( this.route ), null, // this.primary.toIndividual(),
 				null // this.secondary.toIndividual()

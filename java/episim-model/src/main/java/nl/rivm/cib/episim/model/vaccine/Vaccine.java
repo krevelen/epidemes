@@ -5,7 +5,7 @@ import java.util.Collections;
 
 import javax.measure.quantity.Dimensionless;
 
-import io.coala.random.AmountDistribution;
+import io.coala.random.QuantityDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Scheduler;
 import io.coala.time.Proactive;
@@ -39,7 +39,7 @@ public interface Vaccine extends Proactive
 	 *         oral, micro-needle arrays, stratum corneum disruption) for
 	 *         specified {@link Individual}'s traits (age, sex, &hellip;)
 	 */
-	AmountDistribution<Dimensionless> getComfort( Individual person );
+	QuantityDistribution<Dimensionless> getComfort( Individual person );
 
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
@@ -61,7 +61,7 @@ public interface Vaccine extends Proactive
 		public static Simple of( final Scheduler scheduler,
 			final Infection target,
 			final ProbabilityDistribution<Boolean> efficacy,
-			final AmountDistribution<Dimensionless> comfort )
+			final QuantityDistribution<Dimensionless> comfort )
 		{
 			return new Simple( scheduler, Collections.singleton( target ),
 					efficacy, comfort );
@@ -73,7 +73,7 @@ public interface Vaccine extends Proactive
 
 		private final ProbabilityDistribution<Boolean> efficacy;
 
-		private final AmountDistribution<Dimensionless> comfort;
+		private final QuantityDistribution<Dimensionless> comfort;
 
 		/**
 		 * {@link Simple} constructor
@@ -84,7 +84,7 @@ public interface Vaccine extends Proactive
 		public Simple( final Scheduler scheduler,
 			final Collection<Infection> targets,
 			final ProbabilityDistribution<Boolean> efficacy,
-			final AmountDistribution<Dimensionless> comfort )
+			final QuantityDistribution<Dimensionless> comfort )
 		{
 			this.scheduler = scheduler;
 			this.targets = targets;
@@ -112,7 +112,7 @@ public interface Vaccine extends Proactive
 		}
 
 		@Override
-		public AmountDistribution<Dimensionless>
+		public QuantityDistribution<Dimensionless>
 			getComfort( final Individual person )
 		{
 			return this.comfort;

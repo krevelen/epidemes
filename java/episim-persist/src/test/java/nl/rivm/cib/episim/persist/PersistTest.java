@@ -36,7 +36,7 @@ import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
 import io.coala.persist.JPAUtil;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
-import io.coala.time.Units;
+import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionEvent;
@@ -99,7 +99,7 @@ public class PersistTest
 		final Condition secondary = null;
 		final ContactEvent cause = ContactEvent.of( start, duration, space,
 				route, primary, secondary );
-		final Instant time = Instant.of( 3.456, Units.ANNUM );
+		final Instant time = Instant.of( 3.456, TimeUnits.ANNUM );
 		final TransmissionEvent event = TransmissionEvent.of( time, site,
 				cause );
 		JPAUtil.session( EMF, em ->

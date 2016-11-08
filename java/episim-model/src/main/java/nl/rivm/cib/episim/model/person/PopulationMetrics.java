@@ -19,11 +19,10 @@
  */
 package nl.rivm.cib.episim.model.person;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
-import javax.measure.unit.Unit;
 
-import org.jscience.physics.amount.Amount;
-
+import io.coala.math.QuantityUtil;
 import io.coala.time.Indicator;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
@@ -74,19 +73,19 @@ public interface PopulationMetrics extends Proactive
 
 	static PopulationMetrics of( final Population<?> population )
 	{
-		return of( population, Amount.ZERO, Amount.ZERO, Amount.ZERO,
-				Amount.ZERO );
+		return of( population, QuantityUtil.ZERO, QuantityUtil.ZERO,
+				QuantityUtil.ZERO, QuantityUtil.ZERO );
 	}
 
 	static PopulationMetrics of( final Population<?> population,
-		final Amount<Dimensionless> initialBirths,
-		final Amount<Dimensionless> initialDeaths,
-		final Amount<Dimensionless> initialImmigrated,
-		final Amount<Dimensionless> initialEmigrated )
+		final Quantity<Dimensionless> initialBirths,
+		final Quantity<Dimensionless> initialDeaths,
+		final Quantity<Dimensionless> initialImmigrated,
+		final Quantity<Dimensionless> initialEmigrated )
 	{
 		final Indicator<Dimensionless> size = Indicator.of(
 				population.scheduler(),
-				Amount.valueOf( population.members().size(), Unit.ONE ) );
+				QuantityUtil.valueOf( population.members().size() ) );
 		final Indicator<Dimensionless> births = Indicator
 				.of( population.scheduler(), initialBirths );
 		final Indicator<Dimensionless> deaths = Indicator
@@ -95,29 +94,16 @@ public interface PopulationMetrics extends Proactive
 				.of( population.scheduler(), initialImmigrated );
 		final Indicator<Dimensionless> emigrations = Indicator
 				.of( population.scheduler(), initialEmigrated );
-		population.on( Birth.class ).doOnNext( birth ->
-		{
-			births.add( birth.arrivals().size() );
-		} );
-		population.on( Death.class ).doOnNext( death ->
-		{
-			deaths.add( death.departures().size() );
-		} );
-		population.on( Immigration.class ).doOnNext( immigration ->
-		{
-			immigrations.add( immigration.arrivals().size() );
-		} );
-		population.on( Emigration.class ).doOnNext( emigration ->
-		{
-			emigrations.add( emigration.departures().size() );
-		} );
-		population.members().onSize().map( i ->
-		{
-			return Amount.valueOf( i, Unit.ONE );
-		} ).doOnNext( i ->
-		{
-			size.setValue( i );
-		} );
+		population.on( Birth.class )
+				.doOnNext( birth -> births.add( birth.arrivals().size() ) );
+		population.on( Death.class )
+				.doOnNext( death -> deaths.add( death.departures().size() ) );
+		population.on( Immigration.class ).doOnNext( immigration -> immigrations
+				.add( immigration.arrivals().size() ) );
+		population.on( Emigration.class ).doOnNext( emigration -> emigrations
+				.add( emigration.departures().size() ) );
+		population.members().onSize().map( QuantityUtil::valueOf )
+				.doOnNext( i -> size.setValue( i ) );
 
 		return new PopulationMetrics()
 		{

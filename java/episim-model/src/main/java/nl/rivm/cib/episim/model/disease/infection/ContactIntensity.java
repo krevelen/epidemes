@@ -19,11 +19,11 @@
  */
 package nl.rivm.cib.episim.model.disease.infection;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
 
-import org.jscience.physics.amount.Amount;
-
 import io.coala.json.Wrapper;
+import io.coala.math.QuantityUtil;
 import io.coala.json.DynaBean.BeanProxy;
 
 /**
@@ -36,9 +36,9 @@ import io.coala.json.DynaBean.BeanProxy;
 public interface ContactIntensity extends Wrapper<String>
 {
 
-	default public Amount<Dimensionless> getFactor()
+	default public Quantity<Dimensionless> getFactor()
 	{
-		return Amount.ONE;
+		return QuantityUtil.ONE;
 	}
 
 	/** */

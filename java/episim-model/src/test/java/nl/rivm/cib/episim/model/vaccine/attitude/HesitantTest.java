@@ -58,7 +58,7 @@ public class HesitantTest
 		
 		hes.observe( Actor.ID.of( "pro-vax", null ), 0, 1 );
 		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 );
-		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 ); // will overwrite
+		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 ); // will overwrite?
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),

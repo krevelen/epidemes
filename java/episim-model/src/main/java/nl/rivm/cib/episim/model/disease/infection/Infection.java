@@ -21,13 +21,13 @@ package nl.rivm.cib.episim.model.disease.infection;
 
 import java.util.Collection;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Frequency;
 
-import org.jscience.physics.amount.Amount;
-
+import io.coala.math.QuantityUtil;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
-import io.coala.time.Units;
+import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.Afflicted;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.Disease;
@@ -69,19 +69,13 @@ import nl.rivm.cib.episim.model.locate.Place;
  * </tr>
  * </table>
  * 
- * typical life cycle (compartment transitions):
- * - passively immune
- * - susceptible
- *   - vaccine-infected : latent (incubation-period), infectious, recovered (1-2y), susceptible
- *   - contact-infected : latent (incubation-period)
- *     - asymptomatic, infectious, recovering, removed (2-7y), susceptible
- *     - symptomatic
- *       - mobile, recovering, removed (2-7y), susceptible
- *       - immobilize
- *         - convalescent, removed (2-7y), susceptible
- *         - hospitalize
- *           - convalescent, removed (2-7y), susceptible
- *           - death, removed
+ * typical life cycle (compartment transitions): - passively immune -
+ * susceptible - vaccine-infected : latent (incubation-period), infectious,
+ * recovered (1-2y), susceptible - contact-infected : latent (incubation-period)
+ * - asymptomatic, infectious, recovering, removed (2-7y), susceptible -
+ * symptomatic - mobile, recovering, removed (2-7y), susceptible - immobilize -
+ * convalescent, removed (2-7y), susceptible - hospitalize - convalescent,
+ * removed (2-7y), susceptible - death, removed
  * 
  * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
  * @author Rick van Krevelen
@@ -132,7 +126,8 @@ public interface Infection extends Disease
 	 *            in contact
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	Amount<Frequency> getForceOfInfection( Collection<TransmissionRoute> routes,
+	Quantity<Frequency> getForceOfInfection(
+		Collection<TransmissionRoute> routes,
 		Collection<ContactIntensity> infectionPressure );
 
 	/**
@@ -183,7 +178,7 @@ public interface Infection extends Disease
 	 */
 	class Simple implements Infection
 	{
-		private final ProbabilityDistribution<Amount<Frequency>> forceDist;
+		private final ProbabilityDistribution<Quantity<Frequency>> forceDist;
 
 		private final ProbabilityDistribution<Duration> latentPeriodDist;
 		private final ProbabilityDistribution<Duration> recoverPeriodDist;
@@ -191,7 +186,7 @@ public interface Infection extends Disease
 		private final ProbabilityDistribution<Duration> onsetPeriodDist;
 		private final ProbabilityDistribution<Duration> symptomPeriodDist;
 
-		public Simple( final Amount<Frequency> forceConst,
+		public Simple( final Quantity<Frequency> forceConst,
 			final Duration latentPeriodConst, final Duration recoverPeriodConst,
 			final Duration wanePeriodConst, final Duration onsetPeriodConst,
 			final Duration symptomPeriodConst )
@@ -210,7 +205,7 @@ public interface Infection extends Disease
 		}
 
 		public Simple(
-			final ProbabilityDistribution<Amount<Frequency>> forceDist,
+			final ProbabilityDistribution<Quantity<Frequency>> forceDist,
 			final ProbabilityDistribution<Duration> latentPeriodDist,
 			final ProbabilityDistribution<Duration> recoverPeriodDist,
 			final ProbabilityDistribution<Duration> wanePeriodDist,
@@ -226,14 +221,16 @@ public interface Infection extends Disease
 		}
 
 		@Override
-		public Amount<Frequency> getForceOfInfection(
+		public Quantity<Frequency> getForceOfInfection(
 			final Collection<TransmissionRoute> routes,
 			final Collection<ContactIntensity> infectionPressure )
 		{
-			Amount<Frequency> result = Amount.valueOf( 0, Units.DAILY );
-			Amount<Frequency> force = this.forceDist.draw();
+			Quantity<Frequency> result = QuantityUtil.valueOf( 0,
+					TimeUnits.DAILY );
+			Quantity<Frequency> force = this.forceDist.draw();
 			for( ContactIntensity intensity : infectionPressure )
-				result = result.plus( force.times( intensity.getFactor() ) );
+				result = result.add( force.multiply( intensity.getFactor() )
+						.asType( Frequency.class ) );
 			return result;
 		}
 

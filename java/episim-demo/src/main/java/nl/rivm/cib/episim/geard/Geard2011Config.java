@@ -22,7 +22,6 @@ package nl.rivm.cib.episim.geard;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
@@ -34,15 +33,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import javax.measure.DecimalMeasure;
-import javax.measure.Measurable;
+import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
 
-import org.aeonbits.owner.Converter;
 import org.apache.logging.log4j.Logger;
 
 import io.coala.config.YamlConfig;
 import io.coala.log.LogUtil;
+import io.coala.math.QuantityConverter;
 import io.coala.math.WeightedValue;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.util.Comparison;
@@ -68,6 +66,7 @@ interface Geard2011Config extends YamlConfig
 	@DefaultValue( "${dataDir}fertility_rates.dat" )
 	URI fertility_rates();
 
+	// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=37975&D1=0-5,10,15,19,22-26&D2=0,82-98&D3=0,5,10,15,17-21&HDR=T&STB=G1,G2&VW=T
 	@DefaultValue( "${dataDir}hh_comp.dat" )
 	URI hh_comp();
 
@@ -182,25 +181,14 @@ interface Geard2011Config extends YamlConfig
 	}
 
 	@DefaultValue( "0.08" )
-	@ConverterClass( DecimalMeasureConverter.class )
-	Measurable<Dimensionless> annualIndividualCouplingProbability();
+	@ConverterClass( QuantityConverter.class )
+	Quantity<Dimensionless> annualIndividualCouplingProbability();
 
 	@DefaultValue( "0.02" )
-	@ConverterClass( DecimalMeasureConverter.class )
-	Measurable<Dimensionless> annualIndividualLeavingProbability();
+	@ConverterClass( QuantityConverter.class )
+	Quantity<Dimensionless> annualIndividualLeavingProbability();
 
 	@DefaultValue( "0.01" )
-	@ConverterClass( DecimalMeasureConverter.class )
-	Measurable<Dimensionless> annualIndividualDivorcingProbability();
-
-	class DecimalMeasureConverter
-		implements Converter<DecimalMeasure<Dimensionless>>
-	{
-		@Override
-		public DecimalMeasure<Dimensionless> convert( final Method method,
-			final String input )
-		{
-			return DecimalMeasure.valueOf( input );
-		}
-	}
+	@ConverterClass( QuantityConverter.class )
+	Quantity<Dimensionless> annualIndividualDivorcingProbability();
 }

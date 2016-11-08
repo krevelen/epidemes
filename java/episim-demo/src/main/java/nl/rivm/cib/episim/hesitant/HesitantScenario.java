@@ -12,12 +12,12 @@ import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.measure.quantity.Duration;
+import javax.measure.Quantity;
+import javax.measure.quantity.Time;
 
 import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
-import org.jscience.physics.amount.Amount;
 
 import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalConfig;
@@ -28,14 +28,14 @@ import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import io.coala.log.LogUtil;
-import io.coala.random.AmountDistribution;
+import io.coala.math.DecimalUtil;
+import io.coala.random.QuantityDistribution;
 import io.coala.random.DistributionParsable;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.ReplicateConfig;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.Timing;
-import io.coala.util.DecimalUtil;
 import io.coala.util.FileUtil;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Advice.Advisor;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Information.Informer;
@@ -321,11 +321,11 @@ public class HesitantScenario implements Scenario
 
 			// add request handling behavior
 			final Set<Actor.ID> cohort = new HashSet<>();
-			final AmountDistribution<Duration> stDelay = adviceStDelay()
-					.parse( distParser, Duration.class ).abs();
+			final QuantityDistribution<Time> stDelay = adviceStDelay()
+					.parse( distParser, Time.class ).abs();
 			advisor.emit( FactKind.REQUESTED ).subscribe( rq ->
 			{
-				final Amount<Duration> delay = stDelay.draw();
+				final Quantity<Time> delay = stDelay.draw();
 				LOG.trace( "{} handling {}, delay: {}, cohort: {}",
 						advisor.id(), rq, delay, cohort );
 				if( rq.creatorRef().equals( advisor.id() ) )
@@ -374,7 +374,7 @@ public class HesitantScenario implements Scenario
 		@Key( DURATION_KEY )
 		@DefaultValue( "" + 100 )
 		@Override // add new default value
-		String rawDuration();
+		BigDecimal rawDuration();
 
 		default Scenario createScenario()
 		{

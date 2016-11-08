@@ -19,25 +19,18 @@
  */
 package nl.rivm.cib.episim.model.locate;
 
-import static io.coala.math.MeasureUtil.angularDistance;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import javax.measure.quantity.Angle;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
+import javax.measure.Quantity;
 
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.physics.amount.Amount;
-import org.opengis.spatialschema.geometry.geometry.Position;
-
-import io.coala.time.Units;
+import io.coala.math.LatLong;
+import io.coala.math.QuantityUtil;
 import nl.rivm.cib.episim.model.ZipCode;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 import nl.rivm.cib.episim.model.person.Population;
+import tec.uom.se.unit.Units;
 
 /**
  * {@link Place} is a stationary {@link TransmissionSpace} located at a
@@ -51,15 +44,15 @@ public interface Place
 {
 
 	/** RIVM National Institute for Public Health and the Environment */
-	LatLong RIVM_POSITION = LatLong.valueOf( 52.1185272, 5.1868699,
-			NonSI.DEGREE_ANGLE );
+	LatLong RIVM_POSITION = LatLong.of( 52.1185272, 5.1868699,
+			Units.DEGREE_ANGLE );
 
 	/** the NO_ZIP {@link ZipCode} constant */
 	ZipCode NO_ZIP = ZipCode.valueOf( "0000" );
 
 	Region region();
 
-	/** @return the global centroid {@link Position} */
+	/** @return the global centroid {@link LatLong} */
 	LatLong centroid();
 
 	/** @return the {@link ZipCode} */
@@ -107,12 +100,10 @@ public interface Place
 		{
 			final LatLong p1 = place1.centroid();
 			final LatLong p2 = place2.centroid();
-			if( p1 == p2 || Arrays.equals( p1.getCoordinates(),
-					p2.getCoordinates() ) )
+			if( p1 == p2 || p1.getCoordinates().equals( p2.getCoordinates() ) )
 				return 0;
-			final Amount<Angle> d1 = angularDistance( origin, p1 );
-			final Amount<Angle> d2 = angularDistance( origin, p2 );
-			return d1.approximates( d2 ) ? 0 : d1.compareTo( d2 );
+			return origin.angularDistance( p1 )
+					.compareTo( origin.angularDistance( p2 ) );
 		} );
 		return result;
 	}
@@ -122,10 +113,10 @@ public interface Place
 
 		Population<?> population();
 
-		default Amount<?> populationDensity()
+		default Quantity<?> populationDensity()
 		{
-			return Amount.valueOf( population().members().size(), Unit.ONE )
-					.divide( region().surfaceArea() ).to( Units.PER_KM2 );
+			return QuantityUtil.valueOf( population().members().size() )
+					.divide( region().surfaceArea() );
 		}
 
 	}

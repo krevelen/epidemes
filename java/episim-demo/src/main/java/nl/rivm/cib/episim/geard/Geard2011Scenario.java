@@ -12,32 +12,31 @@ import java.util.function.Function;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.measure.Measurable;
+import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
-import javax.measure.quantity.Duration;
-import javax.measure.unit.Unit;
+import javax.measure.quantity.Frequency;
+import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
-import org.jscience.physics.amount.Amount;
 
 import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
 import io.coala.log.LogUtil;
-import io.coala.math.MeasureUtil;
+import io.coala.math.DecimalUtil;
+import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
 import io.coala.math.WeightedValue;
 import io.coala.name.Identified;
-import io.coala.random.AmountDistribution;
+import io.coala.random.QuantityDistribution;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.rx.RxCollection;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
-import io.coala.time.Rate;
 import io.coala.time.Scheduler;
 import io.coala.time.Signal;
-import io.coala.time.Units;
+import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.Gender;
 import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.Partner;
@@ -112,8 +111,10 @@ public class Geard2011Scenario implements Proactive
 		 */
 		public GenderAge( final Individual individual )
 		{
-			super( Arrays.asList( individual.gender(), individual.now()
-					.subtract( individual.born() ).intValue( Units.ANNUM ) ) );
+			super( Arrays.asList( individual.gender(),
+					QuantityUtil.intValue( individual.now()
+							.subtract( individual.born() ).toMeasure(),
+							TimeUnits.ANNUM ) ) );
 		}
 
 		public Gender gender()
@@ -150,7 +151,7 @@ public class Geard2011Scenario implements Proactive
 		static GeardIndividual of( final Household<GeardIndividual> household,
 			final Instant birth, final Gender gender, boolean homeMaker,
 			final Range<Integer> fertilityAges,
-			final Measurable<Duration> recoveryPeriod )
+			final Quantity<Time> recoveryPeriod )
 		{
 			final GeardIndividual result = new GeardIndividual()
 			{
@@ -207,7 +208,7 @@ public class Geard2011Scenario implements Proactive
 				}
 
 				@Override
-				public Measurable<Duration> recoveryPeriod()
+				public Quantity<Time> recoveryPeriod()
 				{
 					return recoveryPeriod;
 				}
@@ -236,13 +237,13 @@ public class Geard2011Scenario implements Proactive
 		}
 	}
 
-	public static double adjust( final Measurable<Dimensionless> prob,
-		final Measurable<Dimensionless> fraction )
+	public static double adjust( final Quantity<Dimensionless> prob,
+		final Quantity<Dimensionless> fraction )
 	{
 		// [geard] 1.0 - Math.pow( 1.0 - year_prob, num_days / 365.0 )
-		final double result = 1.0
-				- Math.pow( 1.0 - prob.doubleValue( Unit.ONE ),
-						fraction.doubleValue( Unit.ONE ) );
+		final double result = 1.0 - Math.pow(
+				1.0 - QuantityUtil.doubleValue( prob, QuantityUtil.PURE ),
+				QuantityUtil.doubleValue( fraction, QuantityUtil.PURE ) );
 //		LOG.trace( "adjust {} => {} per {}", prob, result, fraction );
 		return result;
 	}
@@ -258,9 +259,9 @@ public class Geard2011Scenario implements Proactive
 	@InjectConfig
 	private Geard2011Config conf;
 
-	private Amount<Duration> dt;
+	private Quantity<Time> dt;
 
-	private Amount<Dimensionless> yearsPerDt;
+	private Quantity<Dimensionless> yearsPerDt;
 
 	private HouseholdPopulation<GeardIndividual> pop;
 
@@ -303,8 +304,8 @@ public class Geard2011Scenario implements Proactive
 
 	ProbabilityDistribution<Gender> gender_dist;
 
-	Signal<Rate> growthRate;
-	Signal<Rate> immigrationRate;
+	Signal<Quantity<Frequency>> growthRate;
+	Signal<Quantity<Frequency>> immigrationRate;
 	ProbabilityDistribution<Boolean> dtCoupleDist;
 	ProbabilityDistribution<Boolean> dtLeaveHomeDist;
 	ProbabilityDistribution<Boolean> dtDivorceDist;
@@ -313,10 +314,10 @@ public class Geard2011Scenario implements Proactive
 	Signal<Range<Integer>> ageCoupling;
 	Signal<Range<Integer>> ageLeaving;
 	Signal<Range<Integer>> ageDivorcing;
-	AmountDistribution<Duration> agePartner;
+	QuantityDistribution<Time> agePartner;
 
 	// TODO @InjectConfig(configType=Geard2011Config.class, methodName=...)
-	AmountDistribution<Duration> birthGap;
+	QuantityDistribution<Time> birthGap;
 
 	@Inject
 	public Geard2011Scenario( final Scheduler scheduler )
@@ -331,15 +332,20 @@ public class Geard2011Scenario implements Proactive
 		return this.scheduler;
 	}
 
+	private <K, V> V getOrCopyLast( final NavigableMap<K, V> map, final K key )
+	{
+		return map.computeIfAbsent( key, k -> map.lastEntry().getValue() );
+	}
+
 	@SuppressWarnings( "unchecked" )
 	public void init() throws IOException
 	{
 		LOG.trace( "Initializing, binder: {}, factory: {}", this.binder,
 				this.distFact );
 
-		this.dt = Amount.valueOf( 5, Units.DAYS );
-		this.yearsPerDt = Amount.valueOf( 1, Units.ANNUAL ).times( this.dt )
-				.to( Unit.ONE );
+		this.dt = QuantityUtil.valueOf( 5, TimeUnits.DAYS );
+		this.yearsPerDt = QuantityUtil.valueOf( 1, TimeUnits.ANNUAL )
+				.multiply( this.dt ).asType( Dimensionless.class );
 
 		final List<WeightedValue<Integer>> ageDist = Geard2011Config
 				.importFrequencies( this.conf.age_dist(), 0, Integer::valueOf );
@@ -351,24 +357,17 @@ public class Geard2011Scenario implements Proactive
 		final NavigableMap<Integer, BigDecimal> maleDeathRates = Geard2011Config
 				.importMap( this.conf.death_rates_male(), 1, Integer::valueOf );
 		this.deathRates = ConditionalDistribution
-				.of( this.distFact::createBernoulli, tuple ->
-				{
-					final BigDecimal p = Gender.MALE.equals( tuple.gender() )
-							? maleDeathRates.computeIfAbsent( tuple.age(),
-									key ->
-									{
-										return maleDeathRates.lastEntry()
-												.getValue();
-									} )
-							: femaleDeathRates.computeIfAbsent( tuple.age(),
-									key ->
-									{
-										return femaleDeathRates.lastEntry()
-												.getValue();
-									} );
-					return adjust( MeasureUtil.toAmount( p, Unit.ONE ),
-							this.yearsPerDt );
-				} );
+				.of( this.distFact::createBernoulli,
+						tuple -> adjust(
+								QuantityUtil.valueOf(
+										getOrCopyLast(
+												Gender.MALE.equals(
+														tuple.gender() )
+																? maleDeathRates
+																: femaleDeathRates,
+												tuple.age() ),
+										QuantityUtil.PURE ),
+								this.yearsPerDt ) );
 
 		this.fertility_age_dist = this.distFact
 				.createCategorical( Geard2011Config.importFrequencies(
@@ -394,10 +393,10 @@ public class Geard2011Scenario implements Proactive
 		this.gender_dist = distFact.createUniformCategorical( Gender.FEMALE,
 				Gender.MALE );
 
-		this.growthRate = Signal.Simple.of( scheduler,
-				Rate.of( 0.01, Units.ANNUAL ) );
-		this.immigrationRate = Signal.Simple.of( scheduler,
-				Rate.of( 0, Units.ANNUAL ) );
+		this.growthRate = Signal.Simple.of( this.scheduler,
+				QuantityUtil.valueOf( 0.01, TimeUnits.ANNUAL ) );
+		this.immigrationRate = Signal.Simple.of( this.scheduler,
+				QuantityUtil.valueOf( 0, TimeUnits.ANNUAL ) );
 		this.dtCoupleDist = this.distFact.createBernoulli(
 				adjust( this.conf.annualIndividualCouplingProbability(),
 						this.yearsPerDt ) );
@@ -412,9 +411,9 @@ public class Geard2011Scenario implements Proactive
 		this.ageLeaving = Signal.Simple.of( scheduler, Range.of( 18, null ) );
 		this.ageDivorcing = Signal.Simple.of( scheduler, Range.of( 24, 60 ) );
 		this.agePartner = this.distFact.createNormal( -2, 2 )
-				.toAmounts( Units.ANNUM );
+				.toQuantities( TimeUnits.ANNUM );
 		this.birthGap = this.distFact.createDeterministic( 270 )
-				.toAmounts( Units.DAYS );
+				.toQuantities( TimeUnits.DAYS );
 
 		this.momPicker = MotherPicker.of( scheduler );
 		this.pop = HouseholdPopulation.of( "pop",
@@ -456,7 +455,7 @@ public class Geard2011Scenario implements Proactive
 				.of( household, birth, gender, homeMaker, null, null );
 
 		final Range<Integer> fertilityAges = this.ageBirthing.current();
-		final Amount<Duration> recoveryPeriod = this.birthGap.draw();
+		final Quantity<Time> recoveryPeriod = this.birthGap.draw();
 		final GeardIndividual result = GeardIndividual.of( household, birth,
 				gender, homeMaker, fertilityAges, recoveryPeriod );
 		this.momPicker.register( result );
@@ -472,10 +471,11 @@ public class Geard2011Scenario implements Proactive
 		for( int i = 0; i < hh_comp.counts.length; i++ )
 			for( int j = 0; j < hh_comp.counts[i].intValue(); j++ )
 			{
-				final double age = this.distFact.getStream().nextDouble()
-						+ this.age_dist_sub.get( i ).draw();
-				final Instant birth = Instant
-						.of( Amount.valueOf( age, Units.ANNUM ).opposite() );
+				final BigDecimal age = this.distFact.getStream()
+						.nextBigDecimal().add( DecimalUtil
+								.valueOf( this.age_dist_sub.get( i ).draw() ) );
+				final Instant birth = Instant.of(
+						QuantityUtil.valueOf( age.negate(), TimeUnits.ANNUM ) );
 				boolean homeMaker = i == 0;
 				drawIndividual( result, birth, homeMaker );
 			}
@@ -570,13 +570,12 @@ public class Geard2011Scenario implements Proactive
 		else
 		{
 			// pop birth + growth
-			growth = death
-					+ this.distFact
-							.createBinomial(
-									this.growthRate.current().doubleValue(
-											Units.ANNUAL ) * popSize,
-									this.yearsPerDt.doubleValue( Unit.ONE ) )
-							.draw();
+			growth = death + this.distFact.createBinomial(
+					QuantityUtil.doubleValue( this.growthRate.current(),
+							TimeUnits.ANNUAL ) * popSize,
+					QuantityUtil.doubleValue( this.yearsPerDt,
+							QuantityUtil.PURE ) )
+					.draw();
 
 			final Set<Integer> momUnavailableAges = new HashSet<>();
 			for( long i = growth; i > 0; i-- )
@@ -584,11 +583,10 @@ public class Geard2011Scenario implements Proactive
 		}
 
 		// immigration
-		final long immigration = this.distFact
-				.createBinomial(
-						this.immigrationRate.current()
-								.doubleValue( Units.ANNUAL ) * popSize,
-						this.yearsPerDt.doubleValue( Unit.ONE ) )
+		final long immigration = this.distFact.createBinomial(
+				QuantityUtil.doubleValue( this.immigrationRate.current(),
+						TimeUnits.ANNUAL ) * popSize,
+				QuantityUtil.doubleValue( this.yearsPerDt, QuantityUtil.PURE ) )
 				.draw();
 		for( long i = immigration; i > 0; )
 			i -= drawHousehold().members().size();
