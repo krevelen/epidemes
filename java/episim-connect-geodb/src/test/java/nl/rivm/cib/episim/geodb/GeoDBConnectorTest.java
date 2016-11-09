@@ -1,18 +1,17 @@
 package nl.rivm.cib.episim.geodb;
 
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.function.Consumer;
+import java.util.Collections;
 
-import org.aeonbits.owner.Config.Sources;
-import org.aeonbits.owner.ConfigCache;
+import javax.persistence.EntityManagerFactory;
+
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.config.ConfigUtil;
 import io.coala.log.LogUtil;
-import io.coala.persist.JDBCConfig;
-import io.coala.persist.JDBCUtil;
+import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
+import io.coala.persist.JPAUtil;
+import nl.rivm.cib.epidemes.geodb.OkoLocatieDao;
 
 /**
  * {@link GeoDBConnectorTest}
@@ -23,42 +22,37 @@ import io.coala.persist.JDBCUtil;
 public class GeoDBConnectorTest
 {
 
-	@Sources( { "classpath:geodb.properties" } )
-	interface GeoDBConfig extends JDBCConfig
-	{
-		@Key( "jdbc.driver" )
-		@DefaultValue( "org.postgresql.Driver" )
-		String driver();
-
-		@DefaultValue( "geodb.rivm.nl" ) //"pgl04-int-p.rivm.nl";
-		String host();
-
-		@DefaultValue( "sde_gdbrivm" )
-		String db();
-
-		@DefaultValue( "jdbc:postgresql://${host}/${db}" )
-		String url();
-
-		@DefaultValue( "" + true )
-		boolean ssl();
-
-		static void exec( final String sql, final Consumer<ResultSet> consumer )
-			throws ClassNotFoundException, SQLException
-		{
-			ConfigCache.getOrCreate( GeoDBConfig.class ).execute( sql,
-					consumer );
-		}
-	}
-
 	/** */
 	private static final Logger LOG = LogUtil
 			.getLogger( GeoDBConnectorTest.class );
 
 	@Test
-	public void test() throws SQLException, ClassNotFoundException, IOException
+	public void jpaHsqldbTest() throws Exception
 	{
-		GeoDBConfig.exec( "SELECT * FROM ``",
-				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );
+//		GeoDBConfig.exec( "SELECT * FROM ``",
+//				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );
+
+		final HibHikConfig conf = HibHikConfig.getOrCreate();
+		LOG.trace( "Testing with JPA config: {}", ConfigUtil.export( conf ) );
+		EntityManagerFactory EMF = conf.createEntityManagerFactory(
+				"geodb_test_pu",
+				Collections.singletonMap( HibHikConfig.SCHEMA_POLICY_KEY,
+						SchemaPolicy.create ),
+				Collections.singletonMap( HibHikConfig.DEFAULT_SCHEMA_KEY,
+						"PUBLIC" ),
+				Collections.singletonMap( HibHikConfig.DATASOURCE_CLASS_KEY,
+						"org.hsqldb.jdbc.JDBCDataSource" ),
+				Collections.singletonMap( HibHikConfig.DATASOURCE_URL_KEY,
+						"jdbc:hsqldb:mem:mymemdb" ),
+				Collections.singletonMap( HibHikConfig.DATASOURCE_USERNAME_KEY,
+						"SA" ),
+				Collections.singletonMap( HibHikConfig.DATASOURCE_PASSWORD_KEY,
+						"" ) );
+		JPAUtil.session( EMF ).subscribe( em ->
+		{
+			em.persist( new OkoLocatieDao() );
+		}, e -> LOG.error( "Problem", e ) );
+		EMF.close();
 	}
 
 }

@@ -18,13 +18,11 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<javassist.version>3.20.0-GA</javassist.version>
+		<!-- testing JPA -->
 		<jta.version>1.1</jta.version>
-		<!-- <kundera.version>3.5</kundera.version> -->
 		<hsqldb.version>2.3.4</hsqldb.version>
 		<hikari.version>2.4.7</hikari.version>
 		<hibernate.version>5.2.1.Final</hibernate.version>
-		<reflections.version>0.9.10</reflections.version>
 
 		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
 		<m2e.jpa.activation>false</m2e.jpa.activation>
@@ -53,6 +51,21 @@
 		</dependency>
 
 		<dependency>
+			<!-- Java Enterprise eXtension APIs, including JPA 2.1 -->
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<version>${jta.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
@@ -63,21 +76,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<!-- Java Enterprise eXtension APIs, including JPA 2.1 -->
-			<groupId>javax</groupId>
-			<artifactId>javaee-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- javax.transaction needed BEFORE Hibernate (eg in Kundera RDBMS) -->
-		<dependency>
-			<groupId>javax.transaction</groupId>
-			<artifactId>jta</artifactId>
-			<version>${jta.version}</version>
-			<scope>provided</scope>
-		</dependency>
-
 		<!-- incl. in-memory JDBC database -->
 		<dependency>
 			<groupId>org.hsqldb</groupId>
@@ -85,19 +83,11 @@
 			<version>${hsqldb.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- JPA provider for RDMBS and No-SQL (Neo4J, Mongo, ...) -->
-		<!-- <dependency> <groupId>com.impetus.kundera.client</groupId> <artifactId>kundera-rdbms</artifactId> 
-			<version>${kundera.version}</version> <scope>test</scope> <exclusions> <exclusion> 
-			<artifactId>javassist</artifactId> <groupId>javassist</groupId> </exclusion> 
-			<exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-c3p0</artifactId> 
-			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-core</artifactId> 
-			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-validator</artifactId> 
-			</exclusion> </exclusions> </dependency> -->
+
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-entitymanager</artifactId>
 			<version>${hibernate.version}</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate</groupId>
@@ -118,17 +108,17 @@
 			<version>${hikari.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.javassist</groupId>
-			<artifactId>javassist</artifactId>
-			<version>${javassist.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.reflections</groupId>
-			<artifactId>reflections</artifactId>
-			<version>${reflections.version}</version>
-			<scope>test</scope>
-		</dependency>
+
+		<!-- Kundera JPA provider for RDMBS and No-SQL (Neo4J, Mongo, ...) -->
+		<!-- <dependency> <groupId>com.impetus.kundera.client</groupId> <artifactId>kundera-rdbms</artifactId> 
+			<version>${kundera.version}</version> <scope>test</scope> <exclusions> <exclusion> 
+			<artifactId>javassist</artifactId> <groupId>javassist</groupId> </exclusion> 
+			<exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-c3p0</artifactId> 
+			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-core</artifactId> 
+			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-validator</artifactId> 
+			</exclusion> </exclusions> </dependency> -->
+		
+		<!-- <dependency> <groupId>org.reflections</groupId> <artifactId>reflections</artifactId> 
+			<version>${reflections.version}</version> <scope>test</scope> </dependency> -->
 	</dependencies>
 </project>
