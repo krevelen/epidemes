@@ -45,14 +45,13 @@
 		<repository>
 			<name>EPIDEMES Public Maven Repository</name>
 			<id>epidemes-public</id>
-			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<url>https://github.com/krevelen/epidemes/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
 
