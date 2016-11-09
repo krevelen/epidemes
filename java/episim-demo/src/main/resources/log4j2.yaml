@@ -6,11 +6,11 @@ Configuration:
       name: Console
       target: SYSTEM_OUT
       PatternLayout:
-        Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C.%M(%F:%L)]%n}"
+        Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m%n}"
 
   Loggers:
     Root:
-      level: trace
+      level: info
       AppenderRef:
         ref: Console
     Logger:

@@ -42,41 +42,30 @@ import io.coala.time.Scheduler;
  * @version $Id: 276c926515013cd391932010126debe6aec6ac89 $
  * @author Rick van Krevelen
  */
-public class HouseholdTest
-{
+public class HouseholdTest {
 	/** */
-	private static final Logger LOG = LogUtil.getLogger( HouseholdTest.class );
+	private static final Logger LOG = LogUtil.getLogger(HouseholdTest.class);
 
 	/**
-	 * @param args the command line arguments
+	 * @param args
+	 *            the command line arguments
 	 * @throws Exception
 	 */
-	public static void main( final String[] args ) throws Exception
-	{
-		LOG.trace( "Initializing household composition scenario..." );
+	public static void main(final String[] args) throws Exception {
+		LOG.trace("Initializing household composition scenario...");
 
-		// configure replication 
-		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
-				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 100 ) );
+		// configure replication
+		ConfigCache.getOrCreate(ReplicateConfig.class,
+				Collections.singletonMap(ReplicateConfig.DURATION_KEY, "" + 100));
 
 		// configure tooling
-		final LocalConfig config = LocalConfig.builder().withId( "geardSim" )
-				.withProvider( Scheduler.class, Dsol3Scheduler.class )
-				.withProvider( PseudoRandom.Factory.class,
-						Math3PseudoRandom.MersenneTwisterFactory.class )
-				.withProvider( ProbabilityDistribution.Factory.class,
-						Math3ProbabilityDistribution.Factory.class )
-				.withProvider( ProbabilityDistribution.Parser.class,
-						DistributionParser.class )
-				.build();
+		LocalConfig.builder().withId("geardSim").withProvider(Scheduler.class, Dsol3Scheduler.class)
+				.withProvider(PseudoRandom.Factory.class, Math3PseudoRandom.MersenneTwisterFactory.class)
+				.withProvider(ProbabilityDistribution.Factory.class, Math3ProbabilityDistribution.Factory.class)
+				.withProvider(ProbabilityDistribution.Parser.class, DistributionParser.class).build().createBinder()
+				.inject(Geard2011Scenario.class).scheduler().run();
 
-		LOG.info( "Starting household test, config: {}", config.toYAML() );
-		final Scheduler scheduler = Guice4LocalBinder.of( config )
-				.inject( Geard2011Scenario.class ).scheduler();
-
-		scheduler.run();
-
-		LOG.info( "completed, t={}", scheduler.now() );
+		LOG.info("completed");
 	}
 
 }
