@@ -13,7 +13,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
-		$Id: 2999ccb02abd4dbb4e12bdec6165b8bc1f8cc59c $
+		$Id$
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
