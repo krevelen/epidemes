@@ -16,7 +16,7 @@ import io.coala.persist.JPAUtil;
 /**
  * {@link GeoDBConnectorTest}
  * 
- * @version $Id$
+ * @version $Id: dfc7497317afea3de9d16ed8045f7436b2e3e8f5 $
  * @author Rick van Krevelen
  */
 public class GeoDBConnectorTest

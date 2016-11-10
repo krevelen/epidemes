@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 84f9132fdef5c600dacf83457e12f878f85ac5b9 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -30,7 +30,7 @@ import io.coala.persist.HibernateJPAConfig;
 /**
 	 * {@link HibHikConfig}
 	 * 
-	 * @version $Id$
+	 * @version $Id: 84f9132fdef5c600dacf83457e12f878f85ac5b9 $
 	 * @author Rick van Krevelen
 	 */
 	public interface HibHikConfig extends HibernateJPAConfig

@@ -1,4 +1,4 @@
-/* $Id: 276c926515013cd391932010126debe6aec6ac89 $
+/* $Id: ea3ef8d2e233a2a96c30ebd93bc793aeedcceceb $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,6 @@ import org.apache.logging.log4j.Logger;
 
 import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
-import io.coala.guice4.Guice4LocalBinder;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
@@ -39,7 +38,7 @@ import io.coala.time.Scheduler;
 /**
  * {@link HouseholdTest}
  * 
- * @version $Id: 276c926515013cd391932010126debe6aec6ac89 $
+ * @version $Id: ea3ef8d2e233a2a96c30ebd93bc793aeedcceceb $
  * @author Rick van Krevelen
  */
 public class HouseholdTest {
