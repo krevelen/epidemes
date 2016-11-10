@@ -7,14 +7,14 @@
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 	<artifactId>epidemes-persist-kundera</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id: fcbe5b8a95c4737c8471ddc8a7731331615483ee $
+		$Id: fb9fb274b344281f5f73475b69783c166101e9d3 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

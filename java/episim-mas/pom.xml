@@ -7,14 +7,14 @@
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 
 	<artifactId>epidemes-mas</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
-		$Id$
+		$Id: 0614cade0ad2c9d423a61135045a9e58aaf3706f $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

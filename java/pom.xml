@@ -28,7 +28,7 @@
 			</activation>
 			<modules>
 				<module>episim-persist</module>
-				<module>episim-persist-kundera</module>
+				<!-- <module>episim-persist-kundera</module> -->
 				<module>episim-api</module>
 				<module>episim-mas</module>
 				<module>episim-demo</module>
@@ -39,18 +39,18 @@
 			<activation>
 				<file>
 					<!-- set system property "npm" with any value -->
-					<exists>episim-webapp/node_modules</exists>
+					<exists>episim-webapp/node*</exists>
 				</file>
 			</activation>
 			<modules>
-				<module>episim-webapp</module>
+				<!-- <module>episim-webapp</module> -->
 				<!-- <module>episim-dist</module> -->
 			</modules>
 		</profile>
 	</profiles>
 
 	<name>${project.artifactId} ${project.version}</name>
-	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+	<url>https://github.com/krevelen/epidemes</url>
 	<description> 
 		EPIDEMES Simulator
 	</description>
@@ -60,11 +60,11 @@
 	</organization>
 	<developers>
 		<developer>
-			<id>krevelen</id>
+			<id>krevelvr</id>
 			<name>Rick van Krevelen</name>
 			<organization>RIVM</organization>
 			<roles>
-				<role>developer</role>
+				<role>lead</role>
 			</roles>
 		</developer>
 	</developers>
@@ -122,7 +122,8 @@
 		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
 		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
 		<maven-resources-plugin.version>3.0.1</maven-resources-plugin.version>
-		<!-- May not work in Eclipse Neon, for Luna/Mars.2 try m2e-mavenarchiver from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
+		<!-- May not work in Eclipse Neon, for Luna/Mars.2 try m2e-mavenarchiver 
+			from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
 		<maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
 		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
 		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>

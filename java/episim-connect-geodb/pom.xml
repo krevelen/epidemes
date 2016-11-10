@@ -7,14 +7,14 @@
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 	<artifactId>epidemes-connect-geodb</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id: 2f309354b30f91db565b63ab017abe0db93dfd0a $
+		$Id: 02bbfabe359fa912140559578b78598c6c229198 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

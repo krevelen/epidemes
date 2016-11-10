@@ -7,14 +7,14 @@
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 	<artifactId>epidemes-connect-pienter2</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id: 9ad58cedeb45ffc1e9a677d7c40f0a4df177cd62 $
+		$Id: 65850d01489065a2ad00253ed15a231d91b0177e $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
