@@ -10,8 +10,8 @@ import org.junit.Test;
 import io.coala.config.ConfigUtil;
 import io.coala.log.LogUtil;
 import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
+import nl.rivm.cib.epidemes.geodb.daycare.ChildcareRegistryEntryDao;
 import io.coala.persist.JPAUtil;
-import nl.rivm.cib.epidemes.geodb.OkoLocatieDao;
 
 /**
  * {@link GeoDBConnectorTest}
@@ -50,7 +50,7 @@ public class GeoDBConnectorTest
 						"" ) );
 		JPAUtil.session( EMF ).subscribe( em ->
 		{
-			em.persist( new OkoLocatieDao() );
+			em.persist( new ChildcareRegistryEntryDao() );
 		}, e -> LOG.error( "Problem", e ) );
 		EMF.close();
 	}

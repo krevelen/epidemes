@@ -9,17 +9,10 @@
 		transaction-type="RESOURCE_LOCAL">
 		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
-		<!-- JPA needs all entities enumerated when in Java SE runtime :( -->
-		<class>nl.rivm.cib.epidemes.geodb.OkoLocatieDao</class>
+		<!-- List all @Entities for JPA in Java SE runtime: no auto-discovery :( -->
+		<class>nl.rivm.cib.epidemes.geodb.daycare.ChildcareRegistryEntryDao</class>
 
-		<!-- <shared-cache-mode>ALL</shared-cache-mode> -->
-		<!-- <validation-mode>AUTO</validation-mode> -->
 		<properties>
-			<!-- <property name="hibernate.archive.autodetection" value="class,hbm" 
-				/> -->
-			<!-- <property name="kundera.annotations.scan.package" value="nl.rivm.cib.episim.persist" 
-				/> <property name="kundera.client.lookup.class" value="com.impetus.client.rdbms.RDBMSClientFactory" 
-				/> -->
 		</properties>
 	</persistence-unit>
 </persistence>

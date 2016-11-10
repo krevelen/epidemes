@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.geodb;
+package nl.rivm.cib.epidemes.geodb.daycare;
 
 import java.util.Date;
 
@@ -32,8 +32,29 @@ import javax.persistence.TemporalType;
 
 @Entity
 @Table( name = "voorz_lrkp_20150115" )
-public class OkoLocatieDao
+public class ChildcareRegistryEntryDao
 {
+
+	public enum RegistryStatus
+	{
+		/** unregistered */
+		Uitgeschreven,
+		/** registered */
+		Ingeschreven;
+	}
+
+	public enum OrganizationType
+	{
+		/** Voorziening Gastouderopvang / kindergarten parents */
+		VGO, 
+		/** Buitenschoolse Opvang / (pre/after)school day care */
+		BSO,
+		/** Kinderdagverblijf / preschool, nursery school, kindergarten */
+		KDV,
+		/** Peuterspeelzaal / infant/toddler child care */
+		PSZ;
+	}
+
 	@Id
 	@GeneratedValue( strategy = GenerationType.AUTO )
 	@Column( name = "objectid", nullable = false )
@@ -46,7 +67,7 @@ public class OkoLocatieDao
 	long lrkId;
 
 	@Column( name = "type_oko", length = 3 )
-	OkoType typeOko;
+	OrganizationType typeOko;
 
 	@Column( name = "actuele_naam_oko", length = 100 )
 	String actueleNaam;
@@ -55,33 +76,33 @@ public class OkoLocatieDao
 	int aantalKindplaatsen;
 
 	@Column( name = "status", length = 15 )
-	OkoStatus status;
+	RegistryStatus status;
 
 	@Temporal( TemporalType.TIMESTAMP )
 	@Column( name = "inschrijfdatum" )
-	Date inschrijfdatum;
+	Date registryDate;
 
 	@Temporal( TemporalType.TIMESTAMP )
 	@Column( name = "uitschrijfdatum" )
-	Date uitschrijfdatum;
+	Date deregistryDate;
 
 	@Column( name = "opvanglocatie_adres", length = 50 )
-	String adres;
+	String address;
 
 	@Column( name = "opvanglocatie_postcode", length = 6 )
-	String pc6;
+	String zip;
 
 	@Column( name = "opvanglocatie_woonplaats", length = 30 )
-	String plaats;
+	String city;
 
 	@Column( name = "pc4" )
 	int pc4;
 
 	@Column( name = "gem_code" )
-	int gemCode;
+	int municipalityCode;
 
 	@Column( name = "verantwoordelijke_gemeente", length = 30 )
-	String gemeente;
+	String municipality;
 
 	@Column( name = "x_coord" )
 	long xCoord;
@@ -89,8 +110,8 @@ public class OkoLocatieDao
 	@Column( name = "y_coord" )
 	long yCoord;
 
-	@Column( name = "geocod", length = 20 )
-	String geocod; // enum: pc6hnrletter, pc6hnrtoev, pc6hnr, pc6
+//	@Column( name = "geocod", length = 20 )
+//	String geocod; // enum: pc6hnrletter, pc6hnrtoev, pc6hnr, pc6
 
 //	@Column( name = "shape" )
 //	 GeometryDao shape;
