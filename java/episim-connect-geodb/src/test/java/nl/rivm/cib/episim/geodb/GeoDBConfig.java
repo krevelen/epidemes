@@ -19,38 +19,66 @@
  */
 package nl.rivm.cib.episim.geodb;
 
+import static org.aeonbits.owner.util.Collections.entry;
+import static org.aeonbits.owner.util.Collections.map;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
 
+import io.coala.config.ConfigUtil;
 import io.coala.persist.JDBCConfig;
 
 @Sources( { "classpath:geodb.properties" } )
 public interface GeoDBConfig extends JDBCConfig
 {
-	@Key( "jdbc.driver" )
+	String JDBC_DRIVER_KEY = "jdbc.driver";
+	String JDBC_HOST_KEY = "jdbc.host";
+	String JDBC_DB_KEY = "jdbc.db";
+	String JDBC_URL_KEY = "jdbc.url";
+	String JDBC_USERNAME_KEY = "jdbc.username";
+	String JDBC_PASSWORD_KEY = "jdbc.password";
+
+	@Key( JDBC_DRIVER_KEY )
 	@DefaultValue( "org.postgresql.Driver" )
-	String driver();
+	String jdbcDriver();
 
+	@Key( JDBC_HOST_KEY )
 	@DefaultValue( "geodb.rivm.nl" ) //"pgl04-int-p.rivm.nl";
-	String host();
+	String jdbcHost();
 
+	@Key( JDBC_DB_KEY )
 	@DefaultValue( "sde_gdbrivm" )
-	String db();
+	String jdbcDatabase();
 
-	@DefaultValue( "jdbc:postgresql://${host}/${db}" )
+	@Key( JDBC_URL_KEY )
+	@DefaultValue( "jdbc:postgresql://${" + JDBC_HOST_KEY + "}/${" + JDBC_DB_KEY
+			+ "}" )
 	String url();
+
+	@Key( JDBC_USERNAME_KEY )
+	String username();
+
+	@Key( JDBC_PASSWORD_KEY )
+	String password();
 
 	@DefaultValue( "" + true )
 	boolean ssl();
 
+	@SuppressWarnings( "unchecked" )
+	default Map<String, Object> export()
+	{
+		return ConfigUtil.export( this,
+				map( entry( JDBC_PASSWORD_KEY, "<hidden>" ) ) );
+	}
+
 	static void exec( final String sql, final Consumer<ResultSet> consumer )
 		throws ClassNotFoundException, SQLException
 	{
-		ConfigCache.getOrCreate( GeoDBConfig.class ).execute( sql,
-				consumer );
+		ConfigCache.getOrCreate( GeoDBConfig.class ).execute( sql, consumer );
 	}
 }

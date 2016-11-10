@@ -19,8 +19,7 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<!-- TODO find postgresql-8.3-607.jdbc4.jar repository -->
-		<postgresql.version>8.3-606.jdbc4</postgresql.version>
+		<postgresql.version>9.4.1211.jre7</postgresql.version>
 
 		<!-- testing JPA -->
 		<jta.version>1.1</jta.version>
@@ -69,7 +68,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>postgresql</groupId>
+			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>${postgresql.version}</version>
 		</dependency>

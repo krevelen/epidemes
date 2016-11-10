@@ -17,11 +17,14 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.geodb.daycare;
+package nl.rivm.cib.epidemes.geodb.lrk;
 
 import java.util.Date;
 
+import javax.persistence.AttributeConverter;
 import javax.persistence.Column;
+import javax.persistence.Convert;
+import javax.persistence.Converter;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -30,10 +33,13 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-@Entity
+import io.coala.persist.Persistable;
+
+@Entity( name = LRKEntryDao.ENTITY_NAME )
 @Table( name = "voorz_lrkp_20150115" )
-public class ChildcareRegistryEntryDao
+public class LRKEntryDao implements Persistable.Dao
 {
+	public static final String ENTITY_NAME = "LRKEntryDao";
 
 	public enum RegistryStatus
 	{
@@ -41,78 +47,120 @@ public class ChildcareRegistryEntryDao
 		Uitgeschreven,
 		/** registered */
 		Ingeschreven;
+
+		@Converter
+		public static class JPAConverter
+			implements AttributeConverter<RegistryStatus, String>
+		{
+			@Override
+			public String
+				convertToDatabaseColumn( final RegistryStatus attribute )
+			{
+				return attribute.name();
+			}
+
+			@Override
+			public RegistryStatus
+				convertToEntityAttribute( final String dbData )
+			{
+				return RegistryStatus.valueOf( dbData );
+			}
+		}
 	}
 
 	public enum OrganizationType
 	{
+		/** */
+		GOB,
 		/** Voorziening Gastouderopvang / kindergarten parents */
-		VGO, 
+		VGO,
 		/** Buitenschoolse Opvang / (pre/after)school day care */
 		BSO,
 		/** Kinderdagverblijf / preschool, nursery school, kindergarten */
 		KDV,
 		/** Peuterspeelzaal / infant/toddler child care */
 		PSZ;
+
+		@Converter
+		public static class JPAConverter
+			implements AttributeConverter<OrganizationType, String>
+		{
+			@Override
+			public String
+				convertToDatabaseColumn( final OrganizationType attribute )
+			{
+				return attribute.name();
+			}
+
+			@Override
+			public OrganizationType
+				convertToEntityAttribute( final String dbData )
+			{
+				return OrganizationType.valueOf( dbData );
+			}
+		}
 	}
 
 	@Column( name = "objectid", nullable = false )
-	long id;
+	protected Long id;
 
 	@Id
 	@GeneratedValue( strategy = GenerationType.AUTO )
 	@Column( name = "uniek_nr" )
-	long uniekNr;
+	protected Long uniekNr;
 
 	@Column( name = "lrk_id" )
-	long registryCode;
+	protected Long registryCode;
 
 	@Column( name = "type_oko", length = 3 )
-	OrganizationType type;
+	@Convert( converter = OrganizationType.JPAConverter.class )
+	protected OrganizationType type;
 
 	@Column( name = "actuele_naam_oko", length = 100 )
-	String name;
+	protected String name;
 
 	@Column( name = "aantal_kindplaatsen" )
-	int childCapacity;
+	protected Integer childCapacity;
 
 	@Column( name = "status", length = 15 )
-	RegistryStatus status;
+	@Convert( converter = RegistryStatus.JPAConverter.class )
+	protected RegistryStatus status;
 
 	@Temporal( TemporalType.TIMESTAMP )
 	@Column( name = "inschrijfdatum" )
-	Date registryDate;
+	protected Date registryDate;
 
 	@Temporal( TemporalType.TIMESTAMP )
 	@Column( name = "uitschrijfdatum" )
-	Date deregistryDate;
+	protected Date deregistryDate;
 
 	@Column( name = "opvanglocatie_adres", length = 50 )
-	String address;
+	protected String address;
 
 	@Column( name = "opvanglocatie_postcode", length = 6 )
-	String zip;
+	protected String zip;
 
 	@Column( name = "opvanglocatie_woonplaats", length = 30 )
-	String city;
+	protected String city;
 
 	@Column( name = "pc4" )
-	int pc4;
+	protected Integer pc4;
 
 	@Column( name = "gem_code" )
-	int municipalityCode;
+	protected Integer municipalityCode;
 
 	@Column( name = "verantwoordelijke_gemeente", length = 30 )
-	String municipality;
+	protected String municipality;
 
 	@Column( name = "x_coord" )
-	long xCoord;
+	protected Long xCoord;
 
 	@Column( name = "y_coord" )
-	long yCoord;
+	protected Long yCoord;
 
 //	@Column( name = "geocod", length = 20 )
-//	String geocod; // enum: pc6hnrletter, pc6hnrtoev, pc6hnr, pc6
+//	protected String geocod; // enum: pc6hnrletter, pc6hnrtoev, pc6hnr, pc6
 
 //	@Column( name = "shape" )
-//	 GeometryDao shape;
+//	protected GeometryDao shape;
 }

@@ -19,61 +19,88 @@
  */
 package nl.rivm.cib.episim.geodb;
 
+import static org.aeonbits.owner.util.Collections.entry;
+import static org.aeonbits.owner.util.Collections.map;
+
 import java.util.Map;
 
 import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
+import org.aeonbits.owner.Config.Sources;
 
+import io.coala.config.ConfigUtil;
 import io.coala.persist.HibernateJPAConfig;
 
 /**
-	 * {@link HibHikConfig}
-	 * 
-	 * @version $Id: 84f9132fdef5c600dacf83457e12f878f85ac5b9 $
-	 * @author Rick van Krevelen
+ * {@link HibHikConfig} provides a default {@link EntityManagerFactory}
+ * configuration for the RIVM GeoDB Postgres datasource, allowing values to be
+ * replaced/extended in a {@link Properties} file named {@link #CONFIG_PATH}
+ * 
+ * @version $Id: 84f9132fdef5c600dacf83457e12f878f85ac5b9 $
+ * @author Rick van Krevelen
+ */
+@Sources( { "classpath:" + HibHikConfig.CONFIG_PATH } )
+public interface HibHikConfig extends HibernateJPAConfig, GeoDBConfig
+{
+	String CONFIG_PATH = "geodb.properties";
+	String DATASOURCE_CLASS_KEY = "hibernate.hikari.dataSourceClassName";
+	String DATASOURCE_URL_KEY = "hibernate.hikari.dataSource.url";
+	String DATASOURCE_USERNAME_KEY = "hibernate.hikari.dataSource.user";
+	String DATASOURCE_PASSWORD_KEY = "hibernate.hikari.dataSource.password";
+	String DATASOURCE_DATABASENAME_KEY = "hibernate.hikari.dataSource.databaseName";
+	String DATASOURCE_SERVERNAMES_KEY = "hibernate.hikari.dataSource.serverName";
+
+	@DefaultValue( "geodb_test_pu" )
+	String[] persistenceUnitNames();
+
+	@Key( DEFAULT_SCHEMA_KEY )
+	@DefaultValue( "nl" )
+	String hibernateDefaultSchema();
+
+	@Key( CONNECTION_PROVIDER_CLASS_KEY )
+	@DefaultValue( "org.hibernate.hikaricp.internal.HikariCPConnectionProvider" )
+	String hibernateConnectionProviderClass();
+
+	// see https://github.com/brettwooldridge/HikariCP/wiki/Configuration#popular-datasource-class-names
+	@Key( DATASOURCE_CLASS_KEY )
+	@DefaultValue( "org.postgresql.ds.PGSimpleDataSource" )
+	String hikariDataSourceClass();
+
+	@Key( DATASOURCE_URL_KEY )
+	String hikariDataSourceUrl();
+
+	@Key( DATASOURCE_USERNAME_KEY )
+	@DefaultValue( "${" + JDBC_USERNAME_KEY + "}" )
+	String hikariDataSourceUsername();
+
+	@Key( DATASOURCE_PASSWORD_KEY )
+	@DefaultValue( "${" + JDBC_PASSWORD_KEY + "}" )
+	String hikariDataSourcePassword();
+
+	@Key( DATASOURCE_DATABASENAME_KEY )
+	@DefaultValue( "${" + JDBC_DB_KEY + "}" )
+	String hikariDataSourceDatabaseName();
+
+	@Key( DATASOURCE_SERVERNAMES_KEY )
+	@DefaultValue( "${" + JDBC_HOST_KEY + "}" )
+	String hikariDataSourceServerNames();
+
+	/**
+	 * @param imports additional {@link EntityManagerFactory} configuration
+	 * @return the (expensive) {@link EntityManagerFactory}
 	 */
-	public interface HibHikConfig extends HibernateJPAConfig
+	static HibHikConfig getOrCreate( final Map<?, ?>... imports )
 	{
-		String DATASOURCE_CLASS_KEY = "hibernate.hikari.dataSourceClassName";
-
-		String DATASOURCE_URL_KEY = "hibernate.hikari.dataSource.url";
-
-		String DATASOURCE_USERNAME_KEY = "hibernate.hikari.dataSource.user";
-
-		String DATASOURCE_PASSWORD_KEY = "hibernate.hikari.dataSource.password";
-
-		@DefaultValue( "hibernate_test_pu" )
-		String[] persistenceUnitNames();
-
-		@Key( DEFAULT_SCHEMA_KEY )
-		@DefaultValue( "PUBLIC" )
-		String hibernateDefaultSchema();
-
-		@Key( CONNECTION_PROVIDER_CLASS_KEY )
-		@DefaultValue( "org.hibernate.hikaricp.internal.HikariCPConnectionProvider" )
-		String hibernateConnectionProviderClass();
-
-		// see https://github.com/brettwooldridge/HikariCP/wiki/Configuration#popular-datasource-class-names
-		@Key( DATASOURCE_CLASS_KEY )
-		@DefaultValue( "org.postgresql.ds.PGSimpleDataSource" )
-		String hikariDataSourceClass();
-
-		@DefaultValue( "" + true )
-		boolean ssl();
-
-		@Key( DATASOURCE_URL_KEY )
-//		@DefaultValue( "jdbc:hsqldb:file:target/testdb" )
-//		@DefaultValue( "jdbc:hsqldb:mem:mymemdb" )
-		@DefaultValue( "jdbc:postgresql://geodb.rivm.nl/sde_gdbrivm" ) //"pgl04-int-p.rivm.nl";
-		String url();
-
-		/**
-		 * @param imports additional {@link EntityManagerFactory} configuration
-		 * @return the (expensive) {@link EntityManagerFactory}
-		 */
-		static HibHikConfig getOrCreate( final Map<?, ?>... imports )
-		{
-			return ConfigCache.getOrCreate( HibHikConfig.class, imports );
-		}
+		return ConfigCache.getOrCreate( HibHikConfig.class, imports );
 	}
+
+	@SuppressWarnings( "unchecked" )
+	default Map<String, Object> export()
+	{
+		return ConfigUtil.export( this,
+				map( new Map.Entry[]
+		{ entry( DATASOURCE_PASSWORD_KEY, "<hidden>" ),
+				entry( JDBC_PASSWORD_KEY, "<hidden>" ) } ) );
+	}
+}

@@ -10,7 +10,7 @@
 		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
 		<!-- List all @Entities for JPA in Java SE runtime: no auto-discovery :( -->
-		<class>nl.rivm.cib.epidemes.geodb.daycare.ChildcareRegistryEntryDao</class>
+		<class>nl.rivm.cib.epidemes.geodb.lrk.LRKEntryDao</class>
 
 		<properties>
 		</properties>
