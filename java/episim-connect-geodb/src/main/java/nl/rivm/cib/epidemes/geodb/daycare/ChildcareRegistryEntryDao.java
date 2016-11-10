@@ -55,25 +55,25 @@ public class ChildcareRegistryEntryDao
 		PSZ;
 	}
 
-	@Id
-	@GeneratedValue( strategy = GenerationType.AUTO )
 	@Column( name = "objectid", nullable = false )
 	long id;
 
+	@Id
+	@GeneratedValue( strategy = GenerationType.AUTO )
 	@Column( name = "uniek_nr" )
 	long uniekNr;
 
 	@Column( name = "lrk_id" )
-	long lrkId;
+	long registryCode;
 
 	@Column( name = "type_oko", length = 3 )
-	OrganizationType typeOko;
+	OrganizationType type;
 
 	@Column( name = "actuele_naam_oko", length = 100 )
-	String actueleNaam;
+	String name;
 
 	@Column( name = "aantal_kindplaatsen" )
-	int aantalKindplaatsen;
+	int childCapacity;
 
 	@Column( name = "status", length = 15 )
 	RegistryStatus status;
