@@ -93,7 +93,7 @@ public class GeoDBConnectorTest
 		{
 			final AtomicInteger count = new AtomicInteger( 0 );
 			final String[] atts = { "registryCode", "type", "childCapacity",
-					"municipalityCode", "zip", "xCoord", "yCoord" };
+					"municipalityCode", "zip", "xCoord", "yCoord", "shape" };
 			final Map<LRKEntryDao.OrganizationType, Integer> totals = new EnumMap<>(
 					LRKEntryDao.OrganizationType.class );
 			em.createQuery( "SELECT e." + String.join( ", e.", atts ) + " FROM "
@@ -108,11 +108,11 @@ public class GeoDBConnectorTest
 										+ (v == null ? 0 : v) );
 						if( count.incrementAndGet() % 100 == 0 )
 							LOG.trace( "Got #{}: {} - cumulative capacity#: {}",
-									count.get(),
-									JsonUtil.stringify( e ), totals );
+									count.get(), JsonUtil.stringify( e ),
+									totals );
 					} );
 			LOG.trace( "Got total of {} entries - total capacity#: {}",
-					count.get(),totals );
+					count.get(), totals );
 		}, e -> LOG.error( "Problem", e ) );
 		GEODB.close();
 	}
