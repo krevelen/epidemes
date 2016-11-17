@@ -3,22 +3,24 @@ package nl.rivm.cib.episim.geodb;
 import static org.aeonbits.owner.util.Collections.entry;
 import static org.aeonbits.owner.util.Collections.map;
 
+import java.sql.SQLException;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.persistence.EntityManagerFactory;
-import javax.swing.JOptionPane;
-import javax.swing.JPasswordField;
 
 import org.apache.logging.log4j.Logger;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
+import io.coala.persist.JDBCUtil;
 import io.coala.persist.JPAUtil;
-import nl.rivm.cib.epidemes.geodb.lrk.LRKEntryDao;
+import nl.rivm.cib.epidemes.geodb.adm.LRKEntryDao;
+import nl.rivm.cib.epidemes.geodb.adm.NHREntryDao;
 
 /**
  * {@link GeoDBConnectorTest}
@@ -33,11 +35,30 @@ public class GeoDBConnectorTest
 	private static final Logger LOG = LogUtil
 			.getLogger( GeoDBConnectorTest.class );
 
-//	GeoDBConfig.exec( "SELECT * FROM ``",
-//	rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );
+	/**
+	 * testing code from
+	 * <a href="http://postgis.net/docs/ST_Transform.html">here</a> and <a href=
+	 * "http://www.postgresonline.com/journal/archives/267-Creating-GeoJSON-Feature-Collections-with-JSON-and-PostGIS-functions.html">here</a>
+	 */
+	@Test
+	public void geoJsonTest() throws ClassNotFoundException, SQLException
+	{
+		final GeoDBConfig conf = GeoDBConfig.getOrCreate();
+		LOG.trace( "Testing with JDBC config: {}", conf.export() );
+		final String tblName = "nl." + LRKEntryDao.TABLE_NAME,
+				colName = "shape";
+		final int epsg = 4326, limit = 100;
+		conf.execute(
+				String.format(
+						"SELECT ST_AsGeoJSON(ST_Transform(lg.%s,%d)) "
+								+ "FROM %s As lg LIMIT %d",
+						colName, epsg, tblName, limit ),
+				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );
+	}
 
 	@SuppressWarnings( "unchecked" )
-//	@Test
+	@Ignore
+	@Test
 	public void jpaHsqldbTest() throws Exception
 	{
 		final HibHikConfig conf = HibHikConfig.getOrCreate( map(
@@ -52,14 +73,13 @@ public class GeoDBConnectorTest
 		LOG.trace( "Testing with JPA config: {}", conf.export() );
 		final EntityManagerFactory HSQLDB = conf
 				.createEntityManagerFactory( "geodb_test_pu" );
-		JPAUtil.session( HSQLDB ).subscribe( em ->
-		{
-			em.persist( new LRKEntryDao() );
-		}, e -> LOG.error( "Problem", e ) );
+		JPAUtil.session( HSQLDB ).subscribe(
+				em -> em.persist( new LRKEntryDao() ),
+				e -> LOG.error( "Problem", e ) );
 		HSQLDB.close();
 	}
 
-	@SuppressWarnings( "unchecked" )
+	@SuppressWarnings( { "unchecked" } )
 	@Test
 	public void jpaGeodbTest() throws Exception
 	{
@@ -68,48 +88,78 @@ public class GeoDBConnectorTest
 						SchemaPolicy.validate ) ) );
 		LOG.trace( "Testing with JPA config: {}", conf.export() );
 
-		String passwd = conf.hikariDataSourcePassword();
-		if( passwd == null || passwd.isEmpty()
-				|| passwd.toLowerCase().contains( "prompt" ) )
-		{
-			final String message = "Enter password for "
-					+ conf.hikariDataSourceUsername();
-			if( System.console() == null ) // inside IDE console
-			{
-				final JPasswordField pf = new JPasswordField();
-				passwd = JOptionPane.showConfirmDialog( null, pf, message,
-						JOptionPane.OK_CANCEL_OPTION,
-						JOptionPane.QUESTION_MESSAGE ) == JOptionPane.OK_OPTION
-								? new String( pf.getPassword() ) : "";
-			} else
-				passwd = new String(
-						System.console().readPassword( "%s> ", message ) );
-		}
+//		JsonUtil.getJOM().registerModule( new SimpleModule()
+//				.addSerializer( new StdSerializer<Point>( Point.class )
+//				{
+//					@Override
+//					public void serialize( final Point value,
+//						final JsonGenerator gen,
+//						final SerializerProvider serializers )
+//						throws IOException, JsonProcessingException
+//					{
+//						serializers.findValueSerializer( ObjectNode.class )
+//								.serialize( JsonUtil.getJOM().createObjectNode()
+//										.put( "lon",
+//												DecimalUtil.valueOf( value
+//														.getPositionN( 0 )
+//														.getCoordinate( 0 ) ) )
+//										.put( "lat",
+//												DecimalUtil.valueOf( value
+//														.getPositionN( 0 )
+//														.getCoordinate( 1 ) ) ),
+//										gen, serializers );
+//					}
+//				} ) );
 
 		final EntityManagerFactory GEODB = conf.createEntityManagerFactory(
 				"geodb_test_pu",
-				map( entry( HibHikConfig.DATASOURCE_PASSWORD_KEY, passwd ) ) );
+				map( entry( HibHikConfig.DATASOURCE_PASSWORD_KEY,
+						conf.hikariDataSourcePassword() ) ) );
+
+		// NHR test
+		JPAUtil.session( GEODB ).subscribe( em ->
+		{
+			final AtomicInteger count = new AtomicInteger( 0 );
+			final String[] atts = { "registryCode", "name", "employeeFull",
+					"employeeTotal", "zip" };
+			em.createQuery(
+					"SELECT e." + String.join( ", e.", atts )
+							+ ", asgeojson(Transform(e.geometrie,4326)) FROM "
+							+ NHREntryDao.ENTITY_NAME + " AS e",
+					Object[].class ).setMaxResults( 100 ) // just to test
+					.getResultList().forEach( e ->
+					{
+						LOG.trace( "Got NHR #{}: {}", count.incrementAndGet(),
+								JsonUtil.stringify( e ) );
+					} );
+			LOG.trace( "Got total of {} entries", count.get() );
+		}, e -> LOG.error( "Problem", e ) );
+
+		// LRK test
 		JPAUtil.session( GEODB ).subscribe( em ->
 		{
 			final AtomicInteger count = new AtomicInteger( 0 );
 			final String[] atts = { "registryCode", "type", "childCapacity",
-					"municipalityCode", "zip", "xCoord", "yCoord", "shape" };
+					"municipalityCode", "zip" };
 			final Map<LRKEntryDao.OrganizationType, Integer> totals = new EnumMap<>(
 					LRKEntryDao.OrganizationType.class );
-			em.createQuery( "SELECT e." + String.join( ", e.", atts ) + " FROM "
+			em.createQuery( "SELECT e." + String.join( ", e.", atts )
+					+ ", asgeojson(Transform(e.shape,4326)) FROM "
 					+ LRKEntryDao.ENTITY_NAME + " AS e WHERE e.status=:status",
 					Object[].class )
 					.setParameter( "status",
 							LRKEntryDao.RegistryStatus.Ingeschreven )
+					.setMaxResults( 100 ) // just to test
 					.getResultList().forEach( e ->
 					{
 						totals.compute( (LRKEntryDao.OrganizationType) e[1],
 								( k, v ) -> (e[2] == null ? 0 : (Integer) e[2])
 										+ (v == null ? 0 : v) );
-						if( count.incrementAndGet() % 100 == 0 )
-							LOG.trace( "Got #{}: {} - cumulative capacity#: {}",
-									count.get(), JsonUtil.stringify( e ),
-									totals );
+
+//						if( count.incrementAndGet() % 100 == 0 )
+						LOG.trace( "Got LRK #{}: {} - cumulative capacity#: {}",
+								count.incrementAndGet(),
+								JsonUtil.stringify( e ), totals );
 					} );
 			LOG.trace( "Got total of {} entries - total capacity#: {}",
 					count.get(), totals );

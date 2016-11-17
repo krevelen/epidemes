@@ -10,7 +10,8 @@
 		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
 		<!-- List all @Entities for JPA in Java SE runtime: no auto-discovery :( -->
-		<class>nl.rivm.cib.epidemes.geodb.lrk.LRKEntryDao</class>
+		<class>nl.rivm.cib.epidemes.geodb.adm.LRKEntryDao</class>
+		<class>nl.rivm.cib.epidemes.geodb.adm.NHREntryDao</class>
 
 		<properties>
 		</properties>

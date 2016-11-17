@@ -22,13 +22,18 @@ package nl.rivm.cib.episim.geodb;
 import static org.aeonbits.owner.util.Collections.entry;
 import static org.aeonbits.owner.util.Collections.map;
 
+import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
+
 import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
+import org.aeonbits.owner.Converter;
 
 import io.coala.config.ConfigUtil;
 import io.coala.persist.JDBCConfig;
@@ -36,7 +41,7 @@ import io.coala.persist.JDBCConfig;
 @Sources( { "classpath:geodb.properties" } )
 public interface GeoDBConfig extends JDBCConfig
 {
-	String JDBC_DRIVER_KEY = "jdbc.driver";
+	String JDBC_DRIVER_KEY = "jdbc.driver"; // TODO move constants to JDBCConfig
 	String JDBC_HOST_KEY = "jdbc.host";
 	String JDBC_DB_KEY = "jdbc.db";
 	String JDBC_URL_KEY = "jdbc.url";
@@ -55,15 +60,19 @@ public interface GeoDBConfig extends JDBCConfig
 	@DefaultValue( "sde_gdbrivm" )
 	String jdbcDatabase();
 
+	@Override
 	@Key( JDBC_URL_KEY )
 	@DefaultValue( "jdbc:postgresql://${" + JDBC_HOST_KEY + "}/${" + JDBC_DB_KEY
 			+ "}" )
 	String url();
 
+	@Override
 	@Key( JDBC_USERNAME_KEY )
 	String username();
 
+	@Override
 	@Key( JDBC_PASSWORD_KEY )
+	@ConverterClass( PasswordPromptConverter.class )
 	String password();
 
 	@DefaultValue( "" + true )
@@ -79,6 +88,39 @@ public interface GeoDBConfig extends JDBCConfig
 	static void exec( final String sql, final Consumer<ResultSet> consumer )
 		throws ClassNotFoundException, SQLException
 	{
-		ConfigCache.getOrCreate( GeoDBConfig.class ).execute( sql, consumer );
+		getOrCreate().execute( sql, consumer );
+	}
+
+	static GeoDBConfig getOrCreate( final Map<?, ?>... imports )
+	{
+		return ConfigCache.getOrCreate( GeoDBConfig.class, imports );
+	}
+
+	/**
+	 * TODO migrate to JDBCConfig {@link PasswordPromptConverter}
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
+	 */
+	class PasswordPromptConverter implements Converter<String>
+	{
+		@Override
+		public String convert( final Method method, final String input )
+		{
+			if( input != null && !input.toLowerCase().contains( "prompt" ) )
+				return input;
+
+			final String message = "Enter password (now: " + input + ")";
+			if( System.console() != null ) // terminal console
+				return new String(
+						System.console().readPassword( "%s> ", message ) );
+
+			// inside IDE console
+			final JPasswordField pf = new JPasswordField();
+			return JOptionPane.showConfirmDialog( null, pf, message,
+					JOptionPane.OK_CANCEL_OPTION,
+					JOptionPane.QUESTION_MESSAGE ) == JOptionPane.OK_OPTION
+							? new String( pf.getPassword() ) : input;
+		}
 	}
 }
