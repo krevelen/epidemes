@@ -17,8 +17,6 @@ Configuration:
     Logger:
       - name: javax.management
         level: warn
-#      - name: com.impetus.kundera
-#        level: debug
       - name: com.zaxxer.hikari
         level: warn
       - name: org.hibernate

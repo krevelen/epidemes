@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.geodb.lrk;
+package nl.rivm.cib.epidemes.geodb.adm;
 
 import java.util.Date;
 
@@ -33,18 +33,12 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-import org.hibernate.annotations.Type;
-
-import com.vividsolutions.jts.geom.Geometry;
+import org.geolatte.geom.Point;
 
 import io.coala.persist.Persistable;
 
 /**
  * {@link LRKEntryDao}
- * <p>
- * Hibernate spatial type converts geometry field to JTD Geometry
- * <p>
- * Google Earth projects uses EPSG:900913 geodesy, see http://epsg.io/900913
  * <p>
  * RIVM xCoord/yCoord use EPSG:28992 geodesy, see http://epsg.io/28992
  * 
@@ -52,10 +46,12 @@ import io.coala.persist.Persistable;
  * @author Rick van Krevelen
  */
 @Entity( name = LRKEntryDao.ENTITY_NAME )
-@Table( name = "voorz_lrkp_20150115" )
+@Table( /* schema = "nl", */ name = LRKEntryDao.TABLE_NAME )
 public class LRKEntryDao implements Persistable.Dao
 {
 	public static final String ENTITY_NAME = "LRKEntryDao";
+
+	public static final String TABLE_NAME = "voorz_lrkp_20150115";
 
 	public enum RegistryStatus
 	{
@@ -174,10 +170,10 @@ public class LRKEntryDao implements Persistable.Dao
 	@Column( name = "y_coord" )
 	protected Long yCoord;
 
-//	@Column( name = "geocod", length = 20 )
-//	protected String geocod; // enum: pc6hnrletter, pc6hnrtoev, pc6hnr, pc6
+	@Column( name = "geocod", length = 20 )
+	protected String geocod; // enum: pc6hnrletter, pc6hnrtoev, pc6hnr, pc6
 
 	@Column( name = "shape" )
-	@Type(type="org.hibernate.spatial.GeometryType")
-	protected Geometry shape;
+	protected Point<?> shape;
+
 }

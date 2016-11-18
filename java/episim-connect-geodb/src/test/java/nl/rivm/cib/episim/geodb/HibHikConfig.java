@@ -26,9 +26,11 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 
 import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
+import org.hibernate.dialect.Dialect;
 
 import io.coala.config.ConfigUtil;
 import io.coala.persist.HibernateJPAConfig;
@@ -61,12 +63,17 @@ public interface HibHikConfig extends HibernateJPAConfig, GeoDBConfig
 
 	@Key( CONNECTION_PROVIDER_CLASS_KEY )
 	@DefaultValue( "org.hibernate.hikaricp.internal.HikariCPConnectionProvider" )
+//	Class<? extends ConnectionProvider>
 	String hibernateConnectionProviderClass();
+
+	@Key( "hibernate.dialect" )
+	@DefaultValue( "nl.rivm.cib.episim.geodb.PostgisDialectExtended" )
+	Class<? extends Dialect> hibernateDialect();
 
 	// see https://github.com/brettwooldridge/HikariCP/wiki/Configuration#popular-datasource-class-names
 	@Key( DATASOURCE_CLASS_KEY )
 	@DefaultValue( "org.postgresql.ds.PGSimpleDataSource" )
-	String hikariDataSourceClass();
+	Class<? extends DataSource> hikariDataSourceClass();
 
 	@Key( DATASOURCE_URL_KEY )
 	String hikariDataSourceUrl();
@@ -77,6 +84,7 @@ public interface HibHikConfig extends HibernateJPAConfig, GeoDBConfig
 
 	@Key( DATASOURCE_PASSWORD_KEY )
 	@DefaultValue( "${" + JDBC_PASSWORD_KEY + "}" )
+	@ConverterClass(PasswordPromptConverter.class)
 	String hikariDataSourcePassword();
 
 	@Key( DATASOURCE_DATABASENAME_KEY )
