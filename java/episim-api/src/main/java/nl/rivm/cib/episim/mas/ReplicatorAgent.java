@@ -125,19 +125,21 @@ public interface ReplicatorAgent
 //		@JsonProperty( TIME_KEY )
 //		public Date time;
 
-		/** the (virtual) milliseconds between delays; =<0: paused */
+		/** the (virtual) milliseconds between delays; &le;0: paused */
 		@JsonProperty( VIRTUAL_MILLIS_KEY )
 		public BigDecimal virtualMS;
 
-		/** the minimum (actual) milliseconds step delay; =<0: maximum speed */
+		/**
+		 * the minimum (actual) milliseconds step delay; &le;0: maximum speed
+		 */
 		@JsonProperty( ACTUAL_MILLIS_KEY )
 		public BigDecimal actualMS;
 
 		/**
-		 * @param virtualStepMS the (virtual) milliseconds between delays; =<0:
-		 *            paused
+		 * @param virtualStepMS the (virtual) milliseconds between delays;
+		 *            &le;0: paused
 		 * @param actualStepMS the minimum (actual) milliseconds step delay;
-		 *            =<0: maximum speed
+		 *            &le;0: maximum speed
 		 * @return the {@link StepRatio} POJO
 		 */
 		public static StepRatio of( final BigDecimal virtualStepMS,

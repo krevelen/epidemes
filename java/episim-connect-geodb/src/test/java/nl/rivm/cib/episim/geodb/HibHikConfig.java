@@ -23,11 +23,12 @@ import static org.aeonbits.owner.util.Collections.entry;
 import static org.aeonbits.owner.util.Collections.map;
 
 import java.util.Map;
+import java.util.Properties;
 
 import javax.persistence.EntityManagerFactory;
 
-import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.Config.Sources;
+import org.aeonbits.owner.ConfigCache;
 
 import io.coala.config.ConfigUtil;
 import io.coala.persist.HibernateJPAConfig;

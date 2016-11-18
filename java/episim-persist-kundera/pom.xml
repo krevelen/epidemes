@@ -38,7 +38,7 @@
 				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
-		<repository>
+		<!-- <repository>
 			<id>sonatype-nexus</id>
 			<name>Kundera Public Repository</name>
 			<url>https://oss.sonatype.org/content/repositories/releases</url>
@@ -59,7 +59,7 @@
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
-		</repository>
+		</repository> -->
 	</repositories>
 
 	<dependencies>

@@ -19,9 +19,7 @@
  */
 package nl.rivm.cib.episim.pilot;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -42,11 +40,9 @@ import io.coala.math.DecimalUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
 import io.coala.persist.JDBCConfig;
-import io.coala.persist.JDBCUtil;
 import io.coala.time.Duration;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import io.coala.util.FileUtil;
 
 @Singleton
 public class EcosystemScenario implements Proactive
@@ -167,17 +163,17 @@ public class EcosystemScenario implements Proactive
 
 	public interface Motivator extends Actor<Motivation>
 	{
-		
+
 	}
 
 	public interface Deme extends Actor<DemeFact>
 	{
-		
+
 	}
-	
+
 	public interface DemeFact extends Fact
 	{
-		
+
 	}
 
 	public interface Individual extends Actor<IndividualFact>
@@ -196,64 +192,64 @@ public class EcosystemScenario implements Proactive
 //
 //		Activity activity(); // belongs to a (common) routine pattern instance
 	}
-	
+
 	public interface IndividualFact extends Fact
 	{
-		
+
 	}
 
 	public interface Health extends Actor<HealthFact>
 	{
-		
+
 	}
-	
+
 	public interface HealthFact extends Fact
 	{
-		
+
 	}
 
 	public interface Mobility extends Actor<MobilityFact>
 	{
-		
+
 	}
-	
+
 	public interface MobilityFact extends Fact
 	{
-		
+
 	}
 
 	public interface Media extends Actor<MediaFact>
 	{
-		
+
 	}
-	
+
 	public interface MediaFact extends Fact
 	{
-		
+
 	}
 
 	public interface Contagium extends Actor<ContagiumFact>
 	{
-		
+
 	}
-	
+
 	public interface ContagiumFact extends Fact
 	{
-		
+
 	}
 
 	/** A12 {@link Guardian} executes T12 {@link Population} requests */
 	public interface Demographer extends Actor<Population>
 	{
-		
+
 	}
-	
+
 	/** T12 {@link Population} initiator(s): {@link Deme} */
 	public interface Population extends DemeFact
 	{
-		
+
 	}
-	
+
 	/** A05 {@link Guardian} */
 	public interface Guardian extends Actor<Guardianship>
 	{
@@ -483,50 +479,29 @@ public class EcosystemScenario implements Proactive
 	public static void main( final String[] args )
 		throws IOException, ClassNotFoundException
 	{
-		final String path = "../../data/mobility/voorz_ziekenh_2014.sql";
-		try( final BufferedReader in = new BufferedReader(
-				new InputStreamReader( FileUtil.toInputStream( path ) ) ) )
-		{
-			String line = null, prev = null;
-			for( int lineNr = 1; (line = in.readLine()) != null; lineNr++ )
-			{
-				line = line.trim();
-				if( line.isEmpty() || line.startsWith( "--" ) ) continue;
-				final String sql = prev == null ? line : prev + "\r\n" + line;
-				if( !line.endsWith( ";" ) )
-				{
-					prev = sql;
-					continue;
-				} else
-					prev = null;
-				try
-				{
-					final int nr = lineNr;
-					MyHypersonicConfig.exec( line,
-							rs -> LOG.trace( "{}: {} - {}", nr, sql,
-									JDBCUtil.toString( rs ) ) );
-				} catch( final SQLException e )
-				{
-					LOG.warn( "{}: {} - {}", lineNr, line, e.getMessage() );
-				}
-			}
-		}
 	}
 
 	/**
-	 * Traffic intensity
-	 * (http://opendata.cbs.nl/dataportaal/portal.html?_catalog=CBS&_la=nl&
-	 * tableId=81435ned&_theme=364) Traffic participants
-	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
-	 * tableId=81125ned&_theme=361) Mobility - vehicle posession
-	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
-	 * tableId=37856&_theme=837) Mobility - traveler characteristics
-	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
-	 * tableId=81128ned&_theme=494) Mobility - traffic characteristics
-	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
-	 * tableId=81127ned&_theme=494) Mobility - motives
-	 * (http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&
-	 * tableId=81124ned&_theme=494)
+	 * <ul>
+	 * <li>Traffic intensity (<a href=
+	 * "http://opendata.cbs.nl/dataportaal/portal.html?_catalog=CBS&_la=nl&tableId=81435ned&_theme=364">CBS
+	 * 81435ned</a>)
+	 * <li>Traffic participants (<a href=
+	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81125ned&_theme=361">CBS
+	 * 81125ned</a>)
+	 * <li>Mobility - vehicle posession (<a href=
+	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=37856&_theme=837">CBS
+	 * 37856</a>)
+	 * <li>Mobility - traveler characteristics (<a href=
+	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81128ned&_theme=494">CBS
+	 * 81128ned</a>)
+	 * <li>Mobility - traffic characteristics (<a href=
+	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81127ned&_theme=494">CBS
+	 * 81127ned</a>)
+	 * <li>Mobility - motives (<a href=
+	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81124ned&_theme=494">CBS
+	 * 81124ned</a>)
+	 * </ul>
 	 */
 	public void loadTraffic()
 	{

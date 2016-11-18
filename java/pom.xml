@@ -73,21 +73,25 @@
 		<source>1.8</source>
 		<encoding>UTF-8</encoding>
 		<skipTests>false</skipTests>
-
 		<maven.test.skip>${skipTests}</maven.test.skip>
 		<project.build.sourceLevel>${source}</project.build.sourceLevel>
 		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
+		<!-- for JaCoCO java agent, as per http://stackoverflow.com/a/21633345/1418999 -->
+		<argLine />
 
 		<coala.version>0.2.0-b5</coala.version>
 		<httpcomponents.version>4.5.1</httpcomponents.version>
-		<jackson.version>2.7.4</jackson.version>
+		<jackson.version>2.8.4</jackson.version>
 		<jetty.version>9.3.9.v20160517</jetty.version>
 
-		<!-- set reporting versions (e.g. unit test code coverage) -->
-		<cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
+		<!-- test coverage versions -->
 		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
 		<jacoco.covered-ratio>0.0</jacoco.covered-ratio>
+
+		<!-- set reporting versions (e.g. unit test code coverage) -->
+		<maven-project-info-reports-plugin.version>2.9</maven-project-info-reports-plugin.version>
+		<maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
 
 		<!-- set distribution versions -->
 		<wagon-ssh.version>1.0-beta-7</wagon-ssh.version>
@@ -109,7 +113,6 @@
 		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
 		<javax.ws.rs-api.version>2.0.1</javax.ws.rs-api.version>
 		<javax.inject.version>1</javax.inject.version>
-		<javax.inject-api.version>1.0.0-PRD</javax.inject-api.version>
 
 		<!-- set maven mojo execution plugin versions -->
 		<lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
@@ -124,9 +127,8 @@
 		<maven-resources-plugin.version>3.0.1</maven-resources-plugin.version>
 		<!-- May not work in Eclipse Neon, for Luna/Mars.2 try m2e-mavenarchiver 
 			from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
-		<maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
+		<maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
 		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
-		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
 		<exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
 		<build-helper-maven-plugin.version>1.10</build-helper-maven-plugin.version>
 	</properties>
@@ -156,11 +158,6 @@
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>coala-api</artifactId>
-				<version>${coala.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>io.coala</groupId>
-				<artifactId>coala-api-capability</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 			<dependency>
@@ -252,15 +249,6 @@
 				<version>${log4j.version}</version>
 			</dependency>
 
-			<!-- <dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> 
-				<version>${log4j.version}</version> </dependency> <dependency> <groupId>org.slf4j</groupId> 
-				<artifactId>slf4j-log4j12</artifactId> <version>${slf4j.version}</version> 
-				</dependency> <dependency> <groupId>org.slf4j</groupId> <artifactId>jcl-over-slf4j</artifactId> 
-				<version>${slf4j.version}</version> </dependency> <dependency> <groupId>org.slf4j</groupId> 
-				<artifactId>jul-to-slf4j</artifactId> <version>${slf4j.version}</version> 
-				</dependency> <dependency> <groupId>joda-time</groupId> <artifactId>joda-time</artifactId> 
-				<version>${joda-time.version}</version> </dependency> <dependency> <groupId>com.eaio.uuid</groupId> 
-				<artifactId>uuid</artifactId> <version>${uuid.version}</version> </dependency> -->
 			<dependency>
 				<groupId>javax</groupId>
 				<artifactId>javaee-api</artifactId>
@@ -281,11 +269,6 @@
 				<groupId>javax.ws.rs</groupId>
 				<artifactId>javax.ws.rs-api</artifactId>
 				<version>${javax.ws.rs-api.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>javax.inject</groupId>
-				<artifactId>inject-api</artifactId>
-				<version>${javax.inject-api.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>javax.inject</groupId>
@@ -408,22 +391,6 @@
 						<lifecycleMappingMetadata>
 							<pluginExecutions>
 
-								<!-- Configure "org.codehaus.mojo:cobertura-maven-plugin:clean" goal 
-									execution in Eclipse IDE -->
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.codehaus.mojo</groupId>
-										<artifactId>cobertura-maven-plugin</artifactId>
-										<versionRange>[0.0.0,)</versionRange>
-										<goals>
-											<goal>clean</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore />
-									</action>
-								</pluginExecution>
-
 								<!-- Configure "org.jacoco:jacoco-maven-plugin:{prepare-agent,report,check}" 
 									goal execution in Eclipse IDE -->
 								<pluginExecution>
@@ -501,30 +468,6 @@
 				<executions> <execution> <goals> <goal>site</goal> </goals> <phase>deploy</phase> 
 				</execution> </executions> </plugin> -->
 
-			<!-- see http://mojo.codehaus.org/cobertura-maven-plugin/usage.html -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>${cobertura-maven-plugin.version}</version>
-				<configuration>
-					<instrumentation>
-						<ignores>
-							<ignore>io.coala.boringcode.*</ignore>
-						</ignores>
-						<excludes>
-							<exclude>io/coala/dullcode/**/*.class</exclude>
-						</excludes>
-					</instrumentation>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>clean</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -572,14 +515,31 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>${maven-project-info-reports-plugin.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>${maven-javadoc-plugin.version}</version>
-			</plugin>
-			<!-- see http://mojo.codehaus.org/cobertura-maven-plugin/usage.html -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>${cobertura-maven-plugin.version}</version>
+				<configuration>
+					<failOnError>false</failOnError>
+				</configuration>
+				<reportSets>
+					<reportSet>
+						<id>default</id>
+						<reports>
+							<report>javadoc</report>
+							<!-- <report>test-javadoc</report> -->
+						</reports>
+					</reportSet>
+					<reportSet>
+						<id>aggregate</id>
+						<reports>
+							<report>aggregate</report>
+						</reports>
+					</reportSet>
+				</reportSets>
 			</plugin>
 		</plugins>
 	</reporting>

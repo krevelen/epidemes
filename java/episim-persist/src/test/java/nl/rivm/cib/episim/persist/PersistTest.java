@@ -66,16 +66,8 @@ public class PersistTest
 				.getOrCreate( PersistenceConfig.class );
 		LOG.trace( "Testing with JPA config: {}", ConfigUtil.export( conf ) );
 		EMF = conf.createEntityManagerFactory( "hibernate_test_pu",
-//				Collections.singletonMap( PersistenceConfig.DEFAULT_SCHEMA_KEY,
-//						"PUBLIC" ),
 				Collections.singletonMap( PersistenceConfig.SCHEMA_POLICY_KEY,
 						SchemaPolicy.create ) );
-//		TODO Add meta-model for @Entity
-//		for( Class<?> entity : new Reflections( "nl.rivm.cib.episim.persist",
-//				new SubTypesScanner( false ),new TypeAnnotationsScanner() )
-//						.getTypesAnnotatedWith( Entity.class ) )
-//			EMF.getMetamodel().managedType( entity );
-//		EMF.getMetamodel().managedType( TransmissionFactDao.class );
 	}
 
 	@AfterClass

@@ -29,7 +29,7 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
@@ -42,7 +42,7 @@
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
@@ -67,6 +67,12 @@
 			<groupId>org.eobjects.metamodel-extras</groupId>
 			<artifactId>MetaModel-extras-sas</artifactId>
 			<version>${metamodel-extras.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- <dependency> <groupId>org.apache.metamodel</groupId> <artifactId>MetaModel-full</artifactId> 
 			<version>${metamodel.version}</version> </dependency> -->

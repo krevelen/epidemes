@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apfloat.Apfloat;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -202,9 +204,15 @@ public interface VaxHesitant extends Identified<Actor.ID>
 	 */
 	default boolean isHesitant( final VaxOccasion occ )
 	{
+		// TODO remove work-around for zero-logarithms
+		final Apfloat comp = DecimalUtil.toApfloat( getComplacency() );
+		final Apfloat conf = DecimalUtil.toApfloat( getConfidence() );
 		return Compare.le( DecimalUtil.valueOf( getConvenience( occ ) ),
-				DecimalUtil.binaryEntropy( getComplacency() )
-						.multiply( DecimalUtil.binaryEntropy( getConfidence() ) ) );
+				comp.equals( Apfloat.ZERO ) || conf.equals( Apfloat.ZERO )
+						? BigDecimal.ZERO
+						: DecimalUtil.valueOf(
+								DecimalUtil.binaryEntropy( comp ).multiply(
+										DecimalUtil.binaryEntropy( conf ) ) ) );
 	}
 
 	/**

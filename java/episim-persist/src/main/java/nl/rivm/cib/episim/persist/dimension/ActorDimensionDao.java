@@ -58,7 +58,7 @@ public class ActorDimensionDao extends AbstractDao
 	protected String world;
 
 	/**
-	 * @param secondaryCondition
+	 * @param individual
 	 * @return
 	 */
 	public static ActorDimensionDao of( final Individual individual )

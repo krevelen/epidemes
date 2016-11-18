@@ -21,6 +21,14 @@
 
 	<properties>
 		<hsqldb.version>2.3.4</hsqldb.version>
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<docker.repoName>default</docker.repoName><!-- registry-1.docker.io/krevelen/personal -->
+		<docker.imageName>${project.artifactId}</docker.imageName>
+		<docker.tagName>${project.version}</docker.tagName>
+		<docker.buildDir>${project.build.directory}/docker</docker.buildDir>
+		<main.class>nl.rivm.cib.episim.geard.Geard2011Scenario</main.class>
+		<dist.libDir>lib</dist.libDir>
+		<dist.srcDir>${project.basedir}/dist</dist.srcDir>
 	</properties>
 
 	<repositories>
@@ -30,7 +38,7 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
@@ -121,6 +129,104 @@
 		</pluginManagement>
 
 		<plugins>
+
+			<!-- copy (non-"provided"-scope) dependency jars to ${AOS}/lib/shared -->
+			<plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<excludeGroupIds>junit</excludeGroupIds>
+							<includeScope>runtime</includeScope>
+							<outputDirectory>${docker.buildDir}/${dist.libDir}</outputDirectory>
+							<silent>false</silent>
+							<overWriteIfNewer>true</overWriteIfNewer>
+							<overWriteReleases>false</overWriteReleases>
+							<overWriteSnapshots>false</overWriteSnapshots>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-resource-one</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${docker.buildDir}</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${dist.srcDir}</directory>
+									<filtering>true</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- set main class and class-path for executable java archive -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>${main.class}</mainClass>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>${dist.libDir}/</classpathPrefix>
+							<useUniqueVersions>false</useUniqueVersions>
+							<!-- below config should be default -->
+							<classpathLayoutType>custom</classpathLayoutType>
+							<customClasspathLayout>$${artifact.artifactId}-$${artifact.version}$${dashClassifier?}.$${artifact.extension}</customClasspathLayout>
+						</manifest>
+						<!-- <index>true</index> <manifestEntries> <mode>development</mode> 
+							<url>${project.url}</url> <key>value</key> </manifestEntries> -->
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>${docker-maven-plugin.version}</version>
+				<configuration>
+					<imageName>${docker.imageName}</imageName>
+					<imageTags>
+						<imageTag>${docker.tagName}</imageTag>
+						<imageTag>latest</imageTag>
+					</imageTags>
+					<baseImage>java</baseImage>
+					<entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint>
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<include>${project.build.finalName}.jar</include>
+						</resource>
+					</resources>
+				</configuration>
+				<executions>
+					<!-- <execution> <id>build-image</id> <phase>package</phase> <goals> 
+						<goal>build</goal> </goals> </execution> -->
+					<!-- <execution> <id>tag-image</id> <phase>package</phase> <goals> <goal>tag</goal> 
+						</goals> <configuration> <image>${docker.imageName}:${docker.tagName}</image> 
+						<newName>${docker.repoName}/${docker.imageName}:${docker.tagName}</newName> 
+						</configuration> </execution> -->
+					<!-- <execution> <id>push-image</id> <phase>deploy</phase> <goals> <goal>push</goal> 
+						</goals> <configuration> <imageName>${docker.repoName}/${docker.imageName}:${docker.tagName}</imageName> 
+						</configuration> </execution> -->
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 

@@ -3,6 +3,7 @@ package nl.rivm.cib.episim.geard;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -17,23 +18,31 @@ import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
 import javax.measure.quantity.Time;
 
+import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 
 import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
+import io.coala.bind.LocalConfig;
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
 import io.coala.math.WeightedValue;
+import io.coala.math3.Math3ProbabilityDistribution;
+import io.coala.math3.Math3PseudoRandom;
 import io.coala.name.Identified;
 import io.coala.random.QuantityDistribution;
 import io.coala.random.ConditionalDistribution;
+import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
+import io.coala.random.PseudoRandom;
 import io.coala.rx.RxCollection;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
+import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
 import io.coala.time.Signal;
 import io.coala.time.TimeUnits;
@@ -54,35 +63,44 @@ import nl.rivm.cib.episim.model.person.Population;
  * @author Rick van Krevelen
  */
 @Singleton
-public class Geard2011Scenario implements Proactive {
+public class Geard2011Scenario implements Proactive
+{
 	/** */
-	private static final Logger LOG = LogUtil.getLogger(Geard2011Scenario.class);
+	private static final Logger LOG = LogUtil
+			.getLogger( Geard2011Scenario.class );
 
-	static class Geard2011HouseholdComposition {
+	static class Geard2011HouseholdComposition
+	{
 		/**
 		 * "i j k": a household with i adults (18+), j school-age children
 		 * (5-17) and k preschool-age children (<5).
 		 */
 		Number[] counts = null;
 
-		public static Geard2011HouseholdComposition valueOf(final String values) {
-			return of(Integer::valueOf, Geard2011Config.VALUE_SEP.split(values));
+		public static Geard2011HouseholdComposition
+			valueOf( final String values )
+		{
+			return of( Integer::valueOf,
+					Geard2011Config.VALUE_SEP.split( values ) );
 		}
 
-		public static <T extends Number> Geard2011HouseholdComposition of(final Function<String, T> parser,
-				final String... values) {
+		public static <T extends Number> Geard2011HouseholdComposition
+			of( final Function<String, T> parser, final String... values )
+		{
 			final Geard2011HouseholdComposition result = new Geard2011HouseholdComposition();
-			if (values != null) {
+			if( values != null )
+			{
 				result.counts = new Number[values.length];
-				for (int i = 0; i < values.length; i++)
-					result.counts[i] = parser.apply(values[i]);
+				for( int i = 0; i < values.length; i++ )
+					result.counts[i] = parser.apply( values[i] );
 			}
 			return result;
 		}
 
 		@Override
-		public String toString() {
-			return "hh" + Arrays.asList(this.counts);
+		public String toString()
+		{
+			return "hh" + Arrays.asList( this.counts );
 		}
 	}
 
@@ -92,31 +110,39 @@ public class Geard2011Scenario implements Proactive {
 	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
-	static class GenderAge extends Tuple {
+	static class GenderAge extends Tuple
+	{
 
 		/**
 		 * {@link GenderAge} constructor
 		 * 
 		 * @param values
 		 */
-		public GenderAge(final Individual individual) {
-			super(Arrays.asList(individual.gender(),
-					QuantityUtil.intValue(individual.now().subtract(individual.born()).toMeasure(), TimeUnits.ANNUM)));
+		public GenderAge( final Individual individual )
+		{
+			super( Arrays.asList( individual.gender(),
+					QuantityUtil.intValue( individual.now()
+							.subtract( individual.born() ).toMeasure(),
+							TimeUnits.ANNUM ) ) );
 		}
 
-		public Gender gender() {
-			return (Gender) values().get(0);
+		public Gender gender()
+		{
+			return (Gender) values().get( 0 );
 		}
 
-		public Integer age() {
-			return (Integer) values().get(1);
+		public Integer age()
+		{
+			return (Integer) values().get( 1 );
 		}
 
 	}
 
 	private static long INDIVIDUAL_COUNT = 0;
 
-	interface GeardIndividual extends Partner, HouseholdParticipant, MotherPicker.Mother, Identified.Ordinal<String> {
+	interface GeardIndividual extends Partner, HouseholdParticipant,
+		MotherPicker.Mother, Identified.Ordinal<String>
+	{
 		/**
 		 * @return {@code true} if this {@link Participant} can't leave home
 		 */
@@ -131,81 +157,102 @@ public class Geard2011Scenario implements Proactive {
 		 * @param homeMaker
 		 * @return
 		 */
-		static GeardIndividual of(final Household<GeardIndividual> household, final Instant birth, final Gender gender,
-				boolean homeMaker, final Range<Integer> fertilityAges, final Quantity<Time> recoveryPeriod) {
-			final GeardIndividual result = new GeardIndividual() {
+		static GeardIndividual of( final Household<GeardIndividual> household,
+			final Instant birth, final Gender gender, boolean homeMaker,
+			final Range<Integer> fertilityAges,
+			final Quantity<Time> recoveryPeriod )
+		{
+			final GeardIndividual result = new GeardIndividual()
+			{
 				private final String id = "IND" + INDIVIDUAL_COUNT++;
 
-				private final RxCollection<GeardIndividual> partners = RxCollection.of(new HashSet<>());
+				private final RxCollection<GeardIndividual> partners = RxCollection
+						.of( new HashSet<>() );
 
-				private final Range<Instant> fertilityInterval = fertilityAges == null ? null
-						: MotherPicker.birthToAgeInterval(birth, fertilityAges);
+				private final Range<Instant> fertilityInterval = fertilityAges == null
+						? null
+						: MotherPicker.birthToAgeInterval( birth,
+								fertilityAges );
 
 				@Override
-				public Scheduler scheduler() {
+				public Scheduler scheduler()
+				{
 					return household.scheduler();
 				}
 
 				@Override
-				public Household<GeardIndividual> household() {
+				public Household<GeardIndividual> household()
+				{
 					return household;
 				}
 
 				@Override
-				public RxCollection<GeardIndividual> partners() {
+				public RxCollection<GeardIndividual> partners()
+				{
 					return this.partners;
 				}
 
 				@Override
-				public Instant born() {
+				public Instant born()
+				{
 					return birth;
 				}
 
 				@Override
-				public Gender gender() {
+				public Gender gender()
+				{
 					return gender;
 				}
 
 				@Override
-				public boolean isHomeMaker() {
+				public boolean isHomeMaker()
+				{
 					return homeMaker;
 				}
 
 				@Override
-				public Range<Instant> fertilityInterval() {
+				public Range<Instant> fertilityInterval()
+				{
 					return this.fertilityInterval;
 				}
 
 				@Override
-				public Quantity<Time> recoveryPeriod() {
+				public Quantity<Time> recoveryPeriod()
+				{
 					return recoveryPeriod;
 				}
 
 				@Override
-				public String toString() {
-					return "ind" + Integer.toHexString(hashCode());
+				public String toString()
+				{
+					return "ind" + Integer.toHexString( hashCode() );
 				}
 
 				@Override
-				public Population<?> population() {
+				public Population<?> population()
+				{
 					return household.population();
 				}
 
 				@Override
-				public String id() {
+				public String id()
+				{
 					return id;
 				}
 			};
-			household.population().members().add(result);
-			household.members().add(result);
+			household.population().members().add( result );
+			household.members().add( result );
 			return result;
 		}
 	}
 
-	public static double adjust(final Quantity<Dimensionless> prob, final Quantity<Dimensionless> fraction) {
+	public static double adjust( final Quantity<Dimensionless> prob,
+		final Quantity<Dimensionless> fraction )
+	{
 		// [geard] 1.0 - Math.pow( 1.0 - year_prob, num_days / 365.0 )
-		final double result = 1.0 - Math.pow(1.0 - QuantityUtil.doubleValue(prob, QuantityUtil.PURE),
-				QuantityUtil.doubleValue(fraction, QuantityUtil.PURE));
+		final double result = 1.0 - Math.pow(
+				1.0 - QuantityUtil.doubleValue( prob, QuantityUtil.PURE ),
+				QuantityUtil.doubleValue( fraction, QuantityUtil.PURE ) );
 		// LOG.trace( "adjust {} => {} per {}", prob, result, fraction );
 		return result;
 	}
@@ -282,46 +329,63 @@ public class Geard2011Scenario implements Proactive {
 	QuantityDistribution<Time> birthGap;
 
 	@Inject
-	public Geard2011Scenario(final Scheduler scheduler) {
+	public Geard2011Scenario( final Scheduler scheduler )
+	{
 		this.scheduler = scheduler;
-		scheduler.onReset(this::init);
+		scheduler.onReset( this::init );
 	}
 
 	@Override
-	public Scheduler scheduler() {
+	public Scheduler scheduler()
+	{
 		return this.scheduler;
 	}
 
-	private <K, V> V getOrCopyLast(final NavigableMap<K, V> map, final K key) {
-		return map.computeIfAbsent(key, k -> map.lastEntry().getValue());
+	private <K, V> V getOrCopyLast( final NavigableMap<K, V> map, final K key )
+	{
+		return map.computeIfAbsent( key, k -> map.lastEntry().getValue() );
 	}
 
-	@SuppressWarnings("unchecked")
-	public void init() throws IOException {
-		LOG.trace("Initializing, binder: {}, factory: {}", this.binder, this.distFact);
+	@SuppressWarnings( "unchecked" )
+	public void init() throws IOException
+	{
+		LOG.trace( "Initializing, binder: {}, factory: {}", this.binder,
+				this.distFact );
 
-		this.dt = QuantityUtil.valueOf(5, TimeUnits.DAYS);
-		this.yearsPerDt = QuantityUtil.valueOf(1, TimeUnits.ANNUAL).multiply(this.dt).asType(Dimensionless.class);
+		this.dt = QuantityUtil.valueOf( 5, TimeUnits.DAYS );
+		this.yearsPerDt = QuantityUtil.valueOf( 1, TimeUnits.ANNUAL )
+				.multiply( this.dt ).asType( Dimensionless.class );
 
-		final List<WeightedValue<Integer>> ageDist = Geard2011Config.importFrequencies(this.conf.age_dist(), 0,
-				Integer::valueOf);
-		this.age_dist = this.distFact.createCategorical(ageDist);
+		final List<WeightedValue<Integer>> ageDist = Geard2011Config
+				.importFrequencies( this.conf.age_dist(), 0, Integer::valueOf );
+		this.age_dist = this.distFact.createCategorical( ageDist );
 
 		final NavigableMap<Integer, BigDecimal> femaleDeathRates = Geard2011Config
-				.importMap(this.conf.death_rates_female(), 1, Integer::valueOf);
-		final NavigableMap<Integer, BigDecimal> maleDeathRates = Geard2011Config.importMap(this.conf.death_rates_male(),
-				1, Integer::valueOf);
-		this.deathRates = ConditionalDistribution.of(this.distFact::createBernoulli,
-				tuple -> adjust(QuantityUtil
-						.valueOf(getOrCopyLast(Gender.MALE.equals(tuple.gender()) ? maleDeathRates : femaleDeathRates,
-								tuple.age()), QuantityUtil.PURE),
-						this.yearsPerDt));
+				.importMap( this.conf.death_rates_female(), 1,
+						Integer::valueOf );
+		final NavigableMap<Integer, BigDecimal> maleDeathRates = Geard2011Config
+				.importMap( this.conf.death_rates_male(), 1, Integer::valueOf );
+		this.deathRates = ConditionalDistribution
+				.of( this.distFact::createBernoulli,
+						tuple -> adjust(
+								QuantityUtil.valueOf(
+										getOrCopyLast(
+												Gender.MALE.equals(
+														tuple.gender() )
+																? maleDeathRates
+																: femaleDeathRates,
+												tuple.age() ),
+										QuantityUtil.PURE ),
+								this.yearsPerDt ) );
 
-		this.fertility_age_dist = this.distFact.createCategorical(
-				Geard2011Config.importFrequencies(this.conf.fertility_age_probs(), 1, Integer::valueOf));
+		this.fertility_age_dist = this.distFact
+				.createCategorical( Geard2011Config.importFrequencies(
+						this.conf.fertility_age_probs(), 1,
+						Integer::valueOf ) );
 
-		this.fertility_rates_dist = this.distFact
-				.createCategorical(Geard2011Config.importFrequencies(this.conf.fertility_rates(), 1, Integer::valueOf));
+		this.fertility_rates_dist = this.distFact.createCategorical(
+				Geard2011Config.importFrequencies( this.conf.fertility_rates(),
+						1, Integer::valueOf ) );
 
 		// this.fertility_age_parity = distFact
 		// .createCategorical( importFrequencies(
@@ -329,96 +393,135 @@ public class Geard2011Scenario implements Proactive {
 		// ?::valueOf ) );
 
 		this.hh_comp_dist = this.distFact.createCategorical(
-				Geard2011Config.importFrequencies(this.conf.hh_comp(), 0, Geard2011HouseholdComposition::valueOf));
-		this.age_dist_sub = Geard2011Config.splitAgeDistribution(this.distFact, ageDist, this.conf.hh_comp());
+				Geard2011Config.importFrequencies( this.conf.hh_comp(), 0,
+						Geard2011HouseholdComposition::valueOf ) );
+		this.age_dist_sub = Geard2011Config.splitAgeDistribution( this.distFact,
+				ageDist, this.conf.hh_comp() );
 
 		// taken from Pop_HH.gen_hh_age_structured_pop(pop_hh.py:743)
-		this.gender_dist = distFact.createUniformCategorical(Gender.FEMALE, Gender.MALE);
+		this.gender_dist = distFact.createUniformCategorical( Gender.FEMALE,
+				Gender.MALE );
 
-		this.growthRate = Signal.Simple.of(this.scheduler, QuantityUtil.valueOf(0.01, TimeUnits.ANNUAL));
-		this.immigrationRate = Signal.Simple.of(this.scheduler, QuantityUtil.valueOf(0, TimeUnits.ANNUAL));
-		this.dtCoupleDist = this.distFact
-				.createBernoulli(adjust(this.conf.annualIndividualCouplingProbability(), this.yearsPerDt));
-		this.dtLeaveHomeDist = this.distFact
-				.createBernoulli(adjust(this.conf.annualIndividualLeavingProbability(), this.yearsPerDt));
-		this.dtDivorceDist = this.distFact
-				.createBernoulli(adjust(this.conf.annualIndividualDivorcingProbability(), this.yearsPerDt));
-		this.ageBirthing = Signal.Simple.of(scheduler, Range.of(15, 50));
-		this.ageCoupling = Signal.Simple.of(scheduler, Range.of(21, 60));
-		this.ageLeaving = Signal.Simple.of(scheduler, Range.of(18, null));
-		this.ageDivorcing = Signal.Simple.of(scheduler, Range.of(24, 60));
-		this.agePartner = this.distFact.createNormal(-2, 2).toQuantities(TimeUnits.ANNUM);
-		this.birthGap = this.distFact.createDeterministic(270).toQuantities(TimeUnits.DAYS);
+		this.growthRate = Signal.Simple.of( this.scheduler,
+				QuantityUtil.valueOf( 0.01, TimeUnits.ANNUAL ) );
+		this.immigrationRate = Signal.Simple.of( this.scheduler,
+				QuantityUtil.valueOf( 0, TimeUnits.ANNUAL ) );
+		this.dtCoupleDist = this.distFact.createBernoulli(
+				adjust( this.conf.annualIndividualCouplingProbability(),
+						this.yearsPerDt ) );
+		this.dtLeaveHomeDist = this.distFact.createBernoulli(
+				adjust( this.conf.annualIndividualLeavingProbability(),
+						this.yearsPerDt ) );
+		this.dtDivorceDist = this.distFact.createBernoulli(
+				adjust( this.conf.annualIndividualDivorcingProbability(),
+						this.yearsPerDt ) );
+		this.ageBirthing = Signal.Simple.of( scheduler, Range.of( 15, 50 ) );
+		this.ageCoupling = Signal.Simple.of( scheduler, Range.of( 21, 60 ) );
+		this.ageLeaving = Signal.Simple.of( scheduler, Range.of( 18, null ) );
+		this.ageDivorcing = Signal.Simple.of( scheduler, Range.of( 24, 60 ) );
+		this.agePartner = this.distFact.createNormal( -2, 2 )
+				.toQuantities( TimeUnits.ANNUM );
+		this.birthGap = this.distFact.createDeterministic( 270 )
+				.toQuantities( TimeUnits.DAYS );
 
-		this.momPicker = MotherPicker.of(scheduler);
-		this.pop = HouseholdPopulation.of("pop", RxCollection.of(new HashSet<GeardIndividual>()),
-				RxCollection.of(new HashSet<Household<GeardIndividual>>()), scheduler);
-		this.pop.events().ofType(Population.Birth.class).subscribe(b -> {
-			for (GeardIndividual i : ((Population.Birth<GeardIndividual>) b).arrivals())
-				if (Gender.FEMALE.equals(i.gender()))
-					this.momPicker.register(i);
-		}, e -> LOG.error("Problem", e));
-		final int popSize = 250000;
+		this.momPicker = MotherPicker.of( scheduler );
+		this.pop = HouseholdPopulation.of( "pop",
+				RxCollection.of( new HashSet<GeardIndividual>() ),
+				RxCollection.of( new HashSet<Household<GeardIndividual>>() ),
+				scheduler );
+		this.pop.events().ofType( Population.Birth.class ).subscribe( b ->
+		{
+			for( GeardIndividual i : ((Population.Birth<GeardIndividual>) b)
+					.arrivals() )
+				if( Gender.FEMALE.equals( i.gender() ) )
+					this.momPicker.register( i );
+		}, e -> LOG.error( "Problem", e ) );
+		final int popSize = 25000;
 		int i = 0, size = 0;
-		while (size < popSize) {
+		while( size < popSize )
+		{
 			drawHousehold();
 			size = this.pop.members().size();
-			if (size / 1000 > i) {
-				i = size/1000;
-				LOG.info("Initialized {} of {}", size, popSize);
+			if( size / 1000 > i )
+			{
+				i = size / 1000;
+				LOG.info( "Initialized {} of {}", size, popSize );
 			}
 		}
 
-		scheduler.at(scheduler.now()).call(this::updateAll, io.coala.time.Duration.of(this.dt));
-		LOG.trace("{} households initialized, total={}", this.pop.households().size(), this.pop.members().size());
+		scheduler.at( scheduler.now() ).call( this::updateAll,
+				io.coala.time.Duration.of( this.dt ) );
+		LOG.trace( "{} households initialized, total={}",
+				this.pop.households().size(), this.pop.members().size() );
 
-		this.pop.events().subscribe(e -> {
-			LOG.trace("Observed: {}", e);
-		}, e -> {
-			LOG.error("Problem with population", e);
-		});
+		this.pop.events().subscribe( e ->
+		{
+			LOG.trace( "Observed: {}", e );
+		}, e ->
+		{
+			LOG.error( "Problem with population", e );
+		} );
 
 	}
 
-	protected GeardIndividual drawIndividual(final Household<GeardIndividual> household, final Instant birth,
-			boolean homeMaker) {
+	protected GeardIndividual drawIndividual(
+		final Household<GeardIndividual> household, final Instant birth,
+		boolean homeMaker )
+	{
 		final Gender gender = this.gender_dist.draw();
-		if (!Gender.FEMALE.equals(gender))
-			return GeardIndividual.of(household, birth, gender, homeMaker, null, null);
+		if( !Gender.FEMALE.equals( gender ) ) return GeardIndividual
+				.of( household, birth, gender, homeMaker, null, null );
 
 		final Range<Integer> fertilityAges = this.ageBirthing.current();
 		final Quantity<Time> recoveryPeriod = this.birthGap.draw();
-		final GeardIndividual result = GeardIndividual.of(household, birth, gender, homeMaker, fertilityAges,
-				recoveryPeriod);
-		this.momPicker.register(result);
+		final GeardIndividual result = GeardIndividual.of( household, birth,
+				gender, homeMaker, fertilityAges, recoveryPeriod );
+		this.momPicker.register( result );
 		return result;
 	}
 
-	protected Household<GeardIndividual> drawHousehold() {
-		final Household<GeardIndividual> result = Household.of("hh" + System.currentTimeMillis(), this.pop,
-				RxCollection.of(new HashSet<>()));
+	protected Household<GeardIndividual> drawHousehold()
+	{
+		final Household<GeardIndividual> result = Household.of(
+				"hh" + System.currentTimeMillis(), this.pop,
+				RxCollection.of( new HashSet<>() ) );
 		final Geard2011HouseholdComposition hh_comp = this.hh_comp_dist.draw();
-		for (int i = 0; i < hh_comp.counts.length; i++)
-			for (int j = 0; j < hh_comp.counts[i].intValue(); j++) {
-				final BigDecimal age = this.distFact.getStream().nextBigDecimal()
-						.add(DecimalUtil.valueOf(this.age_dist_sub.get(i).draw()));
-				final Instant birth = Instant.of(QuantityUtil.valueOf(age.negate(), TimeUnits.ANNUM));
+		for( int i = 0; i < hh_comp.counts.length; i++ )
+			for( int j = 0; j < hh_comp.counts[i].intValue(); j++ )
+			{
+				final BigDecimal age = this.distFact.getStream()
+						.nextBigDecimal().add( DecimalUtil
+								.valueOf( this.age_dist_sub.get( i ).draw() ) );
+				final Instant birth = Instant.of(
+						QuantityUtil.valueOf( age.negate(), TimeUnits.ANNUM ) );
 				boolean homeMaker = i == 0;
-				drawIndividual(result, birth, homeMaker);
+				drawIndividual( result, birth, homeMaker );
 			}
 		return result;
 	}
 
-	protected boolean drawLeavingHome(final GeardIndividual ind, final GenderAge tuple) {
-		return !ind.isHomeMaker() && this.ageLeaving.current().contains(tuple.age()) && this.dtLeaveHomeDist.draw();
+	protected boolean drawLeavingHome( final GeardIndividual ind,
+		final GenderAge tuple )
+	{
+		return !ind.isHomeMaker()
+				&& this.ageLeaving.current().contains( tuple.age() )
+				&& this.dtLeaveHomeDist.draw();
 	}
 
-	protected boolean drawCoupling(final GeardIndividual ind, final GenderAge tuple) {
-		return ind.isSingle() && this.ageCoupling.current().contains(tuple.age()) && this.dtCoupleDist.draw();
+	protected boolean drawCoupling( final GeardIndividual ind,
+		final GenderAge tuple )
+	{
+		return ind.isSingle()
+				&& this.ageCoupling.current().contains( tuple.age() )
+				&& this.dtCoupleDist.draw();
 	}
 
-	protected boolean drawSeparating(final GeardIndividual ind, final GenderAge tuple) {
-		return !ind.isSingle() && this.ageDivorcing.current().contains(tuple.age()) && this.dtDivorceDist.draw();
+	protected boolean drawSeparating( final GeardIndividual ind,
+		final GenderAge tuple )
+	{
+		return !ind.isSingle()
+				&& this.ageDivorcing.current().contains( tuple.age() )
+				&& this.dtDivorceDist.draw();
 	}
 
 	/**
@@ -427,7 +530,7 @@ public class Geard2011Scenario implements Proactive {
 	 * for each dt, update pop
 	 * <ul>
 	 * <li>age pop: increment all ages</li>
-	 * <li>update_individuals: for each individual, either</li>
+	 * <li>update_individuals: for each individual, either
 	 * <ul>
 	 * <li>add death (handle_orphans) and birth (select_mother);</li>
 	 * <li>OR choose_partner (age in &lang;couple_age, 60&rang; &and; single);
@@ -438,34 +541,41 @@ public class Geard2011Scenario implements Proactive {
 	 * partner);
 	 * <li>OR nothing</li>
 	 * </ul>
+	 * </li>
 	 * <li>grow pop: add births (select_mother) with current pop growth_rate
 	 * </li>
 	 * <li>grow pop: add immigrants (dupl_household) with current pop imm_rate
 	 * </li>
 	 * </ul>
 	 */
-	protected void updateAll(final io.coala.time.Duration stepSize) {
+	protected void updateAll( final io.coala.time.Duration stepSize )
+	{
 		// generate events per dt
 		int emptyHhs = 0, death = 0, coupled = 0, left = 0, divorced = 0;
-		for (Iterator<GeardIndividual> i = this.pop.members().iterator(); i.hasNext();) {
+		for( Iterator<GeardIndividual> i = this.pop.members().iterator(); i
+				.hasNext(); )
+		{
 			final GeardIndividual ind = i.next();
-			final GenderAge tuple = new GenderAge(ind);
-			if (this.deathRates.draw(tuple)) {
-				if (ind.household().members().size() == 1)
-					emptyHhs++;
-				ind.household().death(ind);
+			final GenderAge tuple = new GenderAge( ind );
+			if( this.deathRates.draw( tuple ) )
+			{
+				if( ind.household().members().size() == 1 ) emptyHhs++;
+				ind.household().death( ind );
 				death++;
 				continue;
 			}
-			if (drawLeavingHome(ind, tuple)) {
-				ind.moveHouse(
-						Household.of("hh" + System.currentTimeMillis(), this.pop, RxCollection.of(new HashSet<>())));
+			if( drawLeavingHome( ind, tuple ) )
+			{
+				ind.moveHouse( Household.of( "hh" + System.currentTimeMillis(),
+						this.pop, RxCollection.of( new HashSet<>() ) ) );
 				left++;
 			} // else
-			if (drawCoupling(ind, tuple)) {
+			if( drawCoupling( ind, tuple ) )
+			{
 				// this.pop.formCouple( newHh, hh ); // FIXME
 				coupled++;
-			} else if (drawSeparating(ind, tuple)) {
+			} else if( drawSeparating( ind, tuple ) )
+			{
 				// this.pop.dissolveCouple( newHh, hh ); // FIXME
 				divorced++;
 			}
@@ -474,50 +584,60 @@ public class Geard2011Scenario implements Proactive {
 		final long popSize = this.pop.members().size(); // update only annually?
 
 		long growth = 0;
-		if (this.momPicker.total() <= 0)
-			LOG.warn("No eligible mothers?");
-		else {
+		if( this.momPicker.total() <= 0 )
+			LOG.warn( "No eligible mothers?" );
+		else
+		{
 			// pop birth + growth
-			growth = death + this.distFact
-					.createBinomial(QuantityUtil.doubleValue(this.growthRate.current(), TimeUnits.ANNUAL) * popSize,
-							QuantityUtil.doubleValue(this.yearsPerDt, QuantityUtil.PURE))
+			growth = death + this.distFact.createBinomial(
+					QuantityUtil.doubleValue( this.growthRate.current(),
+							TimeUnits.ANNUAL ) * popSize,
+					QuantityUtil.doubleValue( this.yearsPerDt,
+							QuantityUtil.PURE ) )
 					.draw();
 
 			final Set<Integer> momUnavailableAges = new HashSet<>();
-			for (long i = growth; i > 0; i--)
-				growPop(momUnavailableAges);
+			for( long i = growth; i > 0; i-- )
+				growPop( momUnavailableAges );
 		}
 
 		// immigration
-		final long immigration = this.distFact
-				.createBinomial(QuantityUtil.doubleValue(this.immigrationRate.current(), TimeUnits.ANNUAL) * popSize,
-						QuantityUtil.doubleValue(this.yearsPerDt, QuantityUtil.PURE))
+		final long immigration = this.distFact.createBinomial(
+				QuantityUtil.doubleValue( this.immigrationRate.current(),
+						TimeUnits.ANNUAL ) * popSize,
+				QuantityUtil.doubleValue( this.yearsPerDt, QuantityUtil.PURE ) )
 				.draw();
-		for (long i = immigration; i > 0;)
+		for( long i = immigration; i > 0; )
 			i -= drawHousehold().members().size();
 
-		LOG.info("t={} -{}+{}+{} individuals, -{}+{} households, -{}+{} couples", now().prettify(2), death,
-				growth + death, immigration, emptyHhs, left, divorced, coupled);
+		LOG.info(
+				"t={} -{}+{}+{} individuals, -{}+{} households, -{}+{} couples",
+				now().prettify( 2 ), death, growth + death, immigration,
+				emptyHhs, left, divorced, coupled );
 
 		// repeat indefinitely
-		after(stepSize).call(this::updateAll, stepSize);
+		after( stepSize ).call( this::updateAll, stepSize );
 	}
 
-	protected void growPop(final Set<Integer> momUnavailableAges) {
+	protected void growPop( final Set<Integer> momUnavailableAges )
+	{
 		GeardIndividual mom = null;
 		int attempt = 0;
-		while (mom == null && attempt++ < 30) {
+		while( mom == null && attempt++ < 30 )
+		{
 			int age = this.fertility_age_dist.draw();
-			while (momUnavailableAges.contains(age))
+			while( momUnavailableAges.contains( age ) )
 				age = this.fertility_age_dist.draw();
-			momUnavailableAges.add(age);
-			mom = this.momPicker.pick(age, this.distFact.getStream());
+			momUnavailableAges.add( age );
+			mom = this.momPicker.pick( age, this.distFact.getStream() );
 		}
-		if (mom != null) {
-			final GeardIndividual newborn = drawIndividual(mom.household(), now(), false);
-			mom.household().birth(newborn);
+		if( mom != null )
+		{
+			final GeardIndividual newborn = drawIndividual( mom.household(),
+					now(), false );
+			mom.household().birth( newborn );
 		} else
-			LOG.warn("No candidate mothers available!");
+			LOG.warn( "No candidate mothers available!" );
 	}
 
 	// if( this.dtGrowth.draw() )
@@ -531,4 +651,31 @@ public class Geard2011Scenario implements Proactive {
 	 * <li>lifecycle operator (birth, eligible, match, divorce, death)
 	 * <li>morbidity operator (infect, medicate)
 	 */
+
+	/**
+	 * @param args the command line arguments
+	 * @throws Exception
+	 */
+	public static void main( final String[] args ) throws Exception
+	{
+		LOG.trace( "Initializing household composition scenario..." );
+
+		// configure replication
+		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
+				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 100 ) );
+
+		// configure tooling
+		LocalConfig.builder().withId( "geardSim" )
+				.withProvider( Scheduler.class, Dsol3Scheduler.class )
+				.withProvider( PseudoRandom.Factory.class,
+						Math3PseudoRandom.MersenneTwisterFactory.class )
+				.withProvider( ProbabilityDistribution.Factory.class,
+						Math3ProbabilityDistribution.Factory.class )
+				.withProvider( ProbabilityDistribution.Parser.class,
+						DistributionParser.class )
+				.build().createBinder().inject( Geard2011Scenario.class )
+				.scheduler().run();
+
+		LOG.info( "completed" );
+	}
 }

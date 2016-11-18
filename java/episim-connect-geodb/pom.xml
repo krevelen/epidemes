@@ -19,7 +19,6 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<postgresql.version>9.4.1211.jre7</postgresql.version>
 		<geotools.version>16.0</geotools.version>
 		<shade.version>2.4.3</shade.version>
 
@@ -94,11 +93,9 @@
 			<artifactId>coala-api</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>${postgresql.version}</version>
-		</dependency>
+		<!-- Already included in hibernate-spatial -->
+		<!-- <dependency> <groupId>org.postgresql</groupId> <artifactId>postgresql</artifactId> 
+			<version>${postgresql.version}</version> </dependency> -->
 
 		<dependency>
 			<!-- Java Enterprise eXtension APIs, including JPA 2.1 -->
@@ -115,21 +112,11 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- <dependency>
-			<groupId>org.geotools</groupId>
-			<artifactId>gt-shapefile</artifactId>
-			<version>${geotools.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.geotools</groupId>
-			<artifactId>gt-epsg-hsql</artifactId>
-			<version>${geotools.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.geotools</groupId>
-			<artifactId>gt-swing</artifactId>
-			<version>${geotools.version}</version>
-		</dependency> -->
+		<!-- <dependency> <groupId>org.geotools</groupId> <artifactId>gt-shapefile</artifactId> 
+			<version>${geotools.version}</version> </dependency> <dependency> <groupId>org.geotools</groupId> 
+			<artifactId>gt-epsg-hsql</artifactId> <version>${geotools.version}</version> 
+			</dependency> <dependency> <groupId>org.geotools</groupId> <artifactId>gt-swing</artifactId> 
+			<version>${geotools.version}</version> </dependency> -->
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -155,8 +142,8 @@
 			<version>${hibernate.version}</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.hibernate</groupId>
-		    <artifactId>hibernate-spatial</artifactId>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-spatial</artifactId>
 			<version>${hibernate.version}</version>
 		</dependency>
 		<dependency>
@@ -195,12 +182,9 @@
 						</goals>
 						<configuration>
 							<transformers>
-								<!-- <transformer
-									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<manifestEntries>
-										<Main-Class>org.geotools.demo.Quickstart</Main-Class>
-									</manifestEntries>
-								</transformer> -->
+								<!-- <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> 
+									<manifestEntries> <Main-Class>org.geotools.demo.Quickstart</Main-Class> </manifestEntries> 
+									</transformer> -->
 								<!-- This bit merges the various GeoTools META-INF/services files -->
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />

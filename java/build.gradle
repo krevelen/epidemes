@@ -1,0 +1,35 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.2'
+}
+
+allprojects {
+  apply plugin: 'maven'
+
+  group = 'nl.rivm.cib'
+  version = '0.1.0-SNAPSHOT'
+}
+
+subprojects {
+  apply plugin: 'java'
+  
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+
+  task packageSources(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+  }
+  
+  artifacts.archives packageSources
+  
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    
+    maven { url "https://github.com/krevelen/coala-binder/raw/mvn-repo/" }
+    maven { url "https://github.com/krevelen/epidemes/raw/mvn-repo/" }
+    maven { url "http://download.java.net/maven/2" }
+    maven { url "http://download.osgeo.org/webdav/geotools/" }
+    maven { url "http://simulation.tudelft.nl/maven" }
+  }
+}

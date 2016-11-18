@@ -1,0 +1,18 @@
+rootProject.name = 'epidemes'
+include ':epidemes-connect-cbs'
+include ':epidemes-connect-geodb'
+include ':epidemes-connect-pienter2'
+include ':epidemes-model'
+include ':epidemes-persist'
+include ':epidemes-api'
+include ':epidemes-mas'
+include ':epidemes-demo'
+
+project(':epidemes-connect-cbs').projectDir = "$rootDir/episim-connect-cbs" as File
+project(':epidemes-connect-geodb').projectDir = "$rootDir/episim-connect-geodb" as File
+project(':epidemes-connect-pienter2').projectDir = "$rootDir/episim-connect-pienter2" as File
+project(':epidemes-model').projectDir = "$rootDir/episim-model" as File
+project(':epidemes-persist').projectDir = "$rootDir/episim-persist" as File
+project(':epidemes-api').projectDir = "$rootDir/episim-api" as File
+project(':epidemes-mas').projectDir = "$rootDir/episim-mas" as File
+project(':epidemes-demo').projectDir = "$rootDir/episim-demo" as File

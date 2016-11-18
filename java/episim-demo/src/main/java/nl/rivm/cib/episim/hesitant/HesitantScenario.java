@@ -132,8 +132,8 @@ public class HesitantScenario implements Scenario
 //		}
 
 	/**
-	 * T13 {@link Opinion} transactions are initiated by another O01
-	 * {@link Person}'s A15 {@link Director}
+	 * T13 {@link Opinion} transactions are initiated by another O01 Person's
+	 * A15 {@link Director}
 	 */
 	public interface Opinion extends Fact
 	{
@@ -145,7 +145,7 @@ public class HesitantScenario implements Scenario
 	}
 
 	/**
-	 * T14 {@link VaxMotivation} transactions are initiated by:
+	 * T14 {@link Motivation} transactions are initiated by:
 	 * <ul>
 	 * <li>another O01 Person's A13 {@link Opinionator} (e.g. persuade a,
 	 * relative, colleague, or other social network relation);</li>
@@ -156,7 +156,7 @@ public class HesitantScenario implements Scenario
 	public interface Motivation extends Fact
 	{
 		/**
-		 * A14 {@link VaxMotivator} handles T14 {@link VaxMotivation} execution,
+		 * A14 {@link Motivator} handles T14 {@link Motivation} execution,
 		 * occasionally initiating a {@link Redirection}
 		 */
 		public interface Motivator extends Actor<Motivation>
@@ -205,11 +205,23 @@ public class HesitantScenario implements Scenario
 	}
 
 	/**
+	 * {@link Disruption}
+	 */
+	public interface Disruption extends Fact
+	{
+		/** {@link Disruptor} handles {@link Disruption} execution */
+		public interface Disruptor extends Actor<Redirection>
+		{
+
+		}
+	}
+
+	/**
 	 * T15 {@link Redirection} transactions are initiated by:
 	 * <ul>
-	 * <li>the O01 {@link Person}'s own A12 {@link Disruptor} behavior;</li>
-	 * <li>the O01 {@link Person}'s own A14 {@link Motivator}; or</li>
-	 * <li>the O01 {@link Person}'s own A15 {@link Director}.</li>
+	 * <li>the O01 Person's own A12 {@link Disruptor} behavior;</li>
+	 * <li>the O01 Person's own A14 {@link Motivator}; or</li>
+	 * <li>the O01 Person's own A15 {@link Director}.</li>
 	 * </ul>
 	 */
 	public interface Redirection extends Fact

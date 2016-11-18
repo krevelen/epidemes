@@ -12,6 +12,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 
 import org.apache.logging.log4j.Logger;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.coala.json.JsonUtil;
@@ -59,8 +60,9 @@ public class GeoDBConnectorTest
 		HSQLDB.close();
 	}
 
-	@SuppressWarnings( "unchecked" )
+	@Ignore
 	@Test
+	@SuppressWarnings( "unchecked" )
 	public void jpaGeodbTest() throws Exception
 	{
 		final HibHikConfig conf = HibHikConfig

@@ -27,8 +27,8 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * infections and a generalized rash. It is described at
  * <a href="https://en.wikipedia.org/wiki/Measles">wikipedia</a> and has a
  * <a href="http://rijksvaccinatieprogramma.nl/De_ziekten/Mazelen">RVP page</a>,
- * a <A href="http://www.rivm.nl/Onderwerpen/M/Mazelen">RIVM page</a>, a
- * <href="http://www.cdc.gov/measles/">US CDC page</a>, and a
+ * a <a href="http://www.rivm.nl/Onderwerpen/M/Mazelen">RIVM page</a>, a
+ * <a href="http://www.cdc.gov/measles/">US CDC page</a>, and a
  * <a href="http://www.who.int/topics/measles/en/">WHO page</a>
  * 
  * <p>
@@ -39,7 +39,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * volksgezondheidenzorg.info</a>
  * <table style="width:250px;border:1px dashed black;">
  * <caption><em>BMR vaccination trend, infants (cohort 2.y.o)</em></caption>
- * <colgroup> <col/> <col align=Right/> </colgroup><tbody>
+ * <tbody>
  * <tr>
  * <td>1995</td>
  * <td>96,1</td>

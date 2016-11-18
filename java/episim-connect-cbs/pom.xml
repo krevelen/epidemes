@@ -20,7 +20,7 @@
 
 	<properties>
 		<!-- V4 api removed Edm.DateTime support -->
-		<!-- <olingo.version>4.1.0</olingo.version> -->
+		<!-- <olingo.version>4.3.0</olingo.version> -->
 		<olingo.version>4.0.0-beta-02</olingo.version>
 	</properties>
 
@@ -31,7 +31,7 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
@@ -44,7 +44,7 @@
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
@@ -73,6 +73,12 @@
 			<groupId>org.apache.olingo</groupId>
 			<artifactId>odata-client-core</artifactId>
 			<version>${olingo.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>

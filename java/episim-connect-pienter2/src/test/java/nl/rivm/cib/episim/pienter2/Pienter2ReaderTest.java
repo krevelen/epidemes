@@ -281,6 +281,7 @@ public class Pienter2ReaderTest
 		}
 	}
 
+	@Ignore
 	@Test
 	public void testJAXB() throws IOException
 	{
@@ -296,7 +297,7 @@ public class Pienter2ReaderTest
 		LOG.info( "Completed PIENTER2 JAXB test" );
 	}
 
-//	@Ignore
+	@Ignore
 	@Test
 	public void testStAX() throws IOException
 	{

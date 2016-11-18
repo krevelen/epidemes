@@ -51,22 +51,38 @@ interface Geard2011Config extends YamlConfig
 	@DefaultValue( "sim-demog/" )
 	String dataDir();
 
+	// CBS 83225ned prognose kerncijfers (2016-2060), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83225ned&D1=0&D2=a&D3=0,131-133&D4=0,4,9,14,19,24,29,34,39,l&VW=T
 	@DefaultValue( "${dataDir}age_dist.dat" )
 	URI age_dist();
 
+	// CBS 37979ned (1950-2015), e.g. http://statline.cbs.nl/statweb/publication/?vw=t&dm=slnl&pa=37979ned&d1=0-1,6-8,11,14,17,20-21,23-25,28-29&d2=0,5,10,15,20,25,30,35,40,45,50,57-l&hd=100614-1440&hdr=g1&stb=t
+	// CBS 83225ned prognose kerncijfers (2016-2060), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83225ned&D1=0&D2=a&D3=0,131-133&D4=0,4,9,14,19,24,29,34,39,l&VW=T
+	// bevolkingsvariant (2016-2060), e.g. https://www.cbs.nl/nl-nl/maatwerk/2016/32/bevolkingsvariant-2016-2060
 	@DefaultValue( "${dataDir}death_rates_female.dat" )
 	URI death_rates_female();
 
+	// CBS 37979ned (1950-2015), e.g. http://statline.cbs.nl/statweb/publication/?vw=t&dm=slnl&pa=37979ned&d1=0-1,6-8,11,14,17,20-21,23-25,28-29&d2=0,5,10,15,20,25,30,35,40,45,50,57-l&hd=100614-1440&hdr=g1&stb=t
+	// CBS 83225ned prognose kerncijfers (2016-2060), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83225ned&D1=0&D2=a&D3=0,131-133&D4=0,4,9,14,19,24,29,34,39,l&VW=T
+	// bevolkingsvariant (2016-2060), e.g. https://www.cbs.nl/nl-nl/maatwerk/2016/32/bevolkingsvariant-2016-2060
 	@DefaultValue( "${dataDir}death_rates_male.dat" )
 	URI death_rates_male();
 
+	// CBS 37422ned (1950-2015), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=37422ned&D1=0,4-5,7-14,16-19,21-22,26,35,40-41,47&D2=0,10,20,30,40,61-65&HDR=G1&STB=T&VW=T
+	// CBS 83225ned prognose kerncijfers (2016-2060), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83225ned&D1=0&D2=a&D3=0,131-133&D4=0,4,9,14,19,24,29,34,39,l&VW=T
+	// bevolkingsvariant (2016-2060), e.g. https://www.cbs.nl/nl-nl/maatwerk/2016/32/bevolkingsvariant-2016-2060
 	@DefaultValue( "${dataDir}fertility_age_probs.dat" )
 	URI fertility_age_probs();
 
+	// CBS 37422ned (1950-2015), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=37422ned&D1=0,4-5,7-14,16-19,21-22,26,35,40-41,47&D2=0,10,20,30,40,61-65&HDR=G1&STB=T&VW=T
+	// CBS 83225ned prognose kerncijfers (2016-2060), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83225ned&D1=0&D2=a&D3=0,131-133&D4=0,4,9,14,19,24,29,34,39,l&VW=T
+	// bevolkingsvariant (2016-2060), e.g. https://www.cbs.nl/nl-nl/maatwerk/2016/32/bevolkingsvariant-2016-2060
 	@DefaultValue( "${dataDir}fertility_rates.dat" )
 	URI fertility_rates();
 
-	// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=37975&D1=0-5,10,15,19,22-26&D2=0,82-98&D3=0,5,10,15,17-21&HDR=T&STB=G1,G2&VW=T
+	// CBS 37975 (1995-2016), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=37975&D1=0-5,10,15,19,22-26&D2=0,82-98&D3=0,5,10,15,17-21&HDR=T&STB=G1,G2&VW=T
+	// CBS 71488ned (2000-2016), e.g. http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=71488ned&D1=a&D2=0&D3=0&D4=5-16&D5=6&HDR=G4,G1,G2,T&STB=G3&VW=T
+	// CBS 83226ned (2016-2060), e.g. http://statline.cbs.nl/statweb/publication/?dm=slnl&pa=83226ned
+	// Kindertal regionaal (2001-2014) grootstedelijke agglomeraties vs stadsgewesten
 	@DefaultValue( "${dataDir}hh_comp.dat" )
 	URI hh_comp();
 

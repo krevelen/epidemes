@@ -22,9 +22,6 @@
 		<!-- stand-alone runnable JAR config -->
 		<dist.dir>${basedir}/mas</dist.dir>
 		<main.class>nl.rivm.cib.episim.mas.eve.EpisimMasServer</main.class>
-
-		<eve.version>3.1.1</eve.version>
-		<cors.version>1.8</cors.version>
 	</properties>
 
 	<repositories>
@@ -34,7 +31,7 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</releases>
 			<snapshots>
 				<enabled>false</enabled>
@@ -105,12 +102,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.thetransactioncompany</groupId>
-			<artifactId>cors-filter</artifactId>
-			<version>${cors.version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
@@ -159,7 +150,7 @@
 				</executions>
 			</plugin>
 
-			<!-- set main class -->
+			<!-- set main class and class-path for executable java archive -->
 			<plugin>
 				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>

@@ -52,7 +52,7 @@ public class LatLongDao extends AbstractDao
 	}
 
 	/**
-	 * @param centroid
+	 * @param position
 	 * @return
 	 */
 	public static LatLongDao of( final LatLong position )
