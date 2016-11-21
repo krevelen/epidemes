@@ -21,8 +21,6 @@ package nl.rivm.cib.episim.persist.dimension;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
 
 import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.person.HouseholdParticipant;
@@ -37,11 +35,6 @@ import nl.rivm.cib.episim.persist.AbstractDao;
 @Embeddable
 public class ActorDimensionDao extends AbstractDao
 {
-	@Id
-	@GeneratedValue
-	@Column( name = "ID" )
-	protected int id;
-
 	@Column( name = "NAME", nullable = false, updatable = false )
 	protected String name;
 

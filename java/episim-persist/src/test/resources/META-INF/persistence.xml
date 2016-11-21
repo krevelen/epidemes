@@ -10,8 +10,8 @@
 		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
 		<!-- List all @Entities for JPA in Java SE runtime: no auto-discovery :( -->
-		<class>io.coala.bind.LocalId$Dao</class>
-		<class>io.coala.enterprise.Fact$Dao</class>
+		<class>io.coala.bind.persist.LocalIdDao</class>
+		<class>io.coala.enterprise.persist.FactDao</class>
 		
 		<class>nl.rivm.cib.episim.persist.dao.BuurtDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.GemeenteDao</class>

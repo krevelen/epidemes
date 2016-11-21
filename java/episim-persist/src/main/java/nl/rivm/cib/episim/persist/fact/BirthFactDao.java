@@ -16,7 +16,6 @@ import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.person.DemographicEvent;
 import nl.rivm.cib.episim.model.person.Population.Birth;
 import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.persist.PersistenceConfig;
 import nl.rivm.cib.episim.persist.dimension.ActorDimensionDao;
 import nl.rivm.cib.episim.persist.dimension.SpaceDimensionDao;
 import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
@@ -27,7 +26,7 @@ import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
  * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
  * @author Rick van Krevelen
  */
-@Entity( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
+@Entity//( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
 public class BirthFactDao extends AbstractDao
 {
 	@Id

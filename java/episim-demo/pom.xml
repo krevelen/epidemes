@@ -22,7 +22,7 @@
 	<properties>
 		<hsqldb.version>2.3.4</hsqldb.version>
 		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
-		<docker.repoName>default</docker.repoName><!-- registry-1.docker.io/krevelen/personal -->
+		<docker.repoName>default</docker.repoName>
 		<docker.imageName>${project.artifactId}</docker.imageName>
 		<docker.tagName>${project.version}</docker.tagName>
 		<docker.buildDir>${project.build.directory}/docker</docker.buildDir>

@@ -12,3 +12,5 @@ buildNumber.properties
 **/*~
 /.gradle/
 /.vagrant/
+/.externalToolBuilders/
+/build/

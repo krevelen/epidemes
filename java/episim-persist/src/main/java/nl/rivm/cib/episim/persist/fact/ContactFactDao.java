@@ -16,7 +16,6 @@ import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
 import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.persist.PersistenceConfig;
 import nl.rivm.cib.episim.persist.dao.TransmissionSpaceDao;
 import nl.rivm.cib.episim.persist.dimension.ActorDimensionDao;
 import nl.rivm.cib.episim.persist.dimension.PathogenDimensionDao;
@@ -28,7 +27,7 @@ import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Entity( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
+@Entity//( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
 public class ContactFactDao extends AbstractDao
 {
 	@Id
