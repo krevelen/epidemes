@@ -1,5 +1,7 @@
 package nl.rivm.cib.episim.persist.fact;
 
+import java.time.ZonedDateTime;
+
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -9,8 +11,6 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-
-import org.joda.time.DateTime;
 
 import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.person.DemographicEvent;
@@ -26,7 +26,7 @@ import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
  * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
  * @author Rick van Krevelen
  */
-@Entity//( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
+@Entity //( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
 public class BirthFactDao extends AbstractDao
 {
 	@Id
@@ -34,11 +34,11 @@ public class BirthFactDao extends AbstractDao
 	@Column( name = "ID" )
 	protected int id;
 
-	@ManyToOne( fetch=FetchType.LAZY, cascade = CascadeType.PERSIST )
+	@ManyToOne( fetch = FetchType.LAZY, cascade = CascadeType.PERSIST )
 	@JoinColumn( name = "TIME", nullable = false, updatable = false )
 	protected TimeDimensionDao time;
 
-	@ManyToOne( fetch=FetchType.LAZY, cascade = CascadeType.PERSIST )
+	@ManyToOne( fetch = FetchType.LAZY, cascade = CascadeType.PERSIST )
 	@JoinColumn( name = "PLACE", nullable = false, updatable = false )
 	protected SpaceDimensionDao place;
 
@@ -52,7 +52,7 @@ public class BirthFactDao extends AbstractDao
 	}
 
 	public static BirthFactDao of( final EntityManager em,
-		final DateTime offset, final Birth<?> event )
+		final ZonedDateTime offset, final Birth<?> event )
 	{
 		final BirthFactDao result = new BirthFactDao();
 		result.time = TimeDimensionDao.of( event.now(), offset );

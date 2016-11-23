@@ -1,5 +1,7 @@
 package nl.rivm.cib.episim.persist.fact;
 
+import java.time.ZonedDateTime;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
@@ -27,7 +29,7 @@ import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Entity//( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
+@Entity //( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
 public class ContactFactDao extends AbstractDao
 {
 	@Id
@@ -73,7 +75,7 @@ public class ContactFactDao extends AbstractDao
 	}
 
 	public static ContactFactDao of( final EntityManager em,
-		final DateTime offset, final ContactEvent event )
+		final ZonedDateTime offset, final ContactEvent event )
 	{
 		final ContactFactDao result = new ContactFactDao();
 		result.begin = TimeDimensionDao.of( event.getStart(), offset );

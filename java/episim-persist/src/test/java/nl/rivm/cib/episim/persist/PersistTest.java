@@ -19,13 +19,13 @@
  */
 package nl.rivm.cib.episim.persist;
 
+import java.time.ZonedDateTime;
 import java.util.Collections;
 
 import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -79,7 +79,7 @@ public class PersistTest
 	@Test
 	public void testDAOs() throws Exception
 	{
-		final DateTime offset = DateTime.parse( "2010-01-01T00:00+00:00" );
+		final ZonedDateTime offset = ZonedDateTime.now();
 		final Region region = Region.of( "NL", null, null, null );
 		final Place site = Place.of( Place.RIVM_POSITION, Place.NO_ZIP,
 				region );

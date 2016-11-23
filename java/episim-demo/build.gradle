@@ -6,10 +6,12 @@ description = 'Demo application of the Epidemes modeling components'
 dependencies {
   compile project(':epidemes-model')
   
-  compile 'io.coala:guice4-coala-adapter:0.2.0-b5'
-  compile 'io.coala:dsol3-coala-adapter:0.2.0-b5'
-  compile 'io.coala:math3-coala-adapter:0.2.0-b5'
-  compile 'io.coala:eve3-coala-adapter:0.2.0-b5'
+  compile 'io.coala:guice4-coala-adapter:'+rootProject.coalaVersion
+  compile 'io.coala:dsol3-coala-adapter:'+rootProject.coalaVersion
+  compile 'io.coala:math3-coala-adapter:'+rootProject.coalaVersion
+  compile ('io.coala:eve3-coala-adapter:'+rootProject.coalaVersion){
+  	exclude group: 'org.eclipse.jetty', module: 'jetty-jndi'
+  }
   compile 'org.hsqldb:hsqldb:2.3.4'
   
   testCompile 'net.jodah:concurrentunit:0.4.2'
@@ -20,11 +22,14 @@ dependencies {
 }
 
 apply plugin: 'application'
-mainClassName = 'nl.rivm.cib.episim.geard.Geard2011Scenario'
+// mainClassName = 'nl.rivm.cib.episim.geard.Geard2011Scenario'
+mainClassName = 'nl.rivm.cib.episim.hesitant.ScenarioConfig'
 applicationName = 'epidemes-demo'
 applicationDefaultJvmArgs = ["-Xmx3072m","-Xms768m"]
 distributions {
-    main {}
+    main {
+    
+    }
 }
 
 apply plugin: 'com.bmuschko.docker-java-application'

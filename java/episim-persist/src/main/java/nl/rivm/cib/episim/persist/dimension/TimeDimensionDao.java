@@ -1,6 +1,8 @@
 package nl.rivm.cib.episim.persist.dimension;
 
+import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.TimeZone;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -10,6 +12,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import io.coala.time.Instant;
 import nl.rivm.cib.episim.persist.AbstractDao;
@@ -64,17 +67,19 @@ public class TimeDimensionDao extends AbstractDao
 		return Instant.of( new DateTime( this.millis ), offset );
 	}
 
-	public static TimeDimensionDao of( //final EntityManager em,
-		final Instant time, final DateTime offset )
+	public static TimeDimensionDao of( final Instant time,
+		final ZonedDateTime offset )
 	{
-		final DateTime dt = time.toDate( offset );
+		final DateTime dt = time.toJoda( new DateTime(
+				offset.toInstant().toEpochMilli(), DateTimeZone.forTimeZone(
+						TimeZone.getTimeZone( offset.getZone() ) ) ) );
 		final TimeDimensionDao result = new TimeDimensionDao();
 		result.second = dt.getSecondOfMinute();
 		result.minute = dt.getMinuteOfHour();
 		result.hour = dt.getHourOfDay();
 		result.date = dt.getDayOfMonth();
 		result.month = dt.getMonthOfYear();
-		result.year = dt.getWeekyear();
+		result.year = dt.getYear();
 		result.weekyear = dt.getWeekyear();
 		result.week = dt.getWeekOfWeekyear();
 		result.millis = dt.toDate();

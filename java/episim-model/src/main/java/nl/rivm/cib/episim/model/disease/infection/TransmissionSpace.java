@@ -339,7 +339,7 @@ public interface TransmissionSpace extends Proactive, Identified<String>
 			if( (arrival = getArrivals().remove( visitor )) == null )
 				throw ExceptionFactory.createUnchecked( "{} already left {}",
 						visitor, getSpace() );
-			arrival.toMeasure();
+			arrival.toQuantity();
 //			final Instant departure = getLocation().now();
 //			for( Map.Entry<Individual, Instant> entry : getOccupantArrivals()
 //					.entrySet() )

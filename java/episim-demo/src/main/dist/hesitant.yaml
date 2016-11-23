@@ -35,4 +35,7 @@ binder:
   - impl: "io.coala.enterprise.FactExchange$SimpleBus"
     bindings:
     - type: "io.coala.enterprise.FactExchange"
-    
+
+# person organization type
+person:
+  healthAdvisorName: asdasd

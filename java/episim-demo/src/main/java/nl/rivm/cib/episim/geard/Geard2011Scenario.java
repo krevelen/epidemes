@@ -122,7 +122,7 @@ public class Geard2011Scenario implements Proactive
 		{
 			super( Arrays.asList( individual.gender(),
 					QuantityUtil.intValue( individual.now()
-							.subtract( individual.born() ).toMeasure(),
+							.subtract( individual.born() ).toQuantity(),
 							TimeUnits.ANNUM ) ) );
 		}
 

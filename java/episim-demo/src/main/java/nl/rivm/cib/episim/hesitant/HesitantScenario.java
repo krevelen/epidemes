@@ -1,47 +1,41 @@
 package nl.rivm.cib.episim.hesitant;
 
-import java.io.IOException;
-import java.math.BigDecimal;
 import java.text.ParseException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
-import org.aeonbits.owner.ConfigCache;
-import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
 
-import io.coala.bind.InjectConfig;
-import io.coala.bind.LocalConfig;
-import io.coala.config.ConfigUtil;
 import io.coala.config.GlobalConfig;
-import io.coala.config.YamlUtil;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import io.coala.log.LogUtil;
-import io.coala.math.DecimalUtil;
-import io.coala.random.QuantityDistribution;
 import io.coala.random.DistributionParsable;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.time.ReplicateConfig;
+import io.coala.time.Duration;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
+import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
-import io.coala.util.FileUtil;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Advice.Advisor;
+import nl.rivm.cib.episim.hesitant.HesitantScenario.Disruption.Disruptor;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Information.Informer;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Motivation.Motivator;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Opinion.Opinionator;
-import nl.rivm.cib.episim.hesitant.HesitantScenario.Redirection.Director;
+import nl.rivm.cib.episim.hesitant.HesitantScenario.Redirection.GoalType;
+import nl.rivm.cib.episim.hesitant.HesitantScenario.Redirection.Redirector;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitant;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 
 /**
@@ -56,59 +50,6 @@ public class HesitantScenario implements Scenario
 	/** */
 	private static final Logger LOG = LogUtil
 			.getLogger( HesitantScenario.class );
-
-	/**
-	 * The {@link Level} represents ordinal preferences on a three-point Likert
-	 * scale with declared (crisp) {@link #toNumber()} values:
-	 * <p>
-	 * {@link #LO} = 0, {@link #MID} = .5, and {@link #HI} = 1.
-	 * <p>
-	 * The {@link #MID} range boundaries used during conversion by
-	 * {@link #valueOf(Number)}, i.e. {@link #MID_LOWER}=0.25 and
-	 * {@link #MID_UPPER}=0.75, are both <em>exclusive</em> in order to maintain
-	 * inversion symmetry:
-	 * <p>
-	 * <code>{@link #LO} &le; {@link #MID_LOWER} &lt; {@link #MID} &lt; {@link #MID_UPPER} &le; {@link #HI}</code>
-	 * 
-	 * @version $Id$
-	 * @author Rick van Krevelen
-	 */
-	public enum Level
-	{
-		LO, MID, HI;
-
-		public static final BigDecimal MID_LOWER = BigDecimal.valueOf( 25, 2 );
-
-		public static final BigDecimal MID_UPPER = BigDecimal.valueOf( 75, 2 );
-
-		/**
-		 * @param value the {@link Number} to map
-		 * @return the respective {@link Level}
-		 */
-		public static Level valueOf( final Number value )
-		{
-			final BigDecimal d = DecimalUtil.valueOf( value );
-			final Level result = d.compareTo( MID_LOWER ) > 0
-					? d.compareTo( MID_UPPER ) < 0 ? MID : HI : LO;
-			return result;
-		}
-
-		public Level invert()
-		{
-			return values()[values().length - 1 - ordinal()];
-		}
-
-		private static final BigDecimal MAX = BigDecimal
-				.valueOf( values().length - 1 );
-
-		private BigDecimal number = null;
-
-		public BigDecimal toNumber()
-		{
-			return this.number != null ? this.number
-					: (this.number = DecimalUtil.divide( ordinal(), MAX ));
-		}
-	}
 
 	public interface Contact extends Fact
 	{
@@ -132,11 +73,12 @@ public class HesitantScenario implements Scenario
 //		}
 
 	/**
-	 * T13 {@link Opinion} transactions are initiated by another O01 Person's
-	 * A15 {@link Director}
+	 * T13 {@link Opinion} transactions are initiated by another O01
+	 * {@link PersonOrg}'s A15 {@link Redirector}
 	 */
 	public interface Opinion extends Fact
 	{
+
 		/** A13 {@link Opinionator} handles T13 {@link Opinion} execution */
 		public interface Opinionator extends Actor<Opinion>
 		{
@@ -147,8 +89,8 @@ public class HesitantScenario implements Scenario
 	/**
 	 * T14 {@link Motivation} transactions are initiated by:
 	 * <ul>
-	 * <li>another O01 Person's A13 {@link Opinionator} (e.g. persuade a,
-	 * relative, colleague, or other social network relation);</li>
+	 * <li>another O01 {@link PersonOrg}'s A13 {@link Opinionator} (e.g.
+	 * persuade a, relative, colleague, or other social network relation);</li>
 	 * <li>some O04 Inform organization's A40 {@link Informer}; or</li>
 	 * <li>some O05 Health organization's A50 {@link Advisor}.
 	 * </ul>
@@ -162,9 +104,18 @@ public class HesitantScenario implements Scenario
 		public interface Motivator extends Actor<Motivation>
 		{
 
+			VaxHesitant getAttitude();
+
+			void setAttitude( VaxHesitant attitude );
+
+			default Motivator withAttitude( VaxHesitant attitude )
+			{
+				setAttitude( attitude );
+				return this;
+			}
 		}
 
-		Level getVaccineRisk();
+		Level getVaccineRisk(); // auto-add dynabean property
 
 		void setVaccineRisk( Level risk );
 
@@ -174,7 +125,7 @@ public class HesitantScenario implements Scenario
 			return this;
 		}
 
-		Level getDiseaseRisk();
+		Level getDiseaseRisk(); // auto-add dynabean property
 
 		void setDiseaseRisk( Level risk );
 
@@ -219,15 +170,30 @@ public class HesitantScenario implements Scenario
 	/**
 	 * T15 {@link Redirection} transactions are initiated by:
 	 * <ul>
-	 * <li>the O01 Person's own A12 {@link Disruptor} behavior;</li>
-	 * <li>the O01 Person's own A14 {@link Motivator}; or</li>
-	 * <li>the O01 Person's own A15 {@link Director}.</li>
+	 * <li>the {@link PersonOrg}'s own A12 {@link Disruptor} behavior;</li>
+	 * <li>the {@link PersonOrg}'s own A14 {@link Motivator}; or</li>
+	 * <li>the {@link PersonOrg}'s own A15 {@link Redirector}.</li>
 	 * </ul>
 	 */
 	public interface Redirection extends Fact
 	{
-		/** A15 {@link Director} handles T15 {@link Redirection} execution */
-		public interface Director extends Actor<Redirection>
+		enum GoalType
+		{
+			VACCINATE;
+		}
+
+		GoalType getGoalType();
+
+		void setGoalType( GoalType goalType );
+
+		default Redirection with( final GoalType goalType )
+		{
+			setGoalType( goalType );
+			return this;
+		}
+
+		/** A15 {@link Redirector} handles T15 {@link Redirection} execution */
+		public interface Redirector extends Actor<Redirection>
 		{
 
 		}
@@ -272,48 +238,70 @@ public class HesitantScenario implements Scenario
 		}
 	}
 
-	public interface PersonConfig extends GlobalConfig
+	/**
+	 * O01 {@link PersonOrg}
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
+	 */
+	public interface PersonOrg extends GlobalConfig
 	{
+		String BASE_KEY = "person";
 
-		@DefaultValue( "rivm" )
+		@DefaultValue( HealthOrg.RIVM_NAME )
 		String healthAdvisorName();
 
 		default Actor<Fact> init( final Actor<Fact> actor )
 			throws ParseException
 		{
-			actor.specialist( Director.class,
-					director -> actor.after( 0 ).call( t ->
-					{
-						// request RIVM advice
-						LOG.trace(
-								"Initiating {}", director
-										.initiate( Advice.class,
-												actor.peerRef(
-														healthAdvisorName() ) )
-										.commit() );
-//						LOG.trace(
-//								"Initiating " + director
-//										.initiate( Advice.class,
-//												actor.peerRef(
-//														healthAdvisorName() ) )
-//										.commit() );
-					} ) );
-			actor.specialist( Motivator.class, motivator -> motivator
-					.emit( FactKind.REQUESTED ).subscribe( rq ->
-					{
-						LOG.trace( "Handling {}", rq );
-						// TODO update position
-						// motivator.respond( rq, FactKind.STATED );
-					}, e -> LOG.error( "Problem", e ) ) );
+			final Actor.ID healthRef = actor.peerRef( healthAdvisorName() );
+
+			actor.specialist( Redirector.class,
+					director -> actor.after( 0 ).call( t -> director
+							.initiate( Advice.class, healthRef ).commit() ) );
+
+			// add Motivation execution behavior
+			actor.specialist( Motivator.class, motivator ->
+			{
+				motivator.emit( FactKind.REQUESTED ).subscribe( rq ->
+				{
+					motivator.getAttitude().observe( rq.creatorRef(),
+							rq.getVaccineRisk().toNumber(),
+							rq.getDiseaseRisk().toNumber() );
+					LOG.trace( "{} handling {}", actor.id().unwrap(), rq );
+					rq.getOccasions().stream().filter(
+							occ -> !motivator.getAttitude().isHesitant( occ ) )
+							.forEach( occ ->
+							{
+								LOG.trace( "{} vaccinating for {}",
+										actor.id().unwrap(), occ );
+								motivator
+										.initiate( Redirection.class,
+												actor.id() )
+										.with( GoalType.VACCINATE ).commit();
+							} );
+
+				}, HesitantScenario::logError );
+			} );
 			return actor;
 		}
 	}
 
-	public interface HealthConfig extends GlobalConfig
+	/**
+	 * O05 {@link HealthOrg}
+	 * 
+	 * @version $Id$
+	 * @author Rick van Krevelen
+	 */
+	public interface HealthOrg extends GlobalConfig
 	{
+		String BASE_KEY = "health";
+
+		String RIVM_NAME = "rivm";
+
 		// sec min hour date month weekday[0=Sun] year 
 		@DefaultValue( "0 0 0 L-3 * ? *" )
-		Timing adviceRqTiming();
+		Timing campaignTiming();
 
 		@DefaultValue( " Normal ( -0.5 day;1 h )" )
 		@ConverterClass( DistributionParsable.FromString.class )
@@ -327,22 +315,24 @@ public class HesitantScenario implements Scenario
 					.inject( ProbabilityDistribution.Parser.class );
 
 			// self-initiate national campaign Advice 
-			advisor.atEach( adviceRqTiming().iterate() ).subscribe(
-					t -> advisor.initiate( advisor.id() ).commit(),
-					e -> LOG.error( "Problem", e ) );
+			final DateTimeFormatter dtFormat = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+			final ZonedDateTime offset = actor.offset();
+			advisor.atEach( campaignTiming().offset( offset ).iterate(),
+					t -> advisor.initiate( advisor.id() ).commit() );
 
 			// add request handling behavior
 			final Set<Actor.ID> cohort = new HashSet<>();
-			final QuantityDistribution<Time> stDelay = adviceStDelay()
-					.parse( distParser, Time.class ).abs();
+			final ProbabilityDistribution<Duration> stDelay = adviceStDelay()
+					.parse( distParser, Time.class ).abs().map( Duration::of );
 			advisor.emit( FactKind.REQUESTED ).subscribe( rq ->
 			{
-				final Quantity<Time> delay = stDelay.draw();
+				final Duration delay = stDelay.draw();
 				LOG.trace( "{} handling {}, delay: {}, cohort: {}",
-						advisor.id(), rq, delay, cohort );
+						advisor.id().unwrap(), rq.prettify(),
+						delay.prettify( TimeUnits.HOURS, 1 ), cohort );
 				if( rq.creatorRef().equals( advisor.id() ) )
 				{
-					// execute national campaign
+					// execute internal request for national campaign
 					cohort.forEach( targetId -> advisor.after( delay )
 							.call( t -> LOG.trace( "Response (int): {}", advisor
 									.initiate( Motivation.class, targetId,
@@ -360,78 +350,11 @@ public class HesitantScenario implements Scenario
 							"Response (ext): {}",
 							advisor.respond( rq, FactKind.STATED ).commit() ) );
 				}
-			}, e -> LOG.error( "Problem", e ) );
+			}, HesitantScenario::logError );
 			return actor;
 		}
 	}
 
-	/**
-	 * {@link ScenarioConfig}
-	 */
-	public interface ScenarioConfig extends ReplicateConfig
-	{
-
-		String HESITANT_YAML_FILE = "hesitant.yaml";
-
-		String SCENARIO_NAME = "scenario";
-
-		String SCENARIO_TYPE_KEY = SCENARIO_NAME + KEY_SEP + "init";
-
-		String SCENARIO_TYPE_DEFAULT = "nl.rivm.cib.episim.hesitant.HesitantScenario";
-
-		@Key( SCENARIO_TYPE_KEY )
-		@DefaultValue( SCENARIO_TYPE_DEFAULT )
-		Class<? extends Scenario> scenarioType();
-
-		@Key( DURATION_KEY )
-		@DefaultValue( "" + 100 )
-		@Override // add new default value
-		BigDecimal rawDuration();
-
-		default Scenario createScenario()
-		{
-			final Map<String, Object> export = ConfigUtil.export( this );
-			export.put( ReplicateConfig.ID_KEY, SCENARIO_NAME );
-			export.put( LocalConfig.ID_KEY, SCENARIO_NAME );
-
-			// configure replication FIXME via LocalConfig?
-			ReplicateConfig.getOrCreate( export );
-
-			return ConfigCache.getOrCreate( LocalConfig.class, export )
-					.createBinder().inject( scenarioType() );
-		}
-
-		default <C extends GlobalConfig> C actorConfig( final Actor.ID id,
-			final Class<C> configType )
-		{
-			return actorConfig( id.unwrap().toString(), configType );
-		}
-
-		default <C extends GlobalConfig> C actorConfig( final String path,
-			final Class<C> configType )
-		{
-			return subConfig( path, configType,
-					//Collections.singletonMap( LocalConfig.ID_KEY, id ),
-					ConfigUtil.export( this, Pattern.compile(
-							"^" + Pattern.quote( LocalConfig.BINDER_KEY ) ) ) );
-		}
-
-		/**
-		 * @param imports optional extra configuration settings
-		 * @return the imported values
-		 * @throws IOException if reading from {@link #HESITANT_YAML_FILE} fails
-		 */
-		static ScenarioConfig fromYaml( final Map<?, ?>... imports )
-			throws IOException
-		{
-			return ConfigFactory.create( ScenarioConfig.class, ConfigUtil.join(
-					YamlUtil.flattenYaml(
-							FileUtil.toInputStream( HESITANT_YAML_FILE ) ),
-					imports ) );
-		}
-	}
-
-	@InjectConfig
 	private ScenarioConfig config;
 
 	@Inject
@@ -446,26 +369,44 @@ public class HesitantScenario implements Scenario
 		return this.scheduler;
 	}
 
+	private static void logError( final Throwable t )
+	{
+		LOG.error( "Problem", t );
+	}
+
 	@Override
 	public void init() throws Exception
 	{
+		this.config = ScenarioConfig.getOrFromYaml();
 		// FIXME how do actors communicate with each other, e.g. message bus ??
 
 		// Add RIVM (O05)
-		final HealthConfig hcfg = this.config.actorConfig( "health",
-				HealthConfig.class );
+		final HealthOrg hcfg = this.config.healthOrg();
 		LOG.trace( "rivm cfg: {}", hcfg );
-		hcfg.init( this.actorFactory.create( "rivm" ) );
+		hcfg.init( this.actorFactory.create( HealthOrg.RIVM_NAME ) );
 
 //		// Add Media (O04)
 //		final Actor<Fact> media = this.actorFactory.create( "media" );
 //		rivm.specialist( Informer.class, this::initInformer );
 
 		// Add a Person
-		final PersonConfig personConfig = this.config.actorConfig( "person",
-				PersonConfig.class );
-		personConfig.init( this.actorFactory.create( "joram" ) );
+		final PersonOrg personConfig = this.config.personOrg();
+		final VaxHesitant.WeightedAverager hes = new VaxHesitant.WeightedAverager(
+				Actor.ID.of( "self", null ), 1, 0, .5, id -> .5 );
+		LOG.trace( "person cfg: {}, hes: {}", personConfig, hes );
 
+		final Actor<Fact> joram = personConfig
+				.init( this.actorFactory.create( "joram" ) );
+
+		final Actor<Fact> mom = personConfig
+				.init( this.actorFactory.create( "mom" ) );
+		final Actor<Fact> dad = personConfig
+				.init( this.actorFactory.create( "dad" ) );
+		final Map<Actor.ID, Level> relationWeights = new HashMap<>();
+		relationWeights.put( mom.id(), Level.HI );
+		relationWeights.put( dad.id(), Level.HI );
+		joram.after( 0, TimeUnits.DAYS ).call( t -> relationWeights.forEach(
+				( k, v ) -> joram.initiate( Opinion.class, k ).commit() ) );
 //		if( !actionable( vo ) )
 //		{
 //			// decline
@@ -474,18 +415,6 @@ public class HesitantScenario implements Scenario
 //			// promise/execute/state
 //		}
 
-	}
-
-	/**
-	 * @param args the command line arguments
-	 * @throws Exception
-	 */
-	public static void main( final String[] args ) throws Exception
-	{
-		final ScenarioConfig config = ScenarioConfig.fromYaml();
-		LOG.trace( "HESITANT scenario starting, config: {}", config.toYAML() );
-		config.createScenario().run();
-		LOG.info( "HESITANT completed" );
 	}
 
 }

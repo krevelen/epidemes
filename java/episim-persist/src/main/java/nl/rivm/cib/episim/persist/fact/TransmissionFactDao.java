@@ -1,5 +1,7 @@
 package nl.rivm.cib.episim.persist.fact;
 
+import java.time.ZonedDateTime;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
@@ -7,8 +9,6 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-
-import org.joda.time.DateTime;
 
 import nl.rivm.cib.episim.model.disease.infection.TransmissionEvent;
 import nl.rivm.cib.episim.persist.AbstractDao;
@@ -40,7 +40,7 @@ public class TransmissionFactDao extends AbstractDao
 	protected SpaceDimensionDao site;
 
 	public static TransmissionFactDao of( final EntityManager em,
-		final DateTime offset, final TransmissionEvent event )
+		final ZonedDateTime offset, final TransmissionEvent event )
 	{
 		final TransmissionFactDao result = new TransmissionFactDao();
 		result.time = TimeDimensionDao.of( event.now(), offset );

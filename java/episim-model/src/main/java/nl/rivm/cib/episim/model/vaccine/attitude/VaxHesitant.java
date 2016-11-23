@@ -266,6 +266,7 @@ public interface VaxHesitant extends Identified<Actor.ID>
 			return this.myRef;
 		}
 
+		@Override
 		public void setCalculation( final Number calculation )
 		{
 			if( calculation == this.calculation ) return;

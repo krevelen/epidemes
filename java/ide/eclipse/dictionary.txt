@@ -178,3 +178,5 @@ complacent
 pre
 fischer
 likert
+dynabean
+deserialize

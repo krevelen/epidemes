@@ -86,7 +86,7 @@ public interface InfectionMetrics extends Proactive
 		getEffectiveContactRate( final Unit<Frequency> unit )
 	{
 		return getEffectiveContactsNumber()
-				.transform( n -> n.divide( scheduler().now().toMeasure() )
+				.transform( n -> n.divide( scheduler().now().toQuantity() )
 						.asType( Frequency.class ).to( unit ) );
 	}
 

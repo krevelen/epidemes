@@ -8,6 +8,11 @@ allprojects {
   group = 'nl.rivm.cib'
   version = '0.1.1-SNAPSHOT'
 }
+  
+ext {
+  coalaVersion = '0.2.0-b6-SNAPSHOT'
+  hibernateVersion = '5.2.1.Final'
+}
 
 subprojects {
   apply plugin: 'java'
