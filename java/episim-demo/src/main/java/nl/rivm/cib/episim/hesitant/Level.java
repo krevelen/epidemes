@@ -41,13 +41,27 @@ import io.coala.math.DecimalUtil;
  */
 public enum Level
 {
-	LO, MID, HI;
+	/** {@link #toNumber()}=0 */
+	LO,
+
+	/** {@link #toNumber()}=0.5 */
+	MID,
+
+	/** {@link #toNumber()}=1 */
+	HI;
 
 	public static final BigDecimal MID_LOWER = BigDecimal.valueOf( 25, 2 );
 
 	public static final BigDecimal MID_UPPER = BigDecimal.valueOf( 75, 2 );
 
 	/**
+	 * The {@link #MID} range boundaries used during conversion by
+	 * {@link #valueOf(Number)}, i.e. {@link #MID_LOWER}=0.25 and
+	 * {@link #MID_UPPER}=0.75, are both <em>exclusive</em> in order to maintain
+	 * inversion symmetry:
+	 * <p>
+	 * <code>{@link #LO} &le; {@link #MID_LOWER} &lt; {@link #MID} &lt; {@link #MID_UPPER} &le; {@link #HI}</code>
+	 * 
 	 * @param value the {@link Number} to map
 	 * @return the respective {@link Level}
 	 */
@@ -59,6 +73,9 @@ public enum Level
 		return result;
 	}
 
+	/**
+	 * @return {@link #HI}&harr;{@link #LO}
+	 */
 	public Level invert()
 	{
 		return values()[values().length - 1 - ordinal()];

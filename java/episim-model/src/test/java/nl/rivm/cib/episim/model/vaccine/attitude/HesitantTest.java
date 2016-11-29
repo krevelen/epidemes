@@ -37,14 +37,14 @@ public class HesitantTest
 	private static final Logger LOG = LogUtil.getLogger( HesitantTest.class );
 
 	/**
-	 * Test the (default) {@link VaxHesitant} behaviors
+	 * Test the (default) {@link VaxHesitancy} behaviors
 	 */
 	@Test
 	public void testHesitant()
 	{
-		LOG.info( "Started test of {}", VaxHesitant.class.getSimpleName() );
+		LOG.info( "Started test of {}", VaxHesitancy.class.getSimpleName() );
 
-		final VaxHesitant.WeightedAverager hes = new VaxHesitant.WeightedAverager(
+		final VaxHesitancy.WeightedAverager hes = new VaxHesitancy.WeightedAverager(
 				Actor.ID.of( "self", null ), 1, 0, .5, id -> .5 );
 		final VaxOccasion occ = VaxOccasion.of( 1, 1, .5, .5 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
@@ -53,23 +53,23 @@ public class HesitantTest
 				hes.isHesitant( occ ) );
 //		assertTrue("should be hesitant by default", hes.isHesitant( occ ));
 		
-		hes.observe( Actor.ID.of( "pro-vax", null ), 0, 1 );
-		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 );
-		hes.observe( Actor.ID.of( "anti-vax", null ), 1, 0 ); // will overwrite?
+		hes.observeRisk( Actor.ID.of( "pro-vax", null ), 0, 1 );
+		hes.observeRisk( Actor.ID.of( "anti-vax", null ), 1, 0 );
+		hes.observeRisk( Actor.ID.of( "anti-vax", null ), 1, 0 ); // will overwrite?
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
 				hes.isHesitant( occ ) );
 //		assertFalse("should become non-hesitant", hes.isHesitant( occ ));
 		
-		hes.observe( Actor.ID.of( "anti-vax2", null ), 1, 0 );
+		hes.observeRisk( Actor.ID.of( "anti-vax2", null ), 1, 0 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
 				hes.isHesitant( occ ) );
 //		assertTrue("should become hesitant again", hes.isHesitant( occ ));
 		
-		hes.observe( Actor.ID.of( "pro-vax2", null ), 0, 1 );
+		hes.observeRisk( Actor.ID.of( "pro-vax2", null ), 0, 1 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
 				hes.getCalculation(), occ, hes.getConvenience( occ ),
 				hes.getConfidence(), hes.getComplacency(),
@@ -84,7 +84,7 @@ public class HesitantTest
 		LOG.trace( "hes1: {}", hes );
 //		assertTrue("should be hesitant again", hes.isHesitant( occ ));
 		
-		LOG.info( "Completed test of {}", VaxHesitant.class.getSimpleName() );
+		LOG.info( "Completed test of {}", VaxHesitancy.class.getSimpleName() );
 	}
 
 }

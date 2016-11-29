@@ -207,4 +207,7 @@ interface Geard2011Config extends YamlConfig
 	@DefaultValue( "0.01" )
 	@ConverterClass( QuantityConverter.class )
 	Quantity<Dimensionless> annualIndividualDivorcingProbability();
+
+	@DefaultValue( "7500000" )
+	int popSize();
 }

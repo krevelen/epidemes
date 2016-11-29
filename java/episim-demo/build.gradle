@@ -22,10 +22,10 @@ dependencies {
 }
 
 apply plugin: 'application'
-// mainClassName = 'nl.rivm.cib.episim.geard.Geard2011Scenario'
+//mainClassName = 'nl.rivm.cib.episim.geard.Geard2011Scenario'
 mainClassName = 'nl.rivm.cib.episim.hesitant.ScenarioConfig'
 applicationName = 'epidemes-demo'
-applicationDefaultJvmArgs = ["-Xmx3072m","-Xms768m"]
+applicationDefaultJvmArgs = ["-Xmx10000m"]
 distributions {
     main {
     

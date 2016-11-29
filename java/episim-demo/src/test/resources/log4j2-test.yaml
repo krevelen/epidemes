@@ -14,7 +14,6 @@ Configuration:
       AppenderRef:
         ref: Console
     Logger:
-      - level: warn
-        name: javax.management
-        AppenderRef:
-          ref: Console
+      - name: javax.management
+        level: warn
+        

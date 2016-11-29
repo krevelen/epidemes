@@ -31,6 +31,7 @@ import org.aeonbits.owner.ConfigFactory;
 import io.coala.bind.LocalConfig;
 import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
+import io.coala.exception.Thrower;
 import io.coala.log.LogUtil;
 import io.coala.time.ReplicateConfig;
 import io.coala.time.Scenario;
@@ -90,13 +91,18 @@ public interface ScenarioConfig extends ReplicateConfig//, LocalConfig
 	 * @throws IOException if reading from {@link #HESITANT_YAML_FILE} fails
 	 */
 	static ScenarioConfig getOrFromYaml( final Map<?, ?>... imports )
-		throws IOException
 	{
-		return ConfigCache.getOrCreate( SCENARIO_NAME, ScenarioConfig.class,
-				ConfigUtil.join(
-						YamlUtil.flattenYaml(
-								FileUtil.toInputStream( HESITANT_YAML_FILE ) ),
-						imports ) );
+		try
+		{
+			return ConfigCache.getOrCreate( SCENARIO_NAME, ScenarioConfig.class,
+					ConfigUtil.join(
+							YamlUtil.flattenYaml( FileUtil
+									.toInputStream( HESITANT_YAML_FILE ) ),
+							imports ) );
+		} catch( final IOException e )
+		{
+			return Thrower.rethrowUnchecked( e );
+		}
 	}
 
 	/**

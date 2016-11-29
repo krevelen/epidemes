@@ -37,5 +37,5 @@ binder:
     - type: "io.coala.enterprise.FactExchange"
 
 # person organization type
-person:
-  healthAdvisorName: asdasd
+#person:
+#  healthAdvisorName: asdasd

@@ -28,7 +28,7 @@ import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
 
 /**
- * The convenience of a {@link VaxOccasion} depends on the {@link VaxHesitant}'s
+ * The convenience of a {@link VaxOccasion} depends on the {@link VaxHesitancy}'s
  * judgment in terms of its (relative) "physical availability, affordability and
  * willingness-to-pay, geographical accessibility, ability to understand
  * (language and health literacy) and appeal of immunization service" (MacDonald

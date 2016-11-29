@@ -34,11 +34,11 @@ import io.coala.math.WeightedValue;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
 import io.coala.name.Identified;
-import io.coala.random.QuantityDistribution;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
+import io.coala.random.QuantityDistribution;
 import io.coala.rx.RxCollection;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
@@ -436,16 +436,20 @@ public class Geard2011Scenario implements Proactive
 				if( Gender.FEMALE.equals( i.gender() ) )
 					this.momPicker.register( i );
 		}, e -> LOG.error( "Problem", e ) );
-		final int popSize = 25000;
-		int i = 0, size = 0;
+		final int popSize = this.conf.popSize();
+		int size = 0;
+		long t, s = t = System.currentTimeMillis();
+//		Future
 		while( size < popSize )
 		{
-			drawHousehold();
+//			CompletableFuture[] futures =
+//			IntStream.range(0,8 ).parallel().map(i->CompletableFuture.supplyAsync(()->drawHousehold())).toArray(CompletableFuture[]::new);
 			size = this.pop.members().size();
-			if( size / 1000 > i )
+			if( System.currentTimeMillis() - s > 1000 )
 			{
-				i = size / 1000;
-				LOG.info( "Initialized {} of {}", size, popSize );
+				s = System.currentTimeMillis();
+				LOG.info( "Initialized {} of {} ({}% in {}sec)", size, popSize,
+						((float) size) / popSize * 100, (s - t) / 1000 );
 			}
 		}
 

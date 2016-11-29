@@ -1,18 +1,13 @@
 package nl.rivm.cib.episim.hesitant;
 
 import java.text.ParseException;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
 
@@ -21,12 +16,11 @@ import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import io.coala.log.LogUtil;
-import io.coala.random.DistributionParsable;
+import io.coala.math.Range;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
-import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Advice.Advisor;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Disruption.Disruptor;
@@ -35,7 +29,7 @@ import nl.rivm.cib.episim.hesitant.HesitantScenario.Motivation.Motivator;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Opinion.Opinionator;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Redirection.GoalType;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.Redirection.Redirector;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitant;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 
 /**
@@ -73,12 +67,12 @@ public class HesitantScenario implements Scenario
 //		}
 
 	/**
-	 * T13 {@link Opinion} transactions are initiated by another O01
-	 * {@link PersonOrg}'s A15 {@link Redirector}
+	 * T13 {@link Opinion} facts subscribe a {@link PersonOrg} to some other O01
+	 * {@link PersonOrg} (initiated by their A15 {@link Redirector}) to receive
+	 * {@link Motivation} updates
 	 */
 	public interface Opinion extends Fact
 	{
-
 		/** A13 {@link Opinionator} handles T13 {@link Opinion} execution */
 		public interface Opinionator extends Actor<Opinion>
 		{
@@ -97,6 +91,26 @@ public class HesitantScenario implements Scenario
 	 */
 	public interface Motivation extends Fact
 	{
+		Number getConfidence();
+
+		default Motivation withConfidence( final Number confidence )
+		{
+			return with( "confidence", confidence );
+		}
+
+		Number getComplacency();
+
+		default Motivation withComplacency( final Number complacency )
+		{
+			return with( "complacency", complacency );
+		}
+
+		default Motivation withAttitude( final VaxHesitancy hes )
+		{
+			return withConfidence( hes.getConfidence() )
+					.withComplacency( hes.getComplacency() );
+		}
+
 		/**
 		 * A14 {@link Motivator} handles T14 {@link Motivation} execution,
 		 * occasionally initiating a {@link Redirection}
@@ -104,35 +118,14 @@ public class HesitantScenario implements Scenario
 		public interface Motivator extends Actor<Motivation>
 		{
 
-			VaxHesitant getAttitude();
+			/** @return the {@link VaxHesitancy} */
+			VaxHesitancy getAttitude();
 
-			void setAttitude( VaxHesitant attitude );
-
-			default Motivator withAttitude( VaxHesitant attitude )
+			default Motivator withAttitude( final VaxHesitancy hes )
 			{
-				setAttitude( attitude );
-				return this;
+				return with( "attitude", hes );
 			}
-		}
 
-		Level getVaccineRisk(); // auto-add dynabean property
-
-		void setVaccineRisk( Level risk );
-
-		default Motivation withVaccineRisk( final Level risk )
-		{
-			setVaccineRisk( risk );
-			return this;
-		}
-
-		Level getDiseaseRisk(); // auto-add dynabean property
-
-		void setDiseaseRisk( Level risk );
-
-		default Motivation withDiseaseRisk( final Level risk )
-		{
-			setDiseaseRisk( risk );
-			return this;
 		}
 
 		/**
@@ -195,7 +188,47 @@ public class HesitantScenario implements Scenario
 		/** A15 {@link Redirector} handles T15 {@link Redirection} execution */
 		public interface Redirector extends Actor<Redirection>
 		{
+			/** @param ids */
+			default Redirector referToPersons( final Actor.ID... ids )
+			{
+				return ids == null || ids.length == 0 ? this
+						: referToPersons( Arrays.asList( ids ) );
+			}
 
+			/** @param ids */
+			default Redirector referToPersons( final Iterable<Actor.ID> ids )
+			{
+				ids.forEach( id -> initiate( Opinion.class, id ).commit() );
+				return this;
+			}
+
+			/** @param ids */
+			default Redirector referToAdvisors( final Actor.ID... ids )
+			{
+				return ids == null || ids.length == 0 ? this
+						: referToAdvisors( Arrays.asList( ids ) );
+			}
+
+			/** @param ids */
+			default Redirector referToAdvisors( final Iterable<Actor.ID> ids )
+			{
+				ids.forEach( id -> initiate( Advice.class, id ).commit() );
+				return this;
+			}
+
+			/** @param ids */
+			default Redirector referToMedia( final Actor.ID... ids )
+			{
+				return ids == null || ids.length == 0 ? this
+						: referToMedia( Arrays.asList( ids ) );
+			}
+
+			/** @param ids */
+			default Redirector referToMedia( final Iterable<Actor.ID> ids )
+			{
+				ids.forEach( id -> initiate( Information.class, id ).commit() );
+				return this;
+			}
 		}
 	}
 
@@ -248,43 +281,26 @@ public class HesitantScenario implements Scenario
 	{
 		String BASE_KEY = "person";
 
-		@DefaultValue( HealthOrg.RIVM_NAME )
-		String healthAdvisorName();
+		/**
+		 * 
+		 * @return
+		 */
 
-		default Actor<Fact> init( final Actor<Fact> actor )
-			throws ParseException
-		{
-			final Actor.ID healthRef = actor.peerRef( healthAdvisorName() );
+		@DefaultValue( "const(1)" )
+		String myConfidence();
 
-			actor.specialist( Redirector.class,
-					director -> actor.after( 0 ).call( t -> director
-							.initiate( Advice.class, healthRef ).commit() ) );
+		@DefaultValue( "const(0)" )
+		String myComplacencyDist();
 
-			// add Motivation execution behavior
-			actor.specialist( Motivator.class, motivator ->
-			{
-				motivator.emit( FactKind.REQUESTED ).subscribe( rq ->
-				{
-					motivator.getAttitude().observe( rq.creatorRef(),
-							rq.getVaccineRisk().toNumber(),
-							rq.getDiseaseRisk().toNumber() );
-					LOG.trace( "{} handling {}", actor.id().unwrap(), rq );
-					rq.getOccasions().stream().filter(
-							occ -> !motivator.getAttitude().isHesitant( occ ) )
-							.forEach( occ ->
-							{
-								LOG.trace( "{} vaccinating for {}",
-										actor.id().unwrap(), occ );
-								motivator
-										.initiate( Redirection.class,
-												actor.id() )
-										.with( GoalType.VACCINATE ).commit();
-							} );
+		@DefaultValue( "const(0.5)" )
+		String myCalculationDist();
 
-				}, HesitantScenario::logError );
-			} );
-			return actor;
-		}
+		// DKTP-1 ~ cauchy(x_0=59;gamma=3.5)
+		@DefaultValue( "cauchy(59 day;3.5 day)" )
+		String myVaccinationDelayDist();
+
+		@DefaultValue( "[25 day;125 day]" )
+		String myVaccinationDelayRange();
 	}
 
 	/**
@@ -304,58 +320,33 @@ public class HesitantScenario implements Scenario
 		Timing campaignTiming();
 
 		@DefaultValue( " Normal ( -0.5 day;1 h )" )
-		@ConverterClass( DistributionParsable.FromString.class )
-		DistributionParsable<?> adviceStDelay();
+		String adviceDelay();
 
-		default Actor<Fact> init( final Actor<Fact> actor )
-			throws ParseException
-		{
-			final Advisor advisor = actor.specialist( Advisor.class );
-			final ProbabilityDistribution.Parser distParser = actor.binder()
-					.inject( ProbabilityDistribution.Parser.class );
+		@DefaultValue( "const(1)" )
+		String advisorConfidence();
 
-			// self-initiate national campaign Advice 
-			final DateTimeFormatter dtFormat = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-			final ZonedDateTime offset = actor.offset();
-			advisor.atEach( campaignTiming().offset( offset ).iterate(),
-					t -> advisor.initiate( advisor.id() ).commit() );
+		@DefaultValue( "const(0)" )
+		String advisorComplacency();
 
-			// add request handling behavior
-			final Set<Actor.ID> cohort = new HashSet<>();
-			final ProbabilityDistribution<Duration> stDelay = adviceStDelay()
-					.parse( distParser, Time.class ).abs().map( Duration::of );
-			advisor.emit( FactKind.REQUESTED ).subscribe( rq ->
-			{
-				final Duration delay = stDelay.draw();
-				LOG.trace( "{} handling {}, delay: {}, cohort: {}",
-						advisor.id().unwrap(), rq.prettify(),
-						delay.prettify( TimeUnits.HOURS, 1 ), cohort );
-				if( rq.creatorRef().equals( advisor.id() ) )
-				{
-					// execute internal request for national campaign
-					cohort.forEach( targetId -> advisor.after( delay )
-							.call( t -> LOG.trace( "Response (int): {}", advisor
-									.initiate( Motivation.class, targetId,
-											rq.id() )
-									.withVaccineRisk( Level.LO )
-									.withDiseaseRisk( Level.HI )
-									.with( VaxOccasion.of( 1, 1, 1, 1 ) )
-									.commit() ) ) );
-				} else // respond to external request
-				{
-					// FIXME schedule addition/deletion per cohort
-					cohort.add( rq.creatorRef().organizationRef() );
+		// TODO categorize
 
-					advisor.after( delay ).call( t -> LOG.trace(
-							"Response (ext): {}",
-							advisor.respond( rq, FactKind.STATED ).commit() ) );
-				}
-			}, HesitantScenario::logError );
-			return actor;
-		}
+		@DefaultValue( "const(1)" )
+		String occasionProximity();
+
+		@DefaultValue( "const(1)" )
+		String occasionClarity();
+
+		@DefaultValue( "const(1)" )
+		String occasionUtility();
+
+		@DefaultValue( "const(1)" )
+		String occasionAffinity();
 	}
 
-	private ScenarioConfig config;
+	private final ScenarioConfig config = ScenarioConfig.getOrFromYaml();
+
+	@Inject
+	private ProbabilityDistribution.Parser distParser;
 
 	@Inject
 	private Actor.Factory actorFactory;
@@ -374,47 +365,169 @@ public class HesitantScenario implements Scenario
 		LOG.error( "Problem", t );
 	}
 
+	private Timing campaignTiming;
+	private ProbabilityDistribution<Duration> adviceDelay;
+	private ProbabilityDistribution<Number> advisorConfidence;
+	private ProbabilityDistribution<Number> advisorComplacency;
+	private ProbabilityDistribution<Number> occasionProximity;
+	private ProbabilityDistribution<Number> occasionClarity;
+	private ProbabilityDistribution<Number> occasionUtility;
+	private ProbabilityDistribution<Number> occasionAffinity;
+	private ProbabilityDistribution<Number> myConfidence;
+	private ProbabilityDistribution<Number> myComplacency;
+	private ProbabilityDistribution<Number> myCalculation;
+	private ProbabilityDistribution<Duration> myVaccinationDelay;
+	private Range<Duration> myVaccinationDelayRange;
+
 	@Override
 	public void init() throws Exception
 	{
-		this.config = ScenarioConfig.getOrFromYaml();
-		// FIXME how do actors communicate with each other, e.g. message bus ??
+
+		final HealthOrg healthCfg = this.config.healthOrg();
+		LOG.trace( "health org cfg: {}", healthCfg );
+
+		// TODO implement config to dist-parsing-dynabean (to allow caching)
+		this.campaignTiming = healthCfg.campaignTiming();
+		this.adviceDelay = this.distParser
+				.parseQuantity( healthCfg.adviceDelay() ).abs()
+				.map( Duration::of );
+		this.advisorConfidence = this.distParser
+				.parse( healthCfg.advisorConfidence() );
+		this.advisorComplacency = this.distParser
+				.parse( healthCfg.advisorComplacency() );
+		this.occasionProximity = this.distParser
+				.parse( healthCfg.occasionProximity() );
+		this.occasionClarity = this.distParser
+				.parse( healthCfg.occasionClarity() );
+		this.occasionUtility = this.distParser
+				.parse( healthCfg.occasionUtility() );
+		this.occasionAffinity = this.distParser
+				.parse( healthCfg.occasionAffinity() );
+
+		final PersonOrg personCfg = this.config.personOrg();
+		LOG.trace( "person cfg: {}", personCfg );
+
+		this.myConfidence = this.distParser.parse( personCfg.myConfidence() );
+		this.myComplacency = this.distParser
+				.parse( personCfg.myComplacencyDist() );
+		this.myCalculation = this.distParser
+				.parse( personCfg.myCalculationDist() );
+		this.myVaccinationDelayRange = Range
+				.parse( personCfg.myVaccinationDelayRange(), Duration.class );
+		this.myVaccinationDelay = this.distParser
+				.parseQuantity( personCfg.myVaccinationDelayDist() )
+				.map( Duration::of ).map( this.myVaccinationDelayRange::crop );
+		LOG.trace( "crop {} to {}", Duration.ZERO,
+				this.myVaccinationDelayRange.crop( Duration.ZERO ) );
 
 		// Add RIVM (O05)
-		final HealthOrg hcfg = this.config.healthOrg();
-		LOG.trace( "rivm cfg: {}", hcfg );
-		hcfg.init( this.actorFactory.create( HealthOrg.RIVM_NAME ) );
+		final Actor<Fact> rivm = initHealth( HealthOrg.RIVM_NAME );
 
 //		// Add Media (O04)
 //		final Actor<Fact> media = this.actorFactory.create( "media" );
 //		rivm.specialist( Informer.class, this::initInformer );
 
-		// Add a Person
-		final PersonOrg personConfig = this.config.personOrg();
-		final VaxHesitant.WeightedAverager hes = new VaxHesitant.WeightedAverager(
-				Actor.ID.of( "self", null ), 1, 0, .5, id -> .5 );
-		LOG.trace( "person cfg: {}, hes: {}", personConfig, hes );
+		// Add Persons (O01)
+		final Actor<Fact> mom = initPerson( "mom" );
+		final Actor<Fact> dad = initPerson( "dad" );
+		final Actor<Fact> kid = initPerson( "kid" );
+		for( int i = 0; i < 100; i++ )
+			LOG.trace( "{}", this.myVaccinationDelay.draw() );
 
-		final Actor<Fact> joram = personConfig
-				.init( this.actorFactory.create( "joram" ) );
+		// configure parental relations TODO from social network config?
+		kid.specialist( Redirector.class ).referToAdvisors( rivm.id() )
+				.referToPersons( mom.id(), dad.id() );
 
-		final Actor<Fact> mom = personConfig
-				.init( this.actorFactory.create( "mom" ) );
-		final Actor<Fact> dad = personConfig
-				.init( this.actorFactory.create( "dad" ) );
-		final Map<Actor.ID, Level> relationWeights = new HashMap<>();
-		relationWeights.put( mom.id(), Level.HI );
-		relationWeights.put( dad.id(), Level.HI );
-		joram.after( 0, TimeUnits.DAYS ).call( t -> relationWeights.forEach(
-				( k, v ) -> joram.initiate( Opinion.class, k ).commit() ) );
-//		if( !actionable( vo ) )
-//		{
-//			// decline
-//		} else
-//		{
-//			// promise/execute/state
-//		}
+//		final Map<Actor.ID, Level> relationWeights = new HashMap<>();
+//		relationWeights.put( mom.id(), Level.HI );
+//		relationWeights.put( dad.id(), Level.HI );
 
+	}
+
+	private void onCampaignRequest( final Advisor advisor, final Fact.ID rqId,
+		final Set<Actor.ID> cohort )
+	{
+		advisor.after( this.adviceDelay.draw() ).call( t ->
+		{
+			final Number conf = this.advisorConfidence.draw();
+			final Number comp = this.advisorComplacency.draw();
+			final VaxOccasion occ = VaxOccasion.of(
+					this.occasionProximity.draw(), this.occasionClarity.draw(),
+					this.occasionUtility.draw(), this.occasionAffinity.draw() );
+
+			cohort.forEach( targetId ->
+			{
+				final Fact mot = advisor
+						.initiate( Motivation.class, targetId, rqId )
+						.withConfidence( conf ).withComplacency( comp )
+						.with( occ ).commit();
+				LOG.trace( "Campaign {}: {}", rqId.prettyHash(), mot );
+			} );
+		} );
+	}
+
+	private Actor<Fact> initHealth( final String name ) throws ParseException
+	{
+		final Actor<Fact> org = this.actorFactory.create( name );
+		final Advisor advisor = org.specialist( Advisor.class );
+
+		// self-initiate national campaign Advice 
+		advisor.atEach( this.campaignTiming,
+				t -> advisor.initiate( advisor.id() ).commit() );
+		// add request handling behavior
+		final Set<Actor.ID> cohort = new HashSet<>();
+		advisor.emit( FactKind.REQUESTED ).filter( Fact::isInternal )
+				.subscribe( rq ->
+				{
+					if( rq.isInternal() )
+						// execute internal request (for known cohort invitate)
+						onCampaignRequest( advisor, rq.id(), cohort );
+					else
+						// no explicit response to external request (for advice)
+						cohort.add( rq.creatorRef().organizationRef() );
+					LOG.trace( "{} handled, cohort: {}", rq, cohort );
+				}, HesitantScenario::logError );
+		return org;
+	}
+
+	private Actor<Fact> initPerson( final String name ) throws ParseException
+	{
+		final Actor<Fact> org = this.actorFactory.create( name );
+		// add opinion spreading dynamics 
+		org.specialist( Opinionator.class, opin ->
+		{
+		} );
+
+		// add Motivation execution behavior
+		org.specialist( Motivator.class, motivator ->
+		{
+			motivator
+					.withAttitude( VaxHesitancy.averager( org.id(),
+							this.myConfidence.draw(), this.myComplacency.draw(),
+							this.myCalculation.draw() ) )
+					.emit( FactKind.REQUESTED ).subscribe( rq ->
+					{
+						motivator.getAttitude().observeRisk( rq.creatorRef(),
+								rq.getConfidence(), rq.getComplacency() );
+						LOG.trace( "{} handling {}", org.id().unwrap(), rq );
+						rq.getOccasions()
+								.stream().filter( occ -> !motivator
+										.getAttitude().isHesitant( occ ) )
+								.forEach( occ ->
+								{
+									LOG.trace( "{} vaccinating for {}",
+											org.id().unwrap(), occ );
+									motivator
+											.initiate( Redirection.class,
+													org.id() )
+											.with( GoalType.VACCINATE )
+											.commit();
+									// TODO implement Goal handling
+								} );
+
+					}, HesitantScenario::logError );
+		} );
+		return org;
 	}
 
 }

@@ -31,19 +31,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Actor.ID;
+import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.name.Identified;
 import io.coala.util.Compare;
 
 /**
- * {@link VaxHesitant} provides an implementation of the Four C model by
+ * {@link VaxHesitancy} provides an implementation of the Four C model by
  * <a href="http://dx.doi.org/10.1177/2372732215600716">Betsch et al., 2015</a>
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface VaxHesitant extends Identified<Actor.ID>
+public interface VaxHesitancy extends Identified<Actor.ID>
 {
 
 	/**
@@ -62,7 +63,7 @@ public interface VaxHesitant extends Identified<Actor.ID>
 	Number getConfidence();
 
 	/**
-	 * convenience level depends on the {@link VaxHesitant}'s judgment of a
+	 * convenience level depends on the {@link VaxHesitancy}'s judgment of a
 	 * {@link VaxOccasion} regarding factors like "physical availability,
 	 * affordability and willingness-to-pay, geographical accessibility, ability
 	 * to understand (language and health literacy) and appeal of immunization
@@ -92,7 +93,15 @@ public interface VaxHesitant extends Identified<Actor.ID>
 
 	void setCalculation( Number calculation );
 
-	void observe( Actor.ID sourceRef, Number vaccineRisk, Number diseaseRisk );
+	void observe( Actor.ID sourceRef, Number complacency, Number confidence );
+
+	default void observeRisk( Actor.ID sourceRef, Number vaccineRisk,
+		Number diseaseRisk )
+	{
+		observe( sourceRef,
+				BigDecimal.ONE.subtract( DecimalUtil.valueOf( vaccineRisk ) ),
+				BigDecimal.ONE.subtract( DecimalUtil.valueOf( diseaseRisk ) ) );
+	}
 
 	Number getAppreciation( Actor.ID sourceRef );
 
@@ -215,15 +224,32 @@ public interface VaxHesitant extends Identified<Actor.ID>
 										DecimalUtil.binaryEntropy( conf ) ) ) );
 	}
 
+	static WeightedAverager averager( final Actor.ID myRef,
+		final Number myConfidence, final Number myComplacency,
+		final Number myCalculation )
+	{
+		return new WeightedAverager( myRef, myConfidence, myComplacency,
+				myCalculation );
+	}
+
+	static WeightedAverager weightedAverager( final Actor.ID myRef,
+		final Number myConfidence, final Number myComplacency,
+		final Number myCalculation, final Function<Actor.ID, Number> reputer )
+	{
+		return new WeightedAverager( myRef, myConfidence, myComplacency,
+				myCalculation, reputer );
+	}
+
 	/**
-	 * {@link WeightedAverager} averages own and all observed and filtered
-	 * {@link VaxPosition}s. In theory one could set the weight for their own
+	 * {@link WeightedAverager} averages own default {@link VaxPosition} and all
+	 * those observed latest per source {@link Actor.ID}, filtered by their
+	 * current reputation. In theory one could set the weight for their own
 	 * {@link VaxPosition} to 0 by giving oneself a reputation below the
 	 * (inverse) calculation threshold, effectively ignoring one's own position.
-	 * However, if all relevant positions' weights sum to 0, then the defaul
+	 * However, if all relevant positions' weights sum to 0, then the default
 	 * position carries all the weight.
 	 */
-	class WeightedAverager implements VaxHesitant
+	class WeightedAverager implements VaxHesitancy
 	{
 		private final Actor.ID myRef;
 
@@ -241,22 +267,22 @@ public interface VaxHesitant extends Identified<Actor.ID>
 		private BigDecimal calculation;
 
 		public WeightedAverager( final Actor.ID myRef,
-			final Number myVaccineRisk, final Number myDiseaseRisk,
+			final Number myConfidence, final Number myComplacency,
 			final Number myCalculation )
 		{
-			this( myRef, myVaccineRisk, myDiseaseRisk, myCalculation,
+			this( myRef, myConfidence, myComplacency, myCalculation,
 					id -> BigDecimal.ONE );
 		}
 
 		public WeightedAverager( final Actor.ID myRef,
-			final Number myVaccineRisk, final Number myDiseaseRisk,
+			final Number myConfidence, final Number myComplacency,
 			final Number myCalculation,
 			final Function<Actor.ID, Number> reputer )
 		{
 			setCalculation( myCalculation );
 			this.reputer = id -> DecimalUtil.valueOf( reputer.apply( id ) );
 			this.myRef = myRef;
-			this.myDefault = toPosition( myVaccineRisk, myDiseaseRisk );
+			this.myDefault = toPosition( myConfidence, myComplacency );
 			reset();
 		}
 
@@ -281,12 +307,13 @@ public interface VaxHesitant extends Identified<Actor.ID>
 		}
 
 		@Override
-		public void observe( final Actor.ID ref, final Number vaccineRisk,
-			final Number diseaseRisk )
+		public void observe( final Actor.ID ref, final Number confidence,
+			final Number complacency )
 		{
-			if( ref.equals( this.myRef ) ) throw new IllegalArgumentException(
-					"Another can't generate own position" );
-			this.positions.put( ref, toPosition( vaccineRisk, diseaseRisk ) );
+			if( ref.equals( this.myRef ) )
+				Thrower.throwNew( IllegalArgumentException.class,
+						"Another can't generate own position" );
+			this.positions.put( ref, toPosition( confidence, complacency ) );
 			reset();
 		}
 
@@ -315,14 +342,11 @@ public interface VaxHesitant extends Identified<Actor.ID>
 			return myPosition()[Index.CONFIDENCE.ordinal()];
 		}
 
-		private BigDecimal[] toPosition( final Number vaccineRisk,
-			final Number diseaseRisk )
+		private BigDecimal[] toPosition( final Number confidence,
+			final Number complacency )
 		{
-			return new BigDecimal[] {
-					BigDecimal.ONE
-							.subtract( DecimalUtil.valueOf( vaccineRisk ) ),
-					BigDecimal.ONE
-							.subtract( DecimalUtil.valueOf( diseaseRisk ) ) };
+			return new BigDecimal[] { DecimalUtil.valueOf( confidence ),
+					DecimalUtil.valueOf( complacency ) };
 		}
 
 		private void reset()
