@@ -29,12 +29,8 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
-			</snapshots>
+			</releases>
 		</repository>
 		<repository>
 			<name>EPIDEMES Public Maven Repository</name>
@@ -42,12 +38,8 @@
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
-			</snapshots>
+			</releases>
 		</repository>
 	</repositories>
 
