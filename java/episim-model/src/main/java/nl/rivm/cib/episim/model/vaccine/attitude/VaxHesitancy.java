@@ -30,11 +30,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.enterprise.Actor;
-import io.coala.enterprise.Actor.ID;
-import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
-import io.coala.name.Identified;
 import io.coala.util.Compare;
 
 /**
@@ -44,7 +41,7 @@ import io.coala.util.Compare;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface VaxHesitancy extends Identified<Actor.ID>
+public interface VaxHesitancy //extends Identified<Actor.ID>
 {
 
 	/**
@@ -106,8 +103,8 @@ public interface VaxHesitancy extends Identified<Actor.ID>
 	Number getAppreciation( Actor.ID sourceRef );
 
 	/**
-	 * @param sourceRef the source to check reputation for exclusion from
-	 *            attitude computation
+	 * @param sourceRef the source to appreciate in attitude computation, where
+	 *            {@code null} indicates the owner
 	 * @return a positive weight or zero iff
 	 *         {@linkplain #getAppreciation(Actor.ID) Appreciation} does not
 	 *         meet the current {@linkplain #getCalculation() Calculation} level
@@ -224,20 +221,20 @@ public interface VaxHesitancy extends Identified<Actor.ID>
 										DecimalUtil.binaryEntropy( conf ) ) ) );
 	}
 
-	static WeightedAverager averager( final Actor.ID myRef,
+	static WeightedAverager averager( //final Actor.ID myRef,
 		final Number myConfidence, final Number myComplacency,
 		final Number myCalculation )
 	{
-		return new WeightedAverager( myRef, myConfidence, myComplacency,
-				myCalculation );
+		return new WeightedAverager( //myRef, 
+				myConfidence, myComplacency, myCalculation );
 	}
 
-	static WeightedAverager weightedAverager( final Actor.ID myRef,
+	static WeightedAverager weightedAverager( //final Actor.ID myRef,
 		final Number myConfidence, final Number myComplacency,
 		final Number myCalculation, final Function<Actor.ID, Number> reputer )
 	{
-		return new WeightedAverager( myRef, myConfidence, myComplacency,
-				myCalculation, reputer );
+		return new WeightedAverager( //myRef,
+				myConfidence, myComplacency, myCalculation, reputer );
 	}
 
 	/**
@@ -251,7 +248,7 @@ public interface VaxHesitancy extends Identified<Actor.ID>
 	 */
 	class WeightedAverager implements VaxHesitancy
 	{
-		private final Actor.ID myRef;
+//		private final Actor.ID myRef;
 
 		private final Function<Actor.ID, BigDecimal> reputer;
 
@@ -266,31 +263,32 @@ public interface VaxHesitancy extends Identified<Actor.ID>
 
 		private BigDecimal calculation;
 
-		public WeightedAverager( final Actor.ID myRef,
+		public WeightedAverager( //final Actor.ID myRef,
 			final Number myConfidence, final Number myComplacency,
 			final Number myCalculation )
 		{
-			this( myRef, myConfidence, myComplacency, myCalculation,
+			this( //myRef, 
+					myConfidence, myComplacency, myCalculation,
 					id -> BigDecimal.ONE );
 		}
 
-		public WeightedAverager( final Actor.ID myRef,
+		public WeightedAverager( // final Actor.ID myRef,
 			final Number myConfidence, final Number myComplacency,
 			final Number myCalculation,
 			final Function<Actor.ID, Number> reputer )
 		{
 			setCalculation( myCalculation );
 			this.reputer = id -> DecimalUtil.valueOf( reputer.apply( id ) );
-			this.myRef = myRef;
+//			this.myRef = myRef;
 			this.myDefault = toPosition( myConfidence, myComplacency );
 			reset();
 		}
 
-		@Override
-		public ID id()
-		{
-			return this.myRef;
-		}
+//		@Override
+//		public ID id()
+//		{
+//			return this.myRef;
+//		}
 
 		@Override
 		public void setCalculation( final Number calculation )
@@ -310,9 +308,9 @@ public interface VaxHesitancy extends Identified<Actor.ID>
 		public void observe( final Actor.ID ref, final Number confidence,
 			final Number complacency )
 		{
-			if( ref.equals( this.myRef ) )
-				Thrower.throwNew( IllegalArgumentException.class,
-						"Another can't generate own position" );
+//			if( ref.equals( this.myRef ) )
+//				Thrower.throwNew( IllegalArgumentException.class,
+//						"Another can't generate own position" );
 			this.positions.put( ref, toPosition( confidence, complacency ) );
 			reset();
 		}
@@ -387,7 +385,7 @@ public interface VaxHesitancy extends Identified<Actor.ID>
 			// initialize at default position, applying weight accordingly
 			final BigDecimal[] sums = new BigDecimal[] { BigDecimal.ZERO,
 					BigDecimal.ZERO };
-			final BigDecimal w = weightedAddition( sums, id(), this.myDefault )
+			final BigDecimal w = weightedAddition( sums, null, this.myDefault )
 					.add( this.positions.entrySet().parallelStream()
 							.map( entry -> weightedAddition( sums,
 									entry.getKey(), entry.getValue() ) )
