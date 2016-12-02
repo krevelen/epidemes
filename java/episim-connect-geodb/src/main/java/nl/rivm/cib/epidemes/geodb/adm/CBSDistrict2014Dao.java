@@ -20,13 +20,13 @@
 package nl.rivm.cib.epidemes.geodb.adm;
 
 /**
- * {@link CBSAreaDao} see
+ * {@link CBSDistrict2014Dao} see
  * https://www.cbs.nl/nl-nl/dossier/nederland-regionaal/geografische%20data/wijk-en-buurtkaart-2014
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class CBSAreaDao
+public class CBSDistrict2014Dao
 {
 //	TABLE nl.adm_cbs_wijkbuurt_2014_v1
 //	(
