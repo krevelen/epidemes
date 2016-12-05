@@ -62,7 +62,8 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		Quantity<Time> recoveryPeriod();
 	}
 
-	default Iterable<Candidate> candidatesOfAge( final Integer ageFilter )
+	default Iterable<Candidate>
+		candidatesOfAge( final Range<Integer> ageFilter )
 	{
 		return candidatesBornIn( ageToBirthInterval( now(), ageFilter ) );
 	}
@@ -71,13 +72,9 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 
 	// TODO make age as abstract Filter with birth Attribute-based selection
 
-	default T pick( final Integer ageFilter, final PseudoRandom rng )
+	default T pick( final Range<Integer> ageFilter, final PseudoRandom rng )
 	{
-		return pick( ageToBirthInterval( now(), Range.of( ageFilter ) ),
-				( it, n ) ->
-				{
-					return rng.nextElement( it, n );
-				} );
+		return pick( ageToBirthInterval( now(), ageFilter ), rng::nextElement );
 	}
 
 	default T pick( final Range<Instant> birthFilter,
@@ -88,21 +85,15 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		return doPick( flat, flat.size(), picker );
 	}
 
-	static Range<Instant> ageToBirthInterval( final Instant now,
-		final Integer age )
-	{
-		return ageToBirthInterval( now, Range.of( age ) );
-	}
-
 	static Range<Instant> birthToAgeInterval( final Instant birth,
 		final Range<Integer> ageRange )
 	{
-		final Integer min = ageRange.getMinimum().getValue();
-		final Integer max = ageRange.getMaximum().getValue();
+		final Integer min = ageRange.getLower().getValue();
+		final Integer max = ageRange.getUpper().getValue();
 		return Range.of(
 				min == null ? null
 						: birth.add( QuantityUtil
-								.valueOf( ageRange.getMinimum().getValue(),
+								.valueOf( ageRange.getLower().getValue(),
 										TimeUnits.ANNUM )
 								.add( QuantityUtil.valueOf( BigDecimal.ONE,
 										TimeUnits.ANNUM ) ) ),
@@ -116,12 +107,12 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 	static Range<Instant> ageToBirthInterval( final Instant now,
 		final Range<Integer> ageRange )
 	{
-		final Integer min = ageRange.getMinimum().getValue();
-		final Integer max = ageRange.getMaximum().getValue();
+		final Integer min = ageRange.getLower().getValue();
+		final Integer max = ageRange.getUpper().getValue();
 		return Range.of(
 				min == null ? null
 						: now.subtract( QuantityUtil
-								.valueOf( ageRange.getMinimum().getValue(),
+								.valueOf( ageRange.getLower().getValue(),
 										TimeUnits.ANNUM )
 								.add( QuantityUtil.valueOf( BigDecimal.ONE,
 										TimeUnits.ANNUM ) ) ),
@@ -190,11 +181,11 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 					return;
 				if( candidate.fertilityInterval().isGreaterThan( now() ) )
 				{
-					at( candidate.fertilityInterval().getMinimum().getValue() )
+					at( candidate.fertilityInterval().getLower().getValue() )
 							.call( this::register, candidate );
 					return;
 				}
-				final Instant end = candidate.fertilityInterval().getMaximum()
+				final Instant end = candidate.fertilityInterval().getUpper()
 						.getValue();
 				this.byBirth.compute( candidate.born(), ( birth, current ) ->
 				{
@@ -235,12 +226,10 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			public Iterable<Candidate>
 				candidatesBornIn( final Range<Instant> birthFilter )
 			{
-				return this.byBirth
-						.subMap( birthFilter.getMinimum().getValue(),
-								birthFilter.getMinimum().isInclusive(),
-								birthFilter.getMaximum().getValue(),
-								birthFilter.getMaximum().isInclusive() )
-						.values();
+				return this.byBirth.subMap( birthFilter.getLower().getValue(),
+						birthFilter.getLower().isInclusive(),
+						birthFilter.getUpper().getValue(),
+						birthFilter.getUpper().isInclusive() ).values();
 			}
 		};
 	}

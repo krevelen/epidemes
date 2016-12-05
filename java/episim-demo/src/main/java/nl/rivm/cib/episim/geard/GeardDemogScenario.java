@@ -3,12 +3,12 @@ package nl.rivm.cib.episim.geard;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -18,31 +18,21 @@ import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Frequency;
 import javax.measure.quantity.Time;
 
-import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 
-import io.coala.bind.InjectConfig;
-import io.coala.bind.LocalBinder;
-import io.coala.bind.LocalConfig;
-import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
 import io.coala.math.WeightedValue;
-import io.coala.math3.Math3ProbabilityDistribution;
-import io.coala.math3.Math3PseudoRandom;
 import io.coala.name.Identified;
 import io.coala.random.ConditionalDistribution;
-import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.random.PseudoRandom;
 import io.coala.random.QuantityDistribution;
 import io.coala.rx.RxCollection;
 import io.coala.time.Instant;
-import io.coala.time.Proactive;
-import io.coala.time.ReplicateConfig;
+import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.Signal;
 import io.coala.time.TimeUnits;
@@ -57,17 +47,17 @@ import nl.rivm.cib.episim.model.person.Participant;
 import nl.rivm.cib.episim.model.person.Population;
 
 /**
- * {@link Geard2011Scenario}
+ * {@link GeardDemogScenario}
  * 
  * @version $Id: 5e3a1f243ab46e936f50b9c59a81bada60d8a5f4 $
  * @author Rick van Krevelen
  */
 @Singleton
-public class Geard2011Scenario implements Proactive
+public class GeardDemogScenario implements Scenario
 {
 	/** */
 	private static final Logger LOG = LogUtil
-			.getLogger( Geard2011Scenario.class );
+			.getLogger( GeardDemogScenario.class );
 
 	static class Geard2011HouseholdComposition
 	{
@@ -81,7 +71,7 @@ public class Geard2011Scenario implements Proactive
 			valueOf( final String values )
 		{
 			return of( Integer::valueOf,
-					Geard2011Config.VALUE_SEP.split( values ) );
+					GeardDemogConfig.VALUE_SEP.split( values ) );
 		}
 
 		public static <T extends Number> Geard2011HouseholdComposition
@@ -257,16 +247,13 @@ public class Geard2011Scenario implements Proactive
 		return result;
 	}
 
-	private final Scheduler scheduler;
-
 	@Inject
-	private LocalBinder binder;
+	private Scheduler scheduler;
 
 	@Inject
 	private ProbabilityDistribution.Factory distFact;
 
-	@InjectConfig
-	private Geard2011Config conf;
+	private GeardDemogConfig conf = GeardDemogConfig.getOrFromYaml();
 
 	private Quantity<Time> dt;
 
@@ -328,13 +315,6 @@ public class Geard2011Scenario implements Proactive
 	// TODO @InjectConfig(configType=Geard2011Config.class, methodName=...)
 	QuantityDistribution<Time> birthGap;
 
-	@Inject
-	public Geard2011Scenario( final Scheduler scheduler )
-	{
-		this.scheduler = scheduler;
-		scheduler.onReset( this::init );
-	}
-
 	@Override
 	public Scheduler scheduler()
 	{
@@ -347,23 +327,21 @@ public class Geard2011Scenario implements Proactive
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public void init() throws IOException
+	@Override
+	public void init() throws IOException, InterruptedException
 	{
-		LOG.trace( "Initializing, binder: {}, factory: {}", this.binder,
-				this.distFact );
-
 		this.dt = QuantityUtil.valueOf( 5, TimeUnits.DAYS );
 		this.yearsPerDt = QuantityUtil.valueOf( 1, TimeUnits.ANNUAL )
 				.multiply( this.dt ).asType( Dimensionless.class );
 
-		final List<WeightedValue<Integer>> ageDist = Geard2011Config
+		final List<WeightedValue<Integer>> ageDist = GeardDemogConfig
 				.importFrequencies( this.conf.age_dist(), 0, Integer::valueOf );
 		this.age_dist = this.distFact.createCategorical( ageDist );
 
-		final NavigableMap<Integer, BigDecimal> femaleDeathRates = Geard2011Config
+		final NavigableMap<Integer, BigDecimal> femaleDeathRates = GeardDemogConfig
 				.importMap( this.conf.death_rates_female(), 1,
 						Integer::valueOf );
-		final NavigableMap<Integer, BigDecimal> maleDeathRates = Geard2011Config
+		final NavigableMap<Integer, BigDecimal> maleDeathRates = GeardDemogConfig
 				.importMap( this.conf.death_rates_male(), 1, Integer::valueOf );
 		this.deathRates = ConditionalDistribution
 				.of( this.distFact::createBernoulli,
@@ -379,12 +357,12 @@ public class Geard2011Scenario implements Proactive
 								this.yearsPerDt ) );
 
 		this.fertility_age_dist = this.distFact
-				.createCategorical( Geard2011Config.importFrequencies(
+				.createCategorical( GeardDemogConfig.importFrequencies(
 						this.conf.fertility_age_probs(), 1,
 						Integer::valueOf ) );
 
 		this.fertility_rates_dist = this.distFact.createCategorical(
-				Geard2011Config.importFrequencies( this.conf.fertility_rates(),
+				GeardDemogConfig.importFrequencies( this.conf.fertility_rates(),
 						1, Integer::valueOf ) );
 
 		// this.fertility_age_parity = distFact
@@ -393,28 +371,20 @@ public class Geard2011Scenario implements Proactive
 		// ?::valueOf ) );
 
 		this.hh_comp_dist = this.distFact.createCategorical(
-				Geard2011Config.importFrequencies( this.conf.hh_comp(), 0,
+				GeardDemogConfig.importFrequencies( this.conf.hh_comp(), 0,
 						Geard2011HouseholdComposition::valueOf ) );
-		this.age_dist_sub = Geard2011Config.splitAgeDistribution( this.distFact,
-				ageDist, this.conf.hh_comp() );
+		this.age_dist_sub = GeardDemogConfig.splitAgeDistribution(
+				this.distFact, ageDist, this.conf.hh_comp() );
 
 		// taken from Pop_HH.gen_hh_age_structured_pop(pop_hh.py:743)
 		this.gender_dist = distFact.createUniformCategorical( Gender.FEMALE,
 				Gender.MALE );
 
+		final Quantity<Time> yr = QuantityUtil.valueOf( 1, TimeUnits.ANNUM );
 		this.growthRate = Signal.Simple.of( this.scheduler,
 				QuantityUtil.valueOf( 0.01, TimeUnits.ANNUAL ) );
 		this.immigrationRate = Signal.Simple.of( this.scheduler,
 				QuantityUtil.valueOf( 0, TimeUnits.ANNUAL ) );
-		this.dtCoupleDist = this.distFact.createBernoulli(
-				adjust( this.conf.annualIndividualCouplingProbability(),
-						this.yearsPerDt ) );
-		this.dtLeaveHomeDist = this.distFact.createBernoulli(
-				adjust( this.conf.annualIndividualLeavingProbability(),
-						this.yearsPerDt ) );
-		this.dtDivorceDist = this.distFact.createBernoulli(
-				adjust( this.conf.annualIndividualDivorcingProbability(),
-						this.yearsPerDt ) );
 		this.ageBirthing = Signal.Simple.of( scheduler, Range.of( 15, 50 ) );
 		this.ageCoupling = Signal.Simple.of( scheduler, Range.of( 21, 60 ) );
 		this.ageLeaving = Signal.Simple.of( scheduler, Range.of( 18, null ) );
@@ -423,6 +393,15 @@ public class Geard2011Scenario implements Proactive
 				.toQuantities( TimeUnits.ANNUM );
 		this.birthGap = this.distFact.createDeterministic( 270 )
 				.toQuantities( TimeUnits.DAYS );
+		this.dtCoupleDist = this.distFact.createBernoulli(
+				adjust( this.conf.couplingProportion().multiply( yr )
+						.asType( Dimensionless.class ), this.yearsPerDt ) );
+		this.dtLeaveHomeDist = this.distFact.createBernoulli(
+				adjust( this.conf.leavingProportion().multiply( yr )
+						.asType( Dimensionless.class ), this.yearsPerDt ) );
+		this.dtDivorceDist = this.distFact.createBernoulli(
+				adjust( this.conf.divorcingProportion().multiply( yr )
+						.asType( Dimensionless.class ), this.yearsPerDt ) );
 
 		this.momPicker = MotherPicker.of( scheduler );
 		this.pop = HouseholdPopulation.of( "pop",
@@ -436,35 +415,50 @@ public class Geard2011Scenario implements Proactive
 				if( Gender.FEMALE.equals( i.gender() ) )
 					this.momPicker.register( i );
 		}, e -> LOG.error( "Problem", e ) );
+//		final ForkJoinPool pool = new ForkJoinPool();
 		final int popSize = this.conf.popSize();
-		int size = 0;
+		int size = 0, oldSize = size;
 		long t, s = t = System.currentTimeMillis();
-//		Future
 		while( size < popSize )
 		{
-//			CompletableFuture[] futures =
-//			IntStream.range(0,8 ).parallel().map(i->CompletableFuture.supplyAsync(()->drawHousehold())).toArray(CompletableFuture[]::new);
+////		final List<Integer> failed = //
+////					CompletableFuture
+////							.supplyAsync( () -> IntStream
+////									.range( 0, pool.getParallelism() )
+////									.parallel()
+////									.filter( i -> drawHousehold() == null )
+////									.collect( ArrayList<Integer>::new,
+////											( list, i ) -> list.add( i ),
+////											( l1, l2 ) -> l1.addAll( l2 ) ),
+////									pool )
+////							.join();
+//			final List<Integer> failed = //
+//					pool.submit( () -> IntStream
+//							.range( 0, pool.getParallelism() ).parallel()
+//							.filter( i -> drawHousehold() == null )
+//							.collect( () -> new ArrayList<Integer>(),
+//									( list, i ) -> list.add( i ),
+//									( l1, l2 ) -> l1.addAll( l2 ) ) )
+//							.join();
+//			LOG.trace( "Failed threads: {}", failed );
+			drawHousehold();
+
 			size = this.pop.members().size();
 			if( System.currentTimeMillis() - s > 1000 )
 			{
 				s = System.currentTimeMillis();
-				LOG.info( "Initialized {} of {} ({}% in {}sec)", size, popSize,
-						((float) size) / popSize * 100, (s - t) / 1000 );
+				long secs = (s - t) / 1000;
+				LOG.info( "pop +{} = {} of {} ({}% @{}/sec)", size - oldSize,
+						size, popSize, 100 * size / popSize,
+						((float) size) / secs );
+				oldSize = size;
 			}
 		}
 
-		scheduler.at( scheduler.now() ).call( this::updateAll,
+		at( scheduler.now() ).call( this::updateAll,
 				io.coala.time.Duration.of( this.dt ) );
 		LOG.trace( "{} households initialized, total={}",
 				this.pop.households().size(), this.pop.members().size() );
-
-		this.pop.events().subscribe( e ->
-		{
-			LOG.trace( "Observed: {}", e );
-		}, e ->
-		{
-			LOG.error( "Problem with population", e );
-		} );
 
 	}
 
@@ -484,10 +478,12 @@ public class Geard2011Scenario implements Proactive
 		return result;
 	}
 
+	private AtomicInteger hhCount = new AtomicInteger();
+
 	protected Household<GeardIndividual> drawHousehold()
 	{
 		final Household<GeardIndividual> result = Household.of(
-				"hh" + System.currentTimeMillis(), this.pop,
+				"hh" + this.hhCount.incrementAndGet(), this.pop,
 				RxCollection.of( new HashSet<>() ) );
 		final Geard2011HouseholdComposition hh_comp = this.hh_comp_dist.draw();
 		for( int i = 0; i < hh_comp.counts.length; i++ )
@@ -600,7 +596,7 @@ public class Geard2011Scenario implements Proactive
 							QuantityUtil.PURE ) )
 					.draw();
 
-			final Set<Integer> momUnavailableAges = new HashSet<>();
+			final Set<Range<Integer>> momUnavailableAges = new HashSet<>();
 			for( long i = growth; i > 0; i-- )
 				growPop( momUnavailableAges );
 		}
@@ -623,17 +619,20 @@ public class Geard2011Scenario implements Proactive
 		after( stepSize ).call( this::updateAll, stepSize );
 	}
 
-	protected void growPop( final Set<Integer> momUnavailableAges )
+	protected void growPop( final Set<Range<Integer>> momUnavailableAges )
 	{
 		GeardIndividual mom = null;
-		int attempt = 0;
-		while( mom == null && attempt++ < 30 )
+		int spread = 0;
+		int age = this.fertility_age_dist.draw();
+		final Range<Integer> fertilityAges = this.ageBirthing.current();
+		Range<Integer> ageRange = null;
+		while( mom == null && !fertilityAges.equals( ageRange ) )
 		{
-			int age = this.fertility_age_dist.draw();
-			while( momUnavailableAges.contains( age ) )
-				age = this.fertility_age_dist.draw();
-			momUnavailableAges.add( age );
-			mom = this.momPicker.pick( age, this.distFact.getStream() );
+			ageRange = fertilityAges
+					.crop( Range.of( age - spread, age + spread ) );
+			momUnavailableAges.add( ageRange );
+			mom = this.momPicker.pick( ageRange, this.distFact.getStream() );
+			spread++;
 		}
 		if( mom != null )
 		{
@@ -641,7 +640,7 @@ public class Geard2011Scenario implements Proactive
 					now(), false );
 			mom.household().birth( newborn );
 		} else
-			LOG.warn( "No candidate mothers available!" );
+			LOG.warn( "No candidate mothers in age range {}?", ageRange );
 	}
 
 	// if( this.dtGrowth.draw() )
@@ -655,31 +654,4 @@ public class Geard2011Scenario implements Proactive
 	 * <li>lifecycle operator (birth, eligible, match, divorce, death)
 	 * <li>morbidity operator (infect, medicate)
 	 */
-
-	/**
-	 * @param args the command line arguments
-	 * @throws Exception
-	 */
-	public static void main( final String[] args ) throws Exception
-	{
-		LOG.trace( "Initializing household composition scenario..." );
-
-		// configure replication
-		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
-				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 100 ) );
-
-		// configure tooling
-		LocalConfig.builder().withId( "geardSim" )
-				.withProvider( Scheduler.class, Dsol3Scheduler.class )
-				.withProvider( PseudoRandom.Factory.class,
-						Math3PseudoRandom.MersenneTwisterFactory.class )
-				.withProvider( ProbabilityDistribution.Factory.class,
-						Math3ProbabilityDistribution.Factory.class )
-				.withProvider( ProbabilityDistribution.Parser.class,
-						DistributionParser.class )
-				.build().createBinder().inject( Geard2011Scenario.class )
-				.scheduler().run();
-
-		LOG.info( "completed" );
-	}
 }

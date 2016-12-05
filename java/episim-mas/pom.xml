@@ -22,8 +22,6 @@
 		<!-- stand-alone runnable JAR config -->
 		<dist.dir>${basedir}/mas</dist.dir>
 		<main.class>nl.rivm.cib.episim.mas.eve.EpisimMasServer</main.class>
-
-		<maven.shade.version>2.4.3</maven.shade.version>
 	</properties>
 
 	<repositories>
@@ -89,6 +87,16 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>dsol3-coala-adapter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>vecmath</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>j3d-core</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -140,29 +148,14 @@
 				</manifest> </archive> </configuration> </plugin> -->
 
 			<!-- copy packaged artifact to distribution directory -->
-			<plugin>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>copy-jar</id>
-						<phase>package</phase>
-						<goals>
-							<goal>run</goal>
-						</goals>
-						<configuration>
-							<tasks>
-								<copy
-									file="${project.build.directory}/${project.build.finalName}.${project.packaging}"
-									tofile="${dist.dir}/${project.artifactId}.${project.packaging}" />
-							</tasks>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+			<!-- <plugin> <artifactId>maven-antrun-plugin</artifactId> <executions> 
+				<execution> <id>copy-jar</id> <phase>package</phase> <goals> <goal>run</goal> 
+				</goals> <configuration> <tasks> <copy file="${project.build.directory}/${project.build.finalName}.${project.packaging}" 
+				tofile="${dist.dir}/${project.artifactId}.${project.packaging}" /> </tasks> 
+				</configuration> </execution> </executions> </plugin> -->
 
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>${maven.shade.version}</version>
 				<executions>
 					<execution>
 						<phase>package</phase>

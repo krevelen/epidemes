@@ -25,29 +25,76 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.measure.Quantity;
-import javax.measure.quantity.Dimensionless;
+import javax.measure.quantity.Frequency;
 
+import org.aeonbits.owner.ConfigCache;
+import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
 
-import io.coala.config.YamlConfig;
+import io.coala.bind.LocalConfig;
+import io.coala.config.ConfigUtil;
+import io.coala.config.YamlUtil;
+import io.coala.exception.Thrower;
 import io.coala.log.LogUtil;
 import io.coala.math.QuantityConverter;
 import io.coala.math.WeightedValue;
 import io.coala.random.ProbabilityDistribution;
+import io.coala.time.ReplicateConfig;
+import io.coala.time.Scenario;
+import io.coala.time.TimeUnits;
+import io.coala.util.Compare;
 import io.coala.util.Comparison;
 import io.coala.util.FileUtil;
 
-interface Geard2011Config extends YamlConfig
+/**
+ * {@link GeardDemogConfig}
+ * 
+ * @version $Id$
+ * @author Rick van Krevelen
+ */
+public interface GeardDemogConfig extends ReplicateConfig
 {
+
+	@DefaultValue( "7500000" )
+	int popSize();
+
+	@DefaultValue( "0.08 " + TimeUnits.ANNUAL_LABEL )
+	@ConverterClass( QuantityConverter.class )
+	Quantity<Frequency> couplingProportion();
+
+	@DefaultValue( "0.02 " + TimeUnits.ANNUAL_LABEL )
+	@ConverterClass( QuantityConverter.class )
+	Quantity<Frequency> leavingProportion();
+
+	@DefaultValue( "0.01 " + TimeUnits.ANNUAL_LABEL )
+	@ConverterClass( QuantityConverter.class )
+	Quantity<Frequency> divorcingProportion();
+
+//	this.growthRate = Signal.Simple.of( this.scheduler,
+//			QuantityUtil.valueOf( 0.01, TimeUnits.ANNUAL ) );
+//	this.immigrationRate = Signal.Simple.of( this.scheduler,
+//			QuantityUtil.valueOf( 0, TimeUnits.ANNUAL ) );
+//	this.ageBirthing = Signal.Simple.of( scheduler, Range.of( 15, 50 ) );
+//	this.ageCoupling = Signal.Simple.of( scheduler, Range.of( 21, 60 ) );
+//	this.ageLeaving = Signal.Simple.of( scheduler, Range.of( 18, null ) );
+//	this.ageDivorcing = Signal.Simple.of( scheduler, Range.of( 24, 60 ) );
+//	this.agePartner = this.distFact.createNormal( -2, 2 )
+//			.toQuantities( TimeUnits.ANNUM );
+//	this.birthGap = this.distFact.createDeterministic( 270 )
+//			.toQuantities( TimeUnits.DAYS );
+
 	@DefaultValue( "sim-demog/" )
 	String dataDir();
 
@@ -90,7 +137,7 @@ interface Geard2011Config extends YamlConfig
 
 	Pattern VALUE_SEP = Pattern.compile( "\\s" );
 
-	Logger LOG = LogUtil.getLogger( Geard2011Config.class );
+	Logger LOG = LogUtil.getLogger( GeardDemogConfig.class );
 
 	static <T> List<WeightedValue<T>> importFrequencies( final URI path,
 		final int weightColumn, final Function<String, T> parser )
@@ -112,8 +159,7 @@ interface Geard2011Config extends YamlConfig
 				final String[] values = VALUE_SEP.split( line, 2 );
 				final BigDecimal weight = new BigDecimal(
 						values[weightColumn] );
-				if( Comparison.of( weight,
-						BigDecimal.ZERO ) != Comparison.GREATER )
+				if( Compare.ge( BigDecimal.ZERO, weight ) )
 					LOG.warn( "Ignoring value '{}' with weight: {} ({}:{})",
 							values[valueIndex], weight, path, lineNr );
 				else
@@ -196,18 +242,65 @@ interface Geard2011Config extends YamlConfig
 		throw new IOException( "No cut-offs found in file at: " + path );
 	}
 
-	@DefaultValue( "0.08" )
-	@ConverterClass( QuantityConverter.class )
-	Quantity<Dimensionless> annualIndividualCouplingProbability();
+	String GEARD_YAML_FILE = "geard-demog.yaml";
 
-	@DefaultValue( "0.02" )
-	@ConverterClass( QuantityConverter.class )
-	Quantity<Dimensionless> annualIndividualLeavingProbability();
+	String SCENARIO_NAME = "geard";
 
-	@DefaultValue( "0.01" )
-	@ConverterClass( QuantityConverter.class )
-	Quantity<Dimensionless> annualIndividualDivorcingProbability();
+	String SCENARIO_TYPE_KEY = SCENARIO_NAME + KEY_SEP + "init";
 
-	@DefaultValue( "7500000" )
-	int popSize();
+	@Key( SCENARIO_TYPE_KEY )
+	@DefaultValue( "nl.rivm.cib.episim.geard.GeardDemogScenario" )
+	Class<? extends Scenario> scenarioType();
+
+	default Scenario createScenario()
+	{
+		final Map<String, Object> export = ConfigUtil.export( this );
+		export.put( ReplicateConfig.ID_KEY, SCENARIO_NAME );
+		export.put( LocalConfig.ID_KEY, SCENARIO_NAME );
+
+		// configure replication FIXME via LocalConfig?
+		ReplicateConfig.getOrCreate( export );
+
+		return ConfigFactory.create( LocalConfig.class, export ).createBinder()
+				.inject( scenarioType() );
+	}
+
+	/**
+	 * @param imports optional extra configuration settings
+	 * @return the imported values
+	 * @throws IOException if reading from {@link #GEARD_YAML_FILE} fails
+	 */
+	static GeardDemogConfig getOrFromYaml( final Map<?, ?>... imports )
+	{
+		try
+		{
+			return ConfigCache.getOrCreate( SCENARIO_NAME,
+					GeardDemogConfig.class,
+					ConfigUtil.join(
+							YamlUtil.flattenYaml(
+									FileUtil.toInputStream( GEARD_YAML_FILE ) ),
+							imports ) );
+		} catch( final IOException e )
+		{
+			return Thrower.rethrowUnchecked( e );
+		}
+	}
+
+	/**
+	 * @param args the command line arguments
+	 * @throws IOException if reading from {@link #GEARD_YAML_FILE} fails
+	 */
+	static void main( final String[] args ) throws IOException
+	{
+		final Map<?, ?> argMap = Arrays.asList( args ).stream()
+				.filter( arg -> arg.contains( "=" ) )
+				.map( arg -> arg.split( "=" ) ).collect( Collectors
+						.toMap( parts -> parts[0], parts -> parts[1] ) );
+		final GeardDemogConfig config = getOrFromYaml( argMap );
+		LogUtil.getLogger( GeardDemogConfig.class )
+				.info( "GEARD scenario starting, config: {}", config.toYAML() );
+		config.createScenario().run();
+		LogUtil.getLogger( GeardDemogConfig.class ).info( "GEARD completed" );
+	}
+
 }

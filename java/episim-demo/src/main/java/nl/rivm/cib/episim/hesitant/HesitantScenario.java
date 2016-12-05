@@ -483,7 +483,7 @@ public class HesitantScenario implements Scenario
 		@DefaultValue( "cauchy(45 day;3.5 day)" )
 		String myVaccinationDelayDist();
 
-		@DefaultValue( "[25 day;+inf>" )
+		@DefaultValue( "[25 day;125 day>" )
 		String myVaccinationDelayRange();
 	}
 
@@ -541,7 +541,7 @@ public class HesitantScenario implements Scenario
 		String occasionAffinity();
 	}
 
-	private final ScenarioConfig config = ScenarioConfig.getOrFromYaml();
+	private final HesitantConfig config = HesitantConfig.getOrFromYaml();
 
 	@Inject
 	private ProbabilityDistribution.Parser distParser;

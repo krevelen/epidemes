@@ -40,9 +40,9 @@ import nl.rivm.cib.episim.hesitant.HesitantScenario.HealthOrg;
 import nl.rivm.cib.episim.hesitant.HesitantScenario.PersonOrg;
 
 /**
- * {@link ScenarioConfig}
+ * {@link HesitantConfig}
  */
-public interface ScenarioConfig extends ReplicateConfig//, LocalConfig
+public interface HesitantConfig extends ReplicateConfig//, LocalConfig
 {
 
 	String HESITANT_YAML_FILE = "hesitant.yaml";
@@ -90,11 +90,11 @@ public interface ScenarioConfig extends ReplicateConfig//, LocalConfig
 	 * @return the imported values
 	 * @throws IOException if reading from {@link #HESITANT_YAML_FILE} fails
 	 */
-	static ScenarioConfig getOrFromYaml( final Map<?, ?>... imports )
+	static HesitantConfig getOrFromYaml( final Map<?, ?>... imports )
 	{
 		try
 		{
-			return ConfigCache.getOrCreate( SCENARIO_NAME, ScenarioConfig.class,
+			return ConfigCache.getOrCreate( SCENARIO_NAME, HesitantConfig.class,
 					ConfigUtil.join(
 							YamlUtil.flattenYaml( FileUtil
 									.toInputStream( HESITANT_YAML_FILE ) ),
@@ -115,10 +115,10 @@ public interface ScenarioConfig extends ReplicateConfig//, LocalConfig
 				.filter( arg -> arg.contains( "=" ) )
 				.map( arg -> arg.split( "=" ) ).collect( Collectors
 						.toMap( parts -> parts[0], parts -> parts[1] ) );
-		final ScenarioConfig config = getOrFromYaml( argMap );
-		LogUtil.getLogger( ScenarioConfig.class ).info(
+		final HesitantConfig config = getOrFromYaml( argMap );
+		LogUtil.getLogger( HesitantConfig.class ).info(
 				"HESITANT scenario starting, config: {}", config.toYAML() );
 		config.createScenario().run();
-		LogUtil.getLogger( ScenarioConfig.class ).info( "HESITANT completed" );
+		LogUtil.getLogger( HesitantConfig.class ).info( "HESITANT completed" );
 	}
 }

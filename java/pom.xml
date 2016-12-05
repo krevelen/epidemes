@@ -129,6 +129,7 @@
 			from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
 		<maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
 		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
+		<maven-shade-plugin.version>2.4.3</maven-shade-plugin.version>
 		<exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
 		<build-helper-maven-plugin.version>1.10</build-helper-maven-plugin.version>
 	</properties>
@@ -340,6 +341,10 @@
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>${maven-assembly-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-shade-plugin</artifactId>
+					<version>${maven-shade-plugin.version}</version>
 				</plugin>
 				<plugin>
 					<artifactId>maven-deploy-plugin</artifactId>

@@ -1,0 +1,22 @@
+# default configuration for all binders
+
+binder:
+  providers:
+
+# the Scheduler implementations
+  - impl: "io.coala.dsol3.Dsol3Scheduler"
+    bindings:
+    - type: "io.coala.time.Scheduler"
+        
+# the pseudo-random implementations
+  - impl: "io.coala.math3.Math3PseudoRandom$MersenneTwisterFactory"
+    bindings:
+    - type: "io.coala.random.PseudoRandom$Factory"
+  - impl: "io.coala.math3.Math3ProbabilityDistribution$Factory"
+    bindings:
+    - type: "io.coala.random.ProbabilityDistribution$Factory"
+  - impl: "io.coala.random.DistributionParser"
+    bindings:
+    - type: "io.coala.random.ProbabilityDistribution$Parser"
+
+popSize: 180000
