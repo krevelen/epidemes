@@ -229,12 +229,12 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 				myConfidence, myComplacency, myCalculation );
 	}
 
-	static WeightedAverager weightedAverager( //final Actor.ID myRef,
-		final Number myConfidence, final Number myComplacency,
-		final Number myCalculation, final Function<Actor.ID, Number> reputer )
+	static WeightedAverager weightedAverager( final Number myConfidence,
+		final Number myComplacency, final Number myCalculation,
+		final Function<Actor.ID, Number> appreciator )
 	{
 		return new WeightedAverager( //myRef,
-				myConfidence, myComplacency, myCalculation, reputer );
+				myConfidence, myComplacency, myCalculation, appreciator );
 	}
 
 	/**
@@ -250,7 +250,7 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	{
 //		private final Actor.ID myRef;
 
-		private final Function<Actor.ID, BigDecimal> reputer;
+		private final Function<Actor.ID, BigDecimal> appreciator;
 
 		/** (dynamic) argument "memory" of an individual */
 		@JsonProperty
@@ -263,9 +263,8 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 
 		private BigDecimal calculation;
 
-		public WeightedAverager( //final Actor.ID myRef,
-			final Number myConfidence, final Number myComplacency,
-			final Number myCalculation )
+		public WeightedAverager( final Number myConfidence,
+			final Number myComplacency, final Number myCalculation )
 		{
 			this( //myRef, 
 					myConfidence, myComplacency, myCalculation,
@@ -275,20 +274,14 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 		public WeightedAverager( // final Actor.ID myRef,
 			final Number myConfidence, final Number myComplacency,
 			final Number myCalculation,
-			final Function<Actor.ID, Number> reputer )
+			final Function<Actor.ID, Number> appreciator )
 		{
 			setCalculation( myCalculation );
-			this.reputer = id -> DecimalUtil.valueOf( reputer.apply( id ) );
-//			this.myRef = myRef;
+			this.appreciator = id -> DecimalUtil
+					.valueOf( appreciator.apply( id ) );
 			this.myDefault = toPosition( myConfidence, myComplacency );
 			reset();
 		}
-
-//		@Override
-//		public ID id()
-//		{
-//			return this.myRef;
-//		}
 
 		@Override
 		public void setCalculation( final Number calculation )
@@ -308,9 +301,6 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 		public void observe( final Actor.ID ref, final Number confidence,
 			final Number complacency )
 		{
-//			if( ref.equals( this.myRef ) )
-//				Thrower.throwNew( IllegalArgumentException.class,
-//						"Another can't generate own position" );
 			this.positions.put( ref, toPosition( confidence, complacency ) );
 			reset();
 		}
@@ -318,7 +308,7 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 		@Override
 		public BigDecimal getAppreciation( final Actor.ID sourceRef )
 		{
-			return this.reputer.apply( sourceRef );
+			return this.appreciator.apply( sourceRef );
 		}
 
 		enum Index
