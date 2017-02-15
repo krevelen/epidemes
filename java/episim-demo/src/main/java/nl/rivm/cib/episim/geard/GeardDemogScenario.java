@@ -159,10 +159,10 @@ public class GeardDemogScenario implements Scenario
 				private final RxCollection<GeardIndividual> partners = RxCollection
 						.of( new HashSet<>() );
 
-				private final Range<Instant> fertilityInterval = fertilityAges == null
-						? null
-						: MotherPicker.birthToAgeInterval( birth,
-								fertilityAges );
+//				private final Range<Instant> fertilityInterval = fertilityAges == null
+//						? null
+//						: MotherPicker.birthToAgeInterval( birth,
+//								fertilityAges );
 
 				@Override
 				public Scheduler scheduler()
@@ -200,17 +200,17 @@ public class GeardDemogScenario implements Scenario
 					return homeMaker;
 				}
 
-				@Override
-				public Range<Instant> fertilityInterval()
-				{
-					return this.fertilityInterval;
-				}
-
-				@Override
-				public Quantity<Time> recoveryPeriod()
-				{
-					return recoveryPeriod;
-				}
+//				@Override
+//				public Range<Instant> fertilityInterval()
+//				{
+//					return this.fertilityInterval;
+//				}
+//
+//				@Override
+//				public Quantity<Time> recoveryPeriod()
+//				{
+//					return recoveryPeriod;
+//				}
 
 				@Override
 				public String toString()
@@ -263,12 +263,6 @@ public class GeardDemogScenario implements Scenario
 
 	private MotherPicker<GeardIndividual> momPicker;
 
-	// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
-	// http://statline.cbs.nl/StatWeb/publication/?VW=T&DM=SLNL&PA=70895ned&LA=NL
-
-	// CBS 83190ned: overledenen in huishouden per leeftijd
-	// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83190ned&D1=0&D2=0&D3=a&D4=0%2c2-3%2c5&D5=a&HDR=T%2cG2%2cG3&STB=G1%2cG4&VW=T
-
 	/** */
 	ProbabilityDistribution<Geard2011HouseholdComposition> hh_comp_dist;
 
@@ -312,7 +306,6 @@ public class GeardDemogScenario implements Scenario
 	Signal<Range<Integer>> ageDivorcing;
 	QuantityDistribution<Time> agePartner;
 
-	// TODO @InjectConfig(configType=Geard2011Config.class, methodName=...)
 	QuantityDistribution<Time> birthGap;
 
 	@Override
@@ -629,7 +622,7 @@ public class GeardDemogScenario implements Scenario
 		while( mom == null && !fertilityAges.equals( ageRange ) )
 		{
 			ageRange = fertilityAges
-					.crop( Range.of( age - spread, age + spread ) );
+					.intersect( Range.of( age - spread, age + spread ) );
 			momUnavailableAges.add( ageRange );
 			mom = this.momPicker.pick( ageRange, this.distFact.getStream() );
 			spread++;

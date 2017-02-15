@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
 
+import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
 import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
@@ -36,13 +37,11 @@ import io.coala.log.LogUtil;
 import io.coala.time.ReplicateConfig;
 import io.coala.time.Scenario;
 import io.coala.util.FileUtil;
-import nl.rivm.cib.episim.hesitant.HesitantScenario.HealthOrg;
-import nl.rivm.cib.episim.hesitant.HesitantScenario.PersonOrg;
 
 /**
- * {@link HesitantConfig}
+ * {@link HesitantScenarioConfig}
  */
-public interface HesitantConfig extends ReplicateConfig//, LocalConfig
+public interface HesitantScenarioConfig extends ReplicateConfig//, LocalConfig
 {
 
 	String HESITANT_YAML_FILE = "hesitant.yaml";
@@ -62,7 +61,7 @@ public interface HesitantConfig extends ReplicateConfig//, LocalConfig
 	@Override // add new default value
 	BigDecimal rawDuration();
 
-	default Scenario createScenario()
+	default LocalBinder createBinder()
 	{
 		final Map<String, Object> export = ConfigUtil.export( this );
 		export.put( ReplicateConfig.ID_KEY, SCENARIO_NAME );
@@ -71,18 +70,22 @@ public interface HesitantConfig extends ReplicateConfig//, LocalConfig
 		// configure replication FIXME via LocalConfig?
 		ReplicateConfig.getOrCreate( export );
 
-		return ConfigFactory.create( LocalConfig.class, export ).createBinder()
-				.inject( scenarioType() );
+		return ConfigFactory.create( LocalConfig.class, export ).createBinder();
 	}
 
-	default HealthOrg healthOrg()
+	default Scenario createScenario()
 	{
-		return subConfig( HealthOrg.BASE_KEY, HealthOrg.class );
+		return createBinder().inject( scenarioType() );
 	}
 
-	default PersonOrg personOrg()
+	default HealthConfig healthOrg()
 	{
-		return subConfig( PersonOrg.BASE_KEY, PersonOrg.class );
+		return subConfig( HealthConfig.BASE_KEY, HealthConfig.class );
+	}
+
+	default PersonConfig personOrg()
+	{
+		return subConfig( PersonConfig.BASE_KEY, PersonConfig.class );
 	}
 
 	/**
@@ -90,11 +93,12 @@ public interface HesitantConfig extends ReplicateConfig//, LocalConfig
 	 * @return the imported values
 	 * @throws IOException if reading from {@link #HESITANT_YAML_FILE} fails
 	 */
-	static HesitantConfig getOrFromYaml( final Map<?, ?>... imports )
+	static HesitantScenarioConfig getOrFromYaml( final Map<?, ?>... imports )
 	{
 		try
 		{
-			return ConfigCache.getOrCreate( SCENARIO_NAME, HesitantConfig.class,
+			return ConfigCache.getOrCreate( SCENARIO_NAME,
+					HesitantScenarioConfig.class,
 					ConfigUtil.join(
 							YamlUtil.flattenYaml( FileUtil
 									.toInputStream( HESITANT_YAML_FILE ) ),
@@ -115,10 +119,11 @@ public interface HesitantConfig extends ReplicateConfig//, LocalConfig
 				.filter( arg -> arg.contains( "=" ) )
 				.map( arg -> arg.split( "=" ) ).collect( Collectors
 						.toMap( parts -> parts[0], parts -> parts[1] ) );
-		final HesitantConfig config = getOrFromYaml( argMap );
-		LogUtil.getLogger( HesitantConfig.class ).info(
+		final HesitantScenarioConfig config = getOrFromYaml( argMap );
+		LogUtil.getLogger( HesitantScenarioConfig.class ).info(
 				"HESITANT scenario starting, config: {}", config.toYAML() );
 		config.createScenario().run();
-		LogUtil.getLogger( HesitantConfig.class ).info( "HESITANT completed" );
+		LogUtil.getLogger( HesitantScenarioConfig.class )
+				.info( "HESITANT completed" );
 	}
 }

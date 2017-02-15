@@ -19,18 +19,17 @@
  */
 package nl.rivm.cib.episim.pilot;
 
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.function.Consumer;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.measure.Quantity;
+import javax.measure.quantity.Dimensionless;
+import javax.measure.quantity.Time;
 
-import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 
 import io.coala.enterprise.Actor;
@@ -39,10 +38,24 @@ import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
-import io.coala.persist.JDBCConfig;
+import io.coala.random.ProbabilityDistribution;
+import io.coala.rx.RxCollection;
 import io.coala.time.Duration;
+import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
+import io.coala.time.Signal;
+import nl.rivm.cib.episim.geard.GeardDemogConfig;
+import nl.rivm.cib.episim.model.Gender;
+import nl.rivm.cib.episim.model.Partner;
+import nl.rivm.cib.episim.model.locate.Locatable;
+import nl.rivm.cib.episim.model.locate.Place;
+import nl.rivm.cib.episim.model.person.Household;
+import nl.rivm.cib.episim.model.person.HouseholdParticipant;
+import nl.rivm.cib.episim.model.person.HouseholdPopulation;
+import nl.rivm.cib.episim.model.person.MotherPicker;
+import nl.rivm.cib.episim.model.person.Participant;
+import nl.rivm.cib.episim.model.person.Population;
 
 @Singleton
 public class EcosystemScenario implements Proactive
@@ -176,23 +189,6 @@ public class EcosystemScenario implements Proactive
 
 	}
 
-	public interface Individual extends Actor<IndividualFact>
-	{
-		String birth();
-
-		String gender();
-
-		String location(); // should be consistent with activity site/vehicle
-
-//		String lifephase(); // automaton based on age
-//
-//		Condition condition(); // default fall-back?
-//
-//		VaccineAttitude attitude(); // default fall-back?
-//
-//		Activity activity(); // belongs to a (common) routine pattern instance
-	}
-
 	public interface IndividualFact extends Fact
 	{
 
@@ -238,14 +234,14 @@ public class EcosystemScenario implements Proactive
 
 	}
 
-	/** A12 {@link Guardian} executes T12 {@link Population} requests */
-	public interface Demographer extends Actor<Population>
+	/** A12 {@link Guardian} executes T12 {@link Disruption} requests */
+	public interface Demographer extends Actor<Disruption>
 	{
 
 	}
 
-	/** T12 {@link Population} initiator(s): {@link Deme} */
-	public interface Population extends DemeFact
+	/** T12 {@link Disruption} initiator(s): {@link Deme} */
+	public interface Disruption extends DemeFact
 	{
 
 	}
@@ -261,11 +257,121 @@ public class EcosystemScenario implements Proactive
 	{
 	}
 
+	private static long INDIVIDUAL_COUNT = 0;
+
+	private static class Individual implements Partner, HouseholdParticipant,
+		MotherPicker.Mother, Identified.Ordinal<String>, Locatable
+	{
+
+//		String location(); // should be consistent with activity site/vehicle
+//
+//		String lifephase(); // automaton based on age
+//
+//		Condition condition(); // default fall-back?
+//
+//		VaccineAttitude attitude(); // default fall-back?
+//
+//		Activity activity(); // belongs to a (common) routine pattern instance
+
+		private final String id = "IND" + INDIVIDUAL_COUNT++;
+
+		private final RxCollection<Individual> partners = RxCollection
+				.of( new HashSet<>() );
+
+		private Household<Individual> household;
+		private Instant birth;
+		private Gender gender;
+		private boolean homeMaker;
+		private Signal<Place> place;
+
+		public static Individual of( final Household<Individual> household,
+			final Instant birth, final Gender gender, final boolean homeMaker,
+			final Place startLocation )
+		{
+			final Individual result = new Individual();
+			result.household = household;
+			result.birth = birth;
+			result.gender = gender;
+			result.homeMaker = homeMaker;
+			result.place = Signal.Simple.of( household.scheduler(),
+					startLocation );
+			return result;
+		}
+
+		@Override
+		public String id()
+		{
+			return this.id;
+		}
+
+		@Override
+		public Scheduler scheduler()
+		{
+			return this.household.scheduler();
+		}
+
+		@Override
+		public Household<Individual> household()
+		{
+			return this.household;
+		}
+
+		@Override
+		public RxCollection<Individual> partners()
+		{
+			return this.partners;
+		}
+
+		@Override
+		public Instant born()
+		{
+			return this.birth;
+		}
+
+		@Override
+		public Gender gender()
+		{
+			return this.gender;
+		}
+
+		@Override
+		public HouseholdPopulation<Individual> population()
+		{
+			return this.household.population();
+		}
+
+		@Override
+		public String toString()
+		{
+			return id();
+		}
+
+		@Override
+		public Signal<Place> place()
+		{
+			return this.place;
+		}
+	}
+
 	/** */
 	private static final Logger LOG = LogUtil
 			.getLogger( EcosystemScenario.class );
 
-	private final Scheduler scheduler;
+	@Inject
+	private Scheduler scheduler;
+
+	@Inject
+	private ProbabilityDistribution.Factory distFact;
+
+	private GeardDemogConfig conf = GeardDemogConfig.getOrFromYaml();
+
+	private Quantity<Time> dt;
+
+	private Quantity<Dimensionless> yearsPerDt;
+
+	private HouseholdPopulation<Individual> pop;
+
+	private MotherPicker<Individual> momPicker;
 
 	@Inject
 	private Actor.Factory actors;
@@ -295,6 +401,51 @@ public class EcosystemScenario implements Proactive
 						Runtime.getRuntime().totalMemory() ) ) );
 	}
 
+	interface Hierarchical<T extends Comparable<? super T>, THIS extends Hierarchical<T, THIS>>
+	{
+		T scale();
+
+		THIS outer(); // null for root / top
+
+		RxCollection<THIS> inner(); // null or empty for leaf / bottom
+	}
+
+	enum GroupLevel
+	{
+		POPULATION, // top aggregation
+		ETHNICITY, // 
+		HOUSEHOLD, // smallest unit
+		;
+	}
+
+	interface Group extends Hierarchical<GroupLevel, Group>,
+		Population<Participant>, Participant
+	{
+
+	}
+
+	enum TerritoryLevel
+	{
+		FEDERATION, // EU, NATO, ...
+		NATION, // country
+		REGION, // state, landsdeel
+		ZONE, // district, subregion (security/safety corop, ggd, province)
+		DISTRICT, // county, department
+		CITY, // metropolitan, municipal
+		BUROUGH, // central, suburb
+		WARD, // block
+		ROAD, // street, railway, shipping lane, ...
+		ADDRESS, // home, apartment
+		;
+
+		// transporter, modality, vehicle ?
+	}
+
+	interface Territory extends Hierarchical<TerritoryLevel, Territory>, Place
+	{
+
+	}
+
 	/**
 	 * <ol>
 	 * <li>init (contact, transport, care) location networks</li>
@@ -304,208 +455,130 @@ public class EcosystemScenario implements Proactive
 	 * <li>run opinion-immunization\\contact-transmission events</li>
 	 * </ol>
 	 * 
+	 * region [vacc degree, pop size, pop age dist, hh age dist]
+	 * 
 	 * @throws ParseException
 	 */
 	private void init() throws ParseException
 	{
-		EcosystemScenarioTest.LOG.info( "initializing..." );
+		LOG.info( "initializing..." );
 
-		// create organization
-		int total = 160000;
-		long clock = System.currentTimeMillis();
-		for( int i = 0; i < total; i++ )
-		{
-			if( System.currentTimeMillis() - clock > 1000 )
-			{
-				logProgress( i, total );
-				clock = System.currentTimeMillis();
-			}
-//			final Actor<Fact> person = 
-			this.actors.create( "person" + i );
-//				final Mother mother = person.asExecutor( //Birth.class,
-//						Mother.class );
+		// FIXME apply outcome-driven event generation pruning
+
+		// person: { activity[stepId], disease[ condition[stepId], attitude[stepId] ] }
+
+		// calculate vaccination degree = #vacc / #non-vacc, given:
+		//   disease/vaccine v 
+		//   region(s) r
+		//   cohort birth range [t1,t2]
+
+//		final Mother mother = person.asExecutor( //Birth.class,
+//				Mother.class );
 //
-//				// add business rule(s)
-//				mother.emit( FactKind.REQUESTED ).subscribe( fact ->
+//		// add business rule(s)
+//		mother.emit( FactKind.REQUESTED ).subscribe( fact ->
+//		{
+//			after( Duration.of( 1, Units.DAYS ) ).call( t ->
+//			{
+//				final Birth st = mother.respond( fact, FactKind.STATED )
+//						.with( "myParam1", "myValue1" ).commit( true );
+//				LOG.trace( "t={}, {} responded: {} for incoming: {}",
+//						t.prettify( this.actors.offset() ), mother.id(),
+//						st, fact );
+//			} );
+//		} );
+//
+//		// initiate transactions with self
+//		atEach( Timing.of( "0 0 0 14 * ? *" )
+//				.offset( this.actors.offset() ).iterate(), t ->
 //				{
-//					after( Duration.of( 1, Units.DAYS ) ).call( t ->
-//					{
-//						final Birth st = mother.respond( fact, FactKind.STATED )
-//								.with( "myParam1", "myValue1" ).commit( true );
-//						LOG.trace( "t={}, {} responded: {} for incoming: {}",
-//								t.prettify( this.actors.offset() ), mother.id(),
-//								st, fact );
-//					} );
+//					mother.initiate( Birth.class, mother.id(), null,
+//							t.add( 1 ), Collections.singletonMap(
+//									"myParam0", "myValue0" ) );
 //				} );
+
+//		//final Set<Individual> pop = new HashSet<>();
+//	//	final Set<Location> homes = new HashSet<>();
+//	//	final int n_homes = 6000000;
+//	//	final Set<Location> offices = new HashSet<>();
+//	//	final int n_offices = 3000000;
+//		final Infection measles = new Infection.Simple(
+//				Amount.valueOf( 1, Units.DAILY ), Duration.of( "2 days" ),
+//				Duration.of( "5 days" ), Duration.of( "9999 days" ),
+//				Duration.of( "3 days" ), Duration.of( "7 days" ) );
+//		
+//		final TransmissionRoute route = TransmissionRoute.AIRBORNE;
+//		final TransmissionSpace space = TransmissionSpace.of( scheduler,
+//				route );
+//		final Place rivm = Place.Simple.of( Place.RIVM_POSITION, Place.NO_ZIP,
+//				space );
+//		
+//		final Collection<ContactIntensity> contactTypes = Collections
+//				.singleton( ContactIntensity.FAMILY );
+//		final Amount<Frequency> force = measles.getForceOfInfection(
+//				rivm.getTransmissionSpace().getTransmissionRoutes(), contactTypes );
+//		final Duration contactPeriod = Duration.of( "10 h" );
+//		final double infectLikelihood = force.times( contactPeriod.toAmount() )
+//				.to( Unit.ONE ).getEstimatedValue();
+//		LOG.trace( "Infection likelihood: {} * {} * {} = {}", force,
+//				contactPeriod, Arrays.asList( contactTypes ),
+//				infectLikelihood );
+
+//		final ProbabilityDistribution<Gender> genderDist = distFact
+//				.createUniformCategorical( Gender.MALE, Gender.FEMALE );
+//		final ProbabilityDistribution<Instant> birthDist = this.distFact
+//				.createUniformDiscrete( -5, 0 ).toQuantities( TimeUnits.DAYS )
+//				.map( Instant::of );
 //
-//				// initiate transactions with self
-//				atEach( Timing.of( "0 0 0 14 * ? *" )
-//						.offset( this.actors.offset() ).iterate(), t ->
-//						{
-//							mother.initiate( Birth.class, mother.id(), null,
-//									t.add( 1 ), Collections.singletonMap(
-//											"myParam0", "myValue0" ) );
-//						} );
-
-			//
-//			Units.DAILY.toString(); // init new unit
-//			final Scheduler scheduler = Dsol3Scheduler.of( "scenarioTest",
-//					Instant.of( "0 days" ), Duration.of( "100 days" ), s ->
-//					{
-//						LOG.trace( "initialized, t={}",
-//								s.now().prettify( NonSI.DAY, 1 ) );
-//					} );
-			//
-//			//final Set<Individual> pop = new HashSet<>();
-//			final int n_pop = 10;
-////			final Set<Location> homes = new HashSet<>();
-////			final int n_homes = 6000000;
-////			final Set<Location> offices = new HashSet<>();
-////			final int n_offices = 3000000;
-//			final Infection measles = new Infection.Simple(
-//					Amount.valueOf( 1, Units.DAILY ), Duration.of( "2 days" ),
-//					Duration.of( "5 days" ), Duration.of( "9999 days" ),
-//					Duration.of( "3 days" ), Duration.of( "7 days" ) );
-			//
-//			final TransmissionRoute route = TransmissionRoute.AIRBORNE;
-//			final TransmissionSpace space = TransmissionSpace.of( scheduler,
-//					route );
-//			final Place rivm = Place.Simple.of( Place.RIVM_POSITION, Place.NO_ZIP,
-//					space );
-			//
-//			final Collection<ContactIntensity> contactTypes = Collections
-//					.singleton( ContactIntensity.FAMILY );
-//			final Amount<Frequency> force = measles.getForceOfInfection(
-//					rivm.getTransmissionSpace().getTransmissionRoutes(), contactTypes );
-//			final Duration contactPeriod = Duration.of( "10 h" );
-//			final double infectLikelihood = force.times( contactPeriod.toAmount() )
-//					.to( Unit.ONE ).getEstimatedValue();
-//			LOG.trace( "Infection likelihood: {} * {} * {} = {}", force,
-//					contactPeriod, Arrays.asList( contactTypes ),
-//					infectLikelihood );
-			//
-//			final DistributionParser distParser = new DistributionParser(
-//					Math3ProbabilityDistribution.Factory
-//							.of( Math3PseudoRandom.Factory
-//									.of( MersenneTwister.class )
-//									.create( "MAIN", 1234L ) ) );
-//			final ProbabilityDistribution<Gender> genderDist = distParser
-//					.getFactory()
-//					.createUniformCategorical( Gender.MALE, Gender.FEMALE );
-//			/*
-//			 * FIXME RandomDistribution. Util .valueOf( "uniform(male;female)",
-//			 * distParser, Gender.class );
-//			 */
-//			final ProbabilityDistribution<Instant> birthDist = Instant
-//					.of( /* distFactory.getUniformInteger( rng, -5, 0 ) */
-//							distParser.parse( "uniform-discrete(-5;0)",
-//									Integer.class ),
-//							NonSI.DAY );
-//			final CountDownLatch latch = new CountDownLatch( 1 );
-//			final Population pop = Population.Simple.of( scheduler );
-//			for( int i = 1; i < n_pop; i++ )
-//			{
-//				final Gender gender = genderDist.draw();
-//				final Instant birth = birthDist.draw();
-//				LOG.trace( "#{} - gender: {}, birth: {}", i, gender,
-//						birth.prettify( NonSI.DAY, 1 ) );
-//				final Individual ind = Individual.Simple.of(
-//						Household.Simple.of( pop, rivm ), birth, gender,
-//						rivm.getTransmissionSpace(), false );
-//				ind.with( Condition.Simple.of( ind, measles ) );
+//		final Population pop = Population.of( "pop",
+//				RxCollection.of( new HashSet<>() ), this.scheduler );
+//		final MotherPicker mothers = null;
+//		final Range<Integer> fertilityAges = null;
+//		final Quantity<Time> recoveryPeriod = null;
+//
+//		// create organization
+//		int n_pop = 160000;
+//		long clock = System.currentTimeMillis();
+//		for( int i = 0; i < n_pop; i++ )
+//		{
+//
+//			final Actor<Fact> person = this.actors.create( "person" + i );
+//			household.population().members().add( this );
+//			household.members().add( this );
+//			final Range<Instant> fertilityInterval = fertilityAges == null
+//					? null
+//					: MotherPicker.birthToAgeInterval( birth, fertilityAges );
+//			mothers.registerDuring( this, fertilityInterval );
+////			mothers.pickAndRemoveFor( );
+//
+//			final Gender gender = genderDist.draw();
+//			final Instant birth = birthDist.draw();
+//			LOG.trace( "#{} - gender: {}, birth: {}", i, gender,
+//					birth.prettify( TimeUnits.DAY, 1 ) );
+//			final Individual ind = Individual.of(
+//					Household.Simple.of( pop, rivm ), birth, gender,
+//					rivm.getTransmissionSpace(), false );
+//			ind.with( Condition.Simple.of( ind, measles ) );
 ////				pop.add( ind );
-//				final int nr = i;
-//				ind.afflictions().get( measles ).emitTransitions()
-//						.subscribe( ( t ) ->
-//						{
-//							LOG.trace( "Transition for #{} at t={}: {}", nr,
-//									scheduler.now().prettify( Units.HOURS, 1 ), t );
-//						}, ( e ) ->
-//						{
-//							LOG.warn( "Problem in transition", e );
-//						}, () ->
-//						{
-//							latch.countDown();
-//						} );
-//				if( distParser.getFactory().getStream()
-//						.nextDouble() < infectLikelihood )
-//				{
-//					LOG.trace( "INFECTED #{}", i );
-//					ind.after( Duration.of( "30 min" ) )
-//							.call( ind.afflictions().get( measles )::infect );
-//				}
-//			}
-//			scheduler.time().subscribe( t ->
+//			final int nr = i;
+//			ind.afflictions().get( measles ).emitTransitions().subscribe(
+//					t -> LOG.trace( "Transition for #{} at t={}: {}", nr,
+//							scheduler.now().prettify( Units.HOURS, 1 ), t ),
+//					e -> LOG.warn( "Problem in transition", e ) );
+//			if( distParser.getFactory().getStream()
+//					.nextDouble() < infectLikelihood )
 //			{
-//				LOG.trace( "t = {}", t.prettify( NonSI.DAY, 1 ) );
-//			}, e -> LOG.warn( "Problem in scheduler", e ), latch::countDown );
-//			scheduler.resume();
-//			latch.await( 3, TimeUnit.SECONDS );
-//			assertEquals( "Should have completed", 0, latch.getCount() );
-			//
-		}
-	}
-
-	// CBS 70895ned: Overledenen; geslacht en leeftijd, per week
-	// http://statline.cbs.nl/StatWeb/publication/?VW=T&DM=SLNL&PA=70895ned&LA=NL
-
-	// CBS 83190ned: overledenen in huishouden per leeftijd
-	// http://statline.cbs.nl/Statweb/publication/?DM=SLNL&PA=83190ned&D1=0&D2=0&D3=a&D4=0%2c2-3%2c5&D5=a&HDR=T%2cG2%2cG3&STB=G1%2cG4&VW=T
-
-	interface MyHypersonicConfig extends JDBCConfig
-	{
-		@DefaultValue( "org.hsqldb.jdbc.JDBCDriver" )
-		String driver();
-
-//		@DefaultValue( "jdbc:mysql://localhost/testdb" )
-//		@DefaultValue( "jdbc:hsqldb:mem:mymemdb" )
-		@DefaultValue( "jdbc:hsqldb:file:target/testdb" )
-		String url();
-
-		@DefaultValue( "SA" )
-		String username();
-
-		@DefaultValue( "" )
-		String password();
-
-		static void exec( final String sql, final Consumer<ResultSet> consumer )
-			throws ClassNotFoundException, SQLException
-		{
-			ConfigCache.getOrCreate( MyHypersonicConfig.class ).execute( sql,
-					consumer );
-		}
-	}
-
-	public static void main( final String[] args )
-		throws IOException, ClassNotFoundException
-	{
-	}
-
-	/**
-	 * <ul>
-	 * <li>Traffic intensity (<a href=
-	 * "http://opendata.cbs.nl/dataportaal/portal.html?_catalog=CBS&_la=nl&tableId=81435ned&_theme=364">CBS
-	 * 81435ned</a>)
-	 * <li>Traffic participants (<a href=
-	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81125ned&_theme=361">CBS
-	 * 81125ned</a>)
-	 * <li>Mobility - vehicle posession (<a href=
-	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=37856&_theme=837">CBS
-	 * 37856</a>)
-	 * <li>Mobility - traveler characteristics (<a href=
-	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81128ned&_theme=494">CBS
-	 * 81128ned</a>)
-	 * <li>Mobility - traffic characteristics (<a href=
-	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81127ned&_theme=494">CBS
-	 * 81127ned</a>)
-	 * <li>Mobility - motives (<a href=
-	 * "http://opendata.cbs.nl/dataportaal/portal.html?_la=nl&_catalog=CBS&tableId=81124ned&_theme=494">CBS
-	 * 81124ned</a>)
-	 * </ul>
-	 */
-	public void loadTraffic()
-	{
-
+//				LOG.trace( "INFECTED #{}", i );
+//				ind.after( Duration.of( "30 min" ) )
+//						.call( ind.afflictions().get( measles )::infect );
+//			}
+//
+//			if( System.currentTimeMillis() - clock > 1000 )
+//			{
+//				logProgress( i, n_pop );
+//				clock = System.currentTimeMillis();
+//			}
+//		}
 	}
 
 }

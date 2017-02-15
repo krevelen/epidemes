@@ -20,16 +20,26 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<jta.version>1.1</jta.version>
 		<hsqldb.version>2.3.4</hsqldb.version>
+		<hikari.version>2.4.7</hikari.version>
+		<!-- for hibernate-ogm-neo4j versions, see https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
+		<hibernate.version>5.0.4.Final</hibernate.version>
+
 		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
 		<docker.repoName>default</docker.repoName>
 		<docker.imageName>${project.artifactId}</docker.imageName>
 		<docker.tagName>${project.version}</docker.tagName>
 		<docker.buildDir>docker</docker.buildDir>
 		<!-- <main.class>nl.rivm.cib.episim.hesitant.HesitantConfig</main.class> -->
-		<main.class>nl.rivm.cib.episim.geard.GeardDemogConfig</main.class>
+		<!-- <main.class>nl.rivm.cib.episim.geard.GeardDemogConfig</main.class> -->
+		<main.class>nl.rivm.cib.episim.hesitant.Demo</main.class>
 		<dist.libDir>lib</dist.libDir>
 		<dist.srcDir>src/main/dist</dist.srcDir>
+
+		<!-- <spark.version>2.1.0</spark.version> -->
+		<!-- 2.6.x is still compatible with spark, see http://quabr.com/41464444/play-and-spark-incompatible-jackson-versions -->
+		<!-- <jackson.version>2.6.7</jackson.version> -->
 	</properties>
 
 	<repositories>
@@ -69,8 +79,26 @@
 		</repository>
 	</repositories>
 
-	<dependencies>
+	<!-- <dependencyManagement> <dependencies> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
+		<artifactId>jackson-databind</artifactId> <version>${jackson.version}</version> 
+		</dependency> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
+		<artifactId>jackson-core</artifactId> <version>${jackson.version}</version> 
+		</dependency> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
+		<artifactId>jackson-annotations</artifactId> <version>${jackson.version}</version> 
+		</dependency> </dependencies> </dependencyManagement> -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
+	<dependencies>
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
 			<artifactId>epidemes-model</artifactId>
@@ -103,12 +131,48 @@
 			<artifactId>eve3-coala-adapter</artifactId>
 		</dependency>
 
-		<!-- incl. in-memory JDBC database -->
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
 		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<version>${hsqldb.version}</version>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<version>${jta.version}</version>
+			<scope>provided</scope>
 		</dependency>
+
+		<!-- incl. in-memory JDBC database -->
+		<!-- <dependency> <groupId>org.hsqldb</groupId> <artifactId>hsqldb</artifactId> 
+			<version>${hsqldb.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
+		<dependency>
+			<groupId>org.hibernate.ogm</groupId>
+			<artifactId>hibernate-ogm-neo4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-hikaricp</artifactId>
+			<version>${hibernate.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>HikariCP-java6</artifactId>
+					<groupId>com.zaxxer</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- replaces default Hibernate connection pool (C3P0) -->
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>${hikari.version}</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.11 
+			gave java.lang.NoSuchMethodError: scala.Predef$.$conforms()Lscala/Predef$$less$colon$less -->
+		<!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.10 
+			has better compatibility, see http://stackoverflow.com/a/33387106/1418999 -->
+		<!-- <dependency> <groupId>org.apache.spark</groupId> <artifactId>spark-core_2.11</artifactId> 
+			<version>${spark.version}</version> <exclusions> <exclusion> <groupId>org.slf4j</groupId> 
+			<artifactId>slf4j-log4j12</artifactId> </exclusion> </exclusions> </dependency> -->
 
 		<dependency>
 			<groupId>junit</groupId>
