@@ -1,27 +1,29 @@
 package nl.rivm.cib.episim.persist.fact;
 
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 
+import javax.measure.Quantity;
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 
-import org.joda.time.DateTime;
-
+import io.coala.bind.BindableDao;
+import io.coala.bind.LocalBinder;
+import io.coala.math.QuantityJPAConverter;
 import io.coala.time.Duration;
-import io.coala.time.Scheduler;
-import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.persist.dao.TransmissionSpaceDao;
 import nl.rivm.cib.episim.persist.dimension.ActorDimensionDao;
+import nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao;
 import nl.rivm.cib.episim.persist.dimension.PathogenDimensionDao;
-import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
 
 /**
  * {@link ContactFactDao} is a data access object for the location dimension
@@ -29,8 +31,10 @@ import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Entity //( name = PersistenceConfig.TRANSMISSION_FACT_ENTITY )
+@Entity
+@Table( name = "FACT_CONTACT" )
 public class ContactFactDao extends AbstractDao
+	implements BindableDao<ContactEvent, ContactFactDao>
 {
 	@Id
 	@GeneratedValue
@@ -39,20 +43,22 @@ public class ContactFactDao extends AbstractDao
 
 	@ManyToOne
 	@JoinColumn( name = "BEGIN", nullable = false, updatable = false )
-	protected TimeDimensionDao begin;
+	protected IsoTimeDimensionDao begin;
 
+	// redundant, but useful in SQL queries
 	@ManyToOne
 	@JoinColumn( name = "END", nullable = false, updatable = false )
-	protected TimeDimensionDao end;
+	protected IsoTimeDimensionDao end;
 
 	@Column( name = "DURATION" )
-	protected Long duration;
+	@Convert( converter = QuantityJPAConverter.class )
+	protected Quantity<?> duration;
 
 	@Column( name = "ROUTE" )
 	protected String route;
 
-	@Column( name = "SPACE" )
-	protected TransmissionSpaceDao space;
+	@Column( name = "SPACE_ID" )
+	protected String space;
 
 	@Column( name = "INFECTION" )
 	protected PathogenDimensionDao infection;
@@ -63,36 +69,33 @@ public class ContactFactDao extends AbstractDao
 	@Column( name = "SECONDARY" )
 	protected ActorDimensionDao secondary;
 
-	public ContactEvent toContactEvent( final Scheduler scheduler,
-		final DateTime offset )
+	@Override
+	public ContactEvent restore( final LocalBinder binder )
 	{
-		return ContactEvent.of( this.begin.toInstant( offset ),
-				Duration.of( this.duration, TimeUnits.MILLIS ),
-				this.space.toSpace( scheduler ),
+		return ContactEvent.of( this.begin.restore( binder ),
+				Duration.of( this.duration ),
+				binder.inject( TransmissionSpace.Factory.class ).create(
+						this.space ),
 				TransmissionRoute.of( this.route ), null, // this.primary.toIndividual(),
 				null // this.secondary.toIndividual()
 		);
 	}
 
 	public static ContactFactDao of( final EntityManager em,
-		final ZonedDateTime offset, final ContactEvent event )
+		final ContactEvent event, final OffsetDateTime offset )
 	{
 		final ContactFactDao result = new ContactFactDao();
-		result.begin = TimeDimensionDao.of( event.getStart(), offset );
-		result.end = TimeDimensionDao
-				.of( event.getStart().add( event.getDuration() ), offset );
-		result.duration = event.getDuration().toMillisLong();
+		result.begin = IsoTimeDimensionDao.persist( em, event.getStart(),
+				offset );
+		result.end = IsoTimeDimensionDao.persist( em,
+				event.getStart().add( event.getDuration() ), offset );
+		result.duration = event.getDuration().toQuantity();
 		result.route = event.getRoute().unwrap();
-		result.space = TransmissionSpaceDao.of( event.getSpace() );
-		result.primary = ActorDimensionDao
-				.of( event.getPrimaryCondition().host() );
-		result.secondary = ActorDimensionDao
-				.of( event.getSecondaryCondition().host() );
-		em.persist( result.begin );
-		em.persist( result.end );
-		em.persist( result.space );
-		em.persist( result.primary );
-		em.persist( result.secondary );
+		result.space = event.getSpace().id().unwrap();
+//		result.primary = ActorDimensionDao
+//				.of( event.getPrimaryCondition().host().id() );
+//		result.secondary = ActorDimensionDao
+//				.of( event.getSecondaryCondition().host() );
 		return result;
 	}
 

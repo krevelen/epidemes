@@ -19,9 +19,7 @@
  */
 package nl.rivm.cib.episim.model;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.BiFunction;
 
 import io.coala.random.PseudoRandom;
@@ -82,13 +80,13 @@ public interface CandidatePicker<T extends CandidatePicker.Candidate>
 		} );
 	}
 
-	default T pick( BiFunction<Iterable<T>, Integer, T> picker )
+	default T pick( final BiFunction<Iterable<T>, Integer, T> picker )
 	{
 		return doPick( this, total(), picker );
 	}
 
-	default T doPick( Iterable<T> candidates, Integer total,
-		BiFunction<Iterable<T>, Integer, T> picker )
+	default T doPick( final Iterable<T> candidates, final Integer total,
+		final BiFunction<Iterable<T>, Integer, T> picker )
 	{
 		return picker.apply( candidates, total );
 	}
@@ -108,58 +106,58 @@ public interface CandidatePicker<T extends CandidatePicker.Candidate>
 	interface Candidate
 	{
 
-		class Cluster implements Candidate
-		{
-			public static Cluster of( final Candidate candidate1,
-				final Candidate candidate2 )
-			{
-				if( candidate1 instanceof Cluster )
-					return ((Cluster) candidate1).with( candidate2 );
-				if( candidate2 instanceof Cluster )
-					return ((Cluster) candidate2).with( candidate1 );
-				return new Cluster().with( candidate1 ).with( candidate2 );
-			}
-
-			private List<Candidate> candidates = new ArrayList<>();
-
-			public Cluster with( final Candidate mother )
-			{
-				if( mother instanceof Cluster )
-					this.candidates.addAll( ((Cluster) mother).candidates );
-				else
-					this.candidates.add( mother );
-				return this;
-			}
-
-			/**
-			 * @param candidate
-			 * @return
-			 */
-			public Cluster without( final Candidate candidate )
-			{
-				this.candidates.remove( candidate );
-				return this.candidates.isEmpty() ? null : this;
-			}
-
-			/**
-			 * @param candidates to flatten recursively
-			 * @return a flat {@link List} of {@link Candidate}s
-			 */
-			@SuppressWarnings( "unchecked" )
-			public static <T extends Candidate> List<T>
-				flatList( final Iterable<Candidate> candidates )
-			{
-				final List<T> result = new ArrayList<>();
-				for( Candidate candidate : candidates )
-					if( candidate instanceof Cluster )
-						result.addAll( Cluster
-								.flatList( ((Cluster) candidate).candidates ) );
-					else
-						result.add( (T) candidate );
-//				if( result.isEmpty() )
-//					throw new IllegalArgumentException( "Empty" );
-				return result;
-			}
-		}
+//		class Cluster implements Candidate
+//		{
+//			public static Cluster of( final Candidate candidate1,
+//				final Candidate candidate2 )
+//			{
+//				if( candidate1 instanceof Cluster )
+//					return ((Cluster) candidate1).with( candidate2 );
+//				if( candidate2 instanceof Cluster )
+//					return ((Cluster) candidate2).with( candidate1 );
+//				return new Cluster().with( candidate1 ).with( candidate2 );
+//			}
+//
+//			private List<Candidate> candidates = new ArrayList<>();
+//
+//			public Cluster with( final Candidate mother )
+//			{
+//				if( mother instanceof Cluster )
+//					this.candidates.addAll( ((Cluster) mother).candidates );
+//				else
+//					this.candidates.add( mother );
+//				return this;
+//			}
+//
+//			/**
+//			 * @param candidate
+//			 * @return
+//			 */
+//			public Cluster without( final Candidate candidate )
+//			{
+//				this.candidates.remove( candidate );
+//				return this.candidates.isEmpty() ? null : this;
+//			}
+//
+//			/**
+//			 * @param candidates to flatten recursively
+//			 * @return a flat {@link List} of {@link Candidate}s
+//			 */
+//			@SuppressWarnings( "unchecked" )
+//			public static <T extends Candidate> List<T>
+//				flatList( final Iterable<Candidate> candidates )
+//			{
+//				final List<T> result = new ArrayList<>();
+//				for( Candidate candidate : candidates )
+//					if( candidate instanceof Cluster )
+//						result.addAll( Cluster
+//								.flatList( ((Cluster) candidate).candidates ) );
+//					else
+//						result.add( (T) candidate );
+////				if( result.isEmpty() )
+////					throw new IllegalArgumentException( "Empty" );
+//				return result;
+//			}
+//		}
 	}
 }

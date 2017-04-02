@@ -71,7 +71,7 @@ public interface InfectionMetrics extends Proactive
 	Quantity<Dimensionless> getPrevalence();
 
 	/**
-	 * @return the number of {@link TransmissionEvent}s, i.e. 'successful'
+	 * @return the number of {@link TransmissionFact}s, i.e. 'successful'
 	 *         contact events
 	 */
 	Indicator<Dimensionless> getEffectiveContactsNumber();
@@ -86,7 +86,7 @@ public interface InfectionMetrics extends Proactive
 		getEffectiveContactRate( final Unit<Frequency> unit )
 	{
 		return getEffectiveContactsNumber()
-				.transform( n -> n.divide( scheduler().now().toQuantity() )
+				.map( n -> n.divide( now().toQuantity() )
 						.asType( Frequency.class ).to( unit ) );
 	}
 

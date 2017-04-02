@@ -180,3 +180,7 @@ fischer
 likert
 dynabean
 deserialize
+shedding
+synod
+diocese
+compartmental

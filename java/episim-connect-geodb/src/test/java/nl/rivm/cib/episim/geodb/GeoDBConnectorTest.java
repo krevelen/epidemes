@@ -1,22 +1,28 @@
 package nl.rivm.cib.episim.geodb;
 
-import static org.aeonbits.owner.util.Collections.entry;
-import static org.aeonbits.owner.util.Collections.map;
-
+import java.net.URI;
+import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 
+import org.aeonbits.owner.Config.Sources;
+import org.aeonbits.owner.ConfigCache;
+import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
-import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
+import io.coala.persist.HibernateSchemaPolicy;
+import io.coala.persist.HikariHibernateJPAConfig;
+import io.coala.persist.JDBCConfig;
 import io.coala.persist.JDBCUtil;
 import io.coala.persist.JPAUtil;
 import nl.rivm.cib.epidemes.geodb.adm.LRKEntryDao;
@@ -35,6 +41,60 @@ public class GeoDBConnectorTest
 	private static final Logger LOG = LogUtil
 			.getLogger( GeoDBConnectorTest.class );
 
+	@Sources( { "classpath:geodb.properties" } )
+	public interface GeoDBConfig extends JDBCConfig
+	{
+		@Key( JDBC_DRIVER_KEY )
+		@DefaultValue( "org.postgresql.Driver" )
+		Class<? extends Driver> jdbcDriver();
+
+		@Key( JDBC_URL_KEY )
+		@DefaultValue( "jdbc:postgresql://geodb.rivm.nl/sde_gdbrivm" )
+		URI jdbcUrl();
+
+//		@DefaultValue( "" + true )
+//		boolean ssl();
+
+	}
+
+	/**
+	 * {@link GeoJPAConfig} provides a default {@link EntityManagerFactory}
+	 * configuration for the RIVM GeoDB Postgres datasource, allowing values to
+	 * be replaced/extended in a {@link Properties} file named
+	 * {@link #CONFIG_PATH}
+	 */
+	@Sources( { "classpath:geodb.properties" } )
+	public interface GeoJPAConfig extends HikariHibernateJPAConfig, GeoDBConfig
+	{
+		@DefaultValue( "geodb_test_pu" )
+		String[] jpaUnitNames();
+
+		@Key( HIBERNATE_SCHEMA_POLICY_KEY )
+		@DefaultValue( "validate" )
+		HibernateSchemaPolicy hibernateSchemaPolicy();
+
+		@Key( HIBERNATE_DEFAULT_SCHEMA_KEY )
+		@DefaultValue( "nl" )
+		String hibernateDefaultSchema();
+
+		@Key( HIBERNATE_CONNECTION_PROVIDER_KEY )
+		@DefaultValue( "org.hibernate.hikaricp.internal.HikariCPConnectionProvider" )
+			Class<?>// extends ConnectionProvider>
+			hibernateConnectionProviderClass();
+
+		@Key( HIBERNATE_DIALECT_KEY )
+		@DefaultValue( "nl.rivm.cib.episim.geodb.PostgisDialectExtended" )
+			Class<?>// extends org.hibernate.dialect.Dialect
+			hibernateDialect();
+
+		// see https://github.com/brettwooldridge/HikariCP/wiki/Configuration#popular-datasource-class-names
+
+		@Key( HIKARI_DATASOURCE_DRIVER_KEY )
+		@DefaultValue( "org.postgresql.ds.PGSimpleDataSource" )
+		Class<? extends DataSource> hikariDataSourceDriver();
+
+	}
+
 	/**
 	 * testing code from
 	 * <a href="http://postgis.net/docs/ST_Transform.html">here</a> and <a href=
@@ -43,7 +103,7 @@ public class GeoDBConnectorTest
 	@Test
 	public void geoJsonTest() throws ClassNotFoundException, SQLException
 	{
-		final GeoDBConfig conf = GeoDBConfig.getOrCreate();
+		final GeoDBConfig conf = ConfigCache.getOrCreate( GeoDBConfig.class );
 		LOG.trace( "Testing with JDBC config: {}", conf.export() );
 		final String tblName = "nl." + LRKEntryDao.TABLE_NAME,
 				colName = "shape";
@@ -56,66 +116,13 @@ public class GeoDBConnectorTest
 				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );
 	}
 
-	@SuppressWarnings( "unchecked" )
-	@Ignore
-	@Test
-	public void jpaHsqldbTest() throws Exception
-	{
-		final HibHikConfig conf = HibHikConfig.getOrCreate( map(
-				entry( HibHikConfig.SCHEMA_POLICY_KEY, SchemaPolicy.create ),
-				entry( HibHikConfig.DEFAULT_SCHEMA_KEY, "PUBLIC" ),
-				entry( HibHikConfig.DATASOURCE_CLASS_KEY,
-						"org.hsqldb.jdbc.JDBCDataSource" ),
-				entry( HibHikConfig.DATASOURCE_URL_KEY,
-						"jdbc:hsqldb:file:target/geodb_test" ), //"jdbc:hsqldb:mem:mymemdb" 
-				entry( HibHikConfig.DATASOURCE_USERNAME_KEY, "SA" ),
-				entry( HibHikConfig.DATASOURCE_PASSWORD_KEY, "" ) ) );
-		LOG.trace( "Testing with JPA config: {}", conf.export() );
-		final EntityManagerFactory HSQLDB = conf
-				.createEntityManagerFactory( "geodb_test_pu" );
-		JPAUtil.session( HSQLDB ).subscribe(
-				em -> em.persist( new LRKEntryDao() ),
-				e -> LOG.error( "Problem", e ) );
-		HSQLDB.close();
-	}
-
-	@Ignore
+//	@Ignore
 	@Test
 	@SuppressWarnings( "unchecked" )
 	public void jpaGeodbTest() throws Exception
 	{
-		final HibHikConfig conf = HibHikConfig
-				.getOrCreate( map( entry( HibHikConfig.SCHEMA_POLICY_KEY,
-						SchemaPolicy.validate ) ) );
-		LOG.trace( "Testing with JPA config: {}", conf.export() );
-
-//		JsonUtil.getJOM().registerModule( new SimpleModule()
-//				.addSerializer( new StdSerializer<Point>( Point.class )
-//				{
-//					@Override
-//					public void serialize( final Point value,
-//						final JsonGenerator gen,
-//						final SerializerProvider serializers )
-//						throws IOException, JsonProcessingException
-//					{
-//						serializers.findValueSerializer( ObjectNode.class )
-//								.serialize( JsonUtil.getJOM().createObjectNode()
-//										.put( "lon",
-//												DecimalUtil.valueOf( value
-//														.getPositionN( 0 )
-//														.getCoordinate( 0 ) ) )
-//										.put( "lat",
-//												DecimalUtil.valueOf( value
-//														.getPositionN( 0 )
-//														.getCoordinate( 1 ) ) ),
-//										gen, serializers );
-//					}
-//				} ) );
-
-		final EntityManagerFactory GEODB = conf.createEntityManagerFactory(
-				"geodb_test_pu",
-				map( entry( HibHikConfig.DATASOURCE_PASSWORD_KEY,
-						conf.hikariDataSourcePassword() ) ) );
+		final EntityManagerFactory GEODB = ConfigCache
+				.getOrCreate( GeoJPAConfig.class ).createEMF();
 
 		// NHR test
 		JPAUtil.session( GEODB ).subscribe( em ->
@@ -166,6 +173,55 @@ public class GeoDBConnectorTest
 					count.get(), totals );
 		}, e -> LOG.error( "Problem", e ) );
 		GEODB.close();
+	}
+
+//	JsonUtil.getJOM().registerModule( new SimpleModule()
+//			.addSerializer( new StdSerializer<Point>( Point.class )
+//			{
+//				@Override
+//				public void serialize( final Point value,
+//					final JsonGenerator gen,
+//					final SerializerProvider serializers )
+//					throws IOException, JsonProcessingException
+//				{
+//					serializers.findValueSerializer( ObjectNode.class )
+//							.serialize( JsonUtil.getJOM().createObjectNode()
+//									.put( "lon",
+//											DecimalUtil.valueOf( value
+//													.getPositionN( 0 )
+//													.getCoordinate( 0 ) ) )
+//									.put( "lat",
+//											DecimalUtil.valueOf( value
+//													.getPositionN( 0 )
+//													.getCoordinate( 1 ) ) ),
+//									gen, serializers );
+//				}
+//			} ) );
+
+	public interface ExportJPAConfig extends HikariHibernateJPAConfig
+	{
+		@DefaultValue( "geodb_test_pu" )
+		String[] jpaUnitNames();
+
+//		@DefaultValue( "jdbc:mysql://localhost/testdb" )
+//		@DefaultValue( "jdbc:hsqldb:mem:mymemdb" )
+//		@DefaultValue( "jdbc:neo4j:bolt://192.168.99.100:7687/db/data" )
+		@DefaultValue( "jdbc:hsqldb:file:target/testdb" )
+		@Key( HIKARI_DATASOURCE_URL_KEY )
+		URI jdbcUrl();
+	}
+
+	@SuppressWarnings( "unchecked" )
+	@Ignore // FIXME some dialect problem
+	@Test
+	public void jpaHsqldbTest() throws Exception
+	{
+		final EntityManagerFactory HSQLDB = ConfigFactory
+				.create( ExportJPAConfig.class ).createEMF();
+		JPAUtil.session( HSQLDB ).subscribe(
+				em -> em.persist( new LRKEntryDao() ),
+				e -> LOG.error( "Problem", e ) );
+		HSQLDB.close();
 	}
 
 }

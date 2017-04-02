@@ -68,7 +68,7 @@ public class LRKEntryDao implements Persistable.Dao
 			public String
 				convertToDatabaseColumn( final RegistryStatus attribute )
 			{
-				return attribute.name();
+				return attribute == null ? null : attribute.name();
 			}
 
 			@Override
@@ -101,7 +101,7 @@ public class LRKEntryDao implements Persistable.Dao
 			public String
 				convertToDatabaseColumn( final OrganizationType attribute )
 			{
-				return attribute.name();
+				return attribute == null ? null : attribute.name();
 			}
 
 			@Override
@@ -114,7 +114,7 @@ public class LRKEntryDao implements Persistable.Dao
 	}
 
 	@Column( name = "objectid", nullable = false )
-	protected Long id;
+	protected Long id = 0L;
 
 	@Id
 	@GeneratedValue( strategy = GenerationType.AUTO )

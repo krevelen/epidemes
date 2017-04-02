@@ -19,11 +19,7 @@
  */
 package nl.rivm.cib.episim.hesitant;
 
-import java.util.Collections;
-import java.util.List;
-
 import io.coala.enterprise.Actor;
-import io.coala.enterprise.Fact;
 import io.coala.json.Wrapper;
 import io.coala.time.Instant;
 
@@ -37,16 +33,16 @@ public class VaxRegistrant extends Wrapper.SimpleOrdinal<Instant>
 {
 	private final Actor.ID personRef;
 
-	private final Fact.ID regRef;
-
-	/** upcoming invite/reminder */
-	private transient List<VaxDose> vaxStatus = Collections.emptyList();
+//	private final Fact.ID regRef;
+//
+//	/** upcoming invite/reminder */
+//	private transient List<VaxDose> vaxStatus = Collections.emptyList();
 
 	public VaxRegistrant( final Advice reg )
 	{
 		wrap( reg.getBirth() );
 		this.personRef = reg.creatorRef().organizationRef();
-		this.regRef = reg.id();
+//		this.regRef = reg.id();
 	}
 
 	@Override
@@ -57,7 +53,7 @@ public class VaxRegistrant extends Wrapper.SimpleOrdinal<Instant>
 
 	public void update( final Treatment treatment )
 	{
-		for( VaxDose dose : treatment.getDoses() )
+//		for( VaxDose dose : treatment.getDoses() )
 		{
 			// TODO remove previous doses in the vaccine series/process
 		}

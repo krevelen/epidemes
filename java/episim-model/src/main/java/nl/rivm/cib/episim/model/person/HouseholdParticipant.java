@@ -24,7 +24,7 @@ import java.util.Collections;
 import nl.rivm.cib.episim.model.person.Household.MoveHouse;
 
 /**
- * {@link HouseholdParticipant}
+ * {@link HouseholdParticipant} TODO make recursive (Social) Participant
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -32,6 +32,12 @@ import nl.rivm.cib.episim.model.person.Household.MoveHouse;
 public interface HouseholdParticipant extends Participant
 {
 	Household<? extends HouseholdParticipant> household();
+
+	@Override
+	default public Population<?> population()
+	{
+		return household().population();
+	}
 
 	@SuppressWarnings( "unchecked" )
 	default <T extends HouseholdParticipant> void

@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.model.disease.infection;
 
-import nl.rivm.cib.episim.model.TransitionEvent;
+import io.coala.name.Identified;
 import nl.rivm.cib.episim.model.disease.Condition;
 
 /**
@@ -35,7 +35,7 @@ import nl.rivm.cib.episim.model.disease.Condition;
  * @version $Id: c7fde65ca5b752da73a2422971867884017a49fb $
  * @author Rick van Krevelen
  */
-public interface EpidemicCompartment
+public interface EpidemicCompartment extends Identified<String>
 {
 	/**
 	 * @return {@code true} iff this compartment represents an INFECTIVE
@@ -49,40 +49,14 @@ public interface EpidemicCompartment
 	 */
 	boolean isSusceptible();
 
-	public static class CompartmentEvent
-		extends TransitionEvent<EpidemicCompartment>
-	{
-
-		public static CompartmentEvent of( final TransmissionEvent transmission,
-			final EpidemicCompartment newStage )
-		{
-			return of( transmission.getContact().getSecondaryCondition(),
-					newStage );
-		}
-
-		/**
-		 * @param condition
-		 * @param compartment
-		 * @return an {@link CompartmentEvent}
-		 */
-		public static CompartmentEvent of( final Condition condition,
-			final EpidemicCompartment compartment )
-		{
-			final CompartmentEvent result = new CompartmentEvent();
-			result.time = condition.now();
-//			result.condition = condition;
-			result.oldValue = condition.getCompartment();
-			result.newValue = compartment;
-			return result;
-		}
-
-	}
+	/**
+	 * @return {@code true} iff this compartment represents an IMMUNE
+	 *         {@link Condition}
+	 */
+	boolean isImmune();
 
 	/**
 	 * {@link Simple}
-	 * 
-	 * @version $Id: c7fde65ca5b752da73a2422971867884017a49fb $
-	 * @author Rick van Krevelen
 	 */
 	enum Simple implements EpidemicCompartment
 	{
@@ -135,6 +109,18 @@ public interface EpidemicCompartment
 		public boolean isSusceptible()
 		{
 			return equals( SUSCEPTIBLE );
+		}
+
+		@Override
+		public String id()
+		{
+			return name();
+		}
+
+		@Override
+		public boolean isImmune()
+		{
+			return equals( PASSIVE_IMMUNE ) || equals( RECOVERED );
 		}
 	}
 }

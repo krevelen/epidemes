@@ -19,7 +19,7 @@ Configuration:
       - name: com.zaxxer.hikari
         level: warn
       - name: org.hibernate
-        level: info
+        level: debug
       - name: org.hibernate.tool.schema.internal
         level: error
       - name: hsqldb.db

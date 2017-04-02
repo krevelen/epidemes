@@ -1,0 +1,281 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>epidemes</artifactId>
+		<version>0.1.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>epidemes-demo-webapp</artifactId>
+	<name>epidemes-demo-webapp</name>
+	<packaging>war</packaging>
+
+	<properties>
+		<wildfly-maven-plugin.version>1.1.0.Final</wildfly-maven-plugin.version>
+		<cxf.version>3.1.10</cxf.version>
+
+		<cargo.version>1.6.2</cargo.version>
+		<cargo.maven.skip>false</cargo.maven.skip>
+		<cargo.context>/demo</cargo.context>
+
+		<!-- <cargo.container.dist>http://download.jboss.org/wildfly/10.1.0.Final/wildfly-10.1.0.Final.zip</cargo.container.dist> -->
+		<!-- <cargo.container>wildfly10x</cargo.container> -->
+
+		<!-- Jetty9 embedded conflicts with Weld (in Hibernate), see https://issues.jboss.org/browse/WELD-1908 -->
+		<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
+			and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
+		<!-- apparently, cargo's Jetty embedded container (org.codehaus.cargo.container.jetty.internal.JettyExecutorThread#run()) 
+			also requires Jersey CDI implementation (com.sun.jersey.spi.inject.InjectableProvider) -->
+		<!-- <cargo.container.dist>http://central.maven.org/maven2/org/eclipse/jetty/jetty-distribution/9.4.3.v20170317/jetty-distribution-9.4.3.v20170317.zip</cargo.container.dist> -->
+		<!-- <cargo.container>jetty9x</cargo.container> -->
+
+		<cargo.container.dist>
+			http://www.apache.org/dyn/closer.cgi?action=download%26filename=tomcat/tomcat-8/v8.5.13/bin/apache-tomcat-8.5.13.zip
+		</cargo.container.dist>
+		<cargo.container>tomcat8x</cargo.container>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>epidemes-demo</artifactId>
+			<version>${project.version}</version>
+			<exclusions>
+				<!-- <exclusion> <groupId>org.eclipse.jetty.websocket</groupId> <artifactId>javax-websocket-server-impl</artifactId> 
+					</exclusion> -->
+				<!-- <exclusion> <groupId>com.almende.eve</groupId> <artifactId>eve-transport-http-jetty</artifactId> 
+					</exclusion> -->
+				<!-- <exclusion> <groupId>com.fasterxml.jackson.datatype</groupId> <artifactId>jackson-datatype-joda</artifactId> 
+					</exclusion> -->
+				<!-- <exclusion> <groupId>com.fasterxml.jackson.dataformat</groupId> 
+					<artifactId>jackson-dataformat-yaml</artifactId> </exclusion> -->
+				<!-- <exclusion> <groupId>com.fasterxml.jackson.jaxrs</groupId> <artifactId>jackson-jaxrs-json-provider</artifactId> 
+					</exclusion> -->
+			</exclusions>
+		</dependency>
+		<!-- <dependency> <groupId>io.coala</groupId> <artifactId>coala-api</artifactId> 
+			</dependency> -->
+
+		<!-- explicitly added again otherwise it gets skipped... ? -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<!-- explicitly added again otherwise it gets skipped... ? -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<!-- explicitly added again otherwise it gets skipped... ? -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-joda</artifactId>
+			<version>${jackson.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>joda-time</groupId>
+					<artifactId>joda-time</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.cxf/cxf-rt-frontend-jaxrs -->
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-frontend-jaxrs</artifactId>
+			<version>${cxf.version}</version>
+		</dependency>
+		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-transports-http-jetty</artifactId> 
+			<version>${cxf.version}</version> </dependency> -->
+
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> 
+			<version>1.7.24</version> <scope>provided</scope> </dependency> -->
+		<!-- <dependency> <groupId>org.apache.logging.log4j</groupId> <artifactId>log4j-slf4j-impl</artifactId> 
+			<version>2.8.1</version> <scope>provided</scope> </dependency> -->
+
+	</dependencies>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
+			<url>https://github.com/krevelen/epidemes/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<build>
+		<plugins>
+
+			<!-- <plugin> <groupId>org.wildfly.plugins</groupId> <artifactId>wildfly-maven-plugin</artifactId> 
+				<version>${wildfly-maven-plugin.version}</version> <configuration> <hostname>127.0.0.1</hostname> 
+				<port>9990</port> <username>mkyong</username> <password>password</password> 
+				<name>spring4ajax.war</name> </configuration> </plugin> -->
+
+			<!-- see https://codehaus-cargo.github.io/cargo/Maven2+plugin.html -->
+			<!-- mvn clean verify org.codehaus.cargo:cargo-maven2-plugin:run -->
+			<plugin>
+				<groupId>org.codehaus.cargo</groupId>
+				<artifactId>cargo-maven2-plugin</artifactId>
+				<version>${cargo.version}</version>
+				<dependencies>
+
+					<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
+						and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
+					<!-- <dependency> <groupId>org.jboss.weld.servlet</groupId> <artifactId>weld-servlet-core</artifactId> 
+						<version>2.4.2.Final</version> </dependency> -->
+
+					<!-- apparently, cargo's Jetty embedded container (org.codehaus.cargo.container.jetty.internal.JettyExecutorThread#run()) 
+						requires CDI implementation (com.sun.jersey.spi.inject.InjectableProvider) 
+						from Jersey Servlet -->
+					<!-- <dependency> <groupId>org.glassfish.jersey.containers</groupId> 
+						<artifactId>jersey-container-servlet</artifactId> <version>2.25.1</version> 
+						</dependency> -->
+				</dependencies>
+				<configuration>
+					<!-- configure: [container], cargo, and [deployables] -->
+					<container>
+						<containerId>${cargo.container}</containerId>
+						<type>embedded</type> <!-- embedded lives with plugin -->
+						<!-- Jetty9 embedded conflicts with Weld (in Hibernate), see https://issues.jboss.org/browse/WELD-1908 -->
+						<zipUrlInstaller>
+							<url>${cargo.container.dist}</url>
+							<downloadDir>${basedir}/.cargo/downloads</downloadDir>
+							<extractDir>${basedir}/.cargo/extracts</extractDir>
+						</zipUrlInstaller>
+						<log>${project.build.directory}/cargo.log</log>
+						<output>${project.build.directory}/${cargo.container}.log</output>
+						<append>false</append>
+						<systemProperties>
+							<!-- CXF logging -> SLF4J, see http://cxf.apache.org/docs/general-cxf-logging.html -->
+							<org.apache.cxf.Logger>org.apache.cxf.common.logging.Slf4jLogger</org.apache.cxf.Logger>
+							<!-- java.util.logging -> Log4J2, see https://logging.apache.org/log4j/2.0/log4j-jul/ -->
+							<java.util.logging.manager>org.apache.logging.log4j.jul.LogManager</java.util.logging.manager>
+							<!-- Jetty logging -> SLF4J, see https://www.eclipse.org/jetty/documentation/9.4.x/configuring-logging.html -->
+							<!-- <org.eclipse.jetty.util.log.class>org.eclipse.jetty.util.log.Slf4jLog</org.eclipse.jetty.util.log.class> -->
+						</systemProperties>
+						<dependencies>
+							<!-- <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> 
+								<classpath>shared</classpath> see https://codehaus-cargo.github.io/cargo/Application+Classpath.html 
+								</dependency> -->
+							<!-- SLF4J -> Log4J2, see https://codehaus-cargo.github.io/cargo/Application+Classpath.html -->
+							<dependency>
+								<groupId>org.apache.logging.log4j</groupId>
+								<artifactId>log4j-slf4j-impl</artifactId>
+								<classpath>shared</classpath>
+							</dependency>
+							<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
+								and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
+							<!-- <dependency> <groupId>org.jboss.weld.servlet</groupId> <artifactId>weld-servlet-core</artifactId> 
+								<classpath>extra</classpath> see https://codehaus-cargo.github.io/cargo/Application+Classpath.html 
+								</dependency> -->
+							<!-- apparently, cargo's Jetty embedded container (org.codehaus.cargo.container.jetty.internal.JettyExecutorThread#run) 
+								requires CDI implementation (com.sun.jersey.spi.inject.InjectableProvider) 
+								from Jersey Servlet -->
+							<!-- <dependency> <groupId>org.glassfish.jersey.containers</groupId> 
+								<artifactId>jersey-container-servlet</artifactId> <classpath>extra</classpath> 
+								</dependency> -->
+						</dependencies>
+					</container>
+					<!-- cargo configuration -->
+					<configuration>
+						<!-- <home>${project.build.directory}/jetty-home</home> -->
+						<!-- the adapted jetty/webdefault.xml: (1) points Jetty's DefaultServlet 
+							resourceBase to ${maven.src.dir}/webapp; and (2) fixes Jetty's file locking 
+							in Windows -->
+						<configfiles>
+							<!-- Jetty -->
+							<!-- <configfile> <file>${basedir}/src/main/jetty/my-webdefault.xml</file> 
+								<tofile>etc/webdefault.xml</tofile> </configfile> -->
+							<!-- <configfile> <file>${basedir}/src/main/jetty/jetty-logging.properties</file> 
+								<todir>resources</todir> </configfile> -->
+							<!-- <configfile> <file>${project.build.resources[0].directory}/log4j2.yaml</file> 
+								<todir>resources</todir> </configfile> -->
+							<!-- Tomcat -->
+							<configfile>
+								<file>${project.build.resources[0].directory}/log4j2.yaml</file>
+								<todir>conf</todir>
+							</configfile>
+							<configfile>
+								<file>${basedir}/src/main/tomcat/my-context.xml</file>
+								<tofile>conf/context.xml</tofile>
+							</configfile>
+							<configfile>
+								<file>${basedir}/src/main/tomcat/my-web.xml</file>
+								<tofile>conf/web.xml</tofile>
+							</configfile>
+						</configfiles>
+						<properties>
+							<cargo.logging>high</cargo.logging>
+							<!-- <cargo.hostname>127.0.0.1</cargo.hostname> -->
+							<!-- <cargo.jboss.management-http.port>9990</cargo.jboss.management-http.port> -->
+							<!-- <cargo.servlet.users>adminUser:admin1234!</cargo.servlet.users> -->
+							<!-- <cargo.jetty.createContextXml>false</cargo.jetty.createContextXml> -->
+						</properties>
+					</configuration>
+					<deployables>
+						<deployable>
+							<properties>
+								<context>${cargo.context}</context>
+							</properties>
+							<!-- <pingURL>http://localhost:8080${cargo.context}</pingURL> -->
+							<pingTimeout>2000</pingTimeout> <!-- 2min (millis) -->
+							<location>${project.build.directory}/${project.build.finalName}</location>
+						</deployable>
+					</deployables>
+				</configuration>
+				<executions>
+					<!-- <execution> <id>start-cargo</id> <phase>pre-integration-test</phase> 
+						<goals> <goal>start</goal> </goals> </execution> -->
+					<!-- <execution> <id>stop-cargo</id> <phase>post-integration-test</phase> 
+						<goals> <goal>stop</goal> </goals> </execution> -->
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>

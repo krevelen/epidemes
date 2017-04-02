@@ -19,23 +19,37 @@
  */
 package nl.rivm.cib.episim.model.locate;
 
-import io.coala.json.Wrapper;
-import io.coala.json.Wrapper.Util;
+import io.coala.name.Id;
 
 /**
- * {@link RegionDimension}
+ * {@link Geography} refers to a distinct geography of {@link Region regions}
+ * with its own topology
  */
-public interface RegionDimension extends Wrapper<String>
+public class Geography extends Id.Ordinal<String>
 {
+	public static Geography of( final String value )
+	{
+		return Util.of( value, new Geography() );
+	}
 
-	/** territory, zone, province, municipality, city, neighborhood */
-	RegionDimension STATE = Util.valueOf( "state", RegionDimension.class );
+	/**
+	 * the DEFAULT (administrative) geography, e.g. state, territory, zone,
+	 * province, municipality, city, neighborhood
+	 */
+	public static final Geography DEFAULT = of( "admin" );
 
-	/** GGD/COROP-regions */
-	RegionDimension HEALTH = Util.valueOf( "health", RegionDimension.class );
+	/** the HEALTH geography, e.g. GGD */
+	public static final Geography HEALTH = of( "health" );
 
-	//	RegionType PARTY = Util.valueOf( "party", RegionType.class );
+	/** the EMERGENCY (medical, police, military) geography, e.g. COROP, zone */
+	public static final Geography EMERGENCY = of( "emergency" );
 
-	//	RegionType RELIGION = Util.valueOf( "religion", RegionType.class );
+	/** the RELIGION geography, e.g. synod, diocese, parish */
+	public static final Geography RELIGION = of( "reli" );
 
+	/** the ELECTORAL/political geography: constituency, precinct, district */
+	public static final Geography ELECTORAL = of( "elect" );
+
+	/** the OPERATIONS geography, e.g. division, territory */
+	public static final Geography OPERATIONS = of( "ops" );
 }

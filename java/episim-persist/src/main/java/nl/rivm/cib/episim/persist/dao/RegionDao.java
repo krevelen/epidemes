@@ -19,16 +19,41 @@
  */
 package nl.rivm.cib.episim.persist.dao;
 
+import java.time.OffsetDateTime;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+import javax.measure.Quantity;
+import javax.measure.Unit;
+import javax.measure.quantity.Area;
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.MapKeyJoinColumn;
+import javax.persistence.NoResultException;
+import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
+import javax.persistence.Table;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+import javax.transaction.Transactional;
 
+import io.coala.bind.BindableDao;
+import io.coala.bind.LocalBinder;
+import io.coala.math.QuantityJPAConverter;
+import io.coala.persist.JPAUtil;
+import io.coala.time.Instant;
+import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Region;
+import nl.rivm.cib.episim.model.person.Population;
 import nl.rivm.cib.episim.persist.AbstractDao;
+import nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao;
+import tec.uom.se.unit.Units;
 
 /**
  * {@link RegionDao}
@@ -36,42 +61,114 @@ import nl.rivm.cib.episim.persist.AbstractDao;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Entity( name = "REGION" )
+@Entity
+@Cacheable
+@Table( name = "REGION" )
 public class RegionDao extends AbstractDao
+	implements BindableDao<Region, RegionDao>
 {
+	/** the primary key (for database join statements) */
 	@Id
 	@GeneratedValue
-	@Column( name = "ID" )
-	protected long id;
+	@Column( name = "PK" )
+	protected Integer pk;
 
+	/** the code (e.g. CBS reference) */
+	@Column( name = "CODE" )
+	protected String code;
+
+	/**
+	 * the {@link Geography} type of region, e.g. province (administrative) or
+	 * parish (religious)
+	 */
+	@Column( name = "TYPE" )
+	protected String type;
+
+	/** the name */
 	@Column( name = "NAME" )
 	protected String name;
 
-	@ManyToOne
-	@JoinColumn( name = "PARENT_ID", nullable = true, updatable = false )
-	protected RegionDao parent;
+	/** the size */
+	@Column( name = "SIZE" )
+	@Convert( converter = QuantityJPAConverter.class )
+	protected Quantity<?> size;
 
-	/**
-	 * @return
-	 */
-	public Region toRegion()
+	public static final Unit<Area> AREA_UNIT = Units.SQUARE_METRE;
+
+	// unidirectional ternary association, see https://docs.jboss.org/hibernate/orm/5.0/manual/en-US/html/ch07.html#collections-ternary
+	@OneToMany
+	@MapKeyJoinColumn( name = "REGION_PARENTS" )
+	@OrderBy( "posix" )
+	protected SortedMap<IsoTimeDimensionDao, RegionDao> parents;
+
+	@Transactional
+	public static RegionDao find( final EntityManager em, final Region region )
 	{
-		return Region.of( this.name, null, null, null );
+//		final Comparable<?> value = Objects.requireNonNull( id.unwrap() );
+//		final UUID contextRef = Objects.requireNonNull( id.contextRef() );
+		try
+		{
+			final CriteriaBuilder cb = em.getCriteriaBuilder();
+			final CriteriaQuery<RegionDao> qry = cb
+					.createQuery( RegionDao.class );
+			final Root<RegionDao> root = qry.from( RegionDao.class );
+			return em
+					.createQuery( qry.select( root ).where( cb.and(
+//							cb.equal( root.get( "name" ), region.name() ),
+//							cb.equal( root.get( "type" ), region.type() ),
+							cb.equal( root.get( "code" ), region.id() ) ) ) )
+					.getSingleResult();
+		} catch( final NoResultException ignore )
+		{
+			return null;
+		}
 	}
 
 	/**
-	 * @param region
-	 * @return
+	 * @param em the {@link EntityManager} context
+	 * @param region the {@link Region} to persist
+	 * @param offset for persisting the parent trace timing
+	 * @return a {@link RegionDao}
 	 */
-	public static RegionDao of( final EntityManager em, final Region region )
+	@Transactional
+	public static RegionDao create( final EntityManager em, final Region region,
+		final OffsetDateTime offset )
 	{
 		final RegionDao result = new RegionDao();
-		result.name = region.id();
-		if( region.parent() != null )
+		result.code = region.id().unwrap();
+		result.name = region.name();
+		result.type = region.type();
+		result.size = region.surfaceArea();
+		if( region.parents() != null )
 		{
-			result.parent = of( em, region.parent() );
-			em.persist( result.parent );
+			result.parents = new TreeMap<>();
+			region.parents()
+					.forEach( ( since, parent ) -> result.parents.put(
+							IsoTimeDimensionDao.persist( em, since,
+									offset ),
+							persist( em, parent, offset ) ) );
 		}
+
+		em.persist( result );
 		return result;
+	}
+
+	@Transactional // not really
+	public static RegionDao persist( final EntityManager em,
+		final Region region, final OffsetDateTime offset )
+	{
+		return JPAUtil.findOrCreate( em, () -> find( em, region ),
+				() -> create( em, region, offset ) );
+	}
+
+	@Override
+	public Region restore( final LocalBinder binder )
+	{
+		final SortedMap<Instant, Region> parents = new TreeMap<>();
+		this.parents.forEach( ( since, parent ) -> parents
+				.put( since.restore( binder ), parent.restore( binder ) ) );
+		return Region.of( Region.ID.of( this.code ), this.name, this.type,
+				parents, this.size.asType( Area.class ),
+				binder.inject( Population.class ) );
 	}
 }

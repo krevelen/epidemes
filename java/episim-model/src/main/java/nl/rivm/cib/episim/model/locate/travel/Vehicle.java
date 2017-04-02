@@ -1,5 +1,6 @@
 package nl.rivm.cib.episim.model.locate.travel;
 
+import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 import nl.rivm.cib.episim.model.locate.Locatable;
 
 /**
@@ -8,8 +9,10 @@ import nl.rivm.cib.episim.model.locate.Locatable;
  * @version $Id: 4f1dd68d7aee66104076eef90f27277a6f5deba7 $
  * @author Rick van Krevelen
  */
-public interface Vehicle extends Locatable
+public interface Vehicle // extends Locatable
 {
+	
+	TransmissionSpace space();
 
 	Status getStatus();
 

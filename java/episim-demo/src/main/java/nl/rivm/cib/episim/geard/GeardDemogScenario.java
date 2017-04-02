@@ -337,17 +337,16 @@ public class GeardDemogScenario implements Scenario
 		final NavigableMap<Integer, BigDecimal> maleDeathRates = GeardDemogConfig
 				.importMap( this.conf.death_rates_male(), 1, Integer::valueOf );
 		this.deathRates = ConditionalDistribution
-				.of( this.distFact::createBernoulli,
-						tuple -> adjust(
-								QuantityUtil.valueOf(
-										getOrCopyLast(
-												Gender.MALE.equals(
-														tuple.gender() )
-																? maleDeathRates
-																: femaleDeathRates,
-												tuple.age() ),
-										QuantityUtil.PURE ),
-								this.yearsPerDt ) );
+				.of( this.distFact::createBernoulli, (GenderAge tuple) -> adjust(
+						QuantityUtil.valueOf(
+								getOrCopyLast(
+										Gender.MALE.equals(
+												tuple.gender() )
+														? maleDeathRates
+														: femaleDeathRates,
+										tuple.age() ),
+								QuantityUtil.PURE ),
+						this.yearsPerDt ) );
 
 		this.fertility_age_dist = this.distFact
 				.createCategorical( GeardDemogConfig.importFrequencies(

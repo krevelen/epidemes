@@ -1,2 +1,2 @@
 jdbc.username=myname
-jdbc.password=mypass
+jdbc.password=prompt

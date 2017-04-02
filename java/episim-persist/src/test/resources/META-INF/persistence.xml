@@ -7,24 +7,17 @@
 
 	<persistence-unit name="hibernate_test_pu"
 		transaction-type="RESOURCE_LOCAL">
-		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+		<!-- <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider> -->
+		<provider>org.hibernate.ogm.jpa.HibernateOgmPersistence</provider>
 
 		<!-- List all @Entities for JPA in Java SE runtime: no auto-discovery :( -->
 		<class>io.coala.bind.persist.LocalIdDao</class>
 		<class>io.coala.enterprise.persist.FactDao</class>
-		
-		<class>nl.rivm.cib.episim.persist.dao.BuurtDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.GemeenteDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.GgdDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.LandsdeelDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.LatLongDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.PlaceDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.ProvincieDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.RegionDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.WijkDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.ZipCodeDao</class>
-		<class>nl.rivm.cib.episim.persist.dimension.SpaceDimensionDao</class>
-		<class>nl.rivm.cib.episim.persist.dimension.TimeDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.CbsSpaceDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao</class>
 		<class>nl.rivm.cib.episim.persist.fact.TransmissionFactDao</class>
 
 		<properties>

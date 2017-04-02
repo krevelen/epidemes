@@ -19,32 +19,41 @@
  */
 package nl.rivm.cib.episim.persist;
 
-import java.time.ZonedDateTime;
-import java.util.Collections;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 
 import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.ogm.cfg.OgmProperties;
+import org.hibernate.ogm.datastore.neo4j.Neo4j;
+import org.hibernate.ogm.datastore.neo4j.Neo4jProperties;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.coala.config.ConfigUtil;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+
+import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
-import io.coala.persist.HibernateJPAConfig.SchemaPolicy;
+import io.coala.math.LatLong;
+import io.coala.math.QuantityUtil;
+import io.coala.persist.HibernateJPAConfig;
 import io.coala.persist.JPAUtil;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionEvent;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionFact;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
+import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.persist.fact.TransmissionFactDao;
+import tec.uom.se.unit.Units;
 
 /**
  * {@link PersistTest}
@@ -57,32 +66,133 @@ public class PersistTest
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( PersistTest.class );
 
+	/** RIVM National Institute for Public Health and the Environment */
+	public LatLong RIVM_POSITION = LatLong.of( 52.1185272, 5.1868699,
+			Units.DEGREE_ANGLE );
+
+	/**
+	 * {@link MyOGMConfig} for an object-graph model (OGM/NoSQL) implementation
+	 * such as MongoDB or Neo4J of our object-relation model (ORM/JPA) entities,
+	 * requires vendor-specific hibernate dependency
+	 */
+	interface MyOGMConfig extends HibernateJPAConfig
+	{
+		@DefaultValue( "hibernate_test_pu" ) // match persistence.xml
+		@Key( JPA_UNIT_NAMES_KEY )
+		String[] jpaUnitNames();
+
+//		@DefaultValue( "jdbc:mysql://localhost/testdb" )
+//		@DefaultValue( "jdbc:hsqldb:mem:mymemdb" )
+//		@DefaultValue( "jdbc:neo4j:bolt://192.168.99.100:7687/db/data" )
+//		@DefaultValue( "jdbc:hsqldb:file:target/testdb" )
+//		@Key( HIKARI_DATASOURCE_URL_KEY )
+//		URI jdbcUrl();
+
+		@DefaultValue( "pilot_testdb" )
+		@Key( OgmProperties.DATABASE )
+		String database();
+
+		@DefaultValue( "192.168.99.100:7687" ) // :7474 HTTP port, 7687 bolt SSL port
+		@Key( OgmProperties.HOST )
+		String host();
+
+		@DefaultValue( "neo4j" )
+		@Key( OgmProperties.USERNAME )
+		String jdbcUsername();
+
+		@DefaultValue( "epidemes" /* PASSWORD_PROMPT_VALUE */ )
+		@Key( OgmProperties.PASSWORD )
+		@ConverterClass( PasswordPromptConverter.class )
+		String jdbcPassword();
+
+		@DefaultValue( Neo4j.EMBEDDED_DATASTORE_PROVIDER_NAME )
+		@Key( OgmProperties.DATASTORE_PROVIDER )
+		String ogmProvider();
+
+		// hibernate.ogm.neo4j.database_path
+		@DefaultValue( "target/" )
+		@Key( Neo4jProperties.DATABASE_PATH )
+		String hibernateOgmNeo4jDatabasePath();
+
+	}
+
 	private static EntityManagerFactory EMF;
 
+//	private static GraphDatabaseService GRAPH_DB;
+
+	@SuppressWarnings( "unchecked" )
 	@BeforeClass
 	public static void createEMF()
 	{
-		final PersistenceConfig conf = ConfigCache
-				.getOrCreate( PersistenceConfig.class );
-		LOG.trace( "Testing with JPA config: {}", ConfigUtil.export( conf ) );
-		EMF = conf.createEntityManagerFactory( "hibernate_test_pu",
-				Collections.singletonMap( PersistenceConfig.SCHEMA_POLICY_KEY,
-						SchemaPolicy.create ) );
+//	    graphDb = new TestGraphDatabaseFactory().newImpermanentDatabase();
+//		final GraphDatabaseBuilder builder = new TestGraphDatabaseFactory()
+//				.newImpermanentDatabaseBuilder()
+//				.setConfig( GraphDatabaseSettings.pagecache_memory, "512M" )
+//				.setConfig( GraphDatabaseSettings.string_block_size, "60" )
+//				.setConfig( GraphDatabaseSettings.array_block_size, "300" );
+//		LOG.trace( "Starting in-memory Neo4J graph database, config: {}",
+//				builder );
+//		GRAPH_DB = builder.newGraphDatabase();
+
+		// jdbc:neo4j:bolt://localhost:7687
+
+		EMF = ConfigCache.getOrCreate( MyOGMConfig.class ).createEMF();
 	}
 
 	@AfterClass
 	public static void closeEMF()
 	{
 		if( EMF != null ) EMF.close();
+//		GRAPH_DB.shutdown();
 	}
 
 	@Test
+	public void testNeo4J() //throws Exception
+	{
+		// from http://neo4j.com/docs/stable/tutorials-java-unit-testing.html
+//		Node n = null;
+//		try( final Transaction tx = this.GRAPH_DB.beginTx() )
+//		{
+//			n = this.GRAPH_DB.createNode();
+//			n.setProperty( "name", "Nancy" );
+//			tx.success();
+//		}
+//
+//		// The node should have a valid id
+//		assertThat( n.getId(), is( greaterThan( -1L ) ) );
+//		LOG.trace( "Stored node: {}", n );
+//
+//		// Retrieve a node by using the id of the created node. The id's and
+//		// property should match.
+//		try( final Transaction tx = this.GRAPH_DB.beginTx() )
+//		{
+//			final Node foundNode = this.GRAPH_DB.getNodeById( n.getId() );
+//			assertThat( foundNode.getId(), is( n.getId() ) );
+//			assertThat( (String) foundNode.getProperty( "name" ),
+//					is( "Nancy" ) );
+//			LOG.trace( "Found id: {}, name: {} in: {}", foundNode.getId(),
+//					foundNode.getProperty( "name" ), foundNode );
+//		}
+	}
+
+//	@Ignore
+	@Test
 	public void testDAOs() throws Exception
 	{
-		final ZonedDateTime offset = ZonedDateTime.now();
-		final Region region = Region.of( "NL", null, null, null );
-		final Place site = Place.of( Place.RIVM_POSITION, Place.NO_ZIP,
-				region );
+//		org.hibernate.ogm.datastore.neo4j.Neo4jProperties a;
+
+		final Hibernate5Module hbm = new Hibernate5Module();
+		hbm.enable( Hibernate5Module.Feature.FORCE_LAZY_LOADING );
+		JsonUtil.getJOM().registerModule( hbm );
+
+		final OffsetDateTime offset = OffsetDateTime.now();
+		final Region region = Region.of( Region.ID.of( "Netherlands" ), "NL01",
+				"Country", (Region) null,
+				QuantityUtil.valueOf( 41543, Units.SQUARE_METRE )
+						.multiply( BigDecimal.TEN.pow( 6 ) ),
+				null );
+		final Place site = Place.of( Place.ID.of( "rivm" ), RIVM_POSITION,
+				region, Geography.DEFAULT );
 		final Instant start = null;
 		final Duration duration = null;
 		final TransmissionSpace space = null;
@@ -92,12 +202,12 @@ public class PersistTest
 		final ContactEvent cause = ContactEvent.of( start, duration, space,
 				route, primary, secondary );
 		final Instant time = Instant.of( 3.456, TimeUnits.ANNUM );
-		final TransmissionEvent event = TransmissionEvent.of( time, site,
-				cause );
+		final TransmissionFact event = TransmissionFact.of( time, site, cause );
+		LOG.trace( "Getting EM to store/retrieve event: {}", event );
 		JPAUtil.session( EMF, em ->
 		{
-			final TransmissionFactDao fact = TransmissionFactDao.of( em, offset,
-					event );
+			final TransmissionFactDao fact = TransmissionFactDao.persist( em,
+					event, offset );
 			LOG.trace( "Persisting: {}", fact );
 			em.persist( fact );
 		} );
@@ -105,8 +215,8 @@ public class PersistTest
 		{
 			LOG.trace( "Read table, result: {}",
 					em.createQuery( "SELECT f FROM "
-							+ PersistenceConfig.TRANSMISSION_FACT_ENTITY
-							+ " f" ).getResultList() );
+							+ TransmissionFactDao.ENTITY_NAME + " f" )
+							.getResultList() );
 		} );
 	}
 }

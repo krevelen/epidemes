@@ -23,11 +23,16 @@ import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
+import io.coala.bind.persist.LocalIdDao;
 import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.persist.dao.DrugClassDao;
 
 /**
- * {@link DrugDimensionDao}
+ * {@link DrugDimensionDao} based on nomenclature from the G-Standaard
+ * (https://www.knmp.nl/producten-en-diensten/gebruiksrecht-g-standaard), and/or
+ * various formularia (e.g. http://www.formularia.nl/ for Dutch general
+ * practitioners, used e.g. in the farmaco-therapeutic service Prescriptor for
+ * HIS solutions, or http://wvab.knmvd.nl/formularia for antibiotic
+ * prescriptions by Dutch veterinarians)
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -38,7 +43,7 @@ public class DrugDimensionDao extends AbstractDao
 	@GeneratedValue
 	@Column( name = "ID" )
 	protected int id;
-	
+
 	@Column( name = "NAME", unique = true, nullable = false )
 	protected String name;
 
@@ -47,5 +52,5 @@ public class DrugDimensionDao extends AbstractDao
 //	protected Set<String> aliases;
 
 	@Column( name = "CLASS", nullable = true, updatable = false )
-	protected DrugClassDao clazz;
+	protected LocalIdDao clazz;
 }

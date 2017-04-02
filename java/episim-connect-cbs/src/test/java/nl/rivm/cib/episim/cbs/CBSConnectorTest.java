@@ -32,7 +32,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.Logger;
 import org.apache.olingo.commons.api.edm.Edm;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -90,7 +89,7 @@ public class CBSConnectorTest
 		LOG.trace( "Got result: " + JsonUtil.toJSON( result ) );
 	}
 
-	@Ignore
+//	@Ignore
 	@Test
 	public void testOlingo() throws IOException
 	{

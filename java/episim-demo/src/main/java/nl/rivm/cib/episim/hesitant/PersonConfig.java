@@ -19,8 +19,6 @@
  */
 package nl.rivm.cib.episim.hesitant;
 
-import org.aeonbits.owner.Config.DefaultValue;
-
 import io.coala.config.GlobalConfig;
 
 /**

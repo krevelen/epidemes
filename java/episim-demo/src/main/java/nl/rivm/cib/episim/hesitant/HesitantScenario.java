@@ -137,10 +137,10 @@ public class HesitantScenario implements Scenario
 				.map( Duration::of ).map( this.myVaccinationDelayRange::crop );
 	}
 
-	private static void logFact( final Fact f )
-	{
-		LOG.trace( f );
-	}
+//	private static void logFact( final Fact f )
+//	{
+//		LOG.trace( f );
+//	}
 
 	private static void logError( final Throwable t )
 	{
@@ -182,28 +182,28 @@ public class HesitantScenario implements Scenario
 
 	}
 
-	private void reminder( final Advisor advisor, final VaxRegistrant indiv,
-		final VaxDose vax )
-	{
-		advisor.after( this.adviceDelay.draw() ).call( t ->
-		{
-			// same values for entire cohort
-			final Number conf = this.advisorConfidence.draw();
-			final Number comp = this.advisorComplacency.draw();
-			final VaxOccasion occ = this.treatOccasionDist.draw();
-
-			// TODO filter by status
-//			if( indiv.isEligible( vax ) )
-//			{
-//				final Fact mot = advisor
-//						.initiate( Motivation.class, indiv.personRef,
-//								indiv.regRef )
-//						.withConfidence( conf ).withComplacency( comp )
-//						.with( occ ).commit();
-//				LOG.trace( "Campaign {}: {}", indiv.regRef.prettyHash(), mot );
-//			}
-		} );
-	}
+//	private void reminder( final Advisor advisor, final VaxRegistrant indiv,
+//		final VaxDose vax )
+//	{
+//		advisor.after( this.adviceDelay.draw() ).call( t ->
+//		{
+//			// same values for entire cohort
+//			final Number conf = this.advisorConfidence.draw();
+//			final Number comp = this.advisorComplacency.draw();
+//			final VaxOccasion occ = this.treatOccasionDist.draw();
+//
+//			// TODO filter by status
+////			if( indiv.isEligible( vax ) )
+////			{
+////				final Fact mot = advisor
+////						.initiate( Motivation.class, indiv.personRef,
+////								indiv.regRef )
+////						.withConfidence( conf ).withComplacency( comp )
+////						.with( occ ).commit();
+////				LOG.trace( "Campaign {}: {}", indiv.regRef.prettyHash(), mot );
+////			}
+//		} );
+//	}
 
 	private Actor<Fact> initHealth( final String name ) throws ParseException
 	{

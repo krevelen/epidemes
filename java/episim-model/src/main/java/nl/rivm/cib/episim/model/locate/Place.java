@@ -20,43 +20,61 @@
 package nl.rivm.cib.episim.model.locate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import javax.measure.Quantity;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.coala.math.LatLong;
-import io.coala.math.QuantityUtil;
+import io.coala.name.Id;
+import io.coala.name.Identified;
 import nl.rivm.cib.episim.model.ZipCode;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
-import nl.rivm.cib.episim.model.person.Population;
-import tec.uom.se.unit.Units;
 
 /**
- * {@link Place} is a stationary {@link TransmissionSpace} located at a
- * geographical position, dimension entity?
- * (wijk/buurt/stad/gemeente/provincie/landsdeel)
+ * {@link Place} is a stationary {@link TransmissionSpace} located in a
+ * geographical region and position
+ * 
  * 
  * @version $Id: 7d10f131de96809298e2af9ae72b548a24a90817 $
  * @author Rick van Krevelen
  */
-public interface Place
+public interface Place extends Identified<Place.ID>
 {
-
-	/** RIVM National Institute for Public Health and the Environment */
-	LatLong RIVM_POSITION = LatLong.of( 52.1185272, 5.1868699,
-			Units.DEGREE_ANGLE );
-
-	/** the NO_ZIP {@link ZipCode} constant */
-	ZipCode NO_ZIP = ZipCode.valueOf( "0000" );
-
-	Region region();
+	class ID extends Id.Ordinal<String>
+	{
+		public static ID of( final String value )
+		{
+			return Util.of( value, new ID() );
+		}
+	}
+	
+	TransmissionSpace space();
 
 	/** @return the global centroid {@link LatLong} */
 	LatLong centroid();
 
-	/** @return the {@link ZipCode} */
-	ZipCode zipCode();
+	Map<Geography, Region> regions();
+
+	/**
+	 * @return the default/admin region, or first known
+	 */
+	default Region region()
+	{
+		return regions() == null || regions().isEmpty() ? null
+				: regions().containsKey( Geography.DEFAULT )
+						? regions().get( Geography.DEFAULT )
+						: regions().values().iterator().next();
+	}
+
+	/**
+	 * {@link Factory} will retrieve or generate specified {@link Place}
+	 */
+	interface Factory
+	{
+		Place get( ID id );
+	}
 
 	/**
 	 * @param position the (centroid) {@link LatLong} position
@@ -64,30 +82,60 @@ public interface Place
 	 * @param region the {@link Region}
 	 * @return a {@link Place}
 	 */
-	public static Place of( final LatLong position, final ZipCode zip,
-		final Region region )
+	public static Place of( final ID id, final LatLong position,
+		final Region region, final Geography... geographies )
 	{
-		return new Place()
-		{
-			@Override
-			public LatLong centroid()
-			{
-				return position;
-			}
-
-			@Override
-			public ZipCode zipCode()
-			{
-				return zip;
-			}
-
-			@Override
-			public Region region()
-			{
-				return region;
-			}
-		};
+		return of( id, position,
+				geographies == null || geographies.length == 0
+						? Collections.singletonMap( Geography.DEFAULT, region )
+						: Arrays.stream( geographies ).collect(
+								Collectors.toMap( g -> g, g -> region ) ) );
 	}
+
+	/**
+	 * @param id the {@link ID}
+	 * @param position the (centroid) {@link LatLong} position
+	 * @param region the {@link Region}
+	 * @return a {@link Place}
+	 */
+	public static Place of( final ID id, final LatLong position,
+		final Map<Geography, Region> regions )
+	{
+		return new Simple( id, position, regions );
+	}
+
+	class Simple extends Identified.SimpleOrdinal<ID> implements Place
+	{
+		private LatLong position;
+		private Map<Geography, Region> regions;
+
+		public Simple( final ID id, final LatLong position,
+			final Map<Geography, Region> regions )
+		{
+			this.id = id;
+			this.position = position;
+			this.regions = regions;
+		}
+
+		@Override
+		public LatLong centroid()
+		{
+			return this.position;
+		}
+
+		@Override
+		public Map<Geography, Region> regions()
+		{
+			return this.regions;
+		}
+
+		@Override
+		public TransmissionSpace space()
+		{
+			// TODO Auto-generated method stub
+			return null;
+		}
+	};
 
 	static Iterable<Place> sortByDistance( final Iterable<Place> places,
 		final LatLong origin )
@@ -100,24 +148,10 @@ public interface Place
 		{
 			final LatLong p1 = place1.centroid();
 			final LatLong p2 = place2.centroid();
-			if( p1 == p2 || p1.getCoordinates().equals( p2.getCoordinates() ) )
-				return 0;
+			if( p1.getCoordinates().equals( p2.getCoordinates() ) ) return 0;
 			return origin.angularDistance( p1 )
 					.compareTo( origin.angularDistance( p2 ) );
 		} );
 		return result;
-	}
-
-	interface Inhabited extends Place
-	{
-
-		Population<?> population();
-
-		default Quantity<?> populationDensity()
-		{
-			return QuantityUtil.valueOf( population().members().size() )
-					.divide( region().surfaceArea() );
-		}
-
 	}
 }

@@ -23,9 +23,9 @@ import io.coala.time.Signal;
 import io.coala.time.Proactive;
 
 /**
- * {@link Locatable}
+ * {@link Locatable} objects can emit their current {@link Place}
  *
- * @version $Date$
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Locatable extends Proactive

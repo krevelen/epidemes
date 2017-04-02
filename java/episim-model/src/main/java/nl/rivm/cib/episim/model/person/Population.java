@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import javax.inject.Singleton;
+
 import io.coala.name.Id;
 import io.coala.name.Identified;
 import io.coala.rx.RxCollection;
@@ -56,6 +58,7 @@ import rx.subjects.Subject;
  * @version $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
  * @author Rick van Krevelen
  */
+@Singleton
 public interface Population<T extends Participant>
 	extends Proactive, Identified<Population.ID>
 {
@@ -128,6 +131,11 @@ public interface Population<T extends Participant>
 				.withDepartures( emigrants ).build() );
 	}
 
+//	interface Factory
+//	{
+//		Population<?> create( String name );
+//	}
+
 	static <T extends Participant> Population<T> of( final String name,
 		final RxCollection<T> members, final Scheduler scheduler )
 	{
@@ -165,10 +173,7 @@ public interface Population<T extends Participant>
 			@Override
 			public void emit( final DemographicEvent<T> event )
 			{
-				at( now() ).call( t ->
-				{
-					this.events.onNext( event );
-				} );
+				at( now() ).call( () -> this.events.onNext( event ) );
 			}
 		};
 	}

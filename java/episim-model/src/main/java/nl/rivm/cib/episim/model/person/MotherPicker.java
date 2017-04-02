@@ -20,12 +20,12 @@
 package nl.rivm.cib.episim.model.person;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.BiFunction;
 
 import javax.measure.Quantity;
@@ -42,7 +42,6 @@ import io.coala.time.Instant;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.CandidatePicker;
-import nl.rivm.cib.episim.model.CandidatePicker.Candidate.Cluster;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -55,20 +54,19 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 	{
 		// TODO make birth as abstract Attribute to map (and sort) candidates
 		Instant born();
-
-		// TODO make fertility/recovery as abstract (un/re)registration schedule
-		Range<Instant> fertilityInterval();
-
-		Quantity<Time> recoveryPeriod();
 	}
 
-	default Iterable<Candidate>
-		candidatesOfAge( final Range<Integer> ageFilter )
+	void registerDuring( final T candidate, Range<Instant> fertilityInterval );
+
+	T pickAndRemoveFor( BiFunction<Iterable<T>, Integer, T> picker,
+		Quantity<Time> recoveryPeriod );
+
+	Collection<Mother> candidatesBornIn( Range<Instant> birthFilter );
+
+	default Iterable<Mother> candidatesOfAge( final Range<Integer> ageFilter )
 	{
 		return candidatesBornIn( ageToBirthInterval( now(), ageFilter ) );
 	}
-
-	Iterable<Candidate> candidatesBornIn( final Range<Instant> birthFilter );
 
 	// TODO make age as abstract Filter with birth Attribute-based selection
 
@@ -80,8 +78,9 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 	default T pick( final Range<Instant> birthFilter,
 		final BiFunction<Iterable<T>, Integer, T> picker )
 	{
-		final List<T> flat = Cluster
-				.flatList( candidatesBornIn( birthFilter ) );
+		@SuppressWarnings( "unchecked" )
+		final Collection<T> flat = (Collection<T>) candidatesBornIn(
+				birthFilter );
 		return doPick( flat, flat.size(), picker );
 	}
 
@@ -131,10 +130,11 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 		return new MotherPicker<T>()
 		{
 			/** the candidates */
-			private final Map<T, Expectation> candidates = new ConcurrentHashMap<>();
+			private final Map<T, Expectation> candidateRemovals = new ConcurrentHashMap<>();
 
 			/** the candidates sorted by birth */
-			private final NavigableMap<Instant, Candidate> byBirth = new ConcurrentSkipListMap<>();
+			private final NavigableSet<Mother> byBirth = new ConcurrentSkipListSet<>(
+					( o1, o2 ) -> o1.born().compareTo( o2.born() ) );
 
 			/** the stream of picked mothers */
 			private final Subject<T, T> mothers = PublishSubject.create();
@@ -152,84 +152,89 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			}
 
 			@Override
-			public T doPick( final Iterable<T> candidates, final Integer total,
-				final BiFunction<Iterable<T>, Integer, T> picker )
+			public T pickAndRemoveFor(
+				final BiFunction<Iterable<T>, Integer, T> picker,
+				final Quantity<Time> recoveryPeriod )
 			{
 				// pick
-				final T result = picker.apply( candidates, total );
-				if( result == null ) return null;
+				final T result = pick( picker );
+				if( result != null )
+				{
+					// unregister before recoveryPeriod
+					if( recoveryPeriod != null )
+					{
+						unregister( result );
+						// re-register after (possibly adjusted) recoveryPeriod
+						if( now().add( recoveryPeriod )
+								.compareTo( this.candidateRemovals.get( result )
+										.unwrap() ) < 0 )
+							after( recoveryPeriod ).call( this::register,
+									result );
+					}
 
-				// unregister before recoveryPeriod
-				if( result.recoveryPeriod() != null ) unregister( result );
-
-				// publish
-				this.mothers.onNext( result );
-
-				// re-register after (possibly adjusted) recoveryPeriod
-				if( result.recoveryPeriod() != null )
-					after( result.recoveryPeriod() ).call( this::register,
-							result );
-
+					// publish
+					this.mothers.onNext( result );
+				}
 				return result;
+			}
+
+			@Override
+			public void registerDuring( final T candidate,
+				final Range<Instant> fertilityInterval )
+			{
+				if( fertilityInterval == null
+						|| fertilityInterval.isLessThan( now() ) )
+					return;
+				if( fertilityInterval.isGreaterThan( now() ) )
+				{
+					at( fertilityInterval.getLower().getValue() )
+							.call( this::register, candidate );
+					return;
+				}
+				final Instant end = fertilityInterval.getUpper().getValue();
+				this.candidateRemovals.compute( candidate,
+						( k, exp ) -> exp != null ? exp
+								: end == null ? null
+										: at( end ).call( this::unregister,
+												candidate ) );
 			}
 
 			@Override
 			public void register( final T candidate )
 			{
-				if( candidate.fertilityInterval() == null
-						|| candidate.fertilityInterval().isLessThan( now() ) )
-					return;
-				if( candidate.fertilityInterval().isGreaterThan( now() ) )
-				{
-					at( candidate.fertilityInterval().getLower().getValue() )
-							.call( this::register, candidate );
-					return;
-				}
-				final Instant end = candidate.fertilityInterval().getUpper()
-						.getValue();
-				this.byBirth.compute( candidate.born(), ( birth, current ) ->
-				{
-					return current == null ? candidate
-							: Cluster.of( current, candidate );
-				} );
-				this.candidates.put( candidate, end == null ? null
-						: at( end ).call( this::unregister, candidate ) );
+				this.byBirth.add( candidate );
 			}
 
 			@Override
 			public void unregister( final T candidate )
 			{
-				final Expectation exp = this.candidates.remove( candidate );
+				final Expectation exp = this.candidateRemovals
+						.remove( candidate );
 				if( exp != null ) exp.remove();
-				this.byBirth.computeIfPresent( candidate.born(),
-						( birth, current ) ->
-						{
-							return current instanceof Cluster
-									? ((Cluster) current).without( candidate )
-									: null;
-						} );
+				this.byBirth.remove( candidate );
 			}
 
 			@Override
 			public Iterator<T> iterator()
 			{
-				return this.candidates.keySet().iterator();
+				return this.candidateRemovals.keySet().iterator();
 			}
 
 			@Override
 			public Integer total()
 			{
-				return this.candidates.size();
+				return this.candidateRemovals.size();
 			}
 
 			@Override
-			public Iterable<Candidate>
+			public Collection<Mother>
 				candidatesBornIn( final Range<Instant> birthFilter )
 			{
-				return this.byBirth.subMap( birthFilter.getLower().getValue(),
+				return this.byBirth.subSet(
+						() -> birthFilter.getLower().getValue(),
 						birthFilter.getLower().isInclusive(),
-						birthFilter.getUpper().getValue(),
-						birthFilter.getUpper().isInclusive() ).values();
+						() -> birthFilter.getUpper().getValue(),
+						birthFilter.getUpper().isInclusive() );
 			}
 		};
 	}

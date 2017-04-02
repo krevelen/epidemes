@@ -19,18 +19,15 @@
  */
 package nl.rivm.cib.episim.model.disease.infection;
 
-import java.util.Collection;
-
-import javax.measure.Quantity;
-import javax.measure.quantity.Frequency;
-
-import io.coala.math.QuantityUtil;
+import io.coala.name.Identified;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
-import io.coala.time.TimeUnits;
+import io.coala.time.Proactive;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.disease.Afflicted;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.Disease;
+import nl.rivm.cib.episim.model.disease.SymptomPhase;
 import nl.rivm.cib.episim.model.locate.Place;
 
 /**
@@ -80,21 +77,27 @@ import nl.rivm.cib.episim.model.locate.Place;
  * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
  * @author Rick van Krevelen
  */
-public interface Infection extends Disease
+public interface Infection extends Disease, Proactive
 {
 
 	/**
 	 * infection is transmitted via direct/indirect animal-human route, see
 	 * http://www.cdc.gov/onehealth/zoonotic-diseases.html
 	 */
-	//boolean isZoonotic();
+	default boolean isZoonotic()
+	{
+		return false;
+	}
 
 	/**
 	 * @return {@code true} if this {@link Infection} is opportunistic,
 	 *         requiring impairment of host defenses, {@code false} otherwise
 	 *         (i.e. primary pathogens with intrinsic virulence)
 	 */
-	//boolean isOpportunistic();
+	default boolean isOpportunistic()
+	{
+		return false;
+	}
 
 	/**
 	 * useful in behavior-driven transmission among symptom-avoiding hosts
@@ -102,17 +105,14 @@ public interface Infection extends Disease
 	 * @return {@code true} if this {@link Infection} is long-term or chronic,
 	 *         {@code false} otherwise (i.e. short-term or acute)
 	 */
-	//boolean isChronic();
+	default boolean isChronic()
+	{
+		return false;
+	}
 
 	/**
-	 * @return a {@link Collection} of transmission {@link TransmissionRoute}s
-	 *         of this {@link Infection}
-	 */
-	//Collection<TransmissionRoute> getTransmissionRoutes();
-
-	/**
-	 * The force of infection (denoted &lambda;) is the rate ({@link Amount} of
-	 * {@link Frequency}) at which a secondary susceptible individual acquires
+	 * The (derived) force of infection (denoted &lambda;) is the rate
+	 * ({@link Frequency}) at which a secondary susceptible individual acquires
 	 * this infectious disease from primary infectives. It is directly
 	 * proportional to the effective transmission rate &beta; and gives the
 	 * number of new infections given a number of infectives and the average
@@ -126,16 +126,16 @@ public interface Infection extends Disease
 	 *            in contact
 	 * @return the {@link Frequency} {@link Amount} of infection acquisition
 	 */
-	Quantity<Frequency> getForceOfInfection(
-		Collection<TransmissionRoute> routes,
-		Collection<ContactIntensity> infectionPressure );
+//	Quantity<Frequency> getForceOfInfection(
+//		Collection<TransmissionRoute> routes,
+//		Collection<ContactIntensity> infectionPressure );
 
 	/**
 	 * @return the (random) period between
 	 *         {@link EpidemicCompartment.Simple#EXPOSED} and
 	 *         {@link EpidemicCompartment.Simple#INFECTIVE} (i.e. 1 / &epsilon;)
 	 */
-	Duration drawLatentPeriod();
+//	Duration drawLatentPeriod();
 
 	/**
 	 * @return the (random) period between
@@ -143,7 +143,7 @@ public interface Infection extends Disease
 	 *         {@link EpidemicCompartment.Simple#RECOVERED} conditions (i.e. 1 /
 	 *         &gamma;)
 	 */
-	Duration drawRecoverPeriod();
+//	Duration drawRecoverPeriod();
 
 	/**
 	 * @return the (random) period between
@@ -151,12 +151,12 @@ public interface Infection extends Disease
 	 *         {@link EpidemicCompartment.Simple#SUSCEPTIBLE} (i.e. &delta;), or
 	 *         {@code null} for infinite (there is no loss of immunity)
 	 */
-	Duration drawWanePeriod();
+//	Duration drawWanePeriod();
 
 	/** @return the (random) period between exposure and first symptoms */
-	Duration drawOnsetPeriod();
+//	Duration drawOnsetPeriod();
 
-	Duration drawSymptomPeriod();
+//	Duration drawSymptomPeriod();
 
 	/**
 	 * @return the (random) window period between exposure and seropositive
@@ -176,22 +176,27 @@ public interface Infection extends Disease
 	 * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
 	 * @author Rick van Krevelen
 	 */
-	class Simple implements Infection
+	class SimpleSEIR extends Identified.SimpleOrdinal<ID> implements Infection
 	{
-		private final ProbabilityDistribution<Quantity<Frequency>> forceDist;
+		private final Scheduler scheduler;
+		private final Condition.Factory conditionFactory;
+//		private final ProbabilityDistribution<Quantity<Frequency>> forceDist;
 
 		private final ProbabilityDistribution<Duration> latentPeriodDist;
 		private final ProbabilityDistribution<Duration> recoverPeriodDist;
 		private final ProbabilityDistribution<Duration> wanePeriodDist;
-		private final ProbabilityDistribution<Duration> onsetPeriodDist;
-		private final ProbabilityDistribution<Duration> symptomPeriodDist;
+		private final ProbabilityDistribution<Duration> incubationPeriodDist;
+		private final ProbabilityDistribution<Duration> symptomaticPeriodDist;
 
-		public Simple( final Quantity<Frequency> forceConst,
+		public SimpleSEIR( final ID id, final Scheduler scheduler,
+			final Condition.Factory conditionFactory,
+//			final Quantity<Frequency> forceConst,
 			final Duration latentPeriodConst, final Duration recoverPeriodConst,
 			final Duration wanePeriodConst, final Duration onsetPeriodConst,
-			final Duration symptomPeriodConst )
+			final Duration symptomaticPeriodConst )
 		{
-			this( ProbabilityDistribution.createDeterministic( forceConst ),
+			this( id, scheduler, conditionFactory,
+//					ProbabilityDistribution.createDeterministic( forceConst ),
 					ProbabilityDistribution
 							.createDeterministic( latentPeriodConst ),
 					ProbabilityDistribution
@@ -201,67 +206,93 @@ public interface Infection extends Disease
 					ProbabilityDistribution
 							.createDeterministic( onsetPeriodConst ),
 					ProbabilityDistribution
-							.createDeterministic( symptomPeriodConst ) );
+							.createDeterministic( symptomaticPeriodConst ) );
 		}
 
-		public Simple(
-			final ProbabilityDistribution<Quantity<Frequency>> forceDist,
+		public SimpleSEIR( final ID id, final Scheduler scheduler,
+			final Condition.Factory conditionFactory,
+//			final ProbabilityDistribution<Quantity<Frequency>> forceDist,
 			final ProbabilityDistribution<Duration> latentPeriodDist,
 			final ProbabilityDistribution<Duration> recoverPeriodDist,
 			final ProbabilityDistribution<Duration> wanePeriodDist,
-			final ProbabilityDistribution<Duration> onsetPeriodDist,
-			final ProbabilityDistribution<Duration> symptomPeriodDist )
+			final ProbabilityDistribution<Duration> incubationPeriodDist,
+			final ProbabilityDistribution<Duration> symptomaticPeriodDist )
 		{
-			this.forceDist = forceDist;
+			this.id = id;
+			this.scheduler = scheduler;
+			this.conditionFactory = conditionFactory;
+//			this.forceDist = forceDist;
 			this.latentPeriodDist = latentPeriodDist;
 			this.recoverPeriodDist = recoverPeriodDist;
 			this.wanePeriodDist = wanePeriodDist;
-			this.onsetPeriodDist = onsetPeriodDist;
-			this.symptomPeriodDist = symptomPeriodDist;
+			this.incubationPeriodDist = incubationPeriodDist;
+			this.symptomaticPeriodDist = symptomaticPeriodDist;
+		}
+
+//		@Override
+//		public Quantity<Frequency> getForceOfInfection(
+//			final Collection<TransmissionRoute> routes,
+//			final Collection<ContactIntensity> infectionPressure )
+//		{
+//			Quantity<Frequency> result = QuantityUtil.valueOf( 0,
+//					TimeUnits.DAILY );
+//			Quantity<Frequency> force = this.forceDist.draw();
+//			for( ContactIntensity intensity : infectionPressure )
+//				result = result.add( force.multiply( intensity.getFactor() )
+//						.asType( Frequency.class ) );
+//			return result;
+//		}
+
+		@Override
+		public Scheduler scheduler()
+		{
+			return this.scheduler;
+		}
+
+		private Condition conditionOf( final Afflicted person )
+		{
+			return person.afflictions().computeIfAbsent( id(),
+					key -> this.conditionFactory.create( person, this ) );
 		}
 
 		@Override
-		public Quantity<Frequency> getForceOfInfection(
-			final Collection<TransmissionRoute> routes,
-			final Collection<ContactIntensity> infectionPressure )
+		public void afflict( final Afflicted person )
 		{
-			Quantity<Frequency> result = QuantityUtil.valueOf( 0,
-					TimeUnits.DAILY );
-			Quantity<Frequency> force = this.forceDist.draw();
-			for( ContactIntensity intensity : infectionPressure )
-				result = result.add( force.multiply( intensity.getFactor() )
-						.asType( Frequency.class ) );
-			return result;
+			conditionOf( person ).set( EpidemicCompartment.Simple.EXPOSED );
+			after( this.latentPeriodDist.draw() ).call( () -> shed( person ) );
+			after( this.incubationPeriodDist.draw() )
+					.call( () -> systemic( person ) );
 		}
 
-		@Override
-		public Duration drawLatentPeriod()
+		public void shed( final Afflicted person )
 		{
-			return this.latentPeriodDist.draw();
+			conditionOf( person ).set( EpidemicCompartment.Simple.INFECTIVE );
+			after( this.recoverPeriodDist.draw() )
+					.call( () -> immune( person ) );
 		}
 
-		@Override
-		public Duration drawRecoverPeriod()
+		public void immune( final Afflicted person )
 		{
-			return this.recoverPeriodDist.draw();
+			conditionOf( person ).set( EpidemicCompartment.Simple.RECOVERED );
+			after( this.wanePeriodDist.draw() ).call( () -> wane( person ) );
 		}
 
-		@Override
-		public Duration drawWanePeriod()
+		public void wane( final Afflicted person )
 		{
-			return this.wanePeriodDist.draw();
+			conditionOf( person ).set( EpidemicCompartment.Simple.SUSCEPTIBLE );
 		}
 
-		@Override
-		public Duration drawOnsetPeriod()
+		public void systemic( final Afflicted person )
 		{
-			return this.onsetPeriodDist.draw();
+			conditionOf( person ).set( SymptomPhase.SYSTEMIC );
+			after( this.symptomaticPeriodDist.draw() )
+					.call( () -> heal( person ) );
 		}
 
-		@Override
-		public Duration drawSymptomPeriod()
+		public void heal( final Afflicted person )
 		{
-			return this.symptomPeriodDist.draw();
+			conditionOf( person ).set( SymptomPhase.ASYMPTOMATIC );
 		}
+
 	}
 }

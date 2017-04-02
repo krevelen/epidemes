@@ -17,42 +17,35 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.persist.dao;
+package nl.rivm.cib.epidemes.rest;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import java.util.Set;
 
-import nl.rivm.cib.episim.model.ZipCode;
-import nl.rivm.cib.episim.persist.AbstractDao;
-import nl.rivm.cib.episim.persist.CBSUtil;
+import javax.servlet.ServletContainerInitializer;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.HandlesTypes;
 
 /**
- * {@link GemeenteDao}
+ * {@link TestInitializer}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Entity( name = "GEMEENTE" )
-public class GemeenteDao extends AbstractDao
+@HandlesTypes( value = { Object.class } )
+public class TestInitializer implements ServletContainerInitializer
 {
-	@Id
-	@Column( name = "CODE", unique = true )
-	protected int code;
 
-	@Column( name = "NAME", length = 100 )
-	protected String name;
+	/** */
+//	private static final Logger LOG = LogUtil
+//			.getLogger( TestInitializer.class );
 
-	/**
-	 * @param zipCode
-	 * @return
-	 */
-	public static GemeenteDao of( final ZipCode zipCode )
+	@Override
+	public void onStartup( final Set<Class<?>> c, final ServletContext ctx )
+		throws ServletException
 	{
-		final GemeenteDao result = new GemeenteDao();
-		result.code = CBSUtil.toGemeenteCode( zipCode );
-		result.name = CBSUtil.toGemeenteNaam( zipCode );
-		return result;
+//		LOG.trace( "Initializing classes: {}, path: {}", c,
+//				ctx.getContextPath() );
 	}
 
 }

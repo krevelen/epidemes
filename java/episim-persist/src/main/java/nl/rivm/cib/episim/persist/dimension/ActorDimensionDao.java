@@ -22,8 +22,7 @@ package nl.rivm.cib.episim.persist.dimension;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
-import nl.rivm.cib.episim.model.Individual;
-import nl.rivm.cib.episim.model.person.HouseholdParticipant;
+import io.coala.enterprise.Actor;
 import nl.rivm.cib.episim.persist.AbstractDao;
 
 /**
@@ -54,13 +53,10 @@ public class ActorDimensionDao extends AbstractDao
 	 * @param individual
 	 * @return
 	 */
-	public static ActorDimensionDao of( final Individual individual )
+	public static ActorDimensionDao of( final Actor.ID id )
 	{
+		// TODO resolve attributes recursively from LocalId
 		final ActorDimensionDao result = new ActorDimensionDao();
-		if( individual instanceof HouseholdParticipant )
-		{
-			((HouseholdParticipant) individual).household().id().unwrap();
-		}
 		return result;
 	}
 

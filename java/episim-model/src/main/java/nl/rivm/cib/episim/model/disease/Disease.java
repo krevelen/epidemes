@@ -19,13 +19,37 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
+import javax.inject.Singleton;
+
+import io.coala.name.Id;
+import io.coala.name.Identified;
+import nl.rivm.cib.episim.model.locate.Region;
+
 /**
- * {@link Disease}
+ * {@link Disease} dynamics
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Disease
+public interface Disease extends Identified<Disease.ID>
 {
+	class ID extends Id.Ordinal<String>
+	{
+		public static ID of( final String value )
+		{
+			return Util.of( value, new ID() );
+		}
+	}
+
+	void afflict( Afflicted person );
+
+	/**
+	 * {@link Factory} will retrieve or generate specified {@link Disease}
+	 */
+	@Singleton
+	interface Factory
+	{
+		Region get( ID id );
+	}
 
 }

@@ -19,63 +19,42 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
-import io.coala.json.DynaBean.BeanProxy;
-import nl.rivm.cib.episim.model.TransitionEvent;
-import io.coala.json.Wrapper;
+import io.coala.name.Id;
 
 /**
- * {@link SymptomPhase} is an extensible identifier for stages of treatment
+ * {@link SymptomPhase} is an {@link Id} for clinical/symptomatic phases
  * 
  * @version $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
  * @author Rick van Krevelen
  */
-@BeanProxy
-public interface SymptomPhase extends Wrapper<String>
+public class SymptomPhase extends Id.Ordinal<String>
 {
-	/** no signs or symptoms (not occult if not exposed or immune) */
-	SymptomPhase ASYMPTOMATIC = Util.valueOf( "asymptomatic",
-			SymptomPhase.class );
+	/** subclinical: no signs or symptoms (not occult if not exposed or immune) */
+	public static final SymptomPhase ASYMPTOMATIC = Util
+			.valueOf( "asymptomatic", new SymptomPhase() );
 
 	/**
 	 * signs or symptoms of early onset, e.g. lack of appetite,
 	 * fever/hyperthermia (measles), rhinorrhea (measles, flu, cold),
 	 * conjuctivitis (measles, flu, cold).
 	 */
-	SymptomPhase PRODROMAL = Util.valueOf( "prodromal", SymptomPhase.class );
+	public static final SymptomPhase PRODROMAL = Util.valueOf( "prodromal",
+			new SymptomPhase() );
 
 	/**
 	 * signs or symptoms throughout body, e.g. sepsis, cold, flu, mononucleosis
 	 * (Pfeiffer due to the Epstein-Barr herpes virus), Streptococcal
 	 * pharyngitis
 	 */
-	SymptomPhase SYSTEMIC = Util.valueOf( "systemic", SymptomPhase.class );
+	public static final SymptomPhase SYSTEMIC = Util.valueOf( "systemic",
+			new SymptomPhase() );
 
 	/**
 	 * signs or symptoms near recovery, e.g.
 	 * <a href="https://en.wikipedia.org/wiki/Reye_syndrome">Reye's syndrome</a>
 	 * following influenza recovery
 	 */
-	SymptomPhase POSTDROMAL = Util.valueOf( "postdromal", SymptomPhase.class );
-
-	public static class SymptomEvent extends TransitionEvent<SymptomPhase>
-	{
-
-		/**
-		 * @param condition
-		 * @param phase
-		 * @return a {@link SymptomEvent}
-		 */
-		public static SymptomEvent of( final Condition condition,
-			final SymptomPhase phase )
-		{
-			final SymptomEvent result = new SymptomEvent();
-			result.time = condition.now();
-//			result.condition = condition;
-			result.oldValue = condition.getSymptomPhase();
-			result.newValue = phase;
-			return result;
-		}
-
-	}
+	public static final SymptomPhase POSTDROMAL = Util.valueOf( "postdromal",
+			new SymptomPhase() );
 
 }

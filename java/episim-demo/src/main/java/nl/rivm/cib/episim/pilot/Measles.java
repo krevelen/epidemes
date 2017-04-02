@@ -30,7 +30,10 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * a <a href="http://www.rivm.nl/Onderwerpen/M/Mazelen">RIVM page</a>, a
  * <a href="http://www.cdc.gov/measles/">US CDC page</a>, and a
  * <a href="http://www.who.int/topics/measles/en/">WHO page</a>
- * 
+ * <ul>
+ * measles time line:
+<li>incubation period: 9-12d (Priniples of Virology, 2008) or 10-14d (https://en.wikipedia.org/wiki/File:Measles.webm)</li>
+</ul>
  * <p>
  * outbreak in NL between Feb 2013 and May 2014 documented in Osiris DB
  * <p>

@@ -19,53 +19,30 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
-import io.coala.json.DynaBean.BeanProxy;
-import nl.rivm.cib.episim.model.TransitionEvent;
-import io.coala.json.Wrapper;
+import io.coala.name.Id;
 
 /**
- * {@link TreatmentStage} is an extensible identifier for stages of treatment
+ * {@link TreatmentStage} is an identifier of treatment stages/regimes
  * 
  * @version $Id: 7c4f8baff3c6ddc96bb7fadbd6202abb0132f0e9 $
  * @author Rick van Krevelen
  */
-@BeanProxy
-public interface TreatmentStage extends Wrapper<String>
+public class TreatmentStage extends Id.Ordinal<String>
 {
 	/** currently not receiving any treatment */
-	TreatmentStage UNTREATED = Util.valueOf( "untreated",
-			TreatmentStage.class );
+	public static final TreatmentStage UNTREATED = Util.valueOf( "untreated",
+			new TreatmentStage() );
 
 	/** currently immunizing using vaccine/antiserum */
-	TreatmentStage VACCINATION = Util.valueOf( "vaccination",
-			TreatmentStage.class );
+	public static final TreatmentStage VACCINATION = Util
+			.valueOf( "vaccination", new TreatmentStage() );
 
 	/** currently suppressing disease using PrEP regime */
-	TreatmentStage PRE_EXPOSURE_PROPHYLACTIC = Util.valueOf( "prep",
-			TreatmentStage.class );
+	public static final TreatmentStage PRE_EXPOSURE_PROPHYLACTIC = Util
+			.valueOf( "prep", new TreatmentStage() );
 
 	/** currently suppressing disease using PEP regime */
-	TreatmentStage POST_EXPOSURE_PROPHYLACTIC = Util.valueOf( "pep",
-			TreatmentStage.class );
-
-	public static class TreatmentEvent extends TransitionEvent<TreatmentStage>
-	{
-
-		/**
-		 * @param condition
-		 * @param treatment
-		 * @return a {@link TreatmentEvent}
-		 */
-		public static TreatmentEvent of( final Condition condition,
-			final TreatmentStage treatment )
-		{
-			final TreatmentEvent result = new TreatmentEvent();
-//			result.condition = condition;
-			result.oldValue = condition.getTreatmentStage();
-			result.newValue = treatment;
-			return result;
-		}
-
-	}
+	public static final TreatmentStage POST_EXPOSURE_PROPHYLACTIC = Util
+			.valueOf( "pep", new TreatmentStage() );
 
 }

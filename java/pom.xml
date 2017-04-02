@@ -32,6 +32,7 @@
 				<module>episim-api</module>
 				<module>episim-mas</module>
 				<module>episim-demo</module>
+				<module>epidemes-demo-webapp</module>
 			</modules>
 		</profile>
 		<profile>

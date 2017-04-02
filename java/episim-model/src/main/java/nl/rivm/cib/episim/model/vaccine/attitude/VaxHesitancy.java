@@ -151,11 +151,11 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	{
 		return Compare.max( BigDecimal.ZERO,
 				DecimalUtil.valueOf( getAppreciation( sourceRef ) )
-						.subtract( APPRECIATION_WEIGHT_MINIMUM )
+						.subtract( DEFAULT_APPRECIATION_WEIGHT_MINIMUM )
 						.add( DecimalUtil.valueOf( getCalculation() ) ) );
 	}
 
-	BigDecimal APPRECIATION_WEIGHT_MINIMUM = BigDecimal.valueOf( 5, 1 );
+	BigDecimal DEFAULT_APPRECIATION_WEIGHT_MINIMUM = BigDecimal.valueOf( 5, 1 );
 
 	/**
 	 * perceived barriers may cause an "intention-behavior gap" (Sheeran, 2002)

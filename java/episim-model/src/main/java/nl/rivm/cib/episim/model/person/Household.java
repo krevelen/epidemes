@@ -38,9 +38,6 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 
 	/**
 	 * {@link MoveHouse}
-	 * 
-	 * @version $Id$
-	 * @author Rick van Krevelen
 	 */
 	public class MoveHouse<T extends Participant> extends DemographicEvent<T>
 	{
@@ -48,9 +45,6 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 
 	/**
 	 * {@link MoveHouse}
-	 * 
-	 * @version $Id$
-	 * @author Rick van Krevelen
 	 */
 	public class Abandon<T extends Participant> extends DemographicEvent<T>
 	{

@@ -12,13 +12,12 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
-import nl.rivm.cib.episim.model.Individual;
 import nl.rivm.cib.episim.model.person.DemographicEvent;
 import nl.rivm.cib.episim.model.person.Population.Birth;
 import nl.rivm.cib.episim.persist.AbstractDao;
 import nl.rivm.cib.episim.persist.dimension.ActorDimensionDao;
-import nl.rivm.cib.episim.persist.dimension.SpaceDimensionDao;
-import nl.rivm.cib.episim.persist.dimension.TimeDimensionDao;
+import nl.rivm.cib.episim.persist.dimension.CbsSpaceDimensionDao;
+import nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao;
 
 /**
  * {@link BirthFactDao} is a data access object for the location dimension
@@ -36,11 +35,11 @@ public class BirthFactDao extends AbstractDao
 
 	@ManyToOne( fetch = FetchType.LAZY, cascade = CascadeType.PERSIST )
 	@JoinColumn( name = "TIME", nullable = false, updatable = false )
-	protected TimeDimensionDao time;
+	protected IsoTimeDimensionDao time;
 
 	@ManyToOne( fetch = FetchType.LAZY, cascade = CascadeType.PERSIST )
 	@JoinColumn( name = "PLACE", nullable = false, updatable = false )
-	protected SpaceDimensionDao place;
+	protected CbsSpaceDimensionDao place;
 
 	@Column( name = "PERSON" )
 	protected ActorDimensionDao person;
@@ -55,11 +54,11 @@ public class BirthFactDao extends AbstractDao
 		final ZonedDateTime offset, final Birth<?> event )
 	{
 		final BirthFactDao result = new BirthFactDao();
-		result.time = TimeDimensionDao.of( event.now(), offset );
+//		result.time = IsoTimeDimensionDao.of( event.now(), offset );
 		result.place = null;
 		// FIXME use enterprise facts as (dynamic?) extensible event beans
-		result.person = ActorDimensionDao
-				.of( (Individual) event.arrivals().toArray()[0] );
+//		result.person = ActorDimensionDao
+//				.of( (Individual) event.arrivals().toArray()[0] );
 		em.persist( result.time );
 		if( result.place != null ) em.persist( result.place );
 		em.persist( result.person );

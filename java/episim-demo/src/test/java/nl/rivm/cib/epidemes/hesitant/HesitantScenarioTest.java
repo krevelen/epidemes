@@ -22,23 +22,32 @@ package nl.rivm.cib.epidemes.hesitant;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
+import org.ujmp.core.SparseMatrix;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.bind.LocalBinder;
+import io.coala.enterprise.Actor;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
+import io.coala.math.DecimalUtil;
 import io.coala.math.Range;
 import io.coala.math.WeightedValue;
+import io.coala.name.Identified;
 import io.coala.random.ProbabilityDistribution;
+import io.coala.random.PseudoRandom;
+import io.coala.random.PseudoRandom.Name;
 import io.coala.util.FileUtil;
 import nl.rivm.cib.episim.hesitant.HesitantScenarioConfig;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 
 /**
  * {@link HesitantScenarioTest}
@@ -52,56 +61,236 @@ public class HesitantScenarioTest
 	private static final Logger LOG = LogUtil
 			.getLogger( HesitantScenarioTest.class );
 
+	/**
+	 * {@link VaccineStatus} is a possible vaccination status
+	 */
 	public static enum VaccineStatus
 	{
 		all, some, none;
 	}
 
+	/**
+	 * {@link DistType} is a type of (R-fitted) distribution
+	 */
 	public static enum DistType
 	{
 		weibull;
 	}
 
+	/**
+	 * {@link DistParam} is a (R-fitted) distribution parameter name
+	 */
 	public static enum DistParam
 	{
 		shape, scale;
 	}
 
-	public static class HesitancyDist
+	/**
+	 * {@link DistParams} describes and instantiates a (R-fitted) distribution
+	 * of attitude values
+	 */
+	public static class DistParams
 	{
+		/** the fitted distribution type */
 		public DistType type;
 
+		/** the minimum observable value */
 		public Double min;
+		/** the maximum observable value */
 		public Double max;
-		@JsonIgnore
-		public Range<Double> range;
+		/** the observable value range */
 
+		/** the distribution parameter estimate */
 		public Map<DistParam, BigDecimal> est;
+		/** the distribution parameter error (standard deviation) */
 		public Map<DistParam, BigDecimal> sd;
-		@JsonIgnore
-		public ProbabilityDistribution<Double> dist;
+
+		/** the distribution */
 
 		@Override
 		public String toString()
 		{
 			return JsonUtil.stringify( this );
 		};
+
+		public ProbabilityDistribution<Double>
+			createDist( final ProbabilityDistribution.Factory distFact )
+		{
+			// avoid compl==conf, e.g. min: .5 -> .505,  max: .5 -> .497
+			final Range<Double> range = Range.of( this.min * 1.01,
+					Math.pow( this.max, 1.01 ) );
+			return distFact
+					.createWeibull( this.est.get( DistParam.shape ),
+							this.est.get( DistParam.scale ) )
+					.map( range::crop );
+
+		}
+	}
+
+	/**
+	 * {@link HesitancyDimension} is a 3C/4C dimension of attitude
+	 */
+	public enum HesitancyDimension
+	{
+		complacency, confidence, attitude, calculation;
 	}
 
 	public static class HesitancyProfile
+		extends Identified.SimpleOrdinal<String>
 	{
+		public static HesitancyProfile of( final String id )
+		{
+			return of( new HesitancyProfile(), id );
+		}
+
+		/** the initial religious persuasion */
 		public boolean religious;
+		/** the initial alternative medicine persuasion */
 		public boolean alternative;
+		/** the initial vaccination status */
 		public VaccineStatus status;
+		/** the original profile N */
 		public int count;
+		/** the original profile density/fraction */
 		public BigDecimal fraction;
-		public Map<String, HesitancyDist> distributions;
+		/** the initial attitude distributions per hesitancy dimension */
+		@JsonProperty( "distributions" )
+		public EnumMap<HesitancyDimension, DistParams> distParams;
 
 		@Override
-		public String toString()
+		public String id()
 		{
-			return JsonUtil.stringify( this );
-		};
+			return this.id == null
+					? (this.id = (this.religious ? "Reli" : "Sec") + "|"
+							+ (this.alternative ? "Alto" : "Reg") + "|"
+							+ this.status)
+					: this.id;
+		}
+	}
+
+	public interface Social
+	{
+
+	}
+
+	public static class HesitantIndividual implements Social, VaxHesitancy
+	{
+
+		private EnumMap<HesitancyDimension, Number> vaxAtt = new EnumMap<>(
+				HesitancyDimension.class );
+
+		private Map<Actor.ID, Number> opinionatorAppreciation = new HashMap<>();
+
+		private Number DEFAULT_APPRECIATION = BigDecimal.valueOf( 5, 1 );
+
+		// TODO calc att
+
+		@Override
+		public Number getComplacency()
+		{
+			return this.vaxAtt.get( HesitancyDimension.complacency );
+		}
+
+		@Override
+		public Number getConfidence()
+		{
+			return this.vaxAtt.get( HesitancyDimension.confidence );
+		}
+
+		@Override
+		public Number getCalculation()
+		{
+			return this.vaxAtt.get( HesitancyDimension.calculation );
+		}
+
+		@Override
+		public void setCalculation( final Number calculation )
+		{
+			this.vaxAtt.put( HesitancyDimension.calculation, calculation );
+		}
+
+		@Override
+		public Number getAppreciation( final Actor.ID sourceRef )
+		{
+			return this.opinionatorAppreciation.computeIfAbsent( sourceRef,
+					id -> DEFAULT_APPRECIATION );
+		}
+
+		@Override
+		public void observe( final Actor.ID sourceRef, final Number complacency,
+			final Number confidence )
+		{
+			// TODO handle opinion
+
+		}
+
+	}
+
+	@Test
+	public void matrixTest() throws IOException, InterruptedException
+	{
+		final HesitantScenarioConfig conf = HesitantScenarioConfig
+				.getOrFromYaml();
+		LOG.info( "Starting matrix test with config: {}", conf.toYAML() );
+		final LocalBinder binder = conf.createBinder();
+		final PseudoRandom rnd = //JavaRandom.Factory.instance().create();
+				binder.inject( PseudoRandom.Factory.class )
+						.create( Name.of( "rng" ), 1L );
+
+		final int numInd = 100; // 1Mx1M fits in normal heap size
+		final int numLoc = 100; // 1Mx1M fits in normal heap size
+
+//		final LocalId ctx = LocalId.of( new UUID() );
+//		final List<Actor.ID> ids = IntStream.range( 0, n )
+//				.mapToObj( Integer::toString ).map( i -> Actor.ID.of( i, ctx ) )
+//				.collect( Collectors.toList() );
+
+		// create a very large sparse matrix
+		SparseMatrix pos = SparseMatrix.Factory.zeros( numInd, numLoc );
+		LOG.trace( "Position matrix size: {}", pos.getSize() );
+
+		for( int ind = 0; ind < numInd; ind++ )
+		{
+			int loc = rnd.nextInt( numLoc );
+			double dur = rnd.nextDouble();
+			pos.setAsBigDecimal( BigDecimal.valueOf( dur ), ind, loc );
+		}
+
+		// set diagonal (i.e. self-appreciation)
+//		for( int i = n - 1; i >= 0; i-- )
+//		{
+//			pos.setAsBigDecimal( BigDecimal.ONE, i, i );
+//		}
+
+		LOG.trace( "Positions:\n{}", pos );
+
+//		final CountDownLatch latch = new CountDownLatch( 1 );
+//		final JFrame gui = m1.showGUI();
+//		gui.addWindowListener( new WindowAdapter()
+//		{
+//			public void windowClosing( final WindowEvent evt )
+//			{
+//				latch.countDown();
+//			}
+//		} );
+//		gui.addli
+//		latch.await();
+		// basic calculations
+//		Matrix transpose = dense.transpose();
+//		Matrix sum = dense.plus(sparse);
+//		Matrix difference = dense.minus(sparse);
+//		Matrix matrixProduct = dense.mtimes(sparse);
+//		Matrix scaled = dense.times(2.0);
+//
+//		Matrix inverse = dense.inv();
+//		Matrix pseudoInverse = dense.pinv();
+//		double determinant = dense.det();
+//
+//		Matrix[] singularValueDecomposition = dense.svd();
+//		Matrix[] eigenValueDecomposition = dense.eig();
+//		Matrix[] luDecomposition = dense.lu();
+//		Matrix[] qrDecomposition = dense.qr();
+//		Matrix choleskyDecomposition = dense.chol();
 	}
 
 	@Test
@@ -112,23 +301,20 @@ public class HesitantScenarioTest
 		final HesitantScenarioConfig conf = HesitantScenarioConfig
 				.getOrFromYaml();
 		LOG.trace( "Start with config: {}", conf.toYAML() );
-		final HesitancyProfile[] profiles = JsonUtil.valueOf(
-				FileUtil.toInputStream( "hesitancy-dists.json" ),
-				HesitancyProfile[].class );
 		final LocalBinder binder = conf.createBinder();
 		final ProbabilityDistribution.Factory distFact = binder
 				.inject( ProbabilityDistribution.Factory.class );
-		Arrays.stream( profiles )
-				.forEach( p -> p.distributions.values().forEach( params ->
-				{
-					// avoid compl==conf; min: .5 -> .505,  max: .5 -> .497
-					params.range = Range.of( params.min * 1.01,
-							Math.pow( params.max, 1.01 ) );
-					params.dist = distFact
-							.createWeibull( params.est.get( DistParam.shape ),
-									params.est.get( DistParam.scale ) )
-							.map( params.range::crop );
-				} ) );
+
+		final HesitancyProfile[] profiles = JsonUtil.valueOf(
+				FileUtil.toInputStream( "hesitancy-dists.json" ),
+				HesitancyProfile[].class );
+		final Map<HesitancyProfile, Map<HesitancyDimension, ProbabilityDistribution<Double>>> dists = //new HashMap<>();
+				Arrays.stream( profiles ).collect( Collectors.toMap( p -> p,
+						p -> p.distParams.entrySet().stream()
+								.collect( Collectors.toMap( e -> e.getKey(),
+										e -> e.getValue()
+												.createDist( distFact ) ) ) ) );
+
 		final List<WeightedValue<HesitancyProfile>> profileDensity = Arrays
 				.stream( profiles )
 				.map( p -> WeightedValue.of( p, p.fraction ) )
@@ -138,26 +324,24 @@ public class HesitantScenarioTest
 				.createCategorical( profileDensity );
 
 		int i = 0, j = 0, k = 0;
-		for( ; i < 1000; i++ )
+		for( ; i < 100000; i++ )
 		{
 			final HesitancyProfile hes = profileDist.draw();
-			final Map<String, Double> draws = hes.distributions.entrySet()
-					.stream().collect( Collectors.toMap( e -> e.getKey(),
-							e -> ((HesitancyDist) e.getValue()).dist.draw() ) );
-			final Double attNew = (draws.get( "confidence" ) + 1
-					- draws.get( "complacency" )) / 2;
-			draws.put( "attitude", attNew );
+			final Map<HesitancyDimension, Double> draws = dists.get( hes )
+					.entrySet().stream().collect( Collectors.toMap(
+							e -> e.getKey(), e -> e.getValue().draw() ) );
+			final Double attNew = (draws.get( HesitancyDimension.confidence )
+					+ 1 - draws.get( HesitancyDimension.complacency )) / 2;
+			draws.put( HesitancyDimension.attitude, attNew );
 			if( hes.status == VaccineStatus.some )
 			{
 				j++;
 				if( attNew >= .5 ) k++;
-				LOG.trace(
-						"Draw {}, status={}, reli={}, alto={}, attDiff={}, dist-draws={}",
-						i, hes.status, hes.religious ? "Y" : "N",
-						hes.alternative ? "Y" : "N", draws );
 			}
 		}
-		LOG.trace( "{} of {} draws undecided, {} ({}%) positive", j, i, k,
-				100. * k / j );
+		LOG.info( "{} ({}%) status {}, of which {} ({}%) positive", j,
+				DecimalUtil.toScale( DecimalUtil.multiply( j, 100. / i ), 1 ),
+				VaccineStatus.some, k,
+				DecimalUtil.toScale( DecimalUtil.multiply( k, 100. / j ), 1 ) );
 	}
 }

@@ -48,7 +48,7 @@ import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
 import io.coala.exception.Thrower;
 import io.coala.log.LogUtil;
-import io.coala.math.QuantityConverter;
+import io.coala.math.QuantityConfigConverter;
 import io.coala.math.WeightedValue;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.ReplicateConfig;
@@ -71,15 +71,15 @@ public interface GeardDemogConfig extends ReplicateConfig
 	int popSize();
 
 	@DefaultValue( "0.08 " + TimeUnits.ANNUAL_LABEL )
-	@ConverterClass( QuantityConverter.class )
+	@ConverterClass( QuantityConfigConverter.class )
 	Quantity<Frequency> couplingProportion();
 
 	@DefaultValue( "0.02 " + TimeUnits.ANNUAL_LABEL )
-	@ConverterClass( QuantityConverter.class )
+	@ConverterClass( QuantityConfigConverter.class )
 	Quantity<Frequency> leavingProportion();
 
 	@DefaultValue( "0.01 " + TimeUnits.ANNUAL_LABEL )
-	@ConverterClass( QuantityConverter.class )
+	@ConverterClass( QuantityConfigConverter.class )
 	Quantity<Frequency> divorcingProportion();
 
 //	this.growthRate = Signal.Simple.of( this.scheduler,

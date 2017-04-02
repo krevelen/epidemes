@@ -109,17 +109,6 @@
 			</dependency> <dependency> <groupId>org.geotools</groupId> <artifactId>gt-swing</artifactId> 
 			<version>${geotools.version}</version> </dependency> -->
 
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest-all</artifactId>
-			<scope>test</scope>
-		</dependency>
-
 		<!-- incl. in-memory JDBC database -->
 		<dependency>
 			<groupId>org.hsqldb</groupId>
@@ -175,6 +164,17 @@
 			</exclusions>
 		</dependency>
 
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -182,7 +182,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>${shade.version}</version>
 				<executions>
 					<execution>
 						<phase>package</phase>

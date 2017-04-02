@@ -21,8 +21,13 @@
 		<!-- testing JPA -->
 		<jta.version>1.1</jta.version>
 		<hsqldb.version>2.3.4</hsqldb.version>
+		<neo4j.version>2.3.5</neo4j.version>
 		<hikari.version>2.4.7</hikari.version>
-		<hibernate.version>5.2.1.Final</hibernate.version>
+		
+		<!-- see http://hibernate.org/ogm/documentation/ -->
+		<hibernate.version>5.1.0.Beta3</hibernate.version>
+		<!-- <hibernate.version>5.0.4.Final</hibernate.version> -->
+		<!-- <hibernate.version>5.2.1.Final</hibernate.version> -->
 
 		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
 		<m2e.jpa.activation>false</m2e.jpa.activation>
@@ -40,6 +45,18 @@
 		</repository>
 	</repositories>
 
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
@@ -55,12 +72,8 @@
 		</dependency>
 
 		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
-		<dependency>
-			<groupId>javax.transaction</groupId>
-			<artifactId>jta</artifactId>
-			<version>${jta.version}</version>
-			<scope>provided</scope>
-		</dependency>
+		<!-- <dependency> <groupId>javax.transaction</groupId> <artifactId>jta</artifactId> 
+			<version>${jta.version}</version> <scope>provided</scope> </dependency> -->
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -73,38 +86,45 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- incl. in-memory JDBC database -->
+		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-hibernate5 -->
 		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<version>${hsqldb.version}</version>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-hibernate5</artifactId>
+			<version>${jackson.version}</version>
 			<scope>test</scope>
 		</dependency>
 
+		<!-- incl. in-memory JDBC database -->
+		<!-- <dependency> <groupId>org.hsqldb</groupId> <artifactId>hsqldb</artifactId> 
+			<version>${hsqldb.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-entitymanager</artifactId> 
+			<version>${hibernate.version}</version> <scope>test</scope> </dependency> -->
+		<!-- https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
 		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-entitymanager</artifactId>
-			<version>${hibernate.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-hikaricp</artifactId>
-			<version>${hibernate.version}</version>
+			<groupId>org.hibernate.ogm</groupId>
+			<artifactId>hibernate-ogm-neo4j</artifactId>
 			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<artifactId>HikariCP-java6</artifactId>
-					<groupId>com.zaxxer</groupId>
-				</exclusion>
-			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.hibernate.javax.persistence</groupId>
+			<artifactId>hibernate-jpa-2.1-api</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- <dependency> <groupId>org.neo4j</groupId> <artifactId>neo4j-kernel</artifactId> 
+			<version>${neo4j.version}</version> <type>test-jar</type> <scope>test</scope> 
+			</dependency> -->
+		<!-- <dependency> <groupId>org.neo4j</groupId> <artifactId>neo4j-io</artifactId> 
+			<version>${neo4j.version}</version> <type>test-jar</type> <scope>test</scope> 
+			</dependency> -->
+			
 		<!-- replaces default Hibernate connection pool (C3P0) -->
-		<dependency>
-			<groupId>com.zaxxer</groupId>
-			<artifactId>HikariCP</artifactId>
-			<version>${hikari.version}</version>
-			<scope>test</scope>
-		</dependency>
+		<!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-hikaricp</artifactId> 
+			<version>${hibernate.version}</version> <scope>test</scope> <exclusions> 
+			<exclusion> <artifactId>HikariCP-java6</artifactId> <groupId>com.zaxxer</groupId> 
+			</exclusion> </exclusions> </dependency> -->
+		<!-- <dependency> <groupId>com.zaxxer</groupId> <artifactId>HikariCP</artifactId> 
+			<version>${hikari.version}</version> <scope>test</scope> </dependency> -->
 
 		<!-- Kundera JPA provider for RDMBS and No-SQL (Neo4J, Mongo, ...) -->
 		<!-- <dependency> <groupId>com.impetus.kundera.client</groupId> <artifactId>kundera-rdbms</artifactId> 
@@ -114,7 +134,7 @@
 			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-core</artifactId> 
 			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-validator</artifactId> 
 			</exclusion> </exclusions> </dependency> -->
-		
+
 		<!-- <dependency> <groupId>org.reflections</groupId> <artifactId>reflections</artifactId> 
 			<version>${reflections.version}</version> <scope>test</scope> </dependency> -->
 	</dependencies>
