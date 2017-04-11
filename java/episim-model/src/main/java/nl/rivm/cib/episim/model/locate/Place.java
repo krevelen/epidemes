@@ -69,11 +69,11 @@ public interface Place extends Identified<Place.ID>
 	}
 
 	/**
-	 * {@link Factory} will retrieve or generate specified {@link Place}
+	 * {@link Directory} will retrieve or generate specified {@link Place}
 	 */
-	interface Factory
+	interface Directory
 	{
-		Place get( ID id );
+		Place lookup( Place.ID id );
 	}
 
 	/**

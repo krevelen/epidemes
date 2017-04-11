@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.pilot;
 
-import nl.rivm.cib.episim.model.disease.infection.Infection;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
  * {@link Measles} (morbilli, mazelen) is a highly contagious and potentially
@@ -124,7 +124,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * @version $Id: 208e659e66896e276ab94a1829233a06a97e0cc8 $
  * @author Rick van Krevelen
  */
-public abstract class Measles implements Infection
+public abstract class Measles implements Pathogen
 {
 
 }

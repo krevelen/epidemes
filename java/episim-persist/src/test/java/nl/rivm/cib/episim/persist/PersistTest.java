@@ -20,7 +20,6 @@
 package nl.rivm.cib.episim.persist;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 
 import javax.persistence.EntityManagerFactory;
 
@@ -35,6 +34,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
+import io.coala.enterprise.persist.FactDao;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.LatLong;
@@ -45,14 +45,13 @@ import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.Condition;
-import nl.rivm.cib.episim.model.disease.infection.ContactEvent;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionFact;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen.Exposure;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
+import nl.rivm.cib.episim.model.disease.infection.Visit;
 import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.persist.fact.TransmissionFactDao;
 import tec.uom.se.unit.Units;
 
 /**
@@ -179,18 +178,15 @@ public class PersistTest
 	@Test
 	public void testDAOs() throws Exception
 	{
-//		org.hibernate.ogm.datastore.neo4j.Neo4jProperties a;
-
 		final Hibernate5Module hbm = new Hibernate5Module();
 		hbm.enable( Hibernate5Module.Feature.FORCE_LAZY_LOADING );
 		JsonUtil.getJOM().registerModule( hbm );
 
-		final OffsetDateTime offset = OffsetDateTime.now();
+//		final OffsetDateTime offset = OffsetDateTime.now();
 		final Region region = Region.of( Region.ID.of( "Netherlands" ), "NL01",
-				"Country", (Region) null,
+				Region.TypeID.of( "Country" ), (Region)null, null,
 				QuantityUtil.valueOf( 41543, Units.SQUARE_METRE )
-						.multiply( BigDecimal.TEN.pow( 6 ) ),
-				null );
+						.multiply( BigDecimal.TEN.pow( 6 ) ) );
 		final Place site = Place.of( Place.ID.of( "rivm" ), RIVM_POSITION,
 				region, Geography.DEFAULT );
 		final Instant start = null;
@@ -199,23 +195,23 @@ public class PersistTest
 		final TransmissionRoute route = null;
 		final Condition primary = null;
 		final Condition secondary = null;
-		final ContactEvent cause = ContactEvent.of( start, duration, space,
-				route, primary, secondary );
+		final Visit cause = Visit.of( start, duration, space, route, primary,
+				secondary );
 		final Instant time = Instant.of( 3.456, TimeUnits.ANNUM );
-		final TransmissionFact event = TransmissionFact.of( time, site, cause );
+		final Exposure event = Exposure.of( time, site, cause );
 		LOG.trace( "Getting EM to store/retrieve event: {}", event );
 		JPAUtil.session( EMF, em ->
 		{
-			final TransmissionFactDao fact = TransmissionFactDao.persist( em,
-					event, offset );
+			final FactDao fact = FactDao.create( em, event );
 			LOG.trace( "Persisting: {}", fact );
 			em.persist( fact );
 		} );
 		JPAUtil.session( EMF, em ->
 		{
+			// TODO use criteria builder
 			LOG.trace( "Read table, result: {}",
 					em.createQuery( "SELECT f FROM "
-							+ TransmissionFactDao.ENTITY_NAME + " f" )
+							+ FactDao.class.getSimpleName() + " f" )
 							.getResultList() );
 		} );
 	}

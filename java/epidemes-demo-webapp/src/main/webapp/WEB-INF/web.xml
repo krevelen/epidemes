@@ -10,6 +10,11 @@
 
 	<display-name>EpidemesDemo</display-name>
 
+	<resource-env-ref>
+		<resource-env-ref-name>jdbc/webDS</resource-env-ref-name>
+		<resource-env-ref-type>javax.sql.DataSource</resource-env-ref-type>
+	</resource-env-ref>
+
 	<!-- Apache CXF servlet for JAX-RS -->
 	<servlet>
 		<servlet-name>CXFServlet</servlet-name>

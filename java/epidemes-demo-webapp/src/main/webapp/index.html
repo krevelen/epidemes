@@ -1496,11 +1496,11 @@
 			}
 		}
 
-		var PROV_MAP = null;
+		var PROV_MAP = null, GEM_MAP = null;
 
 		function updateProvinces() {
-			var jqxhr = $.get("rest-v1/json/", function(res) {
-				if (PROV_MAP.series[0])
+			var jqxhr = $.get("rest-v1/json/province", function(res) {
+				if (PROV_MAP.series && PROV_MAP.series[0])
 					PROV_MAP.series[0].update({
 						data : res
 					});
@@ -1510,6 +1510,19 @@
 			});
 		}					
 
+		function updateMunicipals() {
+			var jqxhr = $.get("rest-v1/json/municipal", function(res) {
+				if (GEM_MAP.series && GEM_MAP.series[0])
+					GEM_MAP.series[0].update({
+						data : res
+					});
+				// else alert('No series in GEM_MAP.title')
+			}).fail(function(e) {
+				console.log("error: " + JSON.stringify(e));
+			});
+		}					
+
+		// TODO: use re/setInterval
 		function repeatUpdateProvinces(intervalMillis) {
 			updateProvinces();
 			setTimeout(function() {
@@ -1517,9 +1530,17 @@
 			}, intervalMillis);
 		}
 
+		// TODO: use re/setInterval
+		function repeatUpdateMunicipals(intervalMillis) {
+			updateMunicipals();
+			setTimeout(function() {
+				repeatUpdateMunicipals(intervalMillis);
+			}, intervalMillis);
+		}
+
 		$(function() {
 			// Initiate the charts
-			$('#map-gem').highcharts('Map', {
+			GEM_MAP = Highcharts.mapChart('map-gem', { //$('#map-gem').highcharts('Map', {
 				title : {
 					text : 'Vaccinatiegraad 2027'
 				},
@@ -1585,6 +1606,7 @@
 			});
 
 			repeatUpdateProvinces(1000);
+			repeatUpdateMunicipals(1000);
 
 			/**
 			 * In order to synchronize tooltips and crosshairs, override the

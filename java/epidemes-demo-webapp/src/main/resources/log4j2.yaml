@@ -16,4 +16,16 @@ Configuration:
     Logger:
       - name: javax.management
         level: warn
+      - name: javax.management
+        level: warn
+      - name: com.zaxxer.hikari
+        level: warn
+      - name: org.hibernate
+        level: info
+      - name: hsqldb.db
+        level: warn
+      - name: com.google.inject
+        level: info
+      - name: org.apache.cxf
+        level: info
         

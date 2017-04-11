@@ -24,7 +24,7 @@ import nl.rivm.cib.episim.model.person.Population;
 
 /**
  * {@link OutbreakScale} is an extensible classifier to characterize evolution
- * of an {@link Infection} among a {@link Population} (= <em>demos</em>) over
+ * of an {@link Pathogen} among a {@link Population} (= <em>demos</em>) over
  * time and space, somewhat similar to
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>

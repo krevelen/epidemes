@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+             http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd"
+	version="2.1">
+
+	<persistence-unit name="model_test_pu"
+		transaction-type="RESOURCE_LOCAL">
+
+		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+		<!-- List all @Entities: no JPA auto-discovery in Java SE runtime :( -->
+		<class>io.coala.bind.persist.LocalIdDao</class>
+		<class>io.coala.enterprise.persist.FactDao</class>
+
+		<properties>
+		</properties>
+	</persistence-unit>
+</persistence>

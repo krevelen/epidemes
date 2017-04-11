@@ -5,15 +5,13 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.inject.Singleton;
 import javax.measure.Quantity;
 import javax.measure.quantity.Area;
 
-import io.coala.math.QuantityUtil;
+import io.coala.json.JsonUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
 import io.coala.time.Instant;
-import nl.rivm.cib.episim.model.person.Population;
 
 /**
  * {@link Region}
@@ -25,17 +23,32 @@ public interface Region extends Identified<Region.ID>
 {
 	class ID extends Id.Ordinal<String>
 	{
+		static
+		{
+			JsonUtil.checkRegistered( JsonUtil.getJOM(), Region.ID.class );
+		}
+
 		public static ID of( final String value )
 		{
 			return Util.of( value, new ID() );
 		}
 	}
 
+	class TypeID extends Id.Ordinal<String>
+	{
+		public static TypeID of( final String value )
+		{
+			return Util.of( value, new TypeID() );
+		}
+	}
+
 	String name();
 
-	String type();
+	TypeID type();
 
 	SortedMap<Instant, Region> parents();
+
+	SortedMap<Instant, Region> children();
 
 	default Region currentParent()
 	{
@@ -46,62 +59,53 @@ public interface Region extends Identified<Region.ID>
 	Quantity<Area> surfaceArea();
 
 	/**
-	 * @return the inhabitants
+	 * {@link Directory} will retrieve or generate specified {@link Region}
 	 */
-	Population<?> population();
-
-	default Quantity<?> populationDensity()
+	interface Directory
 	{
-		return QuantityUtil.valueOf( population().members().size() )
-				.divide( surfaceArea() );
+		Region lookup( ID id );
 	}
 
-	/**
-	 * {@link Factory} will retrieve or generate specified {@link Region}
-	 */
-	@Singleton
-	interface Factory
+	static Region of( final ID id, final String name, final TypeID type,
+		final Map<Instant, Region> parents, final Map<Instant, Region> children,
+		final Quantity<Area> surfaceArea )
 	{
-		Region get( ID id );
+		return new Simple( id, name, type, parents, children, surfaceArea );
 	}
 
-	static Region of( final ID id, final String name, final String type,
-		final Map<Instant, Region> parent, final Quantity<Area> surfaceArea,
-		final Population<?> population )
-	{
-		return new Simple( id, name, type, parent, surfaceArea, population );
-	}
-
-	static Region of( final ID id, final String name, final String type,
-		final Region parent, final Quantity<Area> surfaceArea,
-		final Population<?> population )
+	static Region of( final ID id, final String name, final TypeID type,
+		final Region parent, final Map<Instant, Region> children,
+		final Quantity<Area> surfaceArea )
 	{
 		return of( id, name, type,
-				Collections.singletonMap( Instant.ZERO, parent ), surfaceArea,
-				population );
+				Collections.singletonMap( Instant.ZERO, parent ), children,
+				surfaceArea );
 	}
 
 	public static class Simple extends Identified.SimpleOrdinal<ID>
 		implements Region
 	{
 		private String name;
-		private String type;
-		private SortedMap<Instant, Region> parent;
+		private TypeID type;
+		private SortedMap<Instant, Region> parents;
+		private SortedMap<Instant, Region> children;
 		private Quantity<Area> surfaceArea;
-		private Population<?> population;
 
-		public Simple( final ID id, final String name, final String type,
-			final Map<Instant, Region> parent, final Quantity<Area> surfaceArea,
-			final Population<?> population )
+		public Simple( final ID id, final String name, final TypeID type,
+			final Map<Instant, Region> parents,
+			final Map<Instant, Region> children,
+			final Quantity<Area> surfaceArea )
 		{
 			this.id = id;
 			this.name = name;
 			this.type = type;
-			this.parent = parent instanceof SortedMap
-					? (SortedMap<Instant, Region>) parent
-					: new TreeMap<>( parent );
+			this.parents = parents instanceof SortedMap
+					? (SortedMap<Instant, Region>) parents
+					: new TreeMap<>( parents );
 			this.surfaceArea = surfaceArea;
-			this.population = population;
+			this.children = children instanceof SortedMap
+					? (SortedMap<Instant, Region>) children
+					: new TreeMap<>( children );
 		}
 
 		@Override
@@ -111,7 +115,7 @@ public interface Region extends Identified<Region.ID>
 		}
 
 		@Override
-		public String type()
+		public TypeID type()
 		{
 			return this.type;
 		}
@@ -119,7 +123,7 @@ public interface Region extends Identified<Region.ID>
 		@Override
 		public SortedMap<Instant, Region> parents()
 		{
-			return this.parent;
+			return this.parents;
 		}
 
 		@Override
@@ -129,9 +133,9 @@ public interface Region extends Identified<Region.ID>
 		}
 
 		@Override
-		public Population<?> population()
+		public SortedMap<Instant, Region> children()
 		{
-			return this.population;
+			return this.children;
 		}
 	}
 }

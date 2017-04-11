@@ -20,10 +20,11 @@
 package nl.rivm.cib.episim.persist.dimension;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 
+import io.coala.bind.persist.LocalIdDao;
 import io.coala.enterprise.Actor;
-import nl.rivm.cib.episim.persist.AbstractDao;
 
 /**
  * {@link ActorDimensionDao}
@@ -31,8 +32,9 @@ import nl.rivm.cib.episim.persist.AbstractDao;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Embeddable
-public class ActorDimensionDao extends AbstractDao
+@Entity
+@Table( name = "DIM_ACTOR" )
+public class ActorDimensionDao extends LocalIdDao
 {
 	@Column( name = "NAME", nullable = false, updatable = false )
 	protected String name;
@@ -53,7 +55,7 @@ public class ActorDimensionDao extends AbstractDao
 	 * @param individual
 	 * @return
 	 */
-	public static ActorDimensionDao of( final Actor.ID id )
+	public static ActorDimensionDao of( final Actor.ID personRef )
 	{
 		// TODO resolve attributes recursively from LocalId
 		final ActorDimensionDao result = new ActorDimensionDao();

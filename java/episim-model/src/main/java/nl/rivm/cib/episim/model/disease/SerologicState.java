@@ -22,27 +22,42 @@ package nl.rivm.cib.episim.model.disease;
 import io.coala.name.Id;
 
 /**
- * {@link TreatmentStage} is an identifier of treatment stages/regimes
+ * {@link SerologicState} identifies the condition of the immune system's serum
  * 
  * @version $Id: 7c4f8baff3c6ddc96bb7fadbd6202abb0132f0e9 $
  * @author Rick van Krevelen
  */
-public class TreatmentStage extends Id.Ordinal<String>
+public class SerologicState extends Id.Ordinal<String>
 {
-	/** currently not receiving any treatment */
-	public static final TreatmentStage UNTREATED = Util.valueOf( "untreated",
-			new TreatmentStage() );
+	/**
+	 * immune system serum testing positive (titre > ?) for antibodies against
+	 * some antigen
+	 */
+	public static final SerologicState SEROPOSITIVE = of( "sero+" );
 
-	/** currently immunizing using vaccine/antiserum */
-	public static final TreatmentStage VACCINATION = Util
-			.valueOf( "vaccination", new TreatmentStage() );
+	/**
+	 * immune system serum testing negative (titre < ?) for antibodies against
+	 * some antigen
+	 */
+	public static final SerologicState SERONEGATIVE = of( "sero-" );
 
-	/** currently suppressing disease using PrEP regime */
-	public static final TreatmentStage PRE_EXPOSURE_PROPHYLACTIC = Util
-			.valueOf( "prep", new TreatmentStage() );
+	public static SerologicState of( final String value )
+	{
+		return Util.valueOf( value, new SerologicState() );
+	}
 
-	/** currently suppressing disease using PEP regime */
-	public static final TreatmentStage POST_EXPOSURE_PROPHYLACTIC = Util
-			.valueOf( "pep", new TreatmentStage() );
+	public interface Attributable<THIS>
+	{
+		SerologicState getState();
+
+		void setState( SerologicState stage );
+
+		@SuppressWarnings( "unchecked" )
+		default THIS with( final SerologicState stage )
+		{
+			setState( stage );
+			return (THIS) this;
+		}
+	}
 
 }

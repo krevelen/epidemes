@@ -55,6 +55,20 @@ public interface EpidemicCompartment extends Identified<String>
 	 */
 	boolean isImmune();
 
+	interface Attributable<THIS>
+	{
+		EpidemicCompartment getCompartment();
+
+		void setCompartment( EpidemicCompartment compartment );
+
+		@SuppressWarnings( "unchecked" )
+		default THIS with( final EpidemicCompartment compartment )
+		{
+			setCompartment( compartment );
+			return (THIS) this;
+		}
+	}
+
 	/**
 	 * {@link Simple}
 	 */

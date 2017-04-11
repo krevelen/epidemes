@@ -50,7 +50,7 @@ public interface InfectionMetrics extends Proactive
 {
 	PopulationMetrics getPopulationMetrics();
 
-	Infection getInfection();
+	Pathogen getInfection();
 
 	OutbreakScale getOutbreakScale();
 
@@ -71,7 +71,7 @@ public interface InfectionMetrics extends Proactive
 	Quantity<Dimensionless> getPrevalence();
 
 	/**
-	 * @return the number of {@link TransmissionFact}s, i.e. 'successful'
+	 * @return the number of {@link Exposure}s, i.e. 'successful'
 	 *         contact events
 	 */
 	Indicator<Dimensionless> getEffectiveContactsNumber();

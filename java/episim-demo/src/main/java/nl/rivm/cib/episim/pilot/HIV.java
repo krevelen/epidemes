@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.pilot;
 
-import nl.rivm.cib.episim.model.disease.infection.Infection;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
  * {@link HIV} or the Human Immunodeficiency Virus has a
@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * @version $Id: 413968cc21facdcb91463bbe0c66b5bac05a8144 $
  * @author Rick van Krevelen
  */
-public abstract class HIV implements Infection
+public abstract class HIV implements Pathogen
 {
 
 //	@SuppressWarnings( "unchecked" )

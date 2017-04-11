@@ -15,6 +15,8 @@ import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.cfg.AvailableSettings;
+import org.hibernate.dialect.Dialect;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -69,29 +71,23 @@ public class GeoDBConnectorTest
 		@DefaultValue( "geodb_test_pu" )
 		String[] jpaUnitNames();
 
-		@Key( HIBERNATE_SCHEMA_POLICY_KEY )
+		@Key( AvailableSettings.HBM2DDL_AUTO )
 		@DefaultValue( "validate" )
 		HibernateSchemaPolicy hibernateSchemaPolicy();
 
-		@Key( HIBERNATE_DEFAULT_SCHEMA_KEY )
+		@Key( AvailableSettings.DEFAULT_SCHEMA )
 		@DefaultValue( "nl" )
 		String hibernateDefaultSchema();
 
-		@Key( HIBERNATE_CONNECTION_PROVIDER_KEY )
-		@DefaultValue( "org.hibernate.hikaricp.internal.HikariCPConnectionProvider" )
-			Class<?>// extends ConnectionProvider>
-			hibernateConnectionProviderClass();
-
-		@Key( HIBERNATE_DIALECT_KEY )
+		@Key( AvailableSettings.DIALECT )
 		@DefaultValue( "nl.rivm.cib.episim.geodb.PostgisDialectExtended" )
-			Class<?>// extends org.hibernate.dialect.Dialect
-			hibernateDialect();
+		Class<? extends Dialect> hibernateDialect();
 
 		// see https://github.com/brettwooldridge/HikariCP/wiki/Configuration#popular-datasource-class-names
 
-		@Key( HIKARI_DATASOURCE_DRIVER_KEY )
+		@Key( AvailableSettings.DRIVER )
 		@DefaultValue( "org.postgresql.ds.PGSimpleDataSource" )
-		Class<? extends DataSource> hikariDataSourceDriver();
+		Class<? extends DataSource> jdbcDataSourceDriver();
 
 	}
 
@@ -207,7 +203,7 @@ public class GeoDBConnectorTest
 //		@DefaultValue( "jdbc:hsqldb:mem:mymemdb" )
 //		@DefaultValue( "jdbc:neo4j:bolt://192.168.99.100:7687/db/data" )
 		@DefaultValue( "jdbc:hsqldb:file:target/testdb" )
-		@Key( HIKARI_DATASOURCE_URL_KEY )
+		@Key( AvailableSettings.URL )
 		URI jdbcUrl();
 	}
 

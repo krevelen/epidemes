@@ -14,12 +14,30 @@
 	<packaging>war</packaging>
 
 	<properties>
-		<wildfly-maven-plugin.version>1.1.0.Final</wildfly-maven-plugin.version>
+		<git.commit.id.abbrev>$Id$</git.commit.id.abbrev>
+
 		<cxf.version>3.1.10</cxf.version>
+
+		<wildfly-maven-plugin.version>1.1.0.Final</wildfly-maven-plugin.version>
 
 		<cargo.version>1.6.2</cargo.version>
 		<cargo.maven.skip>false</cargo.maven.skip>
 		<cargo.context>/demo</cargo.context>
+		<cargo.tmpDir>${basedir}/.cargo</cargo.tmpDir>
+		<cargo.container.dist>
+			http://www.apache.org/dyn/closer.cgi?action=download%26filename=tomcat/tomcat-8/v8.5.13/bin/apache-tomcat-8.5.13.zip
+		</cargo.container.dist>
+		<cargo.container>tomcat8x</cargo.container>
+
+		<jdbc.jndi>jdbc/DataSourceJNDI</jdbc.jndi>
+		<jdbc.driver>org.hsqldb.jdbc.JDBCDataSource</jdbc.driver>
+		<!-- jdbc:mysql://localhost/testdb -->
+		<!-- jdbc:neo4j:bolt://192.168.99.100:7687/db/data -->
+		<!-- jdbc:hsqldb:file:target/testdb -->
+		<!-- jdbc:hsqldb:mem:mymemdb -->
+		<jdbc.url>jdbc:hsqldb:mem:mymemdb</jdbc.url>
+		<jdbc.username>SA</jdbc.username>
+		<jdbc.password></jdbc.password>
 
 		<!-- <cargo.container.dist>http://download.jboss.org/wildfly/10.1.0.Final/wildfly-10.1.0.Final.zip</cargo.container.dist> -->
 		<!-- <cargo.container>wildfly10x</cargo.container> -->
@@ -32,11 +50,35 @@
 		<!-- <cargo.container.dist>http://central.maven.org/maven2/org/eclipse/jetty/jetty-distribution/9.4.3.v20170317/jetty-distribution-9.4.3.v20170317.zip</cargo.container.dist> -->
 		<!-- <cargo.container>jetty9x</cargo.container> -->
 
-		<cargo.container.dist>
-			http://www.apache.org/dyn/closer.cgi?action=download%26filename=tomcat/tomcat-8/v8.5.13/bin/apache-tomcat-8.5.13.zip
-		</cargo.container.dist>
-		<cargo.container>tomcat8x</cargo.container>
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<skipDocker>true</skipDocker>
+
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<docker.repoName>epidemes</docker.repoName>
+		<docker.imageName>demo</docker.imageName>
+		<docker.tagName>${project.version}</docker.tagName>
+		<docker.buildDir>docker</docker.buildDir>
+
+		<!-- docker run -d -p 8080:8080 -v ${cargo.tmpDir}:/home/cargo epidemes/demo-webapp -->
+		<jta.version>1.1</jta.version>
+		<hsqldb.version>2.3.4</hsqldb.version>
+		<hikari.version>2.4.7</hikari.version>
+		<jta.version>1.1</jta.version>
+		<!-- for hibernate-ogm-neo4j versions, see https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
+		<hibernate.version>5.1.0.Final</hibernate.version>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
@@ -94,8 +136,8 @@
 			<version>${cxf.version}</version> </dependency> -->
 
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
@@ -103,6 +145,31 @@
 			<version>1.7.24</version> <scope>provided</scope> </dependency> -->
 		<!-- <dependency> <groupId>org.apache.logging.log4j</groupId> <artifactId>log4j-slf4j-impl</artifactId> 
 			<version>2.8.1</version> <scope>provided</scope> </dependency> -->
+
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<version>${jta.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate.ogm</groupId>
+			<artifactId>hibernate-ogm-neo4j</artifactId>
+		</dependency>
+
+		<!-- incl. in-memory JDBC database -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+		</dependency>
+
+		<!-- tomcat-catalina used solely for Apache JNDI implementation -->
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<version>8.0.28</version>
+		</dependency>
 
 	</dependencies>
 
@@ -151,11 +218,66 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<configuration>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
 
-			<!-- <plugin> <groupId>org.wildfly.plugins</groupId> <artifactId>wildfly-maven-plugin</artifactId> 
-				<version>${wildfly-maven-plugin.version}</version> <configuration> <hostname>127.0.0.1</hostname> 
-				<port>9990</port> <username>mkyong</username> <password>password</password> 
-				<name>spring4ajax.war</name> </configuration> </plugin> -->
+			<!-- build, tag, and push docker image -->
+			<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>${docker-maven-plugin.version}</version>
+				<configuration>
+					<imageName>${docker.imageName}</imageName>
+					<imageTags>
+						<imageTag>${docker.tagName}</imageTag>
+						<imageTag>latest</imageTag>
+					</imageTags>
+					<!-- <baseImage>java</baseImage> -->
+					<!-- <entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint> -->
+					<dockerDirectory>${basedir}</dockerDirectory>
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<!-- <include>${project.build.finalName}.jar</include> -->
+						</resource>
+					</resources>
+				</configuration>
+				<executions>
+					<execution>
+						<id>build-image</id>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>tag-image</id>
+						<phase>package</phase>
+						<goals>
+							<goal>tag</goal>
+						</goals>
+						<configuration>
+							<image>${docker.imageName}:${docker.tagName}</image>
+							<newName>${docker.repoName}/${docker.imageName}:${docker.tagName}</newName>
+						</configuration>
+					</execution>
+					<execution>
+						<id>push-image</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>push</goal>
+						</goals>
+						<configuration>
+							<imageName>${docker.repoName}/${docker.imageName}:${docker.tagName}</imageName>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
 			<!-- see https://codehaus-cargo.github.io/cargo/Maven2+plugin.html -->
 			<!-- mvn clean verify org.codehaus.cargo:cargo-maven2-plugin:run -->
@@ -178,15 +300,57 @@
 						</dependency> -->
 				</dependencies>
 				<configuration>
-					<!-- configure: [container], cargo, and [deployables] -->
+					<!-- configure: cargo, [container], [deployables] -->
+					<configuration>
+						<!-- <home>${project.build.directory}/jetty-home</home> -->
+						<!-- the adapted jetty/webdefault.xml: (1) points Jetty's DefaultServlet 
+							resourceBase to ${maven.src.dir}/webapp; and (2) fixes Jetty's file locking 
+							in Windows -->
+						<configfiles>
+							<!-- Jetty -->
+							<!-- <configfile> <file>${basedir}/src/main/jetty/my-webdefault.xml</file> 
+								<tofile>etc/webdefault.xml</tofile> </configfile> -->
+							<!-- <configfile> <file>${basedir}/src/main/jetty/jetty-logging.properties</file> 
+								<todir>resources</todir> </configfile> -->
+							<!-- <configfile> <file>${project.build.resources[0].directory}/log4j2.yaml</file> 
+								<todir>resources</todir> </configfile> -->
+							<!-- Tomcat -->
+							<configfile>
+								<file>${project.build.resources[0].directory}/log4j2.yaml</file>
+								<todir>conf</todir>
+							</configfile>
+							<configfile>
+								<file>${basedir}/src/main/tomcat/my-context.xml</file>
+								<tofile>conf/context.xml</tofile>
+							</configfile>
+							<configfile>
+								<file>${basedir}/src/main/tomcat/my-web.xml</file>
+								<tofile>conf/web.xml</tofile>
+							</configfile>
+						</configfiles>
+						<properties>
+							<cargo.logging>high</cargo.logging>
+							<!-- <cargo.hostname>127.0.0.1</cargo.hostname> -->
+							<!-- <cargo.jboss.management-http.port>9990</cargo.jboss.management-http.port> -->
+							<!-- <cargo.servlet.users>adminUser:admin1234!</cargo.servlet.users> -->
+							<!-- <cargo.jetty.createContextXml>false</cargo.jetty.createContextXml> -->
+							<cargo.datasource.datasource.hsqldb>
+								cargo.datasource.driver=${jdbc.driver}|
+								cargo.datasource.url=${jdbc.url}|
+								cargo.datasource.jndi=${jdbc.jndi}|
+								cargo.datasource.username=${jdbc.username}|
+								cargo.datasource.password=${jdbc.password}
+							</cargo.datasource.datasource.hsqldb>
+						</properties>
+					</configuration>
 					<container>
 						<containerId>${cargo.container}</containerId>
 						<type>embedded</type> <!-- embedded lives with plugin -->
 						<!-- Jetty9 embedded conflicts with Weld (in Hibernate), see https://issues.jboss.org/browse/WELD-1908 -->
 						<zipUrlInstaller>
 							<url>${cargo.container.dist}</url>
-							<downloadDir>${basedir}/.cargo/downloads</downloadDir>
-							<extractDir>${basedir}/.cargo/extracts</extractDir>
+							<downloadDir>${cargo.tmpDir}/downloads</downloadDir>
+							<extractDir>${cargo.tmpDir}/extracts</extractDir>
 						</zipUrlInstaller>
 						<log>${project.build.directory}/cargo.log</log>
 						<output>${project.build.directory}/${cargo.container}.log</output>
@@ -222,42 +386,6 @@
 								</dependency> -->
 						</dependencies>
 					</container>
-					<!-- cargo configuration -->
-					<configuration>
-						<!-- <home>${project.build.directory}/jetty-home</home> -->
-						<!-- the adapted jetty/webdefault.xml: (1) points Jetty's DefaultServlet 
-							resourceBase to ${maven.src.dir}/webapp; and (2) fixes Jetty's file locking 
-							in Windows -->
-						<configfiles>
-							<!-- Jetty -->
-							<!-- <configfile> <file>${basedir}/src/main/jetty/my-webdefault.xml</file> 
-								<tofile>etc/webdefault.xml</tofile> </configfile> -->
-							<!-- <configfile> <file>${basedir}/src/main/jetty/jetty-logging.properties</file> 
-								<todir>resources</todir> </configfile> -->
-							<!-- <configfile> <file>${project.build.resources[0].directory}/log4j2.yaml</file> 
-								<todir>resources</todir> </configfile> -->
-							<!-- Tomcat -->
-							<configfile>
-								<file>${project.build.resources[0].directory}/log4j2.yaml</file>
-								<todir>conf</todir>
-							</configfile>
-							<configfile>
-								<file>${basedir}/src/main/tomcat/my-context.xml</file>
-								<tofile>conf/context.xml</tofile>
-							</configfile>
-							<configfile>
-								<file>${basedir}/src/main/tomcat/my-web.xml</file>
-								<tofile>conf/web.xml</tofile>
-							</configfile>
-						</configfiles>
-						<properties>
-							<cargo.logging>high</cargo.logging>
-							<!-- <cargo.hostname>127.0.0.1</cargo.hostname> -->
-							<!-- <cargo.jboss.management-http.port>9990</cargo.jboss.management-http.port> -->
-							<!-- <cargo.servlet.users>adminUser:admin1234!</cargo.servlet.users> -->
-							<!-- <cargo.jetty.createContextXml>false</cargo.jetty.createContextXml> -->
-						</properties>
-					</configuration>
 					<deployables>
 						<deployable>
 							<properties>

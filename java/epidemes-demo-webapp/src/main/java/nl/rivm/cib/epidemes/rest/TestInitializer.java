@@ -26,6 +26,10 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.HandlesTypes;
 
+import org.apache.logging.log4j.Logger;
+
+import io.coala.log.LogUtil;
+
 /**
  * {@link TestInitializer}
  * 
@@ -37,15 +41,15 @@ public class TestInitializer implements ServletContainerInitializer
 {
 
 	/** */
-//	private static final Logger LOG = LogUtil
-//			.getLogger( TestInitializer.class );
+	private static final Logger LOG = LogUtil
+			.getLogger( TestInitializer.class );
 
 	@Override
 	public void onStartup( final Set<Class<?>> c, final ServletContext ctx )
 		throws ServletException
 	{
-//		LOG.trace( "Initializing classes: {}, path: {}", c,
-//				ctx.getContextPath() );
+		LOG.trace( "Initializing classes: {}, path: {}", c,
+				ctx.getContextPath() );
 	}
 
 }

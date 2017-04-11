@@ -21,8 +21,7 @@ package nl.rivm.cib.episim.model.disease;
 
 import java.util.Map;
 
-import io.coala.name.Id;
-import io.coala.name.Identified;
+import io.coala.enterprise.Actor;
 
 /**
  * {@link Afflicted} can be a carrier of multiple (infectious, chronic, ...)
@@ -31,33 +30,28 @@ import io.coala.name.Identified;
  * @version $Id: a8bf68b6634dba22075c105a65ea77fc0d8ccf05 $
  * @author Rick van Krevelen
  */
-public interface Afflicted extends Identified<Afflicted.ID>
+public interface Afflicted //extends Actor<Disease>
 {
-	@SuppressWarnings( "rawtypes" )
-	class ID extends Id.Ordinal
-	{
-		@SuppressWarnings( "unchecked" )
-		public static <T extends Comparable<? super T>> ID of( final T value )
-		{
-			return Util.of( value, new ID() );
-		}
-	}
+//	/**
+//	 * @param diseaseRef links the exposure or infection that is cleared
+//	 */
+//	void recover(Fact.ID diseaseRef);
 
 	/**
 	 * @return a {@link Map} of this {@link Afflicted}s {@link Condition}s per
-	 *         {@link Disease.ID}
+	 *         {@link Pathogen} {@link Actor.ID}
 	 */
-	Map<Disease.ID, Condition> afflictions();
+	Map<Actor.ID, Condition> afflictions();
 
-	default Condition condition( Disease.ID diseaseRef )
-	{
-		return afflictions().get( diseaseRef );
-	}
-
-	default Afflicted with( final Condition condition )
-	{
-		afflictions().put( condition.diseaseRef(), condition );
-		return this;
-	}
+//	default Condition condition( final Disease.ID diseaseRef )
+//	{
+//		return afflictions().get( diseaseRef );
+//	}
+//
+//	default Afflicted with( final Condition condition )
+//	{
+//		afflictions().put( condition.diseaseRef(), condition );
+//		return this;
+//	}
 
 }

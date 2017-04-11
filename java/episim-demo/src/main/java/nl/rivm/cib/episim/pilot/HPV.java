@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.episim.pilot;
 
-import nl.rivm.cib.episim.model.disease.infection.Infection;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
  * {@link HPV} or Human papillomavirus is transmitted through sexual contact.
@@ -43,7 +43,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
  * @version $Id: 8fa10df8d59e08e51d449f167712737ecf7a291f $
  * @author Rick van Krevelen
  */
-public abstract class HPV implements Infection
+public abstract class HPV implements Pathogen
 {
 
 //	@SuppressWarnings( "unchecked" )

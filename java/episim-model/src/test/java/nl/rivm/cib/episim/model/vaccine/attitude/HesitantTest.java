@@ -19,9 +19,6 @@
  */
 package nl.rivm.cib.episim.model.vaccine.attitude;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
@@ -39,12 +36,12 @@ public class HesitantTest
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( HesitantTest.class );
 
-	@Test
-	public void dateParseTest() throws ParseException
-	{
-		LOG.trace( "parsed: {}", new SimpleDateFormat( "M/d/yyyy H:mm:ss a" )
-				.parse( "9/26/2015 12:33:21 PM" ) );
-	}
+//	@Test
+//	public void dateParseTest() throws ParseException
+//	{
+//		LOG.trace( "parsed: {}", new SimpleDateFormat( "M/d/yyyy H:mm:ss a" )
+//				.parse( "9/26/2015 12:33:21 PM" ) );
+//	}
 
 	/**
 	 * Test the (default) {@link VaxHesitancy} behaviors

@@ -22,39 +22,56 @@ package nl.rivm.cib.episim.model.disease;
 import io.coala.name.Id;
 
 /**
- * {@link SymptomPhase} is an {@link Id} for clinical/symptomatic phases
+ * {@link ClinicalPhase} is an {@link Id} for clinical/symptomatic phases
  * 
  * @version $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
  * @author Rick van Krevelen
  */
-public class SymptomPhase extends Id.Ordinal<String>
+public class ClinicalPhase extends Id.Ordinal<String>
 {
-	/** subclinical: no signs or symptoms (not occult if not exposed or immune) */
-	public static final SymptomPhase ASYMPTOMATIC = Util
-			.valueOf( "asymptomatic", new SymptomPhase() );
+	/**
+	 * subclinical: no signs or symptoms (not occult if not exposed or immune)
+	 */
+	public static final ClinicalPhase ASYMPTOMATIC = of( "asymptomatic" );
 
 	/**
 	 * signs or symptoms of early onset, e.g. lack of appetite,
 	 * fever/hyperthermia (measles), rhinorrhea (measles, flu, cold),
 	 * conjuctivitis (measles, flu, cold).
 	 */
-	public static final SymptomPhase PRODROMAL = Util.valueOf( "prodromal",
-			new SymptomPhase() );
+	public static final ClinicalPhase PRODROMAL = of( "prodromal" );
 
 	/**
 	 * signs or symptoms throughout body, e.g. sepsis, cold, flu, mononucleosis
 	 * (Pfeiffer due to the Epstein-Barr herpes virus), Streptococcal
 	 * pharyngitis
 	 */
-	public static final SymptomPhase SYSTEMIC = Util.valueOf( "systemic",
-			new SymptomPhase() );
+	public static final ClinicalPhase SYSTEMIC = of( "systemic" );
 
 	/**
 	 * signs or symptoms near recovery, e.g.
 	 * <a href="https://en.wikipedia.org/wiki/Reye_syndrome">Reye's syndrome</a>
 	 * following influenza recovery
 	 */
-	public static final SymptomPhase POSTDROMAL = Util.valueOf( "postdromal",
-			new SymptomPhase() );
+	public static final ClinicalPhase POSTDROMAL = of( "postdromal" );
+
+	public static ClinicalPhase of( final String value )
+	{
+		return of( value );
+	}
+
+	public interface Attributable<THIS>
+	{
+		ClinicalPhase getPhase();
+
+		void setPhase( ClinicalPhase phase );
+
+		@SuppressWarnings( "unchecked" )
+		default THIS with( final ClinicalPhase phase )
+		{
+			setPhase( phase );
+			return (THIS) this;
+		}
+	}
 
 }

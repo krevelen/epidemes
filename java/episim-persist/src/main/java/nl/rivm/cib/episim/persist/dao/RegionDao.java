@@ -20,8 +20,10 @@
 package nl.rivm.cib.episim.persist.dao;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.measure.Quantity;
 import javax.measure.Unit;
@@ -50,7 +52,6 @@ import io.coala.persist.JPAUtil;
 import io.coala.time.Instant;
 import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.person.Population;
 import nl.rivm.cib.episim.persist.AbstractDao;
 import nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao;
 import tec.uom.se.unit.Units;
@@ -101,6 +102,12 @@ public class RegionDao extends AbstractDao
 	@OrderBy( "posix" )
 	protected SortedMap<IsoTimeDimensionDao, RegionDao> parents;
 
+	// unidirectional ternary association, see https://docs.jboss.org/hibernate/orm/5.0/manual/en-US/html/ch07.html#collections-ternary
+	@OneToMany
+	@MapKeyJoinColumn( name = "REGION_CHILDREN" )
+	@OrderBy( "posix" )
+	protected SortedMap<IsoTimeDimensionDao, RegionDao> children;
+
 	@Transactional
 	public static RegionDao find( final EntityManager em, final Region region )
 	{
@@ -137,7 +144,7 @@ public class RegionDao extends AbstractDao
 		final RegionDao result = new RegionDao();
 		result.code = region.id().unwrap();
 		result.name = region.name();
-		result.type = region.type();
+		result.type = region.type().unwrap();
 		result.size = region.surfaceArea();
 		if( region.parents() != null )
 		{
@@ -164,11 +171,14 @@ public class RegionDao extends AbstractDao
 	@Override
 	public Region restore( final LocalBinder binder )
 	{
-		final SortedMap<Instant, Region> parents = new TreeMap<>();
-		this.parents.forEach( ( since, parent ) -> parents
-				.put( since.restore( binder ), parent.restore( binder ) ) );
-		return Region.of( Region.ID.of( this.code ), this.name, this.type,
-				parents, this.size.asType( Area.class ),
-				binder.inject( Population.class ) );
+		final Map<Instant, Region> parents = this.parents.entrySet().stream()
+				.collect( Collectors.toMap( e -> e.getKey().restore( binder ),
+						e -> e.getValue().restore( binder ) ) );
+		final Map<Instant, Region> children = this.children.entrySet().stream()
+				.collect( Collectors.toMap( e -> e.getKey().restore( binder ),
+						e -> e.getValue().restore( binder ) ) );
+		return Region.of( Region.ID.of( this.code ), this.name,
+				Region.TypeID.of( this.type ), parents, children,
+				this.size.asType( Area.class ) );
 	}
 }

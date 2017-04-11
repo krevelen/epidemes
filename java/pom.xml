@@ -8,7 +8,57 @@
 	<version>0.1.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
+
 	<profiles>
+		<!-- see https://www.dontpanicblog.co.uk/2017/02/28/activate-the-maven-docker-plugin/ -->
+		<profile>
+			<id>enableDocker</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+		</profile>
+		<profile>
+			<id>enableDocker-linux</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<!-- Activate on Linux systems. Assume presence of docker.pid file indicates 
+					Docker is available -->
+				<file>
+					<exists>/var/run/docker.pid</exists>
+				</file>
+			</activation>
+		</profile>
+		<profile>
+			<id>enableDocker-win10</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<!-- Activate on Windows 10 systems with native Docker. Check for docker.exe 
+					in default install directory -->
+				<file>
+					<exists>C:\Program Files\Docker\Docker\resources\bin\docker.exe</exists>
+				</file>
+			</activation>
+		</profile>
+		<profile>
+			<id>enableDocker-toolbox</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<!-- Activate on Windows (Docker Toolbox) systems. Assume presence of 
+					DOCKER_HOST indicates Docker is available -->
+				<property>
+					<name>env.DOCKER_HOST</name>
+				</property>
+			</activation>
+		</profile>
 		<profile>
 			<id>model</id>
 			<activation>
@@ -412,6 +462,25 @@
 									</pluginExecutionFilter>
 									<action>
 										<ignore />
+									</action>
+								</pluginExecution>
+
+								<!-- Configure "org.bsc.maven:maven-processor-plugin:process" goal 
+									execution in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.bsc.maven</groupId>
+										<artifactId>maven-processor-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>process</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnConfiguration>true</runOnConfiguration>
+											<runOnIncremental>false</runOnIncremental>
+										</execute>
 									</action>
 								</pluginExecution>
 

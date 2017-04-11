@@ -23,14 +23,16 @@
 		<hsqldb.version>2.3.4</hsqldb.version>
 		<neo4j.version>2.3.5</neo4j.version>
 		<hikari.version>2.4.7</hikari.version>
-		
+
 		<!-- see http://hibernate.org/ogm/documentation/ -->
-		<hibernate.version>5.1.0.Beta3</hibernate.version>
+		<hibernate.version>5.1.0.Final</hibernate.version>
 		<!-- <hibernate.version>5.0.4.Final</hibernate.version> -->
 		<!-- <hibernate.version>5.2.1.Final</hibernate.version> -->
 
 		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
 		<m2e.jpa.activation>false</m2e.jpa.activation>
+		<!-- for JPA metamodel generation, see https://docs.jboss.org/hibernate/orm/5.0/topical/html/metamodelgen/MetamodelGenerator.html -->
+		<maven-processor-plugin.version>3.2.0</maven-processor-plugin.version>
 	</properties>
 
 	<repositories>
@@ -86,7 +88,12 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-hibernate5 -->
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-hibernate5</artifactId>
@@ -117,7 +124,7 @@
 		<!-- <dependency> <groupId>org.neo4j</groupId> <artifactId>neo4j-io</artifactId> 
 			<version>${neo4j.version}</version> <type>test-jar</type> <scope>test</scope> 
 			</dependency> -->
-			
+
 		<!-- replaces default Hibernate connection pool (C3P0) -->
 		<!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-hikaricp</artifactId> 
 			<version>${hibernate.version}</version> <scope>test</scope> <exclusions> 
@@ -138,4 +145,36 @@
 		<!-- <dependency> <groupId>org.reflections</groupId> <artifactId>reflections</artifactId> 
 			<version>${reflections.version}</version> <scope>test</scope> </dependency> -->
 	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- generate JPA MetaModel classes and add to class path, see https://docs.jboss.org/hibernate/orm/5.0/topical/html/metamodelgen/MetamodelGenerator.html -->
+			<plugin>
+				<groupId>org.bsc.maven</groupId>
+				<artifactId>maven-processor-plugin</artifactId>
+				<version>${maven-processor-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>process</id>
+						<goals>
+							<goal>process</goal>
+						</goals>
+						<phase>generate-sources</phase>
+						<configuration>
+							<processors>
+								<processor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</processor>
+							</processors>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.hibernate</groupId>
+						<artifactId>hibernate-jpamodelgen</artifactId>
+						<version>${hibernate.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+		</plugins>
+	</build>
 </project>

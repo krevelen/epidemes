@@ -51,13 +51,15 @@
 			</dependency> <dependency> <groupId>io.coala</groupId> <artifactId>eve3-coala-adapter</artifactId> 
 			</dependency> -->
 		<dependency>
-			<groupId>io.coala</groupId>
-			<artifactId>coala-api</artifactId>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>epidemes-model</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>fluent-hc</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- Apache Olingo V4 (https://olingo.apache.org) for CBS' OData portal -->
@@ -71,11 +73,30 @@
 					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- Java Enterprise eXtension APIs, including JPA 2.1 and Servlet 3 -->
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>test</scope>
+			<!-- FIXME should not be required... -->
 		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>guice4-coala-adapter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
 			<scope>test</scope>
 		</dependency>
 
