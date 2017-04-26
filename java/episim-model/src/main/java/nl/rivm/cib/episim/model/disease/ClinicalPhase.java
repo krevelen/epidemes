@@ -19,7 +19,9 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
+import io.coala.json.Attributed;
 import io.coala.name.Id;
+import io.reactivex.Observable;
 
 /**
  * {@link ClinicalPhase} is an {@link Id} for clinical/symptomatic phases
@@ -60,8 +62,11 @@ public class ClinicalPhase extends Id.Ordinal<String>
 		return of( value );
 	}
 
-	public interface Attributable<THIS>
+	public interface Attributable<THIS extends Attributable<?>> extends Attributed
 	{
+		/** propertyName matching bean's getter/setter names */
+		String CLINICAL_PHASE_PROPERTY = "phase";
+		
 		ClinicalPhase getPhase();
 
 		void setPhase( ClinicalPhase phase );
@@ -71,6 +76,11 @@ public class ClinicalPhase extends Id.Ordinal<String>
 		{
 			setPhase( phase );
 			return (THIS) this;
+		}
+
+		default Observable<ClinicalPhase> emitPhase()
+		{
+			return emitChanges( CLINICAL_PHASE_PROPERTY, ClinicalPhase.class );
 		}
 	}
 

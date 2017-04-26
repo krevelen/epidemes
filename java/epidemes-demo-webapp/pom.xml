@@ -24,18 +24,19 @@
 		<cargo.maven.skip>false</cargo.maven.skip>
 		<cargo.context>/demo</cargo.context>
 		<cargo.tmpDir>${basedir}/.cargo</cargo.tmpDir>
-		<cargo.container.dist>
-			http://www.apache.org/dyn/closer.cgi?action=download%26filename=tomcat/tomcat-8/v8.5.13/bin/apache-tomcat-8.5.13.zip
-		</cargo.container.dist>
 		<cargo.container>tomcat8x</cargo.container>
+		<!-- <cargo.container.dist> http://www.apache.org/dyn/closer.cgi?action=download%26filename=tomcat/tomcat-8/v8.5.13/bin/apache-tomcat-8.5.13.zip 
+			</cargo.container.dist> -->
+		<tomcat.version>8.5.13</tomcat.version>
 
-		<jdbc.jndi>jdbc/DataSourceJNDI</jdbc.jndi>
+		<!-- global "java:comp/env/" context name is prepended by Tomcat -->
+		<jdbc.jndi>java:comp/env/jdbc/demoDB</jdbc.jndi>
 		<jdbc.driver>org.hsqldb.jdbc.JDBCDataSource</jdbc.driver>
 		<!-- jdbc:mysql://localhost/testdb -->
 		<!-- jdbc:neo4j:bolt://192.168.99.100:7687/db/data -->
 		<!-- jdbc:hsqldb:file:target/testdb -->
 		<!-- jdbc:hsqldb:mem:mymemdb -->
-		<jdbc.url>jdbc:hsqldb:mem:mymemdb</jdbc.url>
+		<jdbc.url>jdbc:hsqldb:mem:demodb</jdbc.url>
 		<jdbc.username>SA</jdbc.username>
 		<jdbc.password></jdbc.password>
 
@@ -60,118 +61,12 @@
 		<docker.buildDir>docker</docker.buildDir>
 
 		<!-- docker run -d -p 8080:8080 -v ${cargo.tmpDir}:/home/cargo epidemes/demo-webapp -->
-		<jta.version>1.1</jta.version>
 		<hsqldb.version>2.3.4</hsqldb.version>
 		<hikari.version>2.4.7</hikari.version>
-		<jta.version>1.1</jta.version>
-		<!-- for hibernate-ogm-neo4j versions, see https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
-		<hibernate.version>5.1.0.Final</hibernate.version>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
 	</properties>
-
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.hibernate.ogm</groupId>
-				<artifactId>hibernate-ogm-bom</artifactId>
-				<version>${hibernate.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
-	<dependencies>
-		<dependency>
-			<groupId>nl.rivm.cib</groupId>
-			<artifactId>epidemes-demo</artifactId>
-			<version>${project.version}</version>
-			<exclusions>
-				<!-- <exclusion> <groupId>org.eclipse.jetty.websocket</groupId> <artifactId>javax-websocket-server-impl</artifactId> 
-					</exclusion> -->
-				<!-- <exclusion> <groupId>com.almende.eve</groupId> <artifactId>eve-transport-http-jetty</artifactId> 
-					</exclusion> -->
-				<!-- <exclusion> <groupId>com.fasterxml.jackson.datatype</groupId> <artifactId>jackson-datatype-joda</artifactId> 
-					</exclusion> -->
-				<!-- <exclusion> <groupId>com.fasterxml.jackson.dataformat</groupId> 
-					<artifactId>jackson-dataformat-yaml</artifactId> </exclusion> -->
-				<!-- <exclusion> <groupId>com.fasterxml.jackson.jaxrs</groupId> <artifactId>jackson-jaxrs-json-provider</artifactId> 
-					</exclusion> -->
-			</exclusions>
-		</dependency>
-		<!-- <dependency> <groupId>io.coala</groupId> <artifactId>coala-api</artifactId> 
-			</dependency> -->
-
-		<!-- explicitly added again otherwise it gets skipped... ? -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.dataformat</groupId>
-			<artifactId>jackson-dataformat-yaml</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-		<!-- explicitly added again otherwise it gets skipped... ? -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-		<!-- explicitly added again otherwise it gets skipped... ? -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-joda</artifactId>
-			<version>${jackson.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>joda-time</groupId>
-					<artifactId>joda-time</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/org.apache.cxf/cxf-rt-frontend-jaxrs -->
-		<dependency>
-			<groupId>org.apache.cxf</groupId>
-			<artifactId>cxf-rt-frontend-jaxrs</artifactId>
-			<version>${cxf.version}</version>
-		</dependency>
-		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-transports-http-jetty</artifactId> 
-			<version>${cxf.version}</version> </dependency> -->
-
-		<dependency>
-			<groupId>javax</groupId>
-			<artifactId>javaee-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> 
-			<version>1.7.24</version> <scope>provided</scope> </dependency> -->
-		<!-- <dependency> <groupId>org.apache.logging.log4j</groupId> <artifactId>log4j-slf4j-impl</artifactId> 
-			<version>2.8.1</version> <scope>provided</scope> </dependency> -->
-
-		<dependency>
-			<groupId>javax.transaction</groupId>
-			<artifactId>jta</artifactId>
-			<version>${jta.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate.ogm</groupId>
-			<artifactId>hibernate-ogm-neo4j</artifactId>
-		</dependency>
-
-		<!-- incl. in-memory JDBC database -->
-		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<version>${hsqldb.version}</version>
-		</dependency>
-
-		<!-- tomcat-catalina used solely for Apache JNDI implementation -->
-		<dependency>
-			<groupId>org.apache.tomcat</groupId>
-			<artifactId>tomcat-catalina</artifactId>
-			<version>8.0.28</version>
-		</dependency>
-
-	</dependencies>
 
 	<repositories>
 		<repository>
@@ -216,6 +111,82 @@
 		</repository>
 	</repositories>
 
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+
+		<!-- <dependency> <groupId>javax</groupId> <artifactId>javaee-api</artifactId> 
+			<scope>provided</scope> </dependency> -->
+
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>epidemes-demo</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- JAX-RS provider for REST application -->
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-frontend-jaxrs</artifactId>
+			<version>${cxf.version}</version>
+		</dependency>
+		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-transports-http-jetty</artifactId> 
+			<version>${cxf.version}</version> </dependency> -->
+
+		<!-- JPA provider incl. OGM database (Neo4J, also embedded and JDBC) -->
+		<dependency>
+			<groupId>org.hibernate.ogm</groupId>
+			<artifactId>hibernate-ogm-neo4j</artifactId>
+		</dependency>
+
+		<!-- classic ORM database (HSQLDB, also embedded and JDBC) -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+		</dependency>
+
+		<!-- used for Apache's JNDI implementation incl. DB connection pool -->
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-dbcp</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -229,7 +200,6 @@
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<version>${docker-maven-plugin.version}</version>
 				<configuration>
 					<imageName>${docker.imageName}</imageName>
 					<imageTags>
@@ -347,11 +317,16 @@
 						<containerId>${cargo.container}</containerId>
 						<type>embedded</type> <!-- embedded lives with plugin -->
 						<!-- Jetty9 embedded conflicts with Weld (in Hibernate), see https://issues.jboss.org/browse/WELD-1908 -->
-						<zipUrlInstaller>
-							<url>${cargo.container.dist}</url>
-							<downloadDir>${cargo.tmpDir}/downloads</downloadDir>
+						<!-- <zipUrlInstaller> <url>${cargo.container.dist}</url> <downloadDir>${cargo.tmpDir}/downloads</downloadDir> 
+							<extractDir>${cargo.tmpDir}/extracts</extractDir> </zipUrlInstaller> -->
+						<artifactInstaller>
+							<!-- <groupId>org.eclipse.jetty</groupId> <artifactId>jetty-distribution</artifactId> 
+								<version>${jetty.version}</version> -->
+							<groupId>org.apache.tomcat</groupId>
+							<artifactId>tomcat</artifactId>
+							<version>${tomcat.version}</version>
 							<extractDir>${cargo.tmpDir}/extracts</extractDir>
-						</zipUrlInstaller>
+						</artifactInstaller>
 						<log>${project.build.directory}/cargo.log</log>
 						<output>${project.build.directory}/${cargo.container}.log</output>
 						<append>false</append>
@@ -373,6 +348,28 @@
 								<artifactId>log4j-slf4j-impl</artifactId>
 								<classpath>shared</classpath>
 							</dependency>
+							<!-- required for Hibernate EntityManagerFactory -->
+							<dependency>
+								<groupId>org.hibernate</groupId>
+								<artifactId>hibernate-entitymanager</artifactId>
+								<classpath>shared</classpath>
+							</dependency>
+							<dependency>
+								<groupId>javax.transaction</groupId>
+								<artifactId>jta</artifactId>
+								<classpath>shared</classpath>
+							</dependency>
+							<dependency>
+								<groupId>org.apache.tomcat</groupId>
+								<artifactId>tomcat-dbcp</artifactId>
+								<classpath>extra</classpath>
+							</dependency>
+							<!-- <dependency>
+								<groupId>org.hsqldb</groupId>
+								<artifactId>hsqldb</artifactId>
+								<classpath>shared</classpath>
+							</dependency> -->
+
 							<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
 								and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
 							<!-- <dependency> <groupId>org.jboss.weld.servlet</groupId> <artifactId>weld-servlet-core</artifactId> 

@@ -24,7 +24,7 @@ import java.util.function.BiFunction;
 
 import io.coala.random.PseudoRandom;
 import io.coala.time.Proactive;
-import rx.Observable;
+import io.reactivex.Observable;
 
 /**
  * {@link CandidatePicker} is a simple data-source with (attribute-based)

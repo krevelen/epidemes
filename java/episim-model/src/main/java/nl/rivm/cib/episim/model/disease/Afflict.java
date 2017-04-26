@@ -20,36 +20,55 @@
 package nl.rivm.cib.episim.model.disease;
 
 import io.coala.enterprise.Fact;
+import io.coala.name.Id;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
- * {@link Disease} interactions represent pathogenesis and disease development
+ * {@link Afflict} interactions represent pathogenesis and disease development
  * between initiator {@link Pathogen} &hArr; executor {@link Afflicted}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Disease extends Fact
+public interface Afflict extends Fact
 {
+
+//	class ID extends Id.Ordinal<String>
+//	{
+//		public static ID of( final String name )
+//		{
+//			return Util.of( name, new ID() );
+//		}
+//	}
+//
+//	ID getDiseaseRef();
+//
+//	void setDiseaseRef( ID diseaseRef );
+//
+//	default Afflict with( final ID diseaseRef )
+//	{
+//		setDiseaseRef( diseaseRef );
+//		return this;
+//	}
 
 	/**
 	 * infection is transmitted via direct/indirect animal-human route, see
 	 * http://www.cdc.gov/onehealth/zoonotic-diseases.html
 	 */
-	default boolean isZoonotic()
-	{
-		return false;
-	}
+//	default boolean isZoonotic()
+//	{
+//		return false;
+//	}
 
 	/**
 	 * @return {@code true} if this {@link Pathogen} is opportunistic, requiring
 	 *         impairment of host defenses, {@code false} otherwise (i.e.
 	 *         primary pathogens with intrinsic virulence)
 	 */
-	default boolean isOpportunistic()
-	{
-		return false;
-	}
+//	default boolean isOpportunistic()
+//	{
+//		return false;
+//	}
 
 	/**
 	 * useful in behavior-driven transmission among symptom-avoiding hosts
@@ -57,9 +76,9 @@ public interface Disease extends Fact
 	 * @return {@code true} if this {@link Pathogen} is long-term or chronic,
 	 *         {@code false} otherwise (i.e. short-term or acute)
 	 */
-	default boolean isChronic()
-	{
-		return false;
-	}
+//	default boolean isChronic()
+//	{
+//		return false;
+//	}
 
 }

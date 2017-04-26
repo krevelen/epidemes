@@ -10,6 +10,12 @@
 
 	<!-- JNDI DataSources -->
 
+	<resource-env-ref>
+		<description>DB Connection</description>
+		<resource-env-ref-name>jdbc/demoDB</resource-env-ref-name>
+		<resource-env-ref-type>javax.sql.DataSource</resource-env-ref-type>
+	</resource-env-ref>
+
 	<!-- Jasper2 JSP support -->
 
 	<servlet>

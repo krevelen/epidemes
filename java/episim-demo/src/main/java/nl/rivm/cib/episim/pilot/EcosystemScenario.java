@@ -21,39 +21,23 @@ package nl.rivm.cib.episim.pilot;
 
 import java.text.ParseException;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.measure.Quantity;
-import javax.measure.quantity.Dimensionless;
-import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
 
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.log.LogUtil;
-import io.coala.math.DecimalUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
-import io.coala.random.ProbabilityDistribution;
 import io.coala.rx.RxCollection;
 import io.coala.time.Duration;
-import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import io.coala.time.Signal;
-import nl.rivm.cib.episim.geard.GeardDemogConfig;
-import nl.rivm.cib.episim.model.Gender;
-import nl.rivm.cib.episim.model.Partner;
-import nl.rivm.cib.episim.model.locate.Locatable;
 import nl.rivm.cib.episim.model.locate.Place;
-import nl.rivm.cib.episim.model.person.Household;
-import nl.rivm.cib.episim.model.person.HouseholdParticipant;
-import nl.rivm.cib.episim.model.person.HouseholdPopulation;
-import nl.rivm.cib.episim.model.person.MotherPicker;
 import nl.rivm.cib.episim.model.person.Participant;
 import nl.rivm.cib.episim.model.person.Population;
 
@@ -257,12 +241,12 @@ public class EcosystemScenario implements Proactive
 	{
 	}
 
-	private static long INDIVIDUAL_COUNT = 0;
-
-	private static class Individual implements Partner, HouseholdParticipant,
-		MotherPicker.Mother, Identified.Ordinal<String>, Locatable
-	{
-
+//	private static long INDIVIDUAL_COUNT = 0;
+//
+//	private static class Individual implements Partner, HouseholdParticipant,
+//		MotherPicker.Mother, Identified.Ordinal<String>, Locatable
+//	{
+//
 //		String location(); // should be consistent with activity site/vehicle
 //
 //		String lifephase(); // automaton based on age
@@ -272,86 +256,86 @@ public class EcosystemScenario implements Proactive
 //		VaccineAttitude attitude(); // default fall-back?
 //
 //		Activity activity(); // belongs to a (common) routine pattern instance
-
-		private final String id = "IND" + INDIVIDUAL_COUNT++;
-
-		private final RxCollection<Individual> partners = RxCollection
-				.of( new HashSet<>() );
-
-		private Household<Individual> household;
-		private Instant birth;
-		private Gender gender;
-		private boolean homeMaker;
-		private Signal<Place> place;
-
-		public static Individual of( final Household<Individual> household,
-			final Instant birth, final Gender gender, final boolean homeMaker,
-			final Place startLocation )
-		{
-			final Individual result = new Individual();
-			result.household = household;
-			result.birth = birth;
-			result.gender = gender;
-			result.homeMaker = homeMaker;
-			result.place = Signal.Simple.of( household.scheduler(),
-					startLocation );
-			return result;
-		}
-
-		@Override
-		public String id()
-		{
-			return this.id;
-		}
-
-		@Override
-		public Scheduler scheduler()
-		{
-			return this.household.scheduler();
-		}
-
-		@Override
-		public Household<Individual> household()
-		{
-			return this.household;
-		}
-
-		@Override
-		public RxCollection<Individual> partners()
-		{
-			return this.partners;
-		}
-
-		@Override
-		public Instant born()
-		{
-			return this.birth;
-		}
-
-		@Override
-		public Gender gender()
-		{
-			return this.gender;
-		}
-
-		@Override
-		public HouseholdPopulation<Individual> population()
-		{
-			return this.household.population();
-		}
-
-		@Override
-		public String toString()
-		{
-			return id();
-		}
-
-		@Override
-		public Signal<Place> place()
-		{
-			return this.place;
-		}
-	}
+//
+//		private final String id = "IND" + INDIVIDUAL_COUNT++;
+//
+//		private final RxCollection<Individual> partners = RxCollection
+//				.of( new HashSet<>() );
+//
+//		private Household<Individual> household;
+//		private Instant birth;
+//		private Gender gender;
+//		private boolean homeMaker;
+//		private Signal<Place> place;
+//
+//		public static Individual of( final Household<Individual> household,
+//			final Instant birth, final Gender gender, final boolean homeMaker,
+//			final Place startLocation )
+//		{
+//			final Individual result = new Individual();
+//			result.household = household;
+//			result.birth = birth;
+//			result.gender = gender;
+//			result.homeMaker = homeMaker;
+//			result.place = Signal.Simple.of( household.scheduler(),
+//					startLocation );
+//			return result;
+//		}
+//
+//		@Override
+//		public String id()
+//		{
+//			return this.id;
+//		}
+//
+//		@Override
+//		public Scheduler scheduler()
+//		{
+//			return this.household.scheduler();
+//		}
+//
+//		@Override
+//		public Household<Individual> household()
+//		{
+//			return this.household;
+//		}
+//
+//		@Override
+//		public RxCollection<Individual> partners()
+//		{
+//			return this.partners;
+//		}
+//
+//		@Override
+//		public Instant born()
+//		{
+//			return this.birth;
+//		}
+//
+//		@Override
+//		public Gender gender()
+//		{
+//			return this.gender;
+//		}
+//
+//		@Override
+//		public HouseholdPopulation<Individual> population()
+//		{
+//			return this.household.population();
+//		}
+//
+//		@Override
+//		public String toString()
+//		{
+//			return id();
+//		}
+//
+//		@Override
+//		public Signal<Place> place()
+//		{
+//			return this.place;
+//		}
+//	}
 
 	/** */
 	private static final Logger LOG = LogUtil
@@ -360,21 +344,21 @@ public class EcosystemScenario implements Proactive
 	@Inject
 	private Scheduler scheduler;
 
-	@Inject
-	private ProbabilityDistribution.Factory distFact;
-
-	private GeardDemogConfig conf = GeardDemogConfig.getOrFromYaml();
-
-	private Quantity<Time> dt;
-
-	private Quantity<Dimensionless> yearsPerDt;
-
-	private HouseholdPopulation<Individual> pop;
-
-	private MotherPicker<Individual> momPicker;
-
-	@Inject
-	private Actor.Factory actors;
+//	@Inject
+//	private ProbabilityDistribution.Factory distFact;
+//
+//	private GeardDemogConfig conf = GeardDemogConfig.getOrFromYaml();
+//
+//	private Quantity<Time> dt;
+//
+//	private Quantity<Dimensionless> yearsPerDt;
+//
+//	private HouseholdPopulation<Individual> pop;
+//
+//	private MotherPicker<Individual> momPicker;
+//
+//	@Inject
+//	private Actor.Factory actors;
 
 	@Inject
 	public EcosystemScenario( final Scheduler scheduler )
@@ -389,17 +373,17 @@ public class EcosystemScenario implements Proactive
 		return this.scheduler;
 	}
 
-	private void logProgress( int i, int total )
-	{
-		LOG.trace( LogUtil.messageOf(
-				"{0} ({1,number,#.##%}) persons added, "
-						+ "jvm free: ~{2,number,#,#00.#}MB (~{3,number,#.#%})",
-				i, DecimalUtil.divide( i, total ),
-				DecimalUtil.divide( Runtime.getRuntime().freeMemory(),
-						1024 * 1024 ),
-				DecimalUtil.divide( Runtime.getRuntime().freeMemory(),
-						Runtime.getRuntime().totalMemory() ) ) );
-	}
+//	private void logProgress( int i, int total )
+//	{
+//		LOG.trace( LogUtil.messageOf(
+//				"{0} ({1,number,#.##%}) persons added, "
+//						+ "jvm free: ~{2,number,#,#00.#}MB (~{3,number,#.#%})",
+//				i, DecimalUtil.divide( i, total ),
+//				DecimalUtil.divide( Runtime.getRuntime().freeMemory(),
+//						1024 * 1024 ),
+//				DecimalUtil.divide( Runtime.getRuntime().freeMemory(),
+//						Runtime.getRuntime().totalMemory() ) ) );
+//	}
 
 	interface Hierarchical<T extends Comparable<? super T>, THIS extends Hierarchical<T, THIS>>
 	{
@@ -424,18 +408,19 @@ public class EcosystemScenario implements Proactive
 
 	}
 
-	enum TerritoryLevel
+	public enum TerritoryLevel
 	{
-		FEDERATION, // EU, NATO, ...
-		NATION, // country
-		REGION, // state, landsdeel
-		ZONE, // district, subregion (security/safety corop, ggd, province)
+		FEDERATION, // supra-state, EU, NATO, ...
+		NATION, // country, nation-state, empire (GB, KN)
+		TERRITORY, // N/E/S/W, mid-west, ... (landsdeel)
+		STATE, // state, province
+		REGION, // security/safety (corop, ggd)
 		DISTRICT, // county, department
-		CITY, // metropolitan, municipal
-		BUROUGH, // central, suburb
-		WARD, // block
-		ROAD, // street, railway, shipping lane, ...
-		ADDRESS, // home, apartment
+		CITY, // metropolitan, municipal, area (020, 030)
+		BUROUGH, // central, suburb, village, PC3
+		WARD, // block, PC4
+		ROAD, // street, zip, PC6, railway, shipping lane, ...
+		ADDRESS, // home, apartment, latlong
 		;
 
 		// transporter, modality, vehicle ?

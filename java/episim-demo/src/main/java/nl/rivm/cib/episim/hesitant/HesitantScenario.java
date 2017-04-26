@@ -26,7 +26,6 @@ import nl.rivm.cib.episim.hesitant.Opinion.Opinionator;
 import nl.rivm.cib.episim.hesitant.Redirection.GoalType;
 import nl.rivm.cib.episim.hesitant.Redirection.Redirector;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 
 /**
  * {@link HesitantScenario}
@@ -63,9 +62,9 @@ public class HesitantScenario implements Scenario
 
 	private Timing campaignTiming;
 	private ProbabilityDistribution<Duration> adviceDelay;
-	private ProbabilityDistribution<Number> advisorConfidence;
-	private ProbabilityDistribution<Number> advisorComplacency;
-	private ProbabilityDistribution<VaxOccasion> treatOccasionDist;
+//	private ProbabilityDistribution<Number> advisorConfidence;
+//	private ProbabilityDistribution<Number> advisorComplacency;
+//	private ProbabilityDistribution<VaxOccasion> treatOccasionDist;
 	private ProbabilityDistribution<VaxHesitancy> personHesitancyDist;
 	private ProbabilityDistribution<Duration> myVaccinationDelay;
 	private Range<Duration> myVaccinationDelayRange;
@@ -80,31 +79,31 @@ public class HesitantScenario implements Scenario
 		this.adviceDelay = this.distParser
 				.parseQuantity( healthCfg.adviceDelay() ).abs()
 				.map( Duration::of );
-		this.advisorConfidence = this.distParser
-				.parse( healthCfg.advisorConfidence() );
-		this.advisorComplacency = this.distParser
-				.parse( healthCfg.advisorComplacency() );
-
-		this.treatOccasionDist = new ProbabilityDistribution<VaxOccasion>()
-		{
-			private final ProbabilityDistribution<Number> occasionProximity = distParser
-					.parse( healthCfg.occasionProximity() );
-			private final ProbabilityDistribution<Number> occasionClarity = distParser
-					.parse( healthCfg.occasionClarity() );
-			private final ProbabilityDistribution<Number> occasionUtility = distParser
-					.parse( healthCfg.occasionUtility() );
-			private final ProbabilityDistribution<Number> occasionAffinity = distParser
-					.parse( healthCfg.occasionAffinity() );
-
-			@Override
-			public VaxOccasion draw()
-			{
-				return VaxOccasion.of( this.occasionProximity.draw(),
-						this.occasionClarity.draw(),
-						this.occasionUtility.draw(),
-						this.occasionAffinity.draw() );
-			}
-		};
+//		this.advisorConfidence = this.distParser
+//				.parse( healthCfg.advisorConfidence() );
+//		this.advisorComplacency = this.distParser
+//				.parse( healthCfg.advisorComplacency() );
+//
+//		this.treatOccasionDist = new ProbabilityDistribution<VaxOccasion>()
+//		{
+//			private final ProbabilityDistribution<Number> occasionProximity = distParser
+//					.parse( healthCfg.occasionProximity() );
+//			private final ProbabilityDistribution<Number> occasionClarity = distParser
+//					.parse( healthCfg.occasionClarity() );
+//			private final ProbabilityDistribution<Number> occasionUtility = distParser
+//					.parse( healthCfg.occasionUtility() );
+//			private final ProbabilityDistribution<Number> occasionAffinity = distParser
+//					.parse( healthCfg.occasionAffinity() );
+//
+//			@Override
+//			public VaxOccasion draw()
+//			{
+//				return VaxOccasion.of( this.occasionProximity.draw(),
+//						this.occasionClarity.draw(),
+//						this.occasionUtility.draw(),
+//						this.occasionAffinity.draw() );
+//			}
+//		};
 	}
 
 	private void initPersonParameters() throws ParseException

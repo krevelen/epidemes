@@ -19,20 +19,42 @@
  */
 package nl.rivm.cib.episim.model.disease.infection;
 
+import java.text.ParseException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import org.apache.logging.log4j.Logger;
+
+import io.coala.bind.InjectConfig;
+import io.coala.bind.InjectConfig.Scope;
+import io.coala.config.YamlConfig;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.FactKind;
+import io.coala.log.LogUtil;
+import io.coala.random.ProbabilityDistribution;
+import io.coala.time.Duration;
 import io.coala.time.Instant;
+import io.coala.time.TimingMap;
+import io.coala.time.TimeUnits;
+import io.coala.util.Compare;
+import nl.rivm.cib.episim.model.disease.Afflict;
 import nl.rivm.cib.episim.model.disease.Afflicted;
-import nl.rivm.cib.episim.model.disease.Disease;
+import nl.rivm.cib.episim.model.disease.ClinicalPhase;
+import nl.rivm.cib.episim.model.disease.Condition;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen.SimpleSEIR;
 import nl.rivm.cib.episim.model.locate.Place;
+import nl.rivm.cib.episim.model.person.Redirection;
 
 /**
  * Unlike disorders, allergies, or many other (bio)hazards known in etiology of
  * disease, {@link Pathogen}s are microbes living in {@link TransmissionSpace}s
  * and causing infectious/transmissible/communicable/contagious disease
- * {@link Exposure} include viruses, bacteria, fungi, and parasites for which
- * respective medications may exist (antibiotics, antivirals, antifungals, and
- * antiprotozoals/antihelminthics)
+ * {@link Transmission} include viruses, bacteria, fungi, and parasites for
+ * which respective {@link Recovery} medications may exist (antibiotics,
+ * antivirals, antifungals, and antiprotozoals/antihelminthics)
  * 
  * <p>
  * Some terminology from
@@ -63,75 +85,101 @@ import nl.rivm.cib.episim.model.locate.Place;
  * </tr>
  * </table>
  * 
- * typical life cycle (compartment transitions): - passively immune -
- * susceptible - vaccine-infected : latent (incubation-period), infectious,
- * recovered (1-2y), susceptible - contact-infected : latent (incubation-period)
- * - asymptomatic, infectious, recovering, removed (2-7y), susceptible -
- * symptomatic - mobile, recovering, removed (2-7y), susceptible - immobilize -
- * convalescent, removed (2-7y), susceptible - hospitalize - convalescent,
- * removed (2-7y), susceptible - death, removed
+ * <p>
+ * measles, see e.g. https://en.wikipedia.org/wiki/File:Measles.webm; influenza
+ * see e.g. Figure 5 in https://doi.org/10.1093/aje/kwm375
+ * 
+ * <p>
+ * from Zhang (2016)?: typical life cycle (compartment transitions): - passively
+ * immune - susceptible - vaccine-infected : latent (incubation-period),
+ * infectious, recovered (1-2y), susceptible - contact-infected : latent
+ * (incubation-period) - asymptomatic, infectious, recovering, removed (2-7y),
+ * susceptible - symptomatic - mobile, recovering, removed (2-7y), susceptible -
+ * immobilize - convalescent, removed (2-7y), susceptible - hospitalize -
+ * convalescent, removed (2-7y), susceptible - death, removed
  * 
  * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
  * @author Rick van Krevelen
  */
-public interface Pathogen extends Actor<Disease>
+public interface Pathogen extends Actor<Pathogen.Transmission>
 {
 
 	/**
-	 * {@link Exposure} initiated by some {@link Pathogen} represents its
+	 * {@link Transmission} initiated by some {@link Pathogen} represents its
 	 * attempt to invade a (secondary) {@link Afflicted} host, e.g. during their
-	 * {@link Visit} to a {@link TransmissionSpace}.
+	 * {@link Occupancy} to a {@link TransmissionSpace}, having:
 	 * 
 	 * <li>{@link #id()}: fact identifier
 	 * <li>{@link #transaction()}: links initiator {@link Pathogen} &hArr;
 	 * executor {@link Afflicted}
-	 * <li>{@link #kind()}: transmission = {@link FactKind#REQUESTED rq},
-	 * invasion = {@link FactKind#STATED st}
-	 * <li>{@link #occurrence()}: [rq] exposure/pressure start {@link Instant}
-	 * <li>{@link #expiration()}: [rq] exposure/pressure end {@link Instant}
-	 * <li>{@link #causeRef()}: reference to cause, e.g. some {@link Visit}
+	 * <li>{@link #causeRef()}: reference to cause, e.g. some {@link Occupancy}
+	 * <li>{@link #kind()}
+	 * <ul>
+	 * <li>pressure ({@link FactKind#REQUESTED rq}) &rArr; invasion
+	 * ({@link FactKind#STATED st}) or escape (either explicit
+	 * {@link FactKind#DECLINED dc} or implicit {@link #expiration() expire})
+	 * </ul>
+	 * <li>{@link #getForce()} or <em>force of infection</em> to quantify the
+	 * {@link Pathogen}'s <em>infection pressure</em> upon the executing
+	 * {@link Afflicted} host's immune system {@link Condition}
 	 * 
 	 * @version $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
 	 * @author Rick van Krevelen
 	 */
-	public interface Exposure extends Disease
+	public interface Transmission extends Afflict
 	{
 
 		/**
-		 * @param time
-		 * @param site
-		 * @param cause
-		 * @return
+		 * the <em>force of infection</em> expressed in a (dimensionless)
+		 * likelihood of invasion (assuming susceptible immune system), e.g.:
+		 * <li>{@code 1} for deterministic/unavoidable, or
+		 * <li>a fraction of (average) no. infectious per total occupancy
+		 * 
+		 * @return a dimensionless force of infection &isin; &lang;0,1]
 		 */
-		static Exposure of( Instant time, Place site, Visit cause )
-		{
-			// TODO Auto-generated method stub
-			return null;
-		}
+		Number getForce();
+
+		/**
+		 * @return the {@link TimingMap} of {@link EpidemicCompartment} executed
+		 *         upon invasion
+		 */
+		TimingMap<EpidemicCompartment> getEpidemiology();
+
+		/**
+		 * @return the {@link TimingMap} of {@link ClinicalPhase} executed upon
+		 *         invasion
+		 */
+		TimingMap<ClinicalPhase> getPathology();
+
+		/**
+		 * @return the {@link TimingMap} of {@link Serostatus} executed upon
+		 *         invasion
+		 */
+		TimingMap<Serostatus> getSerology();
 	}
 
 	/**
 	 * {@link Recovery} transactions initiated by some {@link Afflicted} host
-	 * represents their attempts to clear a {@link Disease} persisted by the
-	 * executor {@link Pathogen}, e.g. due to immune response.
+	 * {@link Condition} represents the dynamics of clearing a {@link Afflict}
+	 * persisted by the executor {@link Pathogen}, e.g. due to immune response.
 	 * 
 	 * <li>{@link #id()}: fact identifier
 	 * <li>{@link #transaction()}: links initiator {@link Pathogen} &hArr;
 	 * executor {@link Afflicted}
-	 * <li>{@link #kind()}: transmission = {@link FactKind#REQUESTED rq},
-	 * invasion = {@link FactKind#STATED st}
-	 * <li>{@link #occurrence()}: [rq] exposure/pressure start {@link Instant}
-	 * <li>{@link #expiration()}: [rq] exposure/pressure end {@link Instant}
-	 * <li>{@link #causeRef()}: reference to cause, e.g. some {@link Visit}
+	 * <li>{@link #causeRef()}: reference to cause, e.g. immune system
+	 * {@link Condition} producing Immunoglobulin M (IgM) for recent primary
+	 * infections; immunoglobulin G (IgG) for past infection or immunization
+	 * <li>{@link #kind()}:
+	 * <ul>
+	 * <li>[rq]: seroconversion &rArr; [st]: effective treatment/vaccination
+	 * </ul>
 	 * 
 	 * @version $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
 	 * @author Rick van Krevelen
 	 */
-	public interface Recovery extends Disease
+	public interface Recovery extends Afflict
 	{
 	}
-	
-//	void afflict( Afflicted person );
 
 	/**
 	 * The (derived) force of infection (denoted &lambda;) is the rate
@@ -153,52 +201,294 @@ public interface Pathogen extends Actor<Disease>
 //		Collection<TransmissionRoute> routes,
 //		Collection<ContactIntensity> infectionPressure );
 
-	/**
-	 * @return the (random) period between
-	 *         {@link EpidemicCompartment.Simple#EXPOSED} and
-	 *         {@link EpidemicCompartment.Simple#INFECTIVE} (i.e. 1 / &epsilon;)
-	 */
-//	Duration drawLatentPeriod();
+	interface Factory
+	{
+		Pathogen create( Comparable<?> name );
+	}
 
 	/**
-	 * @return the (random) period between
-	 *         {@link EpidemicCompartment.Simple#INFECTIVE} and
-	 *         {@link EpidemicCompartment.Simple#RECOVERED} conditions (i.e. 1 /
-	 *         &gamma;)
+	 * {@link SimpleSEIR} implements an {@link Pathogen} drawing probabilities
+	 * for transition and duration of {@link EpidemicCompartment}s from some
+	 * {link RandomDistribution}, independent of relation type between infective
+	 * and susceptible {@link Afflicted}s, their current {@link Condition}s, or
+	 * the contact {@link Place},{@link Duration}, or {@link TransmissionRoute}
 	 */
-//	Duration drawRecoverPeriod();
+	interface SimpleSEIR extends Pathogen
+	{
+		String INFECTION_RESISTANCE_KEY = "resistancePeriod"; // drawn by Condition
 
-	/**
-	 * @return the (random) period between
-	 *         {@link EpidemicCompartment.Simple#RECOVERED} and
-	 *         {@link EpidemicCompartment.Simple#SUSCEPTIBLE} (i.e. &delta;), or
-	 *         {@code null} for infinite (there is no loss of immunity)
-	 */
-//	Duration drawWanePeriod();
+		String LATENT_PERIOD_KEY = "latentPeriod"; // Pathogen
 
-	/** @return the (random) period between exposure and first symptoms */
-//	Duration drawOnsetPeriod();
+		String RECOVER_PERIOD_KEY = "recoverPeriod"; // Pathogen
 
-//	Duration drawSymptomPeriod();
+		String WANE_PERIOD_KEY = "wanePeriod"; // Pathogen or Condition
 
-	/**
-	 * @return the (random) window period between exposure and seropositive
-	 *         blood test results: immunoglobulin M (IgM) for recent primary
-	 *         infections; immunoglobulin G (IgG) for past infection or
-	 *         immunization
-	 */
-//	Duration drawSeroconversionPeriod();
+		String INCUBATE_PERIOD_KEY = "incubatePeriod"; // Pathogen
 
-	/**
-	 * {@link Simple} implements an {@link Pathogen} with a simple force of
-	 * infection that is drawn from some {link RandomDistribution} independent
-	 * of the relations between infective and susceptible {@link Afflicted}s,
-	 * their current {@link Condition}s, or the contact {@link Place} (and
-	 * {@link TransmissionRoute}s)
-	 * 
-	 * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
-	 * @author Rick van Krevelen
-	 */
+		String CLINICAL_PERIOD_KEY = "clinicalPeriod"; // Pathogen
+
+		@Override
+		default void onInit()
+		{
+			// handle response from Afflicted/Condition
+			emit( Transmission.class, FactKind.STATED )
+			.subscribe( this::onInvasion, this::onError );
+			emit( Transmission.class, FactKind.DECLINED )
+			.subscribe( this::onEscape, this::onError );
+
+		}
+
+		default void onContact( final Occupancy rq )
+		{
+
+		}
+
+		default void onEscape( final Transmission dc )
+		{
+			// transmission failed, wait for another attempt by e.g. Contagion
+		}
+
+		default void onInvasion( final Transmission st )
+		{
+
+//			final Duration timeToInvasion = this
+//					.getOrCreate( INFECTION_RESISTANCE_KEY ).draw();// draw once per Condition
+//			final Instant timeOfInvasion = now().add( timeToInvasion );
+//			if( rq.expire() == null // assume infinite pressure duration
+//					|| Compare.lt( timeOfInvasion, rq.expire() ) )
+//			{
+//				// pressure is exhausted in duration of this contact
+//				at( timeOfInvasion ).call( t ->
+//				{
+//					// become EXPOSED
+//					respond( rq, FactKind.STATED ).commit();
+//					after( getOrCreate( LATENT_PERIOD_KEY ).draw() ).call( () ->
+//					{
+//						// recovery...
+//					} );
+//				} );
+
+//			after( getOrCreate( LATENT_PERIOD_KEY ).draw() )
+//					.call( () -> shed( person ) );
+//			after( getOrCreate( INCUBATE_PERIOD_KEY ).draw() )
+//					.call( () -> systemic( person ) );
+//			} else
+//			{
+//				// remain SUSCEPTIBLE
+//				// seir.at(f.expire() ).call(t->seir.respond( f, FactKind.REJECTED ).commit());
+//			}
+
+		}
+
+		/**
+		 * {@link Config} specifies distributions for e.g. the pathogen's total
+		 * <em>generation time</em>, i.e. the total primary-to-secondary
+		 * infection interval (average latent + infectious periods), is e.g.
+		 * <em>T<sub>g</sub></em>=2.6 days for influenza
+		 * (<a href="https://doi.org/10.1038/nature04795">Ferguson, 2006</a>,
+		 * supplement p.12), or <em>u</em>=11.9 or 11.1 days for measles/rubeola
+		 * (<a href= "https://doi.org/10.1016/j.jtbi.2011.06.015">Klinkenberg,
+		 * 2011</a>, Table 2 p.57)
+		 */
+		interface Config extends YamlConfig
+		{
+			/**
+			 * typically assumes Poisson process for the individual "resistance
+			 * to infection" and has been modeled as exponential ia.i.d.
+			 * <em>l<sub>i</sub>=e<sup>&ndash;t</sup></em>
+			 * (<a href="http://www.jstor.org/stable/3213811">Sellke, 1983</a>,
+			 * p.391, <em>t</em> refers to ???) or as lognormal infectiousness
+			 * profile <em>&kappa;(T)</em>
+			 * (<a href="https://doi.org/10.1038/nature04795">Ferguson,
+			 * 2006</a>, supplement p.10)
+			 * 
+			 * @see ProbabilityDistribution.Factory#createExponential(Number)
+			 * @return a "individual resistance to infection" distribution
+			 */
+			@Key( INFECTION_RESISTANCE_KEY )
+			@DefaultValue( "exp(11)" ) // FIXME fit this parameter !!
+			String infectionResistanceDaysDist();
+
+			/**
+			 * distribution for time of latency until infectiousness, between
+			 * {@link EpidemicCompartment.Simple#EXPOSED E} and
+			 * {@link EpidemicCompartment.Simple#INFECTIVE I} (i.e. 1 /
+			 * &epsilon;).
+			 */
+			@Key( LATENT_PERIOD_KEY )
+			@DefaultValue( "exp(0.09)" ) // 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
+			String latentPeriodDaysDist();
+
+			/**
+			 * distribution for time of infectiousness (viral shedding) until
+			 * recovery: between {@link EpidemicCompartment.Simple#INFECTIVE}
+			 * and {@link EpidemicCompartment.Simple#RECOVERED} conditions (i.e.
+			 * 1 / &gamma;)
+			 */
+			@Key( RECOVER_PERIOD_KEY )
+			@DefaultValue( "exp(.16)" ) // 1/10d (6-14d) = prodromal fever 3-7 days + rash 4-7days
+			String recoverPeriodDaysDist();
+
+			/**
+			 * distribution for duration of immunity: between
+			 * {@link EpidemicCompartment.Simple#RECOVERED} and
+			 * {@link EpidemicCompartment.Simple#SUSCEPTIBLE} (i.e. &delta;), or
+			 * {@code null} for infinite (there is no loss of immunity)
+			 */
+			@Key( WANE_PERIOD_KEY )
+			@DefaultValue( "const(100000)" ) // infinite = never wane
+			String wanePeriodDaysDist();
+
+			/** distribution for time between infection and onset of symptoms */
+			@Key( INCUBATE_PERIOD_KEY )
+			@DefaultValue( "exp(0.07)" ) // 1/14 (7-21 days, says CDC)
+			String incubatePeriodDaysDist();
+
+			/** distribution for time duration of symptoms */
+			@Key( CLINICAL_PERIOD_KEY )
+			@DefaultValue( "exp(0.2)" ) // 1/5 (4-7 days, says CDC)
+			String clinicalPeriodDaysDist();
+		}
+
+		/**
+		 * {@link SimpleSEIR.Factory} is a simple {@link Pathogen.Factory} for
+		 * generating {@link SimpleSEIR S-E-I-R} implementations of a
+		 * {@link Pathogen}, with attributes drawn from distributions as
+		 * speicifed using {@link SimpleSEIR.Config}, including:
+		 * <li>{@link Config#infectionResistanceDaysDist() infection resistance}
+		 * (S &rarr; E);
+		 * <li>{@link Config#latentPeriodDaysDist() latent period} (E &rarr; I);
+		 * <li>{@link Config#recoverPeriodDaysDist() recover period} (I &rarr;
+		 * R);
+		 * <li>{@link Config#wanePeriodDaysDist() wane period} (R &rarr; S); and
+		 * <li>{@link Config#clinicalPeriodDaysDist() clinical period}
+		 * (prodromal &rarr; postdromal).
+		 */
+		@Singleton
+		class Factory implements Pathogen.Factory
+		{
+			/** */
+			private static final Logger LOG = LogUtil.getLogger( Simple.class );
+
+			@InjectConfig( Scope.BINDER )
+			private Config config;
+
+			@Inject
+			private Actor.Factory actors;
+
+			@Inject
+			private ProbabilityDistribution.Parser distParser;
+
+			private final Map<String, ProbabilityDistribution<Duration>> durationDists = new ConcurrentHashMap<>();
+
+			private ProbabilityDistribution<Duration>
+				getOrCreate( final String distName )
+			{
+				return this.durationDists.computeIfAbsent( distName, key ->
+				{
+					final String distValue = this.config
+							.getProperty( distName );
+					try
+					{
+						return this.distParser.parse( distValue );
+					} catch( ParseException e )
+					{
+						LOG.error(
+								"Problem parsing '" + distValue
+										+ "', assuming 1 day for: " + distName,
+								e );
+						return this.distParser.getFactory().createDeterministic(
+								Duration.of( 1, TimeUnits.DAYS ) );
+					}
+				} );
+			}
+
+			/**
+			 * TODO upon first exposure, draw "pressure threshold" (duration as
+			 * susceptible with infectious) for invasion request to Afflicted so
+			 * its Afflictor can execute invasion, depending on how "healthy
+			 * individual i accumulates 'exposure to infection' at a rate equal
+			 * to the number of infected individuals present" (Sellke, 1983
+			 * p.391), e.g. considering absolute v relative infectious
+			 * occupancy, immune system tolerance, co-morbidity, ...)
+			 */
+			@Override
+			public SimpleSEIR create( final Comparable<?> name )
+			{
+				final SimpleSEIR seir = this.actors.create( name )
+						.proxyAs( SimpleSEIR.class )
+						.with( INFECTION_RESISTANCE_KEY,
+								getOrCreate( INFECTION_RESISTANCE_KEY ) );
+//				seir.emit( Transmission.class, FactKind.REQUESTED )
+//						.subscribe( rq -> seir.onRequest( rq ) );
+				return seir;
+			}
+
+//			@Override
+//			public void infect()
+//			{
+//				if( !getCompartment().isSusceptible() )
+//					throw ExceptionFactory.createUnchecked(
+//							"Can't become exposed when: {}", getCompartment() );
+//
+//				setCompartment( EpidemicCompartment.Simple.EXPOSED );
+//
+//				after( disease().drawLatentPeriod() )
+//						.call( this::setCompartment,
+//								EpidemicCompartment.Simple.INFECTIVE )
+//						.thenAfter( disease().drawRecoverPeriod() )
+//						.call( this::setCompartment,
+//								EpidemicCompartment.Simple.RECOVERED )
+//						.thenAfter( disease().drawWanePeriod() )
+//						.call( this::setCompartment,
+//								EpidemicCompartment.Simple.SUSCEPTIBLE );
+//				after( disease().drawOnsetPeriod() )
+//						.call( this::setSymptomPhase, ClinicalPhase.SYSTEMIC )
+//						.thenAfter( disease().drawSymptomPeriod() )
+//						.call( this::setSymptomPhase, ClinicalPhase.ASYMPTOMATIC );
+//			}
+
+			//
+//			@Override
+//			public void afflict( final Afflicted person )
+//			{
+//				conditionOf( person ).set( EpidemicCompartment.Simple.EXPOSED );
+//				after( this.latentPeriodDist.draw() ).call( () -> shed( person ) );
+//				after( this.incubationPeriodDist.draw() )
+//						.call( () -> systemic( person ) );
+//			}
+			//
+//			public void shed( final Afflicted person )
+//			{
+//				conditionOf( person ).set( EpidemicCompartment.Simple.INFECTIVE );
+//				after( this.recoverPeriodDist.draw() )
+//						.call( () -> immune( person ) );
+//			}
+			//
+//			public void immune( final Afflicted person )
+//			{
+//				conditionOf( person ).set( EpidemicCompartment.Simple.RECOVERED );
+//				after( this.wanePeriodDist.draw() ).call( () -> wane( person ) );
+//			}
+			//
+//			public void wane( final Afflicted person )
+//			{
+//				conditionOf( person ).set( EpidemicCompartment.Simple.SUSCEPTIBLE );
+//			}
+			//
+//			public void systemic( final Afflicted person )
+//			{
+//				conditionOf( person ).set( ClinicalPhase.SYSTEMIC );
+//				after( this.symptomaticPeriodDist.draw() )
+//						.call( () -> heal( person ) );
+//			}
+			//
+//			public void heal( final Afflicted person )
+//			{
+//				conditionOf( person ).set( ClinicalPhase.ASYMPTOMATIC );
+//			}
+		}
+	}
 //	class SimpleSEIR extends Identified.SimpleOrdinal<ID> implements Pathogen
 //	{
 //		private final Scheduler scheduler;
@@ -276,45 +566,6 @@ public interface Pathogen extends Actor<Disease>
 //		{
 //			return person.afflictions().computeIfAbsent( id(),
 //					key -> this.conditionFactory.create( person, this ) );
-//		}
-//
-//		@Override
-//		public void afflict( final Afflicted person )
-//		{
-//			conditionOf( person ).set( EpidemicCompartment.Simple.EXPOSED );
-//			after( this.latentPeriodDist.draw() ).call( () -> shed( person ) );
-//			after( this.incubationPeriodDist.draw() )
-//					.call( () -> systemic( person ) );
-//		}
-//
-//		public void shed( final Afflicted person )
-//		{
-//			conditionOf( person ).set( EpidemicCompartment.Simple.INFECTIVE );
-//			after( this.recoverPeriodDist.draw() )
-//					.call( () -> immune( person ) );
-//		}
-//
-//		public void immune( final Afflicted person )
-//		{
-//			conditionOf( person ).set( EpidemicCompartment.Simple.RECOVERED );
-//			after( this.wanePeriodDist.draw() ).call( () -> wane( person ) );
-//		}
-//
-//		public void wane( final Afflicted person )
-//		{
-//			conditionOf( person ).set( EpidemicCompartment.Simple.SUSCEPTIBLE );
-//		}
-//
-//		public void systemic( final Afflicted person )
-//		{
-//			conditionOf( person ).set( ClinicalPhase.SYSTEMIC );
-//			after( this.symptomaticPeriodDist.draw() )
-//					.call( () -> heal( person ) );
-//		}
-//
-//		public void heal( final Afflicted person )
-//		{
-//			conditionOf( person ).set( ClinicalPhase.ASYMPTOMATIC );
 //		}
 //
 //	}

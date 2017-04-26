@@ -41,10 +41,10 @@ import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
+import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import nl.rivm.cib.episim.model.CandidatePicker;
-import rx.Observable;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 public interface MotherPicker<T extends MotherPicker.Mother>
 	extends CandidatePicker<T>
@@ -137,7 +137,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 					( o1, o2 ) -> o1.born().compareTo( o2.born() ) );
 
 			/** the stream of picked mothers */
-			private final Subject<T, T> mothers = PublishSubject.create();
+			private final Subject<T> mothers = PublishSubject.create();
 
 			@Override
 			public Scheduler scheduler()
@@ -148,7 +148,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			@Override
 			public Observable<T> emitPicks()
 			{
-				return this.mothers.asObservable();
+				return this.mothers;
 			}
 
 			@Override

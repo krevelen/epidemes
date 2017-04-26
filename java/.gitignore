@@ -14,3 +14,5 @@ buildNumber.properties
 /.vagrant/
 /.externalToolBuilders/
 /build/
+/epidemes.sublime-project
+/epidemes.sublime-workspace

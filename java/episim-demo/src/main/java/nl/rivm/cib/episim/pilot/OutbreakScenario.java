@@ -21,12 +21,11 @@ package nl.rivm.cib.episim.pilot;
 
 import java.io.InputStream;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.inject.Inject;
@@ -41,12 +40,11 @@ import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import io.coala.exception.Thrower;
 import io.coala.function.ThrowingBiConsumer;
-import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.LatLong;
 import io.coala.math.Range;
-import io.coala.math.WeightedValue;
 import io.coala.name.Id;
+import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
@@ -57,7 +55,8 @@ import io.coala.time.Timing;
 import io.coala.util.FileUtil;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.Cbs37713json;
-import nl.rivm.cib.epidemes.cbs.json.Cbs37713json.Tuple;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37713json.CBSGender;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37713json.MyTuple;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.locate.Geography;
@@ -107,11 +106,8 @@ public class OutbreakScenario implements Scenario
 		return this.scheduler;
 	}
 
-	/** male population initialization and immigration */
-	private ProbabilityDistribution<Cbs37713json.Tuple> maleRegionOriginAges;
-
-	/** female population initialization and immigration */
-	private ProbabilityDistribution<Cbs37713json.Tuple> femaleRegionOriginAges;
+	/** population initialization and immigration */
+	private ConditionalDistribution<Cbs37713json.MyTuple, CBSGender> genderOriginDist;
 
 	// TODO immigration rate (per region)
 
@@ -163,40 +159,31 @@ public class OutbreakScenario implements Scenario
 
 		try( final InputStream is = FileUtil.toInputStream( CBS_37713_FILE ) )
 		{
-			final Cbs37713json[] regOrigAgeFreq = JsonUtil.valueOf( is,
-					Cbs37713json[].class );
-			// TODO walk array once and produce both dists in a single go
-			this.maleRegionOriginAges = this.distFact.createCategorical( Arrays
-					.stream( regOrigAgeFreq )
-					.filter( json -> json.males > 0 && CBSRegionType
-							.parse( json.region ) == REGION_LEVEL )
-					.map( json -> WeightedValue.of( json.toTuple( distFact ),
-							json.males ) )
-					.collect( Collectors.toList() ) );
-			this.femaleRegionOriginAges = this.distFact
-					.createCategorical( Arrays.stream( regOrigAgeFreq )
-							.filter( json -> json.females > 0 && CBSRegionType
-									.parse( json.region ) == REGION_LEVEL )
-							.map( json -> WeightedValue.of(
-									json.toTuple( distFact ), json.females ) )
-							.collect( Collectors.toList() ) );
+			this.genderOriginDist = ConditionalDistribution.of(
+					distFact::createCategorical,
+					Cbs37713json
+							.readAsync( () -> FileUtil
+									.toInputStream( CBS_37713_FILE ) )
+							.filter( wv -> wv.getValue()
+									.regionType() == REGION_LEVEL )
+							.toMultimap( wv -> wv.getValue().gender(), wv -> wv,
+									() -> new EnumMap<>( CBSGender.class ) )
+							.blockingGet() );
 		}
 
-		final ProbabilityDistribution<Boolean> maleDist = this.distFact
-				.createBernoulli( .5 );
-		final Actor<Fact> home = this.actors.create( "home" );
+		final ProbabilityDistribution<CBSGender> genderDist = this.distFact
+				.createUniformCategorical( CBSGender.values() );
+//		final Actor<Fact> home = this.actors.create( "home" );
 		IntStream.range( 1, POP_SIZE ).forEach( i ->
 		{
 			final Actor<Fact> rick = this.actors.create( i );
-			final boolean male = maleDist.draw();
 			// TODO make a conditional distribution
-			final Tuple ageRegionOrigin = male
-					? this.maleRegionOriginAges.draw()
-					: this.femaleRegionOriginAges.draw();
-			rick.with( "male", male );
-			rick.with( "age", ageRegionOrigin.ageDist.draw() );
-			rick.with( "alien", ageRegionOrigin.alien );
-			rick.with( "regionRef", ageRegionOrigin.regionId );
+			final MyTuple profile = this.genderOriginDist
+					.draw( genderDist.draw() );
+			rick.with( "male", profile.gender() );
+			rick.with( "age", profile
+					.ageDist( this.distFact::createUniformContinuous ).draw() );
+			rick.with( "regionRef", profile.regionId() );
 //				rick.specialist( Redirection.Director.class )
 //						// add Redirection/request handler
 //						.emit( Actor.RQ_FILTER, ( role, rq ) ->

@@ -27,6 +27,11 @@ import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.cfg.AvailableSettings;
+import org.hibernate.ogm.cfg.OgmProperties;
+import org.hibernate.ogm.datastore.neo4j.Neo4j;
+import org.hibernate.ogm.datastore.neo4j.Neo4jProperties;
+import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -41,6 +46,8 @@ import io.coala.enterprise.Transaction;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
+import io.coala.name.JndiUtil;
+import io.coala.persist.HibernateJPAConfig;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
@@ -62,10 +69,82 @@ public class PilotTest
 	/** */
 	static final Logger LOG = LogUtil.getLogger( PilotTest.class );
 
+	/**
+	 * {@link MyORMConfig} for an embedded relational Hypersonic database
+	 */
+	public interface MyORMConfig extends HibernateJPAConfig
+	{
+
+		/** Tomcat/Catalina typically uses Subcontext/prefix: "java:comp/env" */
+		String DATASOURCE_JNDI = "jdbc/testDB";
+
+		@DefaultValue( "rdbms_test_pu" ) // match persistence.xml
+		@Key( JPA_UNIT_NAMES_KEY )
+		String[] jpaUnitNames();
+
+		@Override
+		@DefaultValue( DATASOURCE_JNDI )
+		@Key( AvailableSettings.DATASOURCE )
+		String jdbcDatasourceJNDI();
+
+	}
+
+	/**
+	 * {@link MyOGMConfig} for an object/graph model (OGM/NoSQL) implementation
+	 * such as MongoDB or Neo4J, of our object-relation model (ORM/JPA)
+	 * entities; requires vendor-specific Hibernate dependency
+	 */
+	public interface MyOGMConfig extends HibernateJPAConfig
+	{
+		@DefaultValue( "nosql_test_pu" ) // match persistence.xml
+		@Key( JPA_UNIT_NAMES_KEY )
+		String[] jpaUnitNames();
+
+		@DefaultValue( "pilot_testdb" )
+		@Key( OgmProperties.DATABASE )
+		String database();
+
+		// :7474 HTTP REST port, 7687 bolt SSL port
+		@DefaultValue( "192.168.99.100:7687" )
+		@Key( OgmProperties.HOST )
+		String host();
+
+		@DefaultValue( "neo4j" )
+		@Key( OgmProperties.USERNAME )
+		String jdbcUsername();
+
+		@DefaultValue( "epidemes" )
+		@Key( OgmProperties.PASSWORD )
+		@ConverterClass( PasswordPromptConverter.class )
+		String jdbcPassword();
+
+		@Override
+		default String jdbcPasswordKey()
+		{
+			return OgmProperties.PASSWORD;
+		}
+
+		@DefaultValue( Neo4j.EMBEDDED_DATASTORE_PROVIDER_NAME )
+		@Key( OgmProperties.DATASTORE_PROVIDER )
+		String ogmProvider();
+
+		@DefaultValue( "target/" )
+		@Key( Neo4jProperties.DATABASE_PATH )
+		String hibernateOgmNeo4jDatabasePath();
+
+	}
+
 	@BeforeClass
 	public static void setupJndiDataSource() throws NamingException
 	{
-		MyORMConfig.defaultJndiDataSource();
+		JndiUtil.bindLocally( MyORMConfig.DATASOURCE_JNDI, '/', () ->
+		{
+			final JDBCDataSource ds = new JDBCDataSource();
+			ds.setUrl( "jdbc:hsqldb:mem:mytestdb" );
+			ds.setUser( "SA" );
+			ds.setPassword( "" );
+			return ds;
+		} );
 	}
 
 	@Test

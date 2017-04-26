@@ -31,10 +31,10 @@ import io.coala.name.Identified;
 import io.coala.rx.RxCollection;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import rx.Observable;
-import rx.Subscription;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
+import io.reactivex.Observable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 
 /**
  * {@link Population} provides macro-level characteristics, following common
@@ -83,7 +83,7 @@ public interface Population<T extends Participant>
 	}
 
 	@SuppressWarnings( "rawtypes" )
-	default <E extends DemographicEvent> Subscription
+	default <E extends DemographicEvent> Disposable
 		on( final Class<E> eventType, final Consumer<E> consumer )
 	{
 		return on( eventType ).subscribe( event ->
@@ -143,7 +143,7 @@ public interface Population<T extends Participant>
 		{
 			private final ID id = ID.of( name );
 
-			private final Subject<DemographicEvent<T>, DemographicEvent<T>> events = PublishSubject
+			private final Subject<DemographicEvent<T>> events = PublishSubject
 					.create();
 
 			@Override
@@ -167,7 +167,7 @@ public interface Population<T extends Participant>
 			@Override
 			public Observable<DemographicEvent<T>> events()
 			{
-				return this.events.asObservable();
+				return this.events;
 			}
 
 			@Override

@@ -19,34 +19,46 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
-import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.QuantityUtil;
+import io.coala.math.Range;
+import io.coala.math.Tuple;
 import io.coala.math.WeightedValue;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
+import io.coala.random.ConditionalDistribution;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.util.FileUtil;
-import nl.rivm.cib.episim.model.locate.Region;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37713json.CBSGender;
 
 /**
  * {@link CbsImportTest}
+ * 
+ * trying:
+ * <li>draw 2012 regional hh-type using 81922ned
+ * <li>draw hh-subtype for kid count using national hh-type frequencies in 37975
+ * <li>draw kid ages using mom age per child birth in 37201
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -57,81 +69,157 @@ public class CbsImportTest
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( CbsImportTest.class );
 
-	private static final String CBS_37713_FILE = "cbs/37713_2016jj00.json";
+	// households
+	private static final String CBS_37975_FILE = "cbs/37975_2016JJ00.json";
+	private static final String CBS_71486_FILE = "cbs/71486ned_2012JJ00.json";
 
-	@Test
-	public void read37713() throws IOException
+	private static final String CBS_37230_FILE = "cbs/37230ned_monthly_change_series.json";
+	private static final String CBS_37713_FILE = "cbs/37713_2012JJ00_AllOrigins.json";
+
+	private static ProbabilityDistribution.Factory distFact;
+
+	@BeforeClass
+	public static void setupDistributionFactoy()
 	{
-		LOG.info( "start 37713" );
-
-		// load scenario
-		final LocalBinder binder = LocalConfig.builder()
+		distFact = LocalConfig.builder()
 				.withProvider( PseudoRandom.Factory.class,
 						Math3PseudoRandom.MersenneTwisterFactory.class )
 				.withProvider( ProbabilityDistribution.Factory.class,
 						Math3ProbabilityDistribution.Factory.class )
 				.withProvider( ProbabilityDistribution.Parser.class,
 						DistributionParser.class )
-				.build().createBinder();
-
-		final ProbabilityDistribution.Factory distFact = binder
+				.build().createBinder()
 				.inject( ProbabilityDistribution.Factory.class );
 
-		try( final InputStream is = FileUtil.toInputStream( CBS_37713_FILE ) )
+	}
+
+	@SuppressWarnings( "deprecation" )
+	@Test
+	public void read37975() throws Exception
+	{
+		LOG.info( "start 37975" );
+
+		// async, one JSON object per iteration, observable handles auto-close
+		final List<WeightedValue<Tuple>> async = Cbs37975json
+				.readAsync( () -> FileUtil.toInputStream( CBS_37975_FILE ) )
+				.toList().blockingGet();
+
+		// sync, takes memory for all JSON objects, and must manage auto-close
+		final List<WeightedValue<Tuple>> sync = Cbs37975json
+				.readSync( () -> FileUtil.toInputStream( CBS_37975_FILE ) )
+				.collect( Collectors.toList() );
+		assertThat( "async==sync", async, equalTo( sync ) );
+
+		final ProbabilityDistribution<Tuple> dist = distFact
+				.createCategorical( async );
+		for( int i = 0; i < 10; i++ )
+			LOG.trace( "Draw #{}: hh[type, ref-age]: {}", i, dist.draw() );
+
+		LOG.info( "done 37975" );
+	}
+
+	@SuppressWarnings( "deprecation" )
+	@Test
+	public void read71486ned() throws Exception
+	{
+		LOG.info( "start 71486ned" );
+
+		final CBSRegionType regType = CBSRegionType.MUNICIPAL;
+
+		// async, one JSON object per iteration, observable handles auto-close
+		final List<WeightedValue<Cbs71486json.MyTuple>> async = Cbs71486json
+				.readAsync( () -> FileUtil.toInputStream( CBS_71486_FILE ) )
+				.filter( wv -> wv.getValue().regionType() == regType ).toList()
+				.blockingGet();
+
+		// sync, takes memory for all JSON objects, and must manage auto-close
+		final List<WeightedValue<Cbs71486json.MyTuple>> sync = Cbs71486json
+				.readSync( () -> FileUtil.toInputStream( CBS_71486_FILE ) )
+				.filter( wv -> wv.getValue().regionType() == regType )
+				.collect( Collectors.toList() );
+		assertThat( "async==sync", async, equalTo( sync ) );
+
+		final ProbabilityDistribution<Cbs71486json.MyTuple> dist = distFact
+				.createCategorical( async );
+		for( int i = 0; i < 10; i++ )
 		{
-			final Cbs37713json[] entries = JsonUtil.valueOf( is,
-					Cbs37713json[].class );
-			final Map<CBSRegionType, List<WeightedValue<Cbs37713json.Tuple>>> maleAges = new HashMap<>();
-			Arrays.stream( entries ).filter( entry -> entry.males > 0 )
-					.map( entry -> WeightedValue.of( entry.toTuple( distFact ),
-							entry.males ) )
-					.map( wv -> maleAges
-							.computeIfAbsent( wv.getValue().regionType,
-									key -> new ArrayList<>() )
-							.add( wv ) )
-					.reduce( Boolean::logicalAnd ).orElse( Boolean.FALSE );
-
-			final Map<Region.TypeID, ProbabilityDistribution<Cbs37713json.Tuple>> maleAgeDists = maleAges
-					.entrySet().parallelStream()
-					.collect( Collectors.toMap( e -> e.getKey().toTypeID(),
-							e -> distFact.createCategorical( e.getValue() ) ) );
-
-			final Map<CBSRegionType, List<WeightedValue<Cbs37713json.Tuple>>> femaleAges = new HashMap<>();
-			Arrays.stream( entries ).filter( entry -> entry.females > 0 )
-					.map( entry -> WeightedValue.of( entry.toTuple( distFact ),
-							entry.females ) )
-					.map( wv -> femaleAges
-							.computeIfAbsent( wv.getValue().regionType,
-									key -> new ArrayList<>() )
-							.add( wv ) )
-					.reduce( Boolean::logicalAnd ).orElse( Boolean.FALSE );
-
-			final Map<Region.TypeID, ProbabilityDistribution<Cbs37713json.Tuple>> femaleAgeDists = femaleAges
-					.entrySet().parallelStream()
-					.collect( Collectors.toMap( e -> e.getKey().toTypeID(),
-							e -> distFact.createCategorical( e.getValue() ) ) );
-
-			for( int i = 0; i < 10; i++ )
-			{
-				final int round = i;
-				maleAgeDists.entrySet().stream().forEach( e ->
-				{
-					final Cbs37713json.Tuple tuple = e.getValue().draw();
-					LOG.trace( "Round {}, {}: {}, {} female age: {}", round,
-							e.getKey(), tuple.regionId,
-							tuple.alien ? "migrant" : "Dutch",
-							QuantityUtil.toScale( tuple.ageDist.draw(), 2 ) );
-				} );
-				femaleAgeDists.entrySet().stream().forEach( e ->
-				{
-					final Cbs37713json.Tuple tuple = e.getValue().draw();
-					LOG.trace( "Round {}, {}: {}, {} female age: {}", round,
-							e.getKey(), tuple.regionId,
-							tuple.alien ? "migrant" : "Dutch",
-							QuantityUtil.toScale( tuple.ageDist.draw(), 2 ) );
-				} );
-			}
+			final Cbs71486json.MyTuple tuple = dist.draw();
+			LOG.trace( "Draw #{}: {}, age draw: {}", i, tuple, QuantityUtil
+					.toScale( tuple.ageDist( distFact ).draw(), 2 ) );
 		}
+
+		LOG.info( "done 71486ned" );
+	}
+
+	@Test
+	public void read37230ned()
+	{
+		LOG.info( "start 37230ned" );
+
+		final CBSRegionType regType = CBSRegionType.MUNICIPAL;
+
+		// Java8 Time conversions: http://stackoverflow.com/a/23197731/1418999
+		final Range<ZonedDateTime> timeRange = Range
+				.of( "2012-06-13", "2014-02-13" ).map( LocalDate::parse )
+				.map( dt -> dt.atStartOfDay( Cbs37230jsonSeries.NL_TZ ) );
+		final Map<ZonedDateTime, Collection<WeightedValue<Cbs37230jsonSeries.MyTuple>>> async = Cbs37230jsonSeries
+				.readAsync( () -> FileUtil.toInputStream( CBS_37230_FILE ),
+						Cbs37230jsonSeries.CBSPopulationChange.BIRTHS,
+						timeRange )
+				.filter( wv -> wv.getValue().regionType() == regType )
+				.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
+						() -> new TreeMap<>() )
+				.blockingGet();
+
+//		LOG.trace( "parsed birth values, weighted by region: {}",
+//				JsonUtil.toJSON( async ) );
+		final ConditionalDistribution<Cbs37230jsonSeries.MyTuple, ZonedDateTime> birthRegionDist = ConditionalDistribution
+				.of( distFact::createCategorical, async );
+
+		final Cbs37230jsonSeries.CBSPopulationChange metric = Cbs37230jsonSeries.CBSPopulationChange.BIRTHS;
+
+		for( ZonedDateTime dt = timeRange.getLower().getValue(); timeRange
+				.contains( dt ); dt = dt.plus( 1L, ChronoUnit.WEEKS ) )
+		{
+			Cbs37230jsonSeries.MyTuple tuple = birthRegionDist.draw( dt );
+			for( int i = 0; i < 10; i++ )
+				LOG.trace( "dt={} profile={}, draw #{}: {}", dt, tuple, i,
+						QuantityUtil.toScale(
+								tuple.timeDist( metric,
+										distFact::createExponential ).draw(),
+								3 ) );
+		}
+//		distFact.createCon
+
+		LOG.info( "done 37230ned" );
+	}
+
+	@Test
+	public void read37713()
+	{
+		LOG.info( "start 37713" );
+
+		final CBSRegionType regionType = CBSRegionType.MUNICIPAL;
+		final ConditionalDistribution<Cbs37713json.MyTuple, CBSGender> dist = ConditionalDistribution
+				.of( distFact::createCategorical, Cbs37713json.readAsync(
+						() -> FileUtil.toInputStream( CBS_37713_FILE ) ).filter(
+								wv -> wv.getValue().regionType() == regionType )
+						.toMultimap( wv -> wv.getValue().gender(), wv -> wv,
+								() -> new EnumMap<>( CBSGender.class ) )
+						.blockingGet() );
+
+		for( int i = 0; i < 10; i++ )
+		{
+			final int round = i;
+			Arrays.stream( CBSGender.values() )
+					.map( gender -> dist.draw( gender ) )
+					.forEach( tuple -> LOG.trace( "Draw #{}, {}, {}", round,
+							tuple, QuantityUtil.toScale( tuple
+									.ageDist(
+											distFact::createUniformContinuous )
+									.draw(), 3 ) ) );
+		}
+
 		LOG.info( "done 37713" );
 	}
 }

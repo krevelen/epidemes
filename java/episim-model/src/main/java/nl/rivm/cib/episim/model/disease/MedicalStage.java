@@ -19,7 +19,9 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
+import io.coala.json.Attributed;
 import io.coala.name.Id;
+import io.reactivex.Observable;
 
 /**
  * {@link MedicalStage} is an identifier of treatment stages/regimes
@@ -50,8 +52,12 @@ public class MedicalStage extends Id.Ordinal<String>
 		return Util.valueOf( value, new MedicalStage() );
 	}
 
-	public interface Attributable<THIS>
+	public interface Attributable<THIS extends Attributable<?>>
+		extends Attributed
 	{
+		/** propertyName matching bean's getter/setter names */
+		String MEDICAL_STAGE_PROPERTY = "stage";
+
 		MedicalStage getStage();
 
 		void setStage( MedicalStage stage );
@@ -61,6 +67,11 @@ public class MedicalStage extends Id.Ordinal<String>
 		{
 			setStage( stage );
 			return (THIS) this;
+		}
+
+		default Observable<MedicalStage> emitStage()
+		{
+			return emitChanges( MEDICAL_STAGE_PROPERTY, MedicalStage.class );
 		}
 	}
 

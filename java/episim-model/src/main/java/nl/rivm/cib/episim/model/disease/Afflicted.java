@@ -25,7 +25,7 @@ import io.coala.enterprise.Actor;
 
 /**
  * {@link Afflicted} can be a carrier of multiple (infectious, chronic, ...)
- * {@link Disease}s, each with their own {@link Condition} dynamics
+ * {@link Afflict}s, each with their own {@link Condition} dynamics
  * 
  * @version $Id: a8bf68b6634dba22075c105a65ea77fc0d8ccf05 $
  * @author Rick van Krevelen

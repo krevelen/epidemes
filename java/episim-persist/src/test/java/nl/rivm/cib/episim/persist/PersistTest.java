@@ -45,10 +45,10 @@ import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.TimeUnits;
 import nl.rivm.cib.episim.model.disease.Condition;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen.Exposure;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
-import nl.rivm.cib.episim.model.disease.infection.Visit;
+import nl.rivm.cib.episim.model.disease.infection.Occupancy;
 import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
@@ -184,7 +184,7 @@ public class PersistTest
 
 //		final OffsetDateTime offset = OffsetDateTime.now();
 		final Region region = Region.of( Region.ID.of( "Netherlands" ), "NL01",
-				Region.TypeID.of( "Country" ), (Region)null, null,
+				Region.TypeID.of( "Country" ), (Region) null, null,
 				QuantityUtil.valueOf( 41543, Units.SQUARE_METRE )
 						.multiply( BigDecimal.TEN.pow( 6 ) ) );
 		final Place site = Place.of( Place.ID.of( "rivm" ), RIVM_POSITION,
@@ -195,10 +195,14 @@ public class PersistTest
 		final TransmissionRoute route = null;
 		final Condition primary = null;
 		final Condition secondary = null;
-		final Visit cause = Visit.of( start, duration, space, route, primary,
-				secondary );
+		final Occupancy cause = /*
+								 * TODO Occupancy.of( start, duration, space,
+								 * route, primary, secondary )
+								 */ null;
 		final Instant time = Instant.of( 3.456, TimeUnits.ANNUM );
-		final Exposure event = Exposure.of( time, site, cause );
+		final Transmission event = /*
+									 * TODO Transmission.of( time, site, cause )
+									 */ null;
 		LOG.trace( "Getting EM to store/retrieve event: {}", event );
 		JPAUtil.session( EMF, em ->
 		{

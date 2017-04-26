@@ -19,7 +19,10 @@
  */
 package nl.rivm.cib.episim.model.disease.infection;
 
+import io.coala.json.Attributed;
 import io.coala.name.Identified;
+import io.reactivex.Observable;
+import nl.rivm.cib.episim.model.disease.Afflicted;
 import nl.rivm.cib.episim.model.disease.Condition;
 
 /**
@@ -55,8 +58,11 @@ public interface EpidemicCompartment extends Identified<String>
 	 */
 	boolean isImmune();
 
-	interface Attributable<THIS>
+	interface Attributable<THIS extends Attributable<?>> extends Attributed
 	{
+		/** propertyName matching bean's getter/setter names */
+		String EPIDEMIC_COMPARTMENT_PROPERTY = "compartment";
+
 		EpidemicCompartment getCompartment();
 
 		void setCompartment( EpidemicCompartment compartment );
@@ -67,6 +73,12 @@ public interface EpidemicCompartment extends Identified<String>
 			setCompartment( compartment );
 			return (THIS) this;
 		}
+
+		default Observable<EpidemicCompartment> emitCompartment()
+		{
+			return emitChanges( EPIDEMIC_COMPARTMENT_PROPERTY,
+					EpidemicCompartment.class );
+		}
 	}
 
 	/**
@@ -75,41 +87,43 @@ public interface EpidemicCompartment extends Identified<String>
 	enum Simple implements EpidemicCompartment
 	{
 		/**
-		 * a {@link Condition} where a {@link Carrier} infant is MATERNALLY
-		 * DERIVED or PASSIVELY IMMUNE to some {@link Infection} (e.g. measles
-		 * due to maternal antibodies in placenta and colostrum)
+		 * a {@link Condition} where a {@link Afflicted} infant is MATERNALLY
+		 * DERIVED or PASSIVELY IMMUNE to some {@link Pathogen} (e.g. naturally
+		 * due to maternal antibodies in placenta and colostrum, or artificially
+		 * induced via antibody-transfer). See
+		 * https://www.wikiwand.com/en/Passive_immunity
 		 */
 		PASSIVE_IMMUNE,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is SUSCEPTIBLE to some
-		 * {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} is SUSCEPTIBLE to some
+		 * {@link Pathogen}
 		 */
 		SUSCEPTIBLE,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is EXPOSED to, LATENT
-		 * INFECTED by, or PRE-INFECTIVE of some {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} is EXPOSED to, LATENT
+		 * INFECTED by, or PRE-INFECTIVE of some {@link Pathogen}
 		 */
 		EXPOSED,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is INFECTIVE of some
-		 * {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} is INFECTIVE of some
+		 * {@link Pathogen}
 		 */
 		INFECTIVE,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is RECOVERED from and
-		 * IMMUNE to some {@link Infection} or otherwise REMOVED (i.e. dead)
+		 * a {@link Condition} where a {@link Afflicted} is RECOVERED from, and
+		 * IMMUNE to, some {@link Pathogen} or otherwise REMOVED (i.e. dead)
 		 */
 		RECOVERED,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is non-recovered CARRIER
-		 * of some {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} remains non-recovered
+		 * CARRIER of some {@link Pathogen}
 		 */
-		CARRIER,
+//		CARRIER,
 
 		;
 

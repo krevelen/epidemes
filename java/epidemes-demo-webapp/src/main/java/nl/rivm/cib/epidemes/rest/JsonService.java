@@ -21,9 +21,8 @@ package nl.rivm.cib.epidemes.rest;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import javax.persistence.EntityManagerFactory;
@@ -34,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.cfg.AvailableSettings;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -49,6 +49,7 @@ import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
+import io.coala.persist.HibernateJPAConfig;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
@@ -69,6 +70,7 @@ import nl.rivm.cib.episim.pilot.OutbreakScenario.MyDirectory;
 //@Produces( {MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML } )
 public class JsonService
 {
+
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( JsonService.class );
 
@@ -201,6 +203,20 @@ public class JsonService
 			"nl-ov-gm0168", "nl-dr-gm0114", "nl-li-gm0981", "nl-fr-gm0074",
 			"nl-ge-gm0274", "nl-3558-gm0844" /* , "undefined" */ };
 
+	private static Map<Region.ID, String> PROVINCIAL_ID_MAP = Arrays
+			.stream( HIGHCHART_PROVINCE_KEYS )
+			.collect( Collectors.toMap(
+					s -> Region.ID.of( "PV" + s.substring( 3 ) ), s -> s,
+					( s1, s2 ) -> s1 ) );
+
+	private static Map<Region.ID, String> MUNICIPAL_ID_MAP = Arrays
+			.stream( HIGHCHART_MUNICIPAL_KEYS )
+			.collect( Collectors.toMap(
+					s -> Region.ID
+							.of( s.substring( s.length() - 7, s.length() - 1 )
+									.toUpperCase() ),
+					s -> s, ( s1, s2 ) -> s1 ) );
+
 	/**
 	 * 
 	 * {@link HighChartEntry}
@@ -220,85 +236,82 @@ public class JsonService
 		}
 	}
 
+	/**
+	 * match container's JNDI settings (in pom.xml) and the web application
+	 * ResourceLink (in context.xml) and web servlet's resource-ref (in
+	 * web.xml), where global "java:comp/env/" context name is prepended by
+	 * Tomcat
+	 */
+	public static final String DATASOURCE_JNDI = "java:comp/env/" // 
+			+ "jdbc/demoDB";
+
+	/**
+	 * {@link DatasourceConfig} for the JPA EntityManagerFactory
+	 */
+	public interface DatasourceConfig extends HibernateJPAConfig
+	{
+		@DefaultValue( "epidemes_pu" ) // match persistence.xml
+		@Key( JPA_UNIT_NAMES_KEY )
+		String[] jpaUnitNames();
+
+		@Override
+		@DefaultValue( DATASOURCE_JNDI ) // match pom.xml JNDI settings
+		@Key( AvailableSettings.DATASOURCE )
+		String jdbcDatasourceJNDI();
+	}
+
 	private OutbreakScenario scenario = null;
 
 	public JsonService()
 	{
-		// connect and setup database persistence
-//		final EntityManagerFactory EMF = ConfigCache
-//				.getOrCreate( DatasourceConfig.class ).createEMF();
+		// connect and setup database persistence FIXME bind EMF to context JNDI
+		final EntityManagerFactory EMF = ConfigCache
+				.getOrCreate( DatasourceConfig.class ).createEMF();
 
 		// load scenario
-//		try
-//		{
-//			final LocalBinder binder = LocalConfig.builder()
-//					.withId( "outbreak1" )
-//
-//					// time API (virtual time management)
-//					.withProvider( Scheduler.class, Dsol3Scheduler.class )
-//
-//					// math API (pseudo random)
-//					.withProvider( PseudoRandom.Factory.class,
-//							Math3PseudoRandom.MersenneTwisterFactory.class )
-//					.withProvider( ProbabilityDistribution.Factory.class,
-//							Math3ProbabilityDistribution.Factory.class )
-//					.withProvider( ProbabilityDistribution.Parser.class,
-//							DistributionParser.class )
-//
-//					// enterprise API (facts, actors)
-//					.withProvider( Actor.Factory.class,
-//							Actor.Factory.LocalCaching.class )
-//					.withProvider( Transaction.Factory.class,
-//							Transaction.Factory.LocalCaching.class )
-//					.withProvider( Fact.Factory.class,
-//							Fact.Factory.SimpleProxies.class )
-//					.withProvider( FactBank.class, FactBank.SimpleJPA.class )
-//					.withProvider( FactExchange.class,
-//							FactExchange.SimpleBus.class )
-//
-//					// epidemes API
-//					.withProvider( Region.Directory.class, MyDirectory.class )
-//					.withProvider( Place.Directory.class, MyDirectory.class )
-//					.withProvider( Vehicle.Directory.class, MyDirectory.class )
-//
-//					.build().createBinder( Collections
-//							.singletonMap( EntityManagerFactory.class, EMF ) );
-//
-//			// run scenario & generate output
-//			this.scenario = binder.inject( OutbreakScenario.class );
-//		} catch( final Exception e )
-//		{
-//			LOG.error( "Problem", e );
-//		}
-
-		LOG.info( "Created {}", getClass().getSimpleName() );
-	}
-
-	private static Map<Region.ID, String> PROVINCIAL_ID_MAP = new HashMap<>();
-
-	private static Map<Region.ID, String> MUNICIPAL_ID_MAP = new HashMap<>();
-
-	static
-	{
 		try
 		{
-			PROVINCIAL_ID_MAP = Arrays.stream( HIGHCHART_PROVINCE_KEYS )
-					.collect(
-							Collectors.toMap(
-									s -> Region.ID.of( s.substring(
-											s.length() - 3, s.length() - 1 ) ),
-									s -> s ) );
+			final LocalBinder binder = LocalConfig.builder()
+					.withId( "outbreak1" )
 
-			MUNICIPAL_ID_MAP = Arrays.stream( HIGHCHART_MUNICIPAL_KEYS )
-					.collect(
-							Collectors.toMap(
-									s -> Region.ID.of( s.substring(
-											s.length() - 7, s.length() - 1 ) ),
-									s -> s ) );
+					// time API (virtual time management)
+					.withProvider( Scheduler.class, Dsol3Scheduler.class )
+
+					// math API (pseudo random)
+					.withProvider( PseudoRandom.Factory.class,
+							Math3PseudoRandom.MersenneTwisterFactory.class )
+					.withProvider( ProbabilityDistribution.Factory.class,
+							Math3ProbabilityDistribution.Factory.class )
+					.withProvider( ProbabilityDistribution.Parser.class,
+							DistributionParser.class )
+
+					// enterprise API (facts, actors)
+					.withProvider( Actor.Factory.class,
+							Actor.Factory.LocalCaching.class )
+					.withProvider( Transaction.Factory.class,
+							Transaction.Factory.LocalCaching.class )
+					.withProvider( Fact.Factory.class,
+							Fact.Factory.SimpleProxies.class )
+					.withProvider( FactBank.class, FactBank.SimpleJPA.class )
+					.withProvider( FactExchange.class,
+							FactExchange.SimpleBus.class )
+
+					// epidemes API
+					.withProvider( Region.Directory.class, MyDirectory.class )
+					.withProvider( Place.Directory.class, MyDirectory.class )
+					.withProvider( Vehicle.Directory.class, MyDirectory.class )
+
+					.build().createBinder( Collections
+							.singletonMap( EntityManagerFactory.class, EMF ) );
+
+			// init scenario TODO run & generate output later...
+			this.scenario = binder.inject( OutbreakScenario.class );
 		} catch( final Exception e )
 		{
 			LOG.error( "Problem", e );
 		}
+
+		LOG.info( "Created {}", getClass().getSimpleName() );
 	}
 
 	@GET
@@ -306,31 +319,31 @@ public class JsonService
 	@Produces( MediaType.APPLICATION_JSON )
 	public String getProvinceValues()
 	{
-		final Random rnd = new Random();
-		return JsonUtil.toJSON( Arrays.stream( HIGHCHART_PROVINCE_KEYS )
-				.map( k -> new HighChartEntry( k,
-						rnd.nextInt( HIGHCHART_PROVINCE_KEYS.length ) ) )
-				.collect( Collectors.toList() ) );
-//		return JsonUtil.toJSON( PROVINCIAL_ID_MAP.entrySet().parallelStream()
-//				.map( e -> new HighChartEntry( e.getValue(),
-//						this.scenario.getRegionalValue( e.getKey() ) ) )
+//		final Random rnd = new Random();
+//		return JsonUtil.toJSON( Arrays.stream( HIGHCHART_PROVINCE_KEYS )
+//				.map( k -> new HighChartEntry( k,
+//						rnd.nextInt( HIGHCHART_PROVINCE_KEYS.length ) ) )
 //				.collect( Collectors.toList() ) );
+		return JsonUtil.toJSON( PROVINCIAL_ID_MAP.entrySet().parallelStream()
+				.map( e -> new HighChartEntry( e.getValue(),
+						this.scenario.getRegionalValue( e.getKey() ) ) )
+				.collect( Collectors.toList() ) );
 	}
 
 	@GET
 	@Path( "/municipal" )
 	@Produces( MediaType.APPLICATION_JSON )
-	public String getMunicipalValues()
+	public List<HighChartEntry> getMunicipalValues()
 	{
-		final Random rnd = new Random();
-		return JsonUtil.toJSON( Arrays.stream( HIGHCHART_MUNICIPAL_KEYS )
-				.map( k -> new HighChartEntry( k,
-						rnd.nextInt( HIGHCHART_PROVINCE_KEYS.length ) ) )
-				.collect( Collectors.toList() ) );
-//		return JsonUtil.toJSON( MUNICIPAL_ID_MAP.entrySet().parallelStream()
-//				.map( e -> new HighChartEntry( e.getValue(),
-//						this.scenario.getRegionalValue( e.getKey() ) ) )
-//				.collect( Collectors.toList() ) );
+//		final Random rnd = new Random();
+//		return Arrays.stream( HIGHCHART_MUNICIPAL_KEYS )
+//				.map( k -> new HighChartEntry( k,
+//						rnd.nextInt( HIGHCHART_PROVINCE_KEYS.length ) ) )
+//				.collect( Collectors.toList() );
+		return MUNICIPAL_ID_MAP.entrySet().parallelStream()
+				.map( e -> new HighChartEntry( e.getValue(),
+						this.scenario.getRegionalValue( e.getKey() ) ) )
+				.collect( Collectors.toList() );
 	}
 
 }

@@ -32,7 +32,7 @@ import io.coala.time.ReplicateConfig;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.disease.Condition;
-import nl.rivm.cib.episim.model.disease.Disease;
+import nl.rivm.cib.episim.model.disease.Afflict;
 
 /**
  * {@link EpiModelTest}
@@ -181,9 +181,9 @@ public class EpiModelTest
 
 		binder.inject( World.class ).run();
 
-		final FactBank<Disease> bank = binder.inject( FactBank.class )
-				.matchTransactionKind( Disease.class );
-		bank.findStream( false )
+		final FactBank<Afflict> bank = binder.inject( FactBank.class )
+				.matchTransactionKind( Afflict.class );
+		bank.findAsStream( false )
 				.forEach( f -> LOG.trace( "Fetched fact: {}", f ) );
 
 		LOG.info( "completed, t={}", binder.inject( Scheduler.class ).now() );

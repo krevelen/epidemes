@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!-- see http://stackoverflow.com/a/22294554/1418999 -->
+<!DOCTYPE Context>
 <!-- see https://tomcat.apache.org/tomcat-8.0-doc/config/context.html#Defining_a_context -->
 <Context docBase="../conf" path="" reloadable="true">
 
+	<!-- Default set of monitored resources -->
+    <WatchedResource>WEB-INF/web.xml</WatchedResource>
+    
 	<!-- see https://tomcat.apache.org/tomcat-8.0-doc/config/jar-scanner.html -->
 	<JarScanner scanClassPath="false" />
-
-	<!-- <Resource auth="Container" factory="org.objectweb.jotm.UserTransactionFactory"
-		jotm.timeout="60" name="UserTransaction" type="javax.transaction.UserTransaction" /> -->
+		
+	<!-- see https://tomcat.apache.org/tomcat-8.0-doc/config/context.html#Resource_Links -->
+	<!-- see http://stackoverflow.com/a/22545669/1418999 -->
+	<!-- <ResourceLink name="jdbc/demoDB" global="jdbc/demoDB" type="javax.sql.DataSource" /> -->
+	
+	<!-- see http://stackoverflow.com/a/22519813/1418999 -->
+	<Resource 
+        auth="Container" 
+		driverClassName="org.hsqldb.jdbc.JDBCDataSource" 
+		maxTotal="20" 
+		maxIdle="10" 
+		maxWaitMillis="-1" 
+		name="jdbc/demoDB" 
+		type="javax.sql.DataSource" 
+		url="jdbc:hsqldb:mem:demodb" 
+	/>
 
 </Context>

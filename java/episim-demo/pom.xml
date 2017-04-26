@@ -20,12 +20,8 @@
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
-		<jta.version>1.1</jta.version>
 		<hsqldb.version>2.3.4</hsqldb.version>
 		<hikari.version>2.4.7</hikari.version>
-		<jta.version>1.1</jta.version>
-		<!-- for hibernate-ogm-neo4j versions, see https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
-		<hibernate.version>5.1.0.Final</hibernate.version>
 
 		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
 		<docker.repoName>default</docker.repoName>
@@ -118,14 +114,6 @@
 
 	<dependencies>
 
-		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
-		<dependency>
-			<groupId>javax.transaction</groupId>
-			<artifactId>jta</artifactId>
-			<version>${jta.version}</version>
-			<scope>provided</scope>
-		</dependency>
-
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>epidemes-persist</artifactId>
@@ -146,6 +134,13 @@
 		</dependency>
 		<!-- <dependency> <groupId>org.ujmp</groupId> <artifactId>ujmp-gui</artifactId> 
 			<version>${ujmp.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>io.coala</groupId>
@@ -231,7 +226,6 @@
 		<dependency>
 			<groupId>org.apache.tomcat</groupId>
 			<artifactId>tomcat-catalina</artifactId>
-			<version>8.0.28</version>
 			<scope>test</scope>
 		</dependency>
 

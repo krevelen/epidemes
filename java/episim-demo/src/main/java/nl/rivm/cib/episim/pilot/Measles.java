@@ -22,9 +22,9 @@ package nl.rivm.cib.episim.pilot;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
- * {@link Measles} (morbilli, mazelen) is a highly contagious and potentially
- * deadly disease caused by the measles virus (MeV) including respiratory system
- * infections and a generalized rash. It is described at
+ * {@link Measles} (rubeola, morbilli, mazelen) is a highly contagious and
+ * potentially deadly disease caused by the measles virus (MeV) including
+ * respiratory system infections and a generalized rash. It is described at
  * <a href="https://en.wikipedia.org/wiki/Measles">wikipedia</a> and has a
  * <a href="http://rijksvaccinatieprogramma.nl/De_ziekten/Mazelen">RVP page</a>,
  * a <a href="http://www.rivm.nl/Onderwerpen/M/Mazelen">RIVM page</a>, a
@@ -32,8 +32,13 @@ import nl.rivm.cib.episim.model.disease.infection.Pathogen;
  * <a href="http://www.who.int/topics/measles/en/">WHO page</a>
  * <ul>
  * measles time line:
-<li>incubation period: 9-12d (Priniples of Virology, 2008) or 10-14d (https://en.wikipedia.org/wiki/File:Measles.webm)</li>
-</ul>
+ * <li>incubation period: 9-12d (Principles of Virology, 2008) or 10-14d
+ * (<a href="https://en.wikipedia.org/wiki/File:Measles.webm">Wikipedia</a>) or
+ * (mean) generation time <em>u</em>=11.9 (1917-23) or 11.1 (1929-34) days
+ * (<a href= "https://doi.org/10.1016/j.jtbi.2011.06.015">Klinkenberg, 2011</a>)
+ * or incubation between 7-21 days (<a href=
+ * "https://wwwnc.cdc.gov/travel/yellowbook/2016/infectious-diseases-related-to-travel/measles-rubeola">CDC</a>)</li>
+ * </ul>
  * <p>
  * outbreak in NL between Feb 2013 and May 2014 documented in Osiris DB
  * <p>
@@ -78,9 +83,9 @@ import nl.rivm.cib.episim.model.disease.infection.Pathogen;
  * <tr>
  * <td>2003</td>
  * <td>95,4</td>
- * <td rowSpan=10 vAlign=top align=justify bgcolor=yellow>Vanaf cohort 2003 wordt gerapporteerd
- * op basis van het nieuwe informatiesysteem en de vaccinatietoestand op
- * individuele leeftijd.</td>
+ * <td rowSpan=10 vAlign=top align=justify bgcolor=yellow>Vanaf cohort 2003
+ * wordt gerapporteerd op basis van het nieuwe informatiesysteem en de
+ * vaccinatietoestand op individuele leeftijd.</td>
  * </tr>
  * <tr>
  * <td>2004</td>

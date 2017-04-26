@@ -17,28 +17,22 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.pilot;
-
-import java.util.Map;
-
-import org.apache.logging.log4j.Logger;
-
-import io.coala.log.LogUtil;
+package nl.rivm.cib.episim.persist;
 
 /**
- * {@link Demo}
+ * {@link SparkTest} stub...
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class Demo
+public class SparkTest
 {
 
 	public static class RegionNode // implements Location
 	{
-		private RegionNode parent;
+//		private RegionNode parent;
 
-		private Map<Object, Object> residents;
+//		private Map<Object, Object> residents;
 
 		public RegionNode()
 		{
@@ -47,7 +41,7 @@ public class Demo
 
 		public RegionNode( final RegionNode parent )
 		{
-			this.parent = parent;
+//			this.parent = parent;
 		}
 
 		public void registerResident( Object ind )
@@ -57,7 +51,7 @@ public class Demo
 	}
 
 	/** */
-	private static final Logger LOG = LogUtil.getLogger( Demo.class );
+//	private static final Logger LOG = LogUtil.getLogger( SparkTest.class );
 
 	public static void main( final String[] args )
 	{

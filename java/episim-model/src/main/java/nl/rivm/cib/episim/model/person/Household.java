@@ -5,9 +5,9 @@ import java.util.Objects;
 
 import io.coala.rx.RxCollection;
 import io.coala.time.Scheduler;
-import rx.Observable;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
+import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 
 /**
  * {@link Household} adopts elements from
@@ -57,7 +57,7 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 		{
 			private final ID id = ID.of( name );
 
-			private final Subject<DemographicEvent<T>, DemographicEvent<T>> events = PublishSubject
+			private final Subject<DemographicEvent<T>> events = PublishSubject
 					.create();
 
 			@Override
@@ -87,7 +87,7 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 			@Override
 			public Observable<DemographicEvent<T>> events()
 			{
-				return this.events.asObservable();
+				return this.events;
 			}
 
 			@Override

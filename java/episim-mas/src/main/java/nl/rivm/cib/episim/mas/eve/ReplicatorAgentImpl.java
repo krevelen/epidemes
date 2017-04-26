@@ -40,10 +40,10 @@ import io.coala.time.Instant;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
 import nl.rivm.cib.episim.mas.ReplicatorAgent;
-import rx.Subscription;
-import rx.subjects.BehaviorSubject;
-import rx.subjects.Subject;
 import tec.uom.se.unit.Units;
 
 /**
@@ -62,10 +62,9 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	/** local scheduler for the local model */
 	private transient Scheduler scheduler = null;
 
-	private transient Subject<StepRatio, StepRatio> pace = BehaviorSubject
-			.create();
+	private transient Subject<StepRatio> pace = BehaviorSubject.create();
 
-	private transient Subject<Instant, Instant> time = BehaviorSubject.create();
+	private transient Subject<Instant> time = BehaviorSubject.create();
 
 	// FIXME FEATURE_REQ have FileState#put(TypedKey<T>,T) accept non-Serializable yet JSONifiable POJOs
 	private transient volatile StepRatio myPace = null;
@@ -76,7 +75,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	private transient volatile Quantity<Time> myDuration = null;
 
 	/** */
-	private transient Map<UUID, Subscription> subscriptions = new HashMap<>();
+	private transient Map<UUID, Disposable> subscriptions = new HashMap<>();
 
 	@Override
 	public String getType()
@@ -305,7 +304,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		final @Name( "timing" ) Timing timing )
 	{
 		// TODO apply timing to Eve's real-time scheduler, not the sim scheduler
-		final Subscription sub;
+		final Disposable sub;
 		final UUID result = new UUID();
 		if( topic.equalsIgnoreCase( TIME_TOPIC ) )
 		{
@@ -357,7 +356,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		return null == this.subscriptions.computeIfPresent( subKey,
 				( uuid, subscription ) ->
 				{
-					subscription.unsubscribe();
+					subscription.dispose();
 					return null; // delete entry
 				} );
 	}

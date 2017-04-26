@@ -32,7 +32,13 @@ import nl.rivm.cib.episim.model.locate.Region;
  */
 public enum CBSRegionType
 {
-	/** gemeente */
+	/** buurt, e.g. 'BU00030000' */
+	BUROUGH( "BU" ),
+
+	/** wijk, e.g. 'WK000300  ' */
+	WARD( "WK" ),
+
+	/** gemeente, e.g. 'GM0003    ' (Appingedam) */
 	MUNICIPAL( "GM" ),
 
 	/** corop */
@@ -44,7 +50,7 @@ public enum CBSRegionType
 	/** landsdeel */
 	TERRITORY( "LD" ),
 
-	/** land in het Koninkrijk */
+	/** land in het Koninkrijk, e.g. 'NL00      ' (Nederland) */
 	COUNTRY( "NL" ),
 
 	/** arbeidsmarktregio */
