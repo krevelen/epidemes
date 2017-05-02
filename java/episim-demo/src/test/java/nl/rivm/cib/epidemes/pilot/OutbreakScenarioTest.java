@@ -59,15 +59,15 @@ import nl.rivm.cib.episim.pilot.OutbreakScenario;
 import nl.rivm.cib.episim.pilot.OutbreakScenario.MyDirectory;
 
 /**
- * {@link PilotTest}
+ * {@link OutbreakScenarioTest}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class PilotTest
+public class OutbreakScenarioTest
 {
 	/** */
-	static final Logger LOG = LogUtil.getLogger( PilotTest.class );
+	static final Logger LOG = LogUtil.getLogger( OutbreakScenarioTest.class );
 
 	/**
 	 * {@link MyORMConfig} for an embedded relational Hypersonic database

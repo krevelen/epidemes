@@ -20,29 +20,38 @@
 package nl.rivm.cib.episim.pilot;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumMap;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
+import java.util.function.BiConsumer;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.measure.Quantity;
 import javax.measure.quantity.Area;
+import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
 
+import io.coala.bind.InjectConfig;
+import io.coala.config.YamlConfig;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import io.coala.exception.Thrower;
 import io.coala.function.ThrowingBiConsumer;
+import io.coala.json.Attributed;
 import io.coala.log.LogUtil;
 import io.coala.math.LatLong;
 import io.coala.math.Range;
+import io.coala.math.WeightedValue;
 import io.coala.name.Id;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
@@ -52,11 +61,14 @@ import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
-import io.coala.util.FileUtil;
+import io.coala.util.InputStreamConverter;
+import io.reactivex.observables.GroupedObservable;
+import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
+import nl.rivm.cib.epidemes.cbs.json.CBSPopulationDynamic;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
-import nl.rivm.cib.epidemes.cbs.json.Cbs37713json;
-import nl.rivm.cib.epidemes.cbs.json.Cbs37713json.CBSGender;
-import nl.rivm.cib.epidemes.cbs.json.Cbs37713json.MyTuple;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37230json;
+import nl.rivm.cib.epidemes.cbs.json.Cbs71486json;
+import nl.rivm.cib.epidemes.cbs.json.TimeUtil;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.locate.Geography;
@@ -75,51 +87,107 @@ import tec.uom.se.unit.Units;
 public class OutbreakScenario implements Scenario
 {
 
+	public interface Config extends YamlConfig
+	{
+		@DefaultValue( "" + 1000 )
+		int popSize();
+
+		@DefaultValue( "[2012-01-01; +inf>" )
+		String timeRange();
+
+		@DefaultValue( "cbs/37713_2016JJ00_AllOrigins.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream cbs37713();
+
+		@DefaultValue( "cbs/71486ned-TS-2010-2016.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream cbs71486();
+
+		@DefaultValue( "cbs/37230ned_monthly_change_series.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream cbs37230();
+
+//		@DefaultValue( "cbs/37975_2016JJ00.json" )
+//		@ConverterClass( InputStreamConverter.class )
+//		InputStream cbs37975();
+
+		@DefaultValue( "MUNICIPAL" )
+		CBSRegionType cbsRegionLevel();
+	}
+
 	/** */
 	private static final Logger LOG = LogUtil
 			.getLogger( OutbreakScenario.class );
 
-	/** TODO from config */
-	private static final String CBS_37713_FILE = "cbs/37713_2016jj00.json";
-
-	/** TODO from config */
-	private static final CBSRegionType REGION_LEVEL = CBSRegionType.MUNICIPAL;
-
-	/** TODO from config */
-	private static final int POP_SIZE = 100000;
+	@InjectConfig
+	private transient Config config;
 
 	@Inject
-	private Scheduler scheduler;
+	private transient Scheduler scheduler;
 
 	@Inject
-	private Actor.Factory actors;
+	private transient Actor.Factory actors;
 
 	@Inject
-	private ProbabilityDistribution.Factory distFact;
+	private transient ProbabilityDistribution.Factory distFact;
 
 //		@Inject
 //		private LocalBinder binder;
 
-	@Override
-	public Scheduler scheduler()
-	{
-		return this.scheduler;
-	}
+	/** spatial scope of analysis */
+	private transient CBSRegionType cbsRegionLevel = null;
+
+	/** temporal scope of analysis */
+	private transient Range<ZonedDateTime> timeRange = null;
 
 	/** population initialization and immigration */
-	private ConditionalDistribution<Cbs37713json.MyTuple, CBSGender> genderOriginDist;
+//	private transient ConditionalDistribution<Cbs37713json.Category, ZonedDateTime> genderOriginDist = null;
 
-	// TODO immigration rate (per region)
+	// TODO birth, add 37201 (sex, mom age/count/status)
 
-	// TODO emigration rate (per region)
+	// TODO deaths, add 83190ned (age, gender, position)
 
-	// TODO partnership/marriage rate, age (per region)
+	// TODO immigration, add 37713 (gender, origin)
 
-	// TODO separation/divorce rate, age (per region)
+	/** national monthly demographic rates (births, deaths, migrations, ...) */
+	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, ZonedDateTime>> demogDelayDist = new EnumMap<>(
+			CBSPopulationDynamic.class );
 
-	// TODO death rate (per region)
+	/** regional monthly demographic places (births, deaths, migrations, ...) */
+	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, ZonedDateTime>> demogRegionDist = new EnumMap<>(
+			CBSPopulationDynamic.class );
 
-	// TODO mother birth rate, age (per region)
+	/**
+	 * household types and referent ages, e.g. based on empirical CBS 71486
+	 * (composition) & 60036ned (age diff) & 37201 (mom age) data
+	 */
+	private transient ConditionalDistribution<Cbs71486json.Category, ZonedDateTime> hhTypeAgeDist = null;
+
+	private void readMonthlyRates( final CBSPopulationDynamic metric,
+		final BiConsumer<CBSPopulationDynamic, Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>>> national,
+		final BiConsumer<CBSPopulationDynamic, Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>>> regional )
+	{
+		// TODO parse and group by all metrics in a single parsing run
+		Cbs37230json.readAsync( this.config::cbs37230, metric, this.timeRange )
+				.groupBy( wv -> wv.getValue().regionType() ).blockingForEach( (
+					GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g ) ->
+				{
+					if( g.getKey() == this.cbsRegionLevel )
+						regional.accept( metric,
+								g.toMultimap( wv -> wv.getValue().offset(),
+										wv -> wv, () -> new TreeMap<>() )
+										.blockingGet() );
+					if( g.getKey() == CBSRegionType.COUNTRY ) // top level
+						national.accept( metric,
+								g.toMultimap( wv -> wv.getValue().offset(),
+										wv -> wv, () -> new TreeMap<>() )
+										.blockingGet() );
+				} );
+	}
+
+	// TODO partnership/marriage rate from CBS 37890 (region, age, gender) & 60036ned (age diff) ?
+
+	// TODO separation/divorce rate from CBS 37890 (region, age, gender) ?
 
 	/**
 	 * social network (household/opinions):
@@ -152,38 +220,81 @@ public class OutbreakScenario implements Scenario
 	@Override
 	public void init() throws Exception
 	{
-		final ZonedDateTime offset = ZonedDateTime
-				.parse( "2017-01-01T08:00:00+01:00" );
-		LOG.trace( "Init; offset: {}", offset );
+		this.timeRange = Range
+				.parse( this.config.timeRange(), LocalDate::parse )
+				.map( dt -> dt.atStartOfDay( TimeUtil.NL_TZ ) );
+		LOG.trace( "Init; range: {}", timeRange );
 //			final Population<?> pop = this.binder.inject( Population.class );
 
-		try( final InputStream is = FileUtil.toInputStream( CBS_37713_FILE ) )
-		{
-			this.genderOriginDist = ConditionalDistribution.of(
-					distFact::createCategorical,
-					Cbs37713json
-							.readAsync( () -> FileUtil
-									.toInputStream( CBS_37713_FILE ) )
-							.filter( wv -> wv.getValue()
-									.regionType() == REGION_LEVEL )
-							.toMultimap( wv -> wv.getValue().gender(), wv -> wv,
-									() -> new EnumMap<>( CBSGender.class ) )
-							.blockingGet() );
-		}
+		this.cbsRegionLevel = this.config.cbsRegionLevel();
 
-		final ProbabilityDistribution<CBSGender> genderDist = this.distFact
-				.createUniformCategorical( CBSGender.values() );
+		Arrays.stream(
+				new CBSPopulationDynamic[]
+		{ CBSPopulationDynamic.BIRTHS, CBSPopulationDynamic.DEATHS,
+				CBSPopulationDynamic.IMMIGRATION,
+				CBSPopulationDynamic.EMIGRATION } )
+				.forEach( metric -> readMonthlyRates( metric, ( key,
+					map ) -> this.demogDelayDist.put( key,
+							ConditionalDistribution.of(
+									this.distFact::createCategorical, map ) ),
+						( key, map ) -> this.demogRegionDist.put( key,
+								ConditionalDistribution.of(
+										this.distFact::createCategorical, map ) ) ) );
+
+		this.hhTypeAgeDist = ConditionalDistribution.of(
+				this.distFact::createCategorical,
+				Cbs71486json.readAsync( this.config::cbs71486, this.timeRange )
+						.filter( wv -> wv.getValue()
+								.regionType() == this.cbsRegionLevel )
+						.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
+								() -> new TreeMap<>() )
+						.blockingGet() );
+
+//		this.genderOriginDist = ConditionalDistribution.of(
+//				this.distFact::createCategorical,
+//				Cbs37713json.readAsync( this.config::cbs37713, this.timeRange )
+//						.filter( wv -> wv.getValue()
+//								.regionType() == this.cbsRegionLevel )
+//						.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
+//								() -> new TreeMap<>() )
+//						.blockingGet() );
+
+//		Cbs37975json
+//				.readAsync( this.config::cbs37975 )
+//				.toList().blockingGet();
+
 //		final Actor<Fact> home = this.actors.create( "home" );
-		IntStream.range( 1, POP_SIZE ).forEach( i ->
+		final ZonedDateTime dt = now().toJava8( this.timeRange.lowerValue() );
+
+		LOG.trace( "next birth due {} @ {}",
+				this.demogDelayDist.get( CBSPopulationDynamic.BIRTHS )
+						.draw( dt ).timeDist( this.distFact::createExponential )
+						.draw().to( TimeUnits.MINUTE ),
+				this.demogRegionDist.get( CBSPopulationDynamic.BIRTHS )
+						.draw( dt ).regionId() );
+		for( int i = 1, n = 10; // this.config.popSize(); 
+				i < n; )
 		{
-			final Actor<Fact> rick = this.actors.create( i );
-			// TODO make a conditional distribution
-			final MyTuple profile = this.genderOriginDist
-					.draw( genderDist.draw() );
-			rick.with( "male", profile.gender() );
-			rick.with( "age", profile
-					.ageDist( this.distFact::createUniformContinuous ).draw() );
-			rick.with( "regionRef", profile.regionId() );
+			final Cbs71486json.Category hhCat = this.hhTypeAgeDist.draw( dt );
+			final Region.ID regRef = hhCat.regionId();
+			final Quantity<Time> hhRefAge = hhCat
+					.ageDist( this.distFact::createUniformContinuous ).draw();
+			final CBSHousehold hh = hhCat
+					.hhTypeDist( this.distFact::createCategorical ).draw();
+			final Actor<Fact> rick = this.actors.create( i++ );
+			LOG.trace(
+					"New bsn: {}, reg: {}, age: {}, hh: {} (adults: {}, status: {}, kids: {})",
+					rick.id().unwrap(), regRef, hhRefAge, hh,
+					hh.adultCount(), (hh.couple()
+							? (hh.registered() ? "cohab" : "duo") : "solo"),
+					hh.childCount() );
+
+//			final Category profile = this.genderOriginDist
+//					.draw( genderDist.draw() );
+//			rick.with( "male", profile.gender() );
+//			rick.with( "age", profile
+//					.ageDist( this.distFact::createUniformContinuous ).draw() );
+//			rick.with( "regionRef", profile.regionId() );
 //				rick.specialist( Redirection.Director.class )
 //						// add Redirection/request handler
 //						.emit( Actor.RQ_FILTER, ( role, rq ) ->
@@ -212,7 +323,7 @@ public class OutbreakScenario implements Scenario
 //											now().add( Duration.of( 10,
 //													TimeUnits.HOURS ) ) );
 //						} );
-		} );
+		}
 
 		// TODO initiate Mixing: spaces/transports, mobility
 
@@ -221,10 +332,17 @@ public class OutbreakScenario implements Scenario
 		// initiate Infections: diseases/outbreaks, vaccine/interventions
 
 		// virtual time added...
-		after( Duration.of( 10, TimeUnits.HOURS ) ).call( t -> LOG
-				.trace( "Virtual time is now: {}", t.prettify( offset ) ) );
+		after( Duration.of( 10, TimeUnits.HOURS ) )
+				.call( t -> LOG.trace( "Virtual time is now: {}",
+						t.prettify( timeRange.lowerValue() ) ) );
 
 		LOG.info( "Initialized model" );
+	}
+
+	@Override
+	public Scheduler scheduler()
+	{
+		return this.scheduler;
 	}
 
 	/**
@@ -389,7 +507,7 @@ public class OutbreakScenario implements Scenario
 			return Util.of( value, new Routine() );
 		}
 
-		public interface AsProperty<THIS>
+		public interface Attributable<THIS> extends Attributed
 		{
 			void setRoutine( OutbreakScenario.Routine routine );
 
@@ -406,12 +524,12 @@ public class OutbreakScenario implements Scenario
 
 	/** {@link Redirection} switches behaviors, e.g. work &hArr; holiday */
 	public interface Redirection
-		extends Fact, Routine.AsProperty<OutbreakScenario.Redirection>
+		extends Fact, Routine.Attributable<OutbreakScenario.Redirection>
 	{
 
 		/** {@link Director} handles {@link Redirection} requests */
 		public interface Director extends Actor<OutbreakScenario.Redirection>,
-			Routine.AsProperty<Redirection.Director>
+			Routine.Attributable<Redirection.Director>
 		{
 
 			/**

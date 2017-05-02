@@ -87,15 +87,13 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 	static Range<Instant> birthToAgeInterval( final Instant birth,
 		final Range<Integer> ageRange )
 	{
-		final Integer min = ageRange.getLower().getValue();
-		final Integer max = ageRange.getUpper().getValue();
-		return Range.of(
-				min == null ? null
-						: birth.add( QuantityUtil
-								.valueOf( ageRange.getLower().getValue(),
-										TimeUnits.ANNUM )
-								.add( QuantityUtil.valueOf( BigDecimal.ONE,
-										TimeUnits.ANNUM ) ) ),
+		final Integer min = ageRange.lowerValue();
+		final Integer max = ageRange.upperValue();
+		return Range.of( min == null ? null
+				: birth.add( QuantityUtil
+						.valueOf( ageRange.lowerValue(), TimeUnits.ANNUM )
+						.add( QuantityUtil.valueOf( BigDecimal.ONE,
+								TimeUnits.ANNUM ) ) ),
 				true,
 				max == null ? null
 						: birth.add(
@@ -106,15 +104,13 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 	static Range<Instant> ageToBirthInterval( final Instant now,
 		final Range<Integer> ageRange )
 	{
-		final Integer min = ageRange.getLower().getValue();
-		final Integer max = ageRange.getUpper().getValue();
-		return Range.of(
-				min == null ? null
-						: now.subtract( QuantityUtil
-								.valueOf( ageRange.getLower().getValue(),
-										TimeUnits.ANNUM )
-								.add( QuantityUtil.valueOf( BigDecimal.ONE,
-										TimeUnits.ANNUM ) ) ),
+		final Integer min = ageRange.lowerValue();
+		final Integer max = ageRange.upperValue();
+		return Range.of( min == null ? null
+				: now.subtract( QuantityUtil
+						.valueOf( ageRange.lowerValue(), TimeUnits.ANNUM )
+						.add( QuantityUtil.valueOf( BigDecimal.ONE,
+								TimeUnits.ANNUM ) ) ),
 				false,
 				max == null ? null
 						: now.subtract(
@@ -182,16 +178,15 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			public void registerDuring( final T candidate,
 				final Range<Instant> fertilityInterval )
 			{
-				if( fertilityInterval == null
-						|| fertilityInterval.isLessThan( now() ) )
+				if( fertilityInterval == null || fertilityInterval.lt( now() ) )
 					return;
-				if( fertilityInterval.isGreaterThan( now() ) )
+				if( fertilityInterval.gt( now() ) )
 				{
-					at( fertilityInterval.getLower().getValue() )
-							.call( this::register, candidate );
+					at( fertilityInterval.lowerValue() ).call( this::register,
+							candidate );
 					return;
 				}
-				final Instant end = fertilityInterval.getUpper().getValue();
+				final Instant end = fertilityInterval.upperValue();
 				this.candidateRemovals.compute( candidate,
 						( k, exp ) -> exp != null ? exp
 								: end == null ? null
@@ -230,11 +225,10 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			public Collection<Mother>
 				candidatesBornIn( final Range<Instant> birthFilter )
 			{
-				return this.byBirth.subSet(
-						() -> birthFilter.getLower().getValue(),
-						birthFilter.getLower().isInclusive(),
-						() -> birthFilter.getUpper().getValue(),
-						birthFilter.getUpper().isInclusive() );
+				return this.byBirth.subSet( () -> birthFilter.lowerValue(),
+						birthFilter.lowerInclusive(),
+						() -> birthFilter.upperValue(),
+						birthFilter.upperInclusive() );
 			}
 		};
 	}

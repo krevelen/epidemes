@@ -34,25 +34,25 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	POLY_NOKIDS( "hh_p_0", true, 2, false, 0, false ),
 
 	/** total multiple adults with 1+ kids == 'hh_b_1'+'hh_b_2'+'hh_b_3+'+'hh_m_1'+'hh_m_2'+'hh_m_3+'+'hh_s_1'+'hh_s_2'+'hh_s_3+' */
-	POLY_1PLUS( "hh_p_1+", true, 2, false, 1, true ),
+	POLY_1PLUSKIDS( "hh_p_1p", true, 2, false, 1, true ),
 
 	/** single adult, no kids */
-	MONO_NOKIDS( "hh_l", false, 1, false, 0, false ),
+	SOLO_NOKIDS( "hh_l", false, 1, false, 0, false ),
 
 	/** total single parent with 1+ [step/adopted] kids */
-	MONO_1PLUS( "hh_s", true, 1, false, 1, true ),
+	SOLO_1PLUSKIDS( "hh_s", true, 1, false, 1, true ),
 
 	/** single parent with 1 [step/adopted] kid */
-	MONO_1KID( "hh_s_1", false, 1, false, 1, false ),
+	SOLO_1KID( "hh_s_1", false, 1, false, 1, false ),
 
 	/** single parent with 2 [step/adopted] kids */
-	MONO_2KIDS( "hh_s_2", false, 1, false, 2, false ),
+	SOLO_2KIDS( "hh_s_2", false, 1, false, 2, false ),
 
 	/** single parent with >=3 [step/adopted] kids */
-	MONO_3PLUS( "hh_s_3+", false, 1, false, 3, true ),
+	SOLO_3PLUSKIDS( "hh_s_3p", false, 1, false, 3, true ),
 
 	/** total unregistered couples == 'hh_b_0'+'hh_b_1'+'hh_b_2'+'hh_b_3+' */
-	DUO_0PLUS( "hh_b", true, 2, false, 0, true ),
+	DUO_0PLUSKIDS( "hh_b", true, 2, false, 0, true ),
 
 	/** unregistered couple with no kids */
 	DUO_NOKIDS( "hh_b_0", false, 2, false, 0, false ),
@@ -64,7 +64,7 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	DUO_2KIDS( "hh_b_2", false, 2, false, 2, false ),
 
 	/** unregistered couple with >=3 [step/adopted] kids */
-	DUO_3PLUS( "hh_b_3+", false, 2, false, 3, true ),
+	DUO_3PLUSKIDS( "hh_b_3p", false, 2, false, 3, true ),
 
 	/** total registered (married/cohabiting) couples == 'hh_m_0'+'hh_m_1'+'hh_m_2'+'hh_m_3+' */
 	REGDUO_0PLUS( "hh_m", true, 2, true, 0, true ),
@@ -79,7 +79,7 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	REGDUO_2KIDS( "hh_m_2", false, 2, true, 2, false ),
 
 	/** registered (married/cohabiting) couple and 3+ [step/adopted] kids */
-	REGDUO_3PLUS( "hh_m_3+", false, 2, false, 3, true ),
+	REGDUO_3PLUSKIDS( "hh_m_3p", false, 2, false, 3, true ),
 
 	/** total other private compositions (siblings, boarder, fosters, ...) */
 	OTHER( "hh_o", true, 0, false, 0, true ),
