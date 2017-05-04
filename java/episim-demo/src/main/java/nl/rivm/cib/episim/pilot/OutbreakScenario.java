@@ -20,14 +20,15 @@
 package nl.rivm.cib.episim.pilot;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -35,7 +36,6 @@ import java.util.function.BiConsumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.measure.Quantity;
-import javax.measure.quantity.Area;
 import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
@@ -49,14 +49,15 @@ import io.coala.exception.Thrower;
 import io.coala.function.ThrowingBiConsumer;
 import io.coala.json.Attributed;
 import io.coala.log.LogUtil;
+import io.coala.log.LogUtil.Pretty;
 import io.coala.math.LatLong;
+import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.WeightedValue;
 import io.coala.name.Id;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
-import io.coala.time.Instant;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
@@ -140,14 +141,10 @@ public class OutbreakScenario implements Scenario
 	/** temporal scope of analysis */
 	private transient Range<ZonedDateTime> timeRange = null;
 
+//	FIXME private Map<Region.ID, Region> regions = new TreeMap<>();
+
 	/** population initialization and immigration */
 //	private transient ConditionalDistribution<Cbs37713json.Category, ZonedDateTime> genderOriginDist = null;
-
-	// TODO birth, add 37201 (sex, mom age/count/status)
-
-	// TODO deaths, add 83190ned (age, gender, position)
-
-	// TODO immigration, add 37713 (gender, origin)
 
 	/** national monthly demographic rates (births, deaths, migrations, ...) */
 	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, ZonedDateTime>> demogDelayDist = new EnumMap<>(
@@ -167,7 +164,7 @@ public class OutbreakScenario implements Scenario
 		final BiConsumer<CBSPopulationDynamic, Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>>> national,
 		final BiConsumer<CBSPopulationDynamic, Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>>> regional )
 	{
-		// TODO parse and group by all metrics in a single parsing run
+		// FIXME parse and group by all metrics in a single parsing run
 		Cbs37230json.readAsync( this.config::cbs37230, metric, this.timeRange )
 				.groupBy( wv -> wv.getValue().regionType() ).blockingForEach( (
 					GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g ) ->
@@ -228,11 +225,9 @@ public class OutbreakScenario implements Scenario
 
 		this.cbsRegionLevel = this.config.cbsRegionLevel();
 
-		Arrays.stream(
-				new CBSPopulationDynamic[]
-		{ CBSPopulationDynamic.BIRTHS, CBSPopulationDynamic.DEATHS,
+		Arrays.asList( CBSPopulationDynamic.BIRTHS, CBSPopulationDynamic.DEATHS,
 				CBSPopulationDynamic.IMMIGRATION,
-				CBSPopulationDynamic.EMIGRATION } )
+				CBSPopulationDynamic.EMIGRATION )
 				.forEach( metric -> readMonthlyRates( metric, ( key,
 					map ) -> this.demogDelayDist.put( key,
 							ConditionalDistribution.of(
@@ -264,14 +259,15 @@ public class OutbreakScenario implements Scenario
 //				.toList().blockingGet();
 
 //		final Actor<Fact> home = this.actors.create( "home" );
-		final ZonedDateTime dt = now().toJava8( this.timeRange.lowerValue() );
+		final ZonedDateTime dt = dt();
 
-		LOG.trace( "next birth due {} @ {}",
-				this.demogDelayDist.get( CBSPopulationDynamic.BIRTHS )
-						.draw( dt ).timeDist( this.distFact::createExponential )
-						.draw().to( TimeUnits.MINUTE ),
-				this.demogRegionDist.get( CBSPopulationDynamic.BIRTHS )
-						.draw( dt ).regionId() );
+		after( due( dt, CBSPopulationDynamic.BIRTHS ) ).call( this::birth );
+		after( due( dt, CBSPopulationDynamic.DEATHS ) ).call( this::death );
+		after( due( dt, CBSPopulationDynamic.IMMIGRATION ) )
+				.call( this::immigrate );
+		after( due( dt, CBSPopulationDynamic.EMIGRATION ) )
+				.call( this::emigrate );
+
 		for( int i = 1, n = 10; // this.config.popSize(); 
 				i < n; )
 		{
@@ -337,6 +333,134 @@ public class OutbreakScenario implements Scenario
 						t.prettify( timeRange.lowerValue() ) ) );
 
 		LOG.info( "Initialized model" );
+	}
+
+	protected ZonedDateTime dt()
+	{
+		return now().toJava8( this.timeRange.lowerValue() );
+	}
+
+	protected Pretty minutes( final Quantity<Time> qty, final int scale )
+	{
+		return QuantityUtil.pretty( qty, TimeUnits.MINUTE, scale );
+	}
+
+	protected Pretty nowPretty()
+	{
+		return now().prettify( this.timeRange.lowerValue(),
+				DateTimeFormatter.ISO_LOCAL_DATE_TIME );
+	}
+
+	/** synthetic pop size / NL pop size */
+	private BigDecimal popSizeFactor = BigDecimal.ONE;
+
+	protected Quantity<Time> due( final ZonedDateTime dt,
+		final CBSPopulationDynamic metric )
+	{
+		return this.demogDelayDist.get( metric ).draw( dt )
+				.timeDist( freq -> this.distFact
+						.createExponential( freq.multiply( popSizeFactor ) ) )
+				.draw();
+	}
+
+	protected CBSHousehold createHousehold( final ZonedDateTime dt )
+	{
+		final Cbs71486json.Category hhCat = this.hhTypeAgeDist.draw( dt );
+//		final Quantity<Time> hhRefAge = hhCat
+//				.ageDist( this.distFact::createUniformContinuous ).draw();
+		// TODO create household members with ages relative to hhRefAge
+		final CBSHousehold hh = hhCat
+				.hhTypeDist( this.distFact::createCategorical ).draw();
+		return hh;
+	}
+
+	protected CBSHousehold removeHousehold( final ZonedDateTime dt )
+	{
+		final Cbs71486json.Category hhCat = this.hhTypeAgeDist.draw( dt );
+//		final Quantity<Time> hhRefAge = hhCat
+//				.ageDist( this.distFact::createUniformContinuous ).draw();
+		// TODO draw household members from emigration dist, e.g. 70133NED
+		final CBSHousehold hh = hhCat
+				.hhTypeDist( this.distFact::createCategorical ).draw();
+		return hh;
+	}
+
+	// TODO birth, add 37201 (sex, mom age/count/status)
+
+	protected void birth()
+	{
+		final ZonedDateTime dt = dt();
+
+		final Region.ID regRef = this.demogRegionDist
+				.get( CBSPopulationDynamic.BIRTHS ).draw( dt ).regionId();
+
+		final Quantity<Time> dur = due( dt, CBSPopulationDynamic.BIRTHS );
+
+		LOG.trace( "t={}, birth occurred in {}, next due in {}", nowPretty(),
+				regRef, minutes( dur, 1 ) );
+
+		after( dur ).call( this::birth );
+	}
+
+	// TODO deaths, add 83190ned (age, gender, position)
+
+	protected void death()
+	{
+		final ZonedDateTime dt = dt();
+
+		final Region.ID regRef = this.demogRegionDist
+				.get( CBSPopulationDynamic.DEATHS ).draw( dt ).regionId();
+
+		final Quantity<Time> dur = due( dt, CBSPopulationDynamic.DEATHS );
+
+		LOG.trace( "t={}, death occurred in {}, next due in {}", nowPretty(),
+				regRef, minutes( dur, 1 ) );
+
+		after( dur ).call( this::death );
+	}
+
+	// TODO immigration, add 37713 (gender, origin)
+
+	protected void immigrate()
+	{
+		final ZonedDateTime dt = dt();
+
+		final Region.ID regRef = this.demogRegionDist
+				.get( CBSPopulationDynamic.IMMIGRATION ).draw( dt ).regionId();
+
+		final CBSHousehold hh = createHousehold( dt );
+
+		Quantity<Time> dur = due( dt, CBSPopulationDynamic.IMMIGRATION );
+		for( int n = hh.adultCount() + hh.childCount(); n > 1; n-- )
+			dur = dur.add( due( dt, CBSPopulationDynamic.IMMIGRATION ) );
+
+		LOG.trace( "t={}, immigration into {} of {} ({}+{}), next due in {}",
+				nowPretty(), regRef, hh, hh.adultCount(), hh.childCount(),
+				minutes( dur, 1 ) );
+
+		after( dur ).call( this::immigrate );
+	}
+
+	// TODO emigration, apply 70133NED (hh composition)
+
+	protected void emigrate()
+	{
+		final ZonedDateTime dt = dt();
+
+		final Region.ID regRef = this.demogRegionDist
+				.get( CBSPopulationDynamic.IMMIGRATION ).draw( dt ).regionId();
+
+		final CBSHousehold hh = removeHousehold( dt );
+
+		Quantity<Time> dur = due( dt, CBSPopulationDynamic.EMIGRATION );
+		for( int n = hh.adultCount() + hh.childCount(); n > 1; n-- )
+			dur = dur.add( due( dt, CBSPopulationDynamic.EMIGRATION ) );
+
+		LOG.trace( "t={}, emigration from {} of {} ({}+{}), next due in {}",
+				nowPretty(), regRef, hh, hh.adultCount(), hh.childCount(),
+				minutes( dur, 1 ) );
+
+		after( dur ).call( this::immigrate );
 	}
 
 	@Override
@@ -603,13 +727,10 @@ public class OutbreakScenario implements Scenario
 			return this.regions.computeIfAbsent( id, key ->
 			{
 				final String name = null;// TODO lookup
-				final Region.TypeID type = null;// TODO lookup
-				final SortedMap<Instant, Region> parents = null;// TODO lookup
-				final SortedMap<Instant, Region> children = null;// TODO lookup
-				final Quantity<Area> surfaceArea = null;// TODO lookup
+				final Region parent = null;// TODO lookup
+				final Collection<Region> children = null;// TODO lookup
 
-				return Region.of( id, name, type, parents, children,
-						surfaceArea );
+				return new Region.Simple( id, name, parent, children );
 			} );
 		}
 

@@ -19,8 +19,6 @@
  */
 package nl.rivm.cib.episim.persist;
 
-import java.math.BigDecimal;
-
 import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
@@ -38,20 +36,9 @@ import io.coala.enterprise.persist.FactDao;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.LatLong;
-import io.coala.math.QuantityUtil;
 import io.coala.persist.HibernateJPAConfig;
 import io.coala.persist.JPAUtil;
-import io.coala.time.Duration;
-import io.coala.time.Instant;
-import io.coala.time.TimeUnits;
-import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
-import nl.rivm.cib.episim.model.disease.infection.Occupancy;
-import nl.rivm.cib.episim.model.locate.Geography;
-import nl.rivm.cib.episim.model.locate.Place;
-import nl.rivm.cib.episim.model.locate.Region;
 import tec.uom.se.unit.Units;
 
 /**
@@ -183,23 +170,21 @@ public class PersistTest
 		JsonUtil.getJOM().registerModule( hbm );
 
 //		final OffsetDateTime offset = OffsetDateTime.now();
-		final Region region = Region.of( Region.ID.of( "Netherlands" ), "NL01",
-				Region.TypeID.of( "Country" ), (Region) null, null,
-				QuantityUtil.valueOf( 41543, Units.SQUARE_METRE )
-						.multiply( BigDecimal.TEN.pow( 6 ) ) );
-		final Place site = Place.of( Place.ID.of( "rivm" ), RIVM_POSITION,
-				region, Geography.DEFAULT );
-		final Instant start = null;
-		final Duration duration = null;
-		final TransmissionSpace space = null;
-		final TransmissionRoute route = null;
-		final Condition primary = null;
-		final Condition secondary = null;
-		final Occupancy cause = /*
-								 * TODO Occupancy.of( start, duration, space,
-								 * route, primary, secondary )
-								 */ null;
-		final Instant time = Instant.of( 3.456, TimeUnits.ANNUM );
+//		final Region region = new Region.Simple( Region.ID.of( "Netherlands" ),
+//				"NL01", null, null );
+//		final Place site = Place.of( Place.ID.of( "rivm" ), RIVM_POSITION,
+//				region, Geography.DEFAULT );
+//		final Instant start = null;
+//		final Duration duration = null;
+//		final TransmissionSpace space = null;
+//		final TransmissionRoute route = null;
+//		final Condition primary = null;
+//		final Condition secondary = null;
+//		final Occupancy cause = /*
+//								 * TODO Occupancy.of( start, duration, space,
+//								 * route, primary, secondary )
+//								 */ null;
+//		final Instant time = Instant.of( 3.456, TimeUnits.ANNUM );
 		final Transmission event = /*
 									 * TODO Transmission.of( time, site, cause )
 									 */ null;

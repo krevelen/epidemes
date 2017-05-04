@@ -66,6 +66,8 @@ public class CbsImportTest
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( CbsImportTest.class );
 
+	private static final String CBS_PC6_FILE = "cbs/pc6_buurt.json";
+
 	// households
 	private static final String CBS_37975_FILE = "cbs/37975_2016JJ00.json";
 	private static final String CBS_71486_FILE = "cbs/71486ned-TS-2010-2016.json";
@@ -156,6 +158,25 @@ public class CbsImportTest
 		}
 
 		LOG.info( "done 71486ned" );
+	}
+
+	@Test
+	public void readBoroughPC6()
+	{
+		LOG.info( "start CbsBoroughPC6" );
+
+		final List<CbsBoroughPC6json> async = CbsBoroughPC6json
+				.readAsync( () -> FileUtil.toInputStream( CBS_PC6_FILE ) )
+				.toList().blockingGet();
+		for( int i = 0; i < 10; i++ )
+		{
+			CbsBoroughPC6json entry = distFact.getStream().nextElement( async );
+			LOG.trace( "draw #{}: region: {}, zip: {}", i, entry.boroughRef(),
+					entry.zipDist( distFact::createCategorical ).draw()
+							.toPostCode3() );
+		}
+
+		LOG.info( "done CbsBoroughPC6" );
 	}
 
 	@Test

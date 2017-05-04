@@ -1,9 +1,8 @@
 package nl.rivm.cib.episim.model.locate;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.Collection;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Area;
@@ -11,7 +10,6 @@ import javax.measure.quantity.Area;
 import io.coala.json.JsonUtil;
 import io.coala.name.Id;
 import io.coala.name.Identified;
-import io.coala.time.Instant;
 
 /**
  * {@link Region}
@@ -44,19 +42,28 @@ public interface Region extends Identified<Region.ID>
 
 	String name();
 
-	TypeID type();
+//	TypeID type();
 
-	SortedMap<Instant, Region> parents();
+//	Quantity<Area> surfaceArea();
 
-	SortedMap<Instant, Region> children();
+//	LatLong centroid();
 
-	default Region currentParent()
+	Region parent();
+
+	Collection<? extends Region> children();
+
+	default Stream<? extends Region> childStream( final boolean parallel )
 	{
-		return parents() == null || parents().isEmpty() ? null
-				: parents().get( parents().lastKey() );
+		return StreamSupport.stream( children().spliterator(), parallel );
 	}
 
-	Quantity<Area> surfaceArea();
+	default Stream<? extends Region> neighborStream( final boolean parallel )
+	{
+		return parent() == null ? Stream.empty()
+				: Stream.of( parent() )
+						.flatMap( r -> r.childStream( parallel ) )
+						.filter( r -> r != this );
+	}
 
 	/**
 	 * {@link Directory} will retrieve or generate specified {@link Region}
@@ -66,46 +73,34 @@ public interface Region extends Identified<Region.ID>
 		Region lookup( ID id );
 	}
 
-	static Region of( final ID id, final String name, final TypeID type,
-		final Map<Instant, Region> parents, final Map<Instant, Region> children,
-		final Quantity<Area> surfaceArea )
-	{
-		return new Simple( id, name, type, parents, children, surfaceArea );
-	}
-
-	static Region of( final ID id, final String name, final TypeID type,
-		final Region parent, final Map<Instant, Region> children,
-		final Quantity<Area> surfaceArea )
-	{
-		return of( id, name, type,
-				Collections.singletonMap( Instant.ZERO, parent ), children,
-				surfaceArea );
-	}
-
 	public static class Simple extends Identified.SimpleOrdinal<ID>
 		implements Region
 	{
-		private String name;
-		private TypeID type;
-		private SortedMap<Instant, Region> parents;
-		private SortedMap<Instant, Region> children;
-		private Quantity<Area> surfaceArea;
+		static Region.Simple of( final ID id, final String name,
+			final TypeID type, final Quantity<Area> surfaceArea,
+			final Region parent, final Collection<? extends Region> children )
+		{
+			return new Region.Simple( id, name, //type, surfaceArea, 
+					parent, children );
+		}
 
-		public Simple( final ID id, final String name, final TypeID type,
-			final Map<Instant, Region> parents,
-			final Map<Instant, Region> children,
-			final Quantity<Area> surfaceArea )
+		private String name;
+//		private TypeID type;
+		private Region parent;
+		private Collection<? extends Region> children;
+//		private Quantity<Area> surfaceArea;
+
+		public Simple( final ID id, final String name,
+//			final TypeID type,
+//			final Quantity<Area> surfaceArea,
+			final Region parent, final Collection<? extends Region> children )
 		{
 			this.id = id;
 			this.name = name;
-			this.type = type;
-			this.parents = parents instanceof SortedMap
-					? (SortedMap<Instant, Region>) parents
-					: new TreeMap<>( parents );
-			this.surfaceArea = surfaceArea;
-			this.children = children instanceof SortedMap
-					? (SortedMap<Instant, Region>) children
-					: new TreeMap<>( children );
+//			this.type = type;
+			this.parent = parent;
+//			this.surfaceArea = surfaceArea;
+			this.children = children;
 		}
 
 		@Override
@@ -114,28 +109,106 @@ public interface Region extends Identified<Region.ID>
 			return this.name;
 		}
 
-		@Override
-		public TypeID type()
-		{
-			return this.type;
-		}
+//		@Override
+//		public TypeID type()
+//		{
+//			return this.type;
+//		}
 
 		@Override
-		public SortedMap<Instant, Region> parents()
+		public Region parent()
 		{
-			return this.parents;
+			return this.parent;
 		}
 
-		@Override
-		public Quantity<Area> surfaceArea()
-		{
-			return this.surfaceArea;
-		}
+//		@Override
+//		public Quantity<Area> surfaceArea()
+//		{
+//			return this.surfaceArea;
+//		}
 
 		@Override
-		public SortedMap<Instant, Region> children()
+		public Collection<? extends Region> children()
 		{
 			return this.children;
+		}
+	}
+
+	interface Habitat<T> extends Region
+	{
+
+		@Override
+		Habitat<T> parent();
+
+		@Override
+		Collection<? extends Habitat<T>> children();
+
+		/** null-safe */
+		@Override
+		default Stream<? extends Habitat<T>>
+			childStream( final boolean parallel )
+		{
+			return children() == null ? Stream.empty()
+					: StreamSupport.stream( children().spliterator(),
+							parallel );
+		}
+
+		default int population()
+		{
+			return (inhabitants() == null ? 0 : inhabitants().size())
+					+ childStream( false ).map( h -> h.inhabitants().size() )
+							.reduce( ( p1, p2 ) -> p1 + p2 ).orElse( 0 );
+		}
+
+		Collection<T> inhabitants();
+
+		/** null-safe, recursive */
+		default Stream<T> inhabitantStream( final boolean parallel )
+		{
+			return inhabitants() == null
+					? childStream( parallel )
+							.flatMap( h -> h.inhabitantStream( parallel ) )
+					: StreamSupport.stream( inhabitants().spliterator(),
+							parallel );
+		}
+
+		public static class Simple<T> extends Region.Simple
+			implements Habitat<T>
+		{
+
+			private Collection<T> inhabitants;
+
+			public Simple( final ID id, final String name,
+//				final TypeID type, final Quantity<Area> surfaceArea, 
+				final Habitat<T> parent,
+				final Collection<? extends Habitat<T>> children,
+				final Collection<T> inhabitants )
+			{
+				super( id, name, // type, surfaceArea, 
+						parent, children );
+				this.inhabitants = inhabitants;
+			}
+
+			@SuppressWarnings( "unchecked" )
+			@Override
+			public Habitat<T> parent()
+			{
+				return (Habitat<T>) super.parent;
+			}
+
+			@SuppressWarnings( "unchecked" )
+			@Override
+			public Collection<? extends Habitat<T>> children()
+			{
+				return (Collection<? extends Habitat<T>>) super.children();
+			}
+
+			@Override
+			public Collection<T> inhabitants()
+			{
+				return this.inhabitants;
+			}
+
 		}
 	}
 }

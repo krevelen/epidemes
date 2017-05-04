@@ -1,5 +1,6 @@
 package nl.rivm.cib.episim.model;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,26 +24,23 @@ public class ZipCode extends Wrapper.Simple<String>
 	 */
 	public static ZipCode valueOf( final String value )
 	{
-		return Util.of( value, new ZipCode() );
+		return Util.of( Objects.requireNonNull( value ), new ZipCode() );
 	}
 
 	protected Matcher match()
 	{
-		if( unwrap() == null || unwrap().isEmpty() ) return null;
 		final Matcher result = POSTCODE_PATTERN.matcher( unwrap() );
 		return result.find() ? result : null;
 	}
 
 	public String toPostCode3()
 	{
-		final Matcher m = match();
-		return m == null ? null : m.group( 1 ).substring( 0, 3 );
+		return match().group( 1 ).substring( 0, 3 );
 	}
 
 	public String toPostCode4()
 	{
-		final Matcher m = match();
-		return m == null ? null : m.group( 1 );
+		return match().group( 1 );
 	}
 
 	public String toPostCode6()

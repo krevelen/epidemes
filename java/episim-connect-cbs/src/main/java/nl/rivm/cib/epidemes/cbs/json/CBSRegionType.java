@@ -32,26 +32,30 @@ import nl.rivm.cib.episim.model.locate.Region;
  */
 public enum CBSRegionType
 {
+
+	/** Woonplaats */
+	CITY( "WP" ),
+
 	/** buurt, e.g. 'BU00030000' */
-	BUROUGH( "BU" ),
+	BOROUGH( "BU", "BU%04d%02d%02d" ),
 
-	/** wijk, e.g. 'WK000300  ' */
-	WARD( "WK" ),
+	/** wijk, e.g. 'WK000300' */
+	WARD( "WK", "WK%04d%02d" ),
 
-	/** gemeente, e.g. 'GM0003    ' (Appingedam) */
-	MUNICIPAL( "GM" ),
+	/** gemeente, e.g. 'GM0003' (Appingedam) */
+	MUNICIPAL( "GM", "GM%04d" ),
 
 	/** corop */
-	COROP( "CR" ),
+	COROP( "CR", "CR%02d" ),
 
 	/** provincie */
-	PROVINCE( "PV" ),
+	PROVINCE( "PV", "PV%02d" ),
 
 	/** landsdeel */
-	TERRITORY( "LD" ),
+	TERRITORY( "LD", "LD%02d" ),
 
-	/** land in het Koninkrijk, e.g. 'NL00      ' (Nederland) */
-	COUNTRY( "NL" ),
+	/** land in het Koninkrijk, e.g. 'NL00' (Nederland) */
+	COUNTRY( "NL", "NL%02d" ),
 
 	/** arbeidsmarktregio */
 	LABORMARKET( "AM" ),
@@ -105,17 +109,31 @@ public enum CBSRegionType
 
 	private final String prefix;
 
+	private final String format;
+
 	private final Region.TypeID typeId;
 
 	private CBSRegionType( final String prefix )
 	{
+		this( prefix, null );
+	}
+
+	private CBSRegionType( final String prefix, final String format )
+	{
 		this.prefix = prefix;
+		this.format = format;
 		this.typeId = Region.TypeID.of( name() );
 	}
 
 	protected String getPrefix()
 	{
 		return this.prefix;
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T> String toString( final T... args )
+	{
+		return String.format( this.format, args );
 	}
 
 	public Region.TypeID toTypeID()
