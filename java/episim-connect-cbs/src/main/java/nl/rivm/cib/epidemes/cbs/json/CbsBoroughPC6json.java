@@ -88,16 +88,29 @@ public class CbsBoroughPC6json
 	@Override
 	public String toString()
 	{
-		return "pc6" + JsonUtil.stringify( this );
+		return "bu2pc6" + JsonUtil.stringify( this );
 	}
 
 	protected static Map<String, Region.ID> REGION_ID_CACHE = new TreeMap<>();
 
-	protected Region.ID toRef( final CBSRegionType regType,
+	protected static Region.ID toRef( final CBSRegionType regType,
 		final Object... args )
 	{
 		return REGION_ID_CACHE.computeIfAbsent( regType.toString( args ),
 				key -> Region.ID.of( key ) );
+	}
+
+	public Region.ID regionRef( final CBSRegionType type )
+	{
+		switch( type )
+		{
+		case MUNICIPAL:
+			return municipalRef();
+		case WARD:
+			return wardRef();
+		default:
+			return ref();
+		}
 	}
 
 	public Region.ID municipalRef()
@@ -110,7 +123,7 @@ public class CbsBoroughPC6json
 		return toRef( CBSRegionType.WARD, this.codes[0], this.codes[1] );
 	}
 
-	public Region.ID boroughRef()
+	public Region.ID ref()
 	{
 		return toRef( CBSRegionType.BOROUGH, (Object[]) this.codes );
 	}
@@ -123,8 +136,19 @@ public class CbsBoroughPC6json
 	{
 		return this.zipDistCache == null
 				? (this.zipDistCache = distFact
-						.apply( WeightedValue.of( this.zipCounts ) ))
+						.apply( WeightedValue.listOf( this.zipCounts ) ))
 				: this.zipDistCache;
+	}
+
+	public int zipCount()
+	{
+		return this.zipCounts.values().stream().reduce( ( i1, i2 ) -> i1 + i2 )
+				.orElse( 0 );
+	}
+
+	public WeightedValue<CbsBoroughPC6json> toWeightedValue()
+	{
+		return WeightedValue.of( this, zipCount() );
 	}
 
 	/** @return the parsed entries */

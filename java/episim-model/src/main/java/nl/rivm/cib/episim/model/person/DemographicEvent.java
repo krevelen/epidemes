@@ -34,6 +34,7 @@ import io.coala.util.Instantiator;
  * @version $Id: cc8c7dbaad3f0f805c5fec7ed16af65acf3e1a9d $
  * @author Rick van Krevelen
  */
+@Deprecated
 public abstract class DemographicEvent<T extends Participant> implements Timed
 {
 

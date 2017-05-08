@@ -51,6 +51,7 @@ import io.coala.persist.HibernateJPAConfig;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
+import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
@@ -140,7 +141,8 @@ public class OutbreakScenarioTest
 		JndiUtil.bindLocally( MyORMConfig.DATASOURCE_JNDI, '/', () ->
 		{
 			final JDBCDataSource ds = new JDBCDataSource();
-			ds.setUrl( "jdbc:hsqldb:mem:mytestdb" );
+//			ds.setUrl( "jdbc:hsqldb:mem:mytestdb" );
+			ds.setUrl( "jdbc:hsqldb:file:target/mytestdb" );
 			ds.setUser( "SA" );
 			ds.setPassword( "" );
 			return ds;
@@ -151,6 +153,10 @@ public class OutbreakScenarioTest
 	public void measlesTest() throws NamingException, IOException
 	{
 		LOG.info( "Starting measles test" );
+
+		// configure replication FIXME via LocalConfig?
+		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
+				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 1 ) );
 
 		// connect and setup database persistence
 		final EntityManagerFactory EMF = ConfigCache
@@ -188,6 +194,9 @@ public class OutbreakScenarioTest
 
 				.build().createBinder( Collections
 						.singletonMap( EntityManagerFactory.class, EMF ) );
+
+		binder.inject( FactExchange.class ).snif()
+				.subscribe( f -> LOG.trace( "Sniffed {}", f ) );
 
 		// run scenario & generate output
 		binder.inject( OutbreakScenario.class ).run();

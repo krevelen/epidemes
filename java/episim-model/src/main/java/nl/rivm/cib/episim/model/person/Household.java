@@ -16,6 +16,7 @@ import io.reactivex.subjects.Subject;
  * @version $Id: 88e3618b2571332669cc3266f9d0836962e886d3 $
  * @author Rick van Krevelen
  */
+@Deprecated
 public interface Household<T extends HouseholdParticipant> extends Population<T>
 {
 

@@ -6,7 +6,7 @@ Configuration:
       name: Console
       target: SYSTEM_OUT
       PatternLayout:
-#        Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m%n}"
+#       Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m%n}"
         Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C.%M(%F:%L)]%n}"
         # see https://logging.apache.org/log4j/2.x/manual/layouts.html#Patterns
 

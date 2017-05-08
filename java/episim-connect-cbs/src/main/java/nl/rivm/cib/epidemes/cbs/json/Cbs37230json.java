@@ -163,11 +163,11 @@ public class Cbs37230json
 	public <T extends Number & Comparable<? super T>> List<T>
 		frequenciesFor( final CBSPopulationDynamic change )
 	{
-		if( !this.props.containsKey( change.jsonKey ) )
+		if( !this.props.containsKey( change.jsonKey() ) )
 			return Thrower.throwNew( IllegalArgumentException.class,
-					"Key unavailable: {}, keys: {}", change.jsonKey,
+					"Key unavailable: {}, keys: {}", change.jsonKey(),
 					this.props.keySet() );
-		return (List<T>) this.props.get( change.jsonKey );
+		return (List<T>) this.props.get( change.jsonKey() );
 	}
 
 	@SuppressWarnings( "unchecked" )

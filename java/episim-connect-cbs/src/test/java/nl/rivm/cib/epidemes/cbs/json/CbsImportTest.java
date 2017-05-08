@@ -48,6 +48,8 @@ import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.util.FileUtil;
+import nl.rivm.cib.episim.model.ZipCode;
+import nl.rivm.cib.episim.model.locate.Region;
 
 /**
  * {@link CbsImportTest}
@@ -72,7 +74,7 @@ public class CbsImportTest
 	private static final String CBS_37975_FILE = "cbs/37975_2016JJ00.json";
 	private static final String CBS_71486_FILE = "cbs/71486ned-TS-2010-2016.json";
 
-	private static final String CBS_37230_FILE = "cbs/37230ned_monthly_change_series.json";
+	private static final String CBS_37230_FILE = "cbs/37230ned_TS_2012_2017.json";
 	private static final String CBS_37713_FILE = "cbs/37713_2012JJ00_AllOrigins.json";
 
 	private static ProbabilityDistribution.Factory distFact = null;
@@ -163,20 +165,45 @@ public class CbsImportTest
 	@Test
 	public void readBoroughPC6()
 	{
-		LOG.info( "start CbsBoroughPC6" );
+		LOG.info( "start BoroughPC6" );
 
-		final List<CbsBoroughPC6json> async = CbsBoroughPC6json
+		// TODO use groupBy operator somehow using flatMap and keep regId key?
+//		final Observable<ProbabilityDistribution<CbsBoroughPC6json>> async = CbsBoroughPC6json
+//				.readAsync( () -> FileUtil.toInputStream( CBS_PC6_FILE ) )
+//				.groupBy( bu -> bu.municipalRef() )
+//				.flatMap( gr -> distFact
+//						.createCategorical(
+//								gr.map( CbsBoroughPC6json::toWeightedValue ) )
+//						.map( dist -> Collections.entry( gr.getKey(),
+//								dist ) ) );
+
+		final Map<Region.ID, ProbabilityDistribution<CbsBoroughPC6json>> async = CbsBoroughPC6json
 				.readAsync( () -> FileUtil.toInputStream( CBS_PC6_FILE ) )
-				.toList().blockingGet();
+				.toMultimap( bu -> bu.municipalRef(),
+						CbsBoroughPC6json::toWeightedValue )
+				.blockingGet().entrySet().parallelStream() // blocking
+				.collect( Collectors.toMap( e -> e.getKey(),
+						e -> distFact.createCategorical(
+								// consume WeightedValue's for garbage collector
+								e.getValue() ) ) );
+
+		final ConditionalDistribution<CbsBoroughPC6json, Region.ID> dist = ConditionalDistribution
+				.of( async::get );
+		// region: not weighted, draw from another (weighted) distribution?
+		final Region.ID regRef = distFact.getStream()
+				.nextElement( async.keySet() );
 		for( int i = 0; i < 10; i++ )
 		{
-			CbsBoroughPC6json entry = distFact.getStream().nextElement( async );
-			LOG.trace( "draw #{}: region: {}, zip: {}", i, entry.boroughRef(),
-					entry.zipDist( distFact::createCategorical ).draw()
-							.toPostCode3() );
+			// borough: weighted by address count
+			final CbsBoroughPC6json buurt = dist.draw( regRef );
+			// zip: weighted by address count
+			final ZipCode zip = buurt.zipDist( distFact::createCategorical )
+					.draw();
+			LOG.trace( "draw #{}: reg: {} of {}, codes: {}, ref: {}, zip: {}",
+					i, regRef, async.size(), buurt.codes, buurt.ref(), zip );
 		}
 
-		LOG.info( "done CbsBoroughPC6" );
+		LOG.info( "done BoroughPC6" );
 	}
 
 	@Test
@@ -189,7 +216,7 @@ public class CbsImportTest
 		// Java8 Time conversions: http://stackoverflow.com/a/23197731/1418999
 		final Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>> async = Cbs37230json
 				.readAsync( () -> FileUtil.toInputStream( CBS_37230_FILE ),
-						CBSPopulationDynamic.BIRTHS, timeRange )
+						CBSPopulationDynamic.EMIGRATION, timeRange )
 				.filter( wv -> wv.getValue().regionType() == regType )
 				.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
 						() -> new TreeMap<>() )

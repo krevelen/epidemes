@@ -18,7 +18,6 @@
 		<class>nl.rivm.cib.episim.persist.dao.RegionDao</class>
 		<class>nl.rivm.cib.episim.persist.dimension.CbsSpaceDimensionDao</class>
 		<class>nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao</class>
-		<class>nl.rivm.cib.episim.persist.dimension.ActorDimensionDao</class>
 
 		<properties>
 		</properties>

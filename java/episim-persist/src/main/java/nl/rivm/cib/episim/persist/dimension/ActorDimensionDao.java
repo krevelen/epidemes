@@ -21,9 +21,10 @@ package nl.rivm.cib.episim.persist.dimension;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
 import javax.persistence.Table;
 
-import io.coala.bind.persist.LocalIdDao;
 import io.coala.enterprise.Actor;
 
 /**
@@ -34,9 +35,11 @@ import io.coala.enterprise.Actor;
  */
 @Entity
 @Table( name = "DIM_ACTOR" )
-public class ActorDimensionDao extends LocalIdDao
+@Inheritance( strategy = InheritanceType.SINGLE_TABLE )
+//SINGLE_TABLE preferred, see https://en.wikibooks.org/wiki/Java_Persistence/Inheritance
+public class ActorDimensionDao //extends LocalIdDao
 {
-	@Column( name = "NAME", nullable = false, updatable = false )
+	@Column( name = "NAME", nullable = true, updatable = false )
 	protected String name;
 
 	@Column( name = "ROLE", nullable = true, updatable = false )
@@ -59,6 +62,7 @@ public class ActorDimensionDao extends LocalIdDao
 	{
 		// TODO resolve attributes recursively from LocalId
 		final ActorDimensionDao result = new ActorDimensionDao();
+		System.err.println( "persisting " + personRef );
 		return result;
 	}
 

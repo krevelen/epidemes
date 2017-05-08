@@ -27,13 +27,19 @@ package nl.rivm.cib.epidemes.cbs.json;
  */
 public enum CBSHousehold implements CBSHouseholdCompositionType
 {
-	/** total households == 'hh_l' + 'hh_p_0' + 'hh_p_1+' == 'hh_l' + 'hh_b' + 'hh_m' + 'hh_s' + 'hh_o' */
+	/**
+	 * total households == 'hh_l' + 'hh_p_0' + 'hh_p_1+' == 'hh_l' + 'hh_b' +
+	 * 'hh_m' + 'hh_s' + 'hh_o'
+	 */
 	TOTAL( "hh", true, 0, false, 0, true ),
-	
-	/**  total multiple adults with no kids == 'hh_b_0' + 'hh_m_0' + 'hh_o' */
+
+	/** total multiple adults with no kids == 'hh_b_0' + 'hh_m_0' + 'hh_o' */
 	POLY_NOKIDS( "hh_p_0", true, 2, false, 0, false ),
 
-	/** total multiple adults with 1+ kids == 'hh_b_1'+'hh_b_2'+'hh_b_3+'+'hh_m_1'+'hh_m_2'+'hh_m_3+'+'hh_s_1'+'hh_s_2'+'hh_s_3+' */
+	/**
+	 * total multiple adults with 1+ kids ==
+	 * 'hh_b_1'+'hh_b_2'+'hh_b_3+'+'hh_m_1'+'hh_m_2'+'hh_m_3+'+'hh_s_1'+'hh_s_2'+'hh_s_3+'
+	 */
 	POLY_1PLUSKIDS( "hh_p_1p", true, 2, false, 1, true ),
 
 	/** single adult, no kids */
@@ -66,7 +72,10 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	/** unregistered couple with >=3 [step/adopted] kids */
 	DUO_3PLUSKIDS( "hh_b_3p", false, 2, false, 3, true ),
 
-	/** total registered (married/cohabiting) couples == 'hh_m_0'+'hh_m_1'+'hh_m_2'+'hh_m_3+' */
+	/**
+	 * total registered (married/cohabiting) couples ==
+	 * 'hh_m_0'+'hh_m_1'+'hh_m_2'+'hh_m_3+'
+	 */
 	REGDUO_0PLUS( "hh_m", true, 2, true, 0, true ),
 
 	/** registered (married/cohabiting) couple with no kids */
@@ -93,9 +102,9 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	private final int childCount; // incl. adopted/step, excl. foster
 	private final boolean orMoreKids;
 
-	private CBSHousehold( final String jsonKey,
-		final boolean aggregate, final int adultCount, final boolean registered,
-		final int kidCount, final boolean orMoreKids )
+	private CBSHousehold( final String jsonKey, final boolean aggregate,
+		final int adultCount, final boolean registered, final int kidCount,
+		final boolean orMoreKids )
 	{
 		this.jsonKey = jsonKey;
 		this.aggregate = aggregate;
@@ -139,5 +148,11 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	public boolean more()
 	{
 		return this.orMoreKids;
+	}
+
+	/** @return the (minimum) household size */
+	public int size()
+	{
+		return adultCount() + childCount();
 	}
 }

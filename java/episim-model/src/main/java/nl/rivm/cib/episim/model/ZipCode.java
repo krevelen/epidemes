@@ -12,7 +12,7 @@ import io.coala.json.Wrapper;
  * @version $Id: b982370873248279b0a036896e18ecdfca28e257 $
  * @author Rick van Krevelen
  */
-public class ZipCode extends Wrapper.Simple<String>
+public class ZipCode extends Wrapper.SimpleOrdinal<String>
 {
 
 	private static final Pattern POSTCODE_PATTERN = Pattern
@@ -43,9 +43,9 @@ public class ZipCode extends Wrapper.Simple<String>
 		return match().group( 1 );
 	}
 
-	public String toPostCode6()
+	public String[] toPostCode6()
 	{
 		final Matcher m = match();
-		return m == null ? null : m.group( 1 ) + m.group( 2 ).toUpperCase();
+		return new String[] { m.group( 1 ), m.group( 2 ).toUpperCase() };
 	}
 }

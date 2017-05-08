@@ -29,6 +29,7 @@ import nl.rivm.cib.episim.model.person.Household.MoveHouse;
  * @version $Id$
  * @author Rick van Krevelen
  */
+@Deprecated
 public interface HouseholdParticipant extends Participant
 {
 	Household<? extends HouseholdParticipant> household();

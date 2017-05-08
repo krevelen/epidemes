@@ -28,24 +28,38 @@ package nl.rivm.cib.epidemes.cbs.json;
 public enum CBSPopulationDynamic
 {
 	/** */
-	BIRTHS( "births" ),
+	BIRTHS( "births", false ),
 	/** */
-	DEATHS( "deaths" ),
+	DEATHS( "deaths", false ),
 	/** */
-	ENTER_MUNICIPALITY( "im_gm" ),
+	ENTER_MUNICIPALITY( "im_gm", true ),
 	/** */
-	EXIT_MUNICIPALITY( "em_gm" ),
+	EXIT_MUNICIPALITY( "em_gm", true ),
 	/** */
-	IMMIGRATION( "im_nl" ),
+	IMMIGRATION( "im_nl", true ),
 	/** */
-	EMIGRATION( "em_nl" ),
+	EMIGRATION( "em_nl", true ),
 	//
 	;
 
-	final String jsonKey;
+	private final String jsonKey;
 
-	private CBSPopulationDynamic( final String jsonKey )
+	private final boolean unitHousehold;
+
+	private CBSPopulationDynamic( final String jsonKey,
+		final boolean unitHousehold )
 	{
 		this.jsonKey = jsonKey;
+		this.unitHousehold = unitHousehold;
+	}
+
+	public String jsonKey()
+	{
+		return this.jsonKey;
+	}
+
+	public boolean unitHousehold()
+	{
+		return this.unitHousehold;
 	}
 }

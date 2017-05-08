@@ -58,6 +58,7 @@ import io.reactivex.subjects.Subject;
  * @version $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
  * @author Rick van Krevelen
  */
+@Deprecated
 @Singleton
 public interface Population<T extends Participant>
 	extends Proactive, Identified<Population.ID>

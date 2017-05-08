@@ -21,12 +21,14 @@ package nl.rivm.cib.episim.model.person;
 
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
@@ -39,26 +41,38 @@ import io.coala.math.Range;
 import io.coala.random.PseudoRandom;
 import io.coala.time.Expectation;
 import io.coala.time.Instant;
+import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
+import io.coala.util.Compare;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.episim.model.CandidatePicker;
+import nl.rivm.cib.episim.model.OptionPicker;
 
 public interface MotherPicker<T extends MotherPicker.Mother>
-	extends CandidatePicker<T>
+	extends OptionPicker<T>, Proactive
 {
 
-	interface Mother extends Candidate
+	Observable<T> emitPicks();
+
+	@SuppressWarnings( "rawtypes" )
+	@FunctionalInterface
+	interface Mother extends Comparable//Candidate
 	{
-		// TODO make birth as abstract Attribute to map (and sort) candidates
+		// TODO make birth as abstract Preference to map (and sort) candidates
 		Instant born();
+
+		@Override
+		default int compareTo( final Object o )
+		{
+			return born().compareTo( ((Mother) o).born() );
+		}
 	}
 
 	void registerDuring( final T candidate, Range<Instant> fertilityInterval );
 
-	T pickAndRemoveFor( BiFunction<Iterable<T>, Integer, T> picker,
+	T pickAndRemoveFor( BiFunction<Iterable<T>, Long, T> picker,
 		Quantity<Time> recoveryPeriod );
 
 	Collection<Mother> candidatesBornIn( Range<Instant> birthFilter );
@@ -70,18 +84,23 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 
 	// TODO make age as abstract Filter with birth Attribute-based selection
 
+	default T doPick( final BiFunction<Iterable<T>, Long, T> picker )
+	{
+		return picker.apply( all(), total() );
+	}
+
 	default T pick( final Range<Integer> ageFilter, final PseudoRandom rng )
 	{
 		return pick( ageToBirthInterval( now(), ageFilter ), rng::nextElement );
 	}
 
 	default T pick( final Range<Instant> birthFilter,
-		final BiFunction<Iterable<T>, Integer, T> picker )
+		final BiFunction<Iterable<T>, Long, T> picker )
 	{
 		@SuppressWarnings( "unchecked" )
 		final Collection<T> flat = (Collection<T>) candidatesBornIn(
 				birthFilter );
-		return doPick( flat, flat.size(), picker );
+		return picker.apply( flat, (long) flat.size() );
 	}
 
 	static Range<Instant> birthToAgeInterval( final Instant birth,
@@ -129,8 +148,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			private final Map<T, Expectation> candidateRemovals = new ConcurrentHashMap<>();
 
 			/** the candidates sorted by birth */
-			private final NavigableSet<Mother> byBirth = new ConcurrentSkipListSet<>(
-					( o1, o2 ) -> o1.born().compareTo( o2.born() ) );
+			private final NavigableSet<Mother> byBirth = new ConcurrentSkipListSet<>();
 
 			/** the stream of picked mothers */
 			private final Subject<T> mothers = PublishSubject.create();
@@ -149,21 +167,21 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 
 			@Override
 			public T pickAndRemoveFor(
-				final BiFunction<Iterable<T>, Integer, T> picker,
+				final BiFunction<Iterable<T>, Long, T> picker,
 				final Quantity<Time> recoveryPeriod )
 			{
 				// pick
-				final T result = pick( picker );
+				final T result = doPick( picker );
 				if( result != null )
 				{
-					// unregister before recoveryPeriod
+					// unregister and start recoveryPeriod
 					if( recoveryPeriod != null )
 					{
 						unregister( result );
 						// re-register after (possibly adjusted) recoveryPeriod
-						if( now().add( recoveryPeriod )
-								.compareTo( this.candidateRemovals.get( result )
-										.unwrap() ) < 0 )
+						if( Compare.lt( now().add( recoveryPeriod ),
+								this.candidateRemovals.get( result )
+										.unwrap() ) )
 							after( recoveryPeriod ).call( this::register,
 									result );
 					}
@@ -195,28 +213,28 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			}
 
 			@Override
-			public void register( final T candidate )
+			public boolean register( final T candidate )
 			{
-				this.byBirth.add( candidate );
+				return this.byBirth.add( candidate );
 			}
 
 			@Override
-			public void unregister( final T candidate )
+			public boolean unregister( final T candidate )
 			{
 				final Expectation exp = this.candidateRemovals
 						.remove( candidate );
 				if( exp != null ) exp.remove();
-				this.byBirth.remove( candidate );
+				return this.byBirth.remove( candidate );
 			}
 
 			@Override
-			public Iterator<T> iterator()
+			public Iterable<T> all()
 			{
-				return this.candidateRemovals.keySet().iterator();
+				return this.candidateRemovals.keySet();
 			}
 
 			@Override
-			public Integer total()
+			public long total()
 			{
 				return this.candidateRemovals.size();
 			}
@@ -225,10 +243,16 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 			public Collection<Mother>
 				candidatesBornIn( final Range<Instant> birthFilter )
 			{
-				return this.byBirth.subSet( () -> birthFilter.lowerValue(),
-						birthFilter.lowerInclusive(),
-						() -> birthFilter.upperValue(),
-						birthFilter.upperInclusive() );
+				return birthFilter.<Mother>map( t -> () -> t )
+						.apply( this.byBirth, true );
+			}
+
+			private final Map<Function<T, Number>, Supplier<T>> prefs = new HashMap<>();
+
+			@Override
+			public Map<Function<T, Number>, Supplier<T>> preferences()
+			{
+				return this.prefs;
 			}
 		};
 	}
