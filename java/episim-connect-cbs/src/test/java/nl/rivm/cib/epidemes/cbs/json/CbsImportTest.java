@@ -23,7 +23,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
@@ -33,6 +32,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.coala.bind.LocalConfig;
@@ -48,8 +48,10 @@ import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.util.FileUtil;
-import nl.rivm.cib.episim.model.ZipCode;
+import io.reactivex.internal.functions.Functions;
+import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.model.locate.Region;
+import nl.rivm.cib.episim.model.locate.ZipCode;
 
 /**
  * {@link CbsImportTest}
@@ -76,9 +78,10 @@ public class CbsImportTest
 
 	private static final String CBS_37230_FILE = "cbs/37230ned_TS_2012_2017.json";
 	private static final String CBS_37713_FILE = "cbs/37713_2012JJ00_AllOrigins.json";
+	private static final String CBS_37201_FILE = "cbs/37201_TS_2010_2015.json";
 
 	private static ProbabilityDistribution.Factory distFact = null;
-	private static Range<ZonedDateTime> timeRange = null;
+	private static Range<LocalDate> timeRange = null;
 
 	@BeforeClass
 	public static void setupDistributionFactoy()
@@ -94,11 +97,11 @@ public class CbsImportTest
 				.inject( ProbabilityDistribution.Factory.class );
 		timeRange = Range.of( "2012-06-13", "2014-02-13" )
 				// Range.upFromAndIncluding( "2012-06-13" ) 
-				.map( LocalDate::parse )
-				.map( dt -> dt.atStartOfDay( TimeUtil.NL_TZ ) );
+				.map( LocalDate::parse );
 	}
 
 	@SuppressWarnings( "deprecation" )
+	@Ignore
 	@Test
 	public void read37975() throws Exception
 	{
@@ -131,7 +134,7 @@ public class CbsImportTest
 		final CBSRegionType regType = CBSRegionType.MUNICIPAL;
 
 		// async, one JSON object per iteration, observable handles auto-close
-		final Map<ZonedDateTime, Collection<WeightedValue<Cbs71486json.Category>>> async = Cbs71486json
+		final Map<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>> async = Cbs71486json
 				.readAsync( () -> FileUtil.toInputStream( CBS_71486_FILE ),
 						timeRange )
 				.filter( wv -> wv.getValue().regionType() == regType )
@@ -139,14 +142,13 @@ public class CbsImportTest
 						() -> new TreeMap<>() )
 				.blockingGet();
 		LOG.trace( "Got async: {}",
-				async.entrySet().stream().collect(
-						Collectors.toMap( e -> e.getKey().toLocalDate(),
-								e -> e.getValue().size() ) ) );
+				async.entrySet().stream().collect( Collectors
+						.toMap( e -> e.getKey(), e -> e.getValue().size() ) ) );
 
-		final ConditionalDistribution<Cbs71486json.Category, ZonedDateTime> dist = ConditionalDistribution
+		final ConditionalDistribution<Cbs71486json.Category, LocalDate> dist = ConditionalDistribution
 				.of( distFact::createCategorical, async );
 
-		for( ZonedDateTime dt = timeRange.lowerValue(); timeRange
+		for( LocalDate dt = timeRange.lowerValue(); timeRange
 				.contains( dt ); dt = dt.plus( 3L, ChronoUnit.WEEKS ) )
 		{
 			final Cbs71486json.Category tuple = dist.draw( dt );
@@ -214,9 +216,9 @@ public class CbsImportTest
 		final CBSRegionType regType = CBSRegionType.MUNICIPAL;
 
 		// Java8 Time conversions: http://stackoverflow.com/a/23197731/1418999
-		final Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>> async = Cbs37230json
+		final Map<LocalDate, Collection<WeightedValue<Cbs37230json.Category>>> async = Cbs37230json
 				.readAsync( () -> FileUtil.toInputStream( CBS_37230_FILE ),
-						CBSPopulationDynamic.EMIGRATION, timeRange )
+						timeRange, CBSPopulationDynamic.EMIGRATION )
 				.filter( wv -> wv.getValue().regionType() == regType )
 				.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
 						() -> new TreeMap<>() )
@@ -224,10 +226,10 @@ public class CbsImportTest
 
 //		LOG.trace( "parsed birth values, weighted by region: {}",
 //				JsonUtil.toJSON( async ) );
-		final ConditionalDistribution<Cbs37230json.Category, ZonedDateTime> birthRegions = ConditionalDistribution
+		final ConditionalDistribution<Cbs37230json.Category, LocalDate> birthRegions = ConditionalDistribution
 				.of( distFact::createCategorical, async );
 
-		for( ZonedDateTime dt = timeRange.lowerValue(); timeRange
+		for( LocalDate dt = timeRange.lowerValue(); timeRange
 				.contains( dt ); dt = dt.plus( 1L, ChronoUnit.WEEKS ) )
 		{
 			final Cbs37230json.Category tuple = birthRegions.draw( dt );
@@ -248,26 +250,70 @@ public class CbsImportTest
 		LOG.info( "start 37713" );
 
 		final CBSRegionType regionType = CBSRegionType.MUNICIPAL;
-		final ConditionalDistribution<Cbs37713json.Category, ZonedDateTime> dist = ConditionalDistribution
-				.of( distFact::createCategorical, Cbs37713json.readAsync(
-						() -> FileUtil.toInputStream( CBS_37713_FILE ),
-						timeRange ).filter(
-								wv -> wv.getValue().regionType() == regionType )
-						.toMultimap( wv -> wv.getValue().offset(), wv -> wv )
-						.blockingGet() );
+		final Map<Region.ID, Collection<WeightedValue<Cbs37713json.Category>>> val = Cbs37713json
+				.readAsync( () -> FileUtil.toInputStream( CBS_37713_FILE ),
+						timeRange )
+				.filter( wv -> wv.getValue().regionType() == regionType )
+				.toMultimap( wv -> Region.ID.of( wv.getValue().regionRef() ),
+						wv -> wv,
+						// Navigable Map for out-of-bounds conditions
+						TreeMap::new )
+				.blockingGet();
+		final ConditionalDistribution<Cbs37713json.Category, Region.ID> dist = ConditionalDistribution
+				.of( distFact::createCategorical, val );
 
-		for( ZonedDateTime dt = timeRange.lowerValue(); timeRange
-				.contains( dt ); dt = dt.plus( 1L, ChronoUnit.WEEKS ) )
+		for( int r = 0; r < 10; r++ )
 		{
-			final Cbs37713json.Category tuple = dist.draw( dt );
+			final Region.ID regRef = distFact.getStream()
+					.nextElement( val.keySet() );
+			final Cbs37713json.Category tuple = dist.draw( regRef );
 			for( int i = 0; i < 10; i++ )
-				LOG.trace( "dt={} cat={}, draw #{}: {} {}", dt, tuple, i,
-						tuple.genderDist( distFact::createCategorical ).draw(),
-						QuantityUtil.toScale( tuple
+				LOG.trace( "draw #{}: {} -> age {}", i, tuple,
+						QuantityUtil.pretty( tuple
 								.ageDist( distFact::createUniformContinuous )
-								.draw(), 3 ) );
+								.draw(), 2 ) );
 		}
 
 		LOG.info( "done 37713" );
+	}
+
+	@Test
+	public void read37201()
+	{
+		LOG.info( "start 37201" );
+
+		final CBSRegionType regionType = CBSRegionType.MUNICIPAL;
+
+		final ConditionalDistribution<Cbs37201json.Category, RegionPeriod> dist = ConditionalDistribution
+				.of( distFact::createCategorical, Cbs37201json.readAsync(
+						() -> FileUtil.toInputStream( CBS_37201_FILE ),
+						timeRange )
+						.filter(
+								wv -> wv.getValue().regionType() == regionType )
+						.toMultimap( wv -> wv.getValue().regionPeriod(),
+								Functions.identity(),
+								// Navigable Map for out-of-bounds conditions
+								TreeMap::new )
+						.blockingGet() );
+
+		final String amsterdam = "GM0363";
+		for( LocalDate dt = timeRange.lowerValue(); timeRange
+				.contains( dt ); dt = dt.plus( 1L, ChronoUnit.WEEKS ) )
+		{
+			final Cbs37201json.Category tuple = dist
+					.draw( RegionPeriod.of( amsterdam, dt ) );
+			for( int i = 0; i < 3; i++ )
+				LOG.trace(
+						"dt={} cat={}, draw #{}: boy={}, mom={}, siblings={}",
+						dt, tuple, i,
+						tuple.genderDist( distFact::createCategorical ).draw()
+								.isMale(),
+						tuple.ageDist( distFact::createCategorical ).draw()
+								.range(),
+						tuple.rankDist( distFact::createCategorical ).draw()
+								.rank() );
+		}
+
+		LOG.info( "done 37201" );
 	}
 }

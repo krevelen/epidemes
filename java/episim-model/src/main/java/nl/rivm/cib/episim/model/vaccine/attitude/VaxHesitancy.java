@@ -35,13 +35,16 @@ import io.coala.math.DecimalUtil;
 import io.coala.util.Compare;
 
 /**
- * {@link VaxHesitancy} provides an implementation of the Four C model by
- * <a href="http://dx.doi.org/10.1177/2372732215600716">Betsch et al., 2015</a>
+ * {@link VaxHesitancy} is an extended {@link Attitude} towards vaccination
+ * according to the <b>Four C</b> model
+ * (<a href="http://dx.doi.org/10.1177/2372732215600716">Betsch <em>et al.</em>,
+ * 2015</a>) which categorizes determinants into {@link #getComplacency},
+ * {@link #getConfidence}, {@link #getConvenience}, and {@link #getCalculation}.
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface VaxHesitancy //extends Identified<Actor.ID>
+public interface VaxHesitancy extends Attitude<VaxOccasion>
 {
 
 	/**
@@ -54,10 +57,17 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	 * 
 	 * @return complacency {@link Number} (perceived inverse risk of disease)
 	 */
-	Number getComplacency();
+	BigDecimal getComplacency();
 
 	/** @return confidence {@link Number} (perceived utility of vaccination) */
-	Number getConfidence();
+	BigDecimal getConfidence();
+
+	@Override
+	default boolean isPositive( VaxOccasion occ )
+	{
+		return Compare.gt( getConfidence().subtract( getComplacency() ),
+				getConvenience( occ ) );
+	}
 
 	/**
 	 * convenience level depends on the {@link VaxHesitancy}'s judgment of a
@@ -69,10 +79,10 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	 * @param occ the {@link VaxOccasion} to judge
 	 * @return the perceived convenience {@link Number}
 	 */
-	default Number getConvenience( final VaxOccasion occ )
+	default BigDecimal getConvenience( final VaxOccasion occ )
 	{
-		return Compare.min( occ.getUtility(), occ.getProximity(),
-				occ.getClarity(), occ.getAffinity() );
+		return Compare.min( occ.utility(), occ.proximity(), occ.clarity(),
+				occ.affinity() );
 	}
 
 	/**
@@ -86,7 +96,7 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	 * @return calculation {@link Number} of information/research diligence
 	 *         (pre)disposition/threshold
 	 */
-	Number getCalculation();
+	BigDecimal getCalculation();
 
 	void setCalculation( Number calculation );
 
@@ -100,7 +110,7 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 				BigDecimal.ONE.subtract( DecimalUtil.valueOf( diseaseRisk ) ) );
 	}
 
-	Number getAppreciation( Actor.ID sourceRef );
+	BigDecimal getAppreciation( Actor.ID sourceRef );
 
 	/**
 	 * @param sourceRef the source to appreciate in attitude computation, where
@@ -147,12 +157,12 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	 *         </tr>
 	 *         </table>
 	 */
-	default Number appreciationWeight( final Actor.ID sourceRef )
+	default BigDecimal appreciationWeight( final Actor.ID sourceRef )
 	{
 		return Compare.max( BigDecimal.ZERO,
-				DecimalUtil.valueOf( getAppreciation( sourceRef ) )
+				getAppreciation( sourceRef )
 						.subtract( DEFAULT_APPRECIATION_WEIGHT_MINIMUM )
-						.add( DecimalUtil.valueOf( getCalculation() ) ) );
+						.add( getCalculation() ) );
 	}
 
 	BigDecimal DEFAULT_APPRECIATION_WEIGHT_MINIMUM = BigDecimal.valueOf( 5, 1 );
@@ -210,7 +220,6 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 	 */
 	default boolean isHesitant( final VaxOccasion occ )
 	{
-		// TODO remove work-around for zero-logarithms
 		final Apfloat comp = DecimalUtil.toApfloat( getComplacency() );
 		final Apfloat conf = DecimalUtil.toApfloat( getConfidence() );
 		return Compare.le( DecimalUtil.valueOf( getConvenience( occ ) ),
@@ -284,6 +293,12 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 		}
 
 		@Override
+		public String toString()
+		{
+			return JsonUtil.stringify( this );
+		}
+
+		@Override
 		public void setCalculation( final Number calculation )
 		{
 			if( calculation == this.calculation ) return;
@@ -311,7 +326,7 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 			return this.appreciator.apply( sourceRef );
 		}
 
-		enum Index
+		public enum Index
 		{
 			CONFIDENCE, COMPLACENCY;
 		}
@@ -389,12 +404,6 @@ public interface VaxHesitancy //extends Identified<Actor.ID>
 				for( int i = 0; i < sums.length; i++ )
 					this.myPosition[i] = DecimalUtil.divide( sums[i], w );
 			return this.myPosition;
-		}
-
-		@Override
-		public String toString()
-		{
-			return JsonUtil.stringify( this );
 		}
 	}
 }

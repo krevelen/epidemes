@@ -38,7 +38,7 @@ import io.coala.log.LogUtil;
 import io.coala.math.LatLong;
 import io.coala.persist.HibernateJPAConfig;
 import io.coala.persist.JPAUtil;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
+import nl.rivm.cib.episim.model.disease.infection.Transmission;
 import tec.uom.se.unit.Units;
 
 /**

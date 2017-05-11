@@ -17,10 +17,11 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.geard;
 
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
+import nl.rivm.cib.episim.model.person.Gender;
 
 /**
  * {@link Individual} represents an infective/infectious subject

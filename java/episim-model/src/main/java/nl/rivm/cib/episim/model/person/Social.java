@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,30 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate;
+package nl.rivm.cib.episim.model.person;
 
+import java.util.Map;
+
+import io.coala.enterprise.Actor;
 import io.coala.json.Attributed;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link Social}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public interface Social<THIS> extends Attributed
 {
-	Place.ID getPlaceRef();
 
-	void setPlaceRef( Place.ID placeRef );
+	Map<Actor.ID, RelationType> getNetwork();
+
+	void setNetwork( Map<Actor.ID, RelationType> network );
 
 	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
+	default THIS with( final Map<Actor.ID, RelationType> network )
 	{
-		setPlaceRef( placeRef );
+		setNetwork( network );
 		return (THIS) this;
 	}
 }

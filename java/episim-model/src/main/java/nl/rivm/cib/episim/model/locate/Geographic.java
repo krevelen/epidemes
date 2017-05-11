@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -22,21 +22,33 @@ package nl.rivm.cib.episim.model.locate;
 import io.coala.json.Attributed;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link Geographic} attributable tag extends {@link Attributed} beans with
+ * {@link Region.ID} references per {@link Geography}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public interface Geographic<THIS> extends Attributed
 {
-	Place.ID getPlaceRef();
+	Region.ID getRegionRef();
 
-	void setPlaceRef( Place.ID placeRef );
+	void setRegionRef( Region.ID regionRef );
 
 	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
+	default THIS with( Region.ID regionRef )
 	{
-		setPlaceRef( placeRef );
+		setRegionRef( regionRef );
+		return (THIS) this;
+	}
+
+	Geography getGeography();
+
+	void setGeography( Geography geography );
+
+	@SuppressWarnings( "unchecked" )
+	default THIS with( final Geography geography )
+	{
+		setGeography( geography );
 		return (THIS) this;
 	}
 }

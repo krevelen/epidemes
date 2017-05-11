@@ -1,4 +1,4 @@
-package nl.rivm.cib.episim.model.disease.infection;
+package nl.rivm.cib.episim.geard;
 
 import java.util.Map;
 
@@ -11,7 +11,10 @@ import io.coala.time.Indicator;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Signal;
-import nl.rivm.cib.episim.model.person.PopulationMetrics;
+import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+import nl.rivm.cib.episim.model.disease.infection.OutbreakScale;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
+import nl.rivm.cib.episim.model.disease.infection.Transmission;
 
 /**
  * {@link InfectionMetrics} follows common
@@ -46,6 +49,7 @@ import nl.rivm.cib.episim.model.person.PopulationMetrics;
  * @version $Id: 7aa57c407ea079fca3643e1dc055a7880ace72ed $
  * @author Rick van Krevelen
  */
+@Deprecated
 public interface InfectionMetrics extends Proactive
 {
 	PopulationMetrics getPopulationMetrics();

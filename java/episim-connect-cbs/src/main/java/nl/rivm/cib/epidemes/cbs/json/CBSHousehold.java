@@ -19,92 +19,96 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
+import nl.rivm.cib.episim.model.person.HouseholdComposition;
+import nl.rivm.cib.episim.model.person.RelationType;
+
 /**
  * {@link CBSHousehold} the JSON 'implementation' of a CBS household composition
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum CBSHousehold implements CBSHouseholdCompositionType
+public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 {
 	/**
 	 * total households == 'hh_l' + 'hh_p_0' + 'hh_p_1+' == 'hh_l' + 'hh_b' +
 	 * 'hh_m' + 'hh_s' + 'hh_o'
 	 */
-	TOTAL( "hh", true, 0, false, 0, true ),
+	TOTAL( "hh", true, 0, false, 0, true, null ),
 
 	/** total multiple adults with no kids == 'hh_b_0' + 'hh_m_0' + 'hh_o' */
-	POLY_NOKIDS( "hh_p_0", true, 2, false, 0, false ),
+	POLY_NOKIDS( "hh_p_0", true, 2, false, 0, false, RelationType.Simple.SEXUAL ),
 
 	/**
 	 * total multiple adults with 1+ kids ==
 	 * 'hh_b_1'+'hh_b_2'+'hh_b_3+'+'hh_m_1'+'hh_m_2'+'hh_m_3+'+'hh_s_1'+'hh_s_2'+'hh_s_3+'
 	 */
-	POLY_1PLUSKIDS( "hh_p_1p", true, 2, false, 1, true ),
+	POLY_1PLUSKIDS( "hh_p_1p", true, 2, false, 1, true, RelationType.Simple.SEXUAL ),
 
 	/** single adult, no kids */
-	SOLO_NOKIDS( "hh_l", false, 1, false, 0, false ),
+	SOLO_NOKIDS( "hh_l", false, 1, false, 0, false, RelationType.Simple.SINGLE ),
 
 	/** total single parent with 1+ [step/adopted] kids */
-	SOLO_1PLUSKIDS( "hh_s", true, 1, false, 1, true ),
+	SOLO_1PLUSKIDS( "hh_s", true, 1, false, 1, true, RelationType.Simple.SINGLE ),
 
 	/** single parent with 1 [step/adopted] kid */
-	SOLO_1KID( "hh_s_1", false, 1, false, 1, false ),
+	SOLO_1KID( "hh_s_1", false, 1, false, 1, false, RelationType.Simple.SINGLE ),
 
 	/** single parent with 2 [step/adopted] kids */
-	SOLO_2KIDS( "hh_s_2", false, 1, false, 2, false ),
+	SOLO_2KIDS( "hh_s_2", false, 1, false, 2, false, RelationType.Simple.SINGLE ),
 
 	/** single parent with >=3 [step/adopted] kids */
-	SOLO_3PLUSKIDS( "hh_s_3p", false, 1, false, 3, true ),
+	SOLO_3PLUSKIDS( "hh_s_3p", false, 1, false, 3, true, RelationType.Simple.SINGLE ),
 
 	/** total unregistered couples == 'hh_b_0'+'hh_b_1'+'hh_b_2'+'hh_b_3+' */
-	DUO_0PLUSKIDS( "hh_b", true, 2, false, 0, true ),
+	DUO_0PLUSKIDS( "hh_b", true, 2, false, 0, true, RelationType.Simple.SEXUAL ),
 
 	/** unregistered couple with no kids */
-	DUO_NOKIDS( "hh_b_0", false, 2, false, 0, false ),
+	DUO_NOKIDS( "hh_b_0", false, 2, false, 0, false, RelationType.Simple.SEXUAL ),
 
 	/** unregistered couple with one [step/adopted] kid */
-	DUO_1KID( "hh_b_1", false, 2, false, 1, false ),
+	DUO_1KID( "hh_b_1", false, 2, false, 1, false, RelationType.Simple.SEXUAL ),
 
 	/** unregistered couple with 2 [step/adopted] kids */
-	DUO_2KIDS( "hh_b_2", false, 2, false, 2, false ),
+	DUO_2KIDS( "hh_b_2", false, 2, false, 2, false, RelationType.Simple.SEXUAL ),
 
 	/** unregistered couple with >=3 [step/adopted] kids */
-	DUO_3PLUSKIDS( "hh_b_3p", false, 2, false, 3, true ),
+	DUO_3PLUSKIDS( "hh_b_3p", false, 2, false, 3, true, RelationType.Simple.SEXUAL ),
 
 	/**
 	 * total registered (married/cohabiting) couples ==
 	 * 'hh_m_0'+'hh_m_1'+'hh_m_2'+'hh_m_3+'
 	 */
-	REGDUO_0PLUS( "hh_m", true, 2, true, 0, true ),
+	REGDUO_0PLUS( "hh_m", true, 2, true, 0, true, RelationType.Simple.SEXUAL ),
 
 	/** registered (married/cohabiting) couple with no kids */
-	REGDUO_NOKIDS( "hh_m_0", false, 2, true, 0, false ),
+	REGDUO_NOKIDS( "hh_m_0", false, 2, true, 0, false, RelationType.Simple.SEXUAL ),
 
 	/** registered (married/cohabiting) couple with 1 [step/adopted] kid */
-	REGDUO_1KID( "hh_m_1", false, 2, true, 1, false ),
+	REGDUO_1KID( "hh_m_1", false, 2, true, 1, false, RelationType.Simple.SEXUAL ),
 
 	/** registered (married/cohabiting) couple with 2 [step/adopted] kids */
-	REGDUO_2KIDS( "hh_m_2", false, 2, true, 2, false ),
+	REGDUO_2KIDS( "hh_m_2", false, 2, true, 2, false, RelationType.Simple.SEXUAL ),
 
 	/** registered (married/cohabiting) couple and 3+ [step/adopted] kids */
-	REGDUO_3PLUSKIDS( "hh_m_3p", false, 2, false, 3, true ),
+	REGDUO_3PLUSKIDS( "hh_m_3p", false, 2, false, 3, true, RelationType.Simple.SEXUAL ),
 
 	/** total other private compositions (siblings, boarder, fosters, ...) */
-	OTHER( "hh_o", true, 0, false, 0, true ),
+	OTHER( "hh_o", true, 0, false, 0, true, RelationType.Simple.WARD ),
 
 	;
 
-	final String jsonKey;
+	private final String jsonKey;
 	private final boolean aggregate;
 	private final int adultCount;
 	private final boolean registered;
 	private final int childCount; // incl. adopted/step, excl. foster
 	private final boolean orMoreKids;
+	private final RelationType relationType;
 
 	private CBSHousehold( final String jsonKey, final boolean aggregate,
 		final int adultCount, final boolean registered, final int kidCount,
-		final boolean orMoreKids )
+		final boolean orMoreKids, final RelationType relationType )
 	{
 		this.jsonKey = jsonKey;
 		this.aggregate = aggregate;
@@ -112,6 +116,7 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 		this.registered = registered;
 		this.childCount = kidCount;
 		this.orMoreKids = orMoreKids;
+		this.relationType = relationType;
 	}
 
 	@Override
@@ -154,5 +159,11 @@ public enum CBSHousehold implements CBSHouseholdCompositionType
 	public int size()
 	{
 		return adultCount() + childCount();
+	}
+
+	/** @return the referent relation type */
+	public RelationType adultRelationType()
+	{
+		return this.relationType;
 	}
 }

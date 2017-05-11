@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,37 +17,26 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.cbs.json;
+package nl.rivm.cib.episim.geard;
+
+import io.coala.rx.RxCollection;
 
 /**
- * {@link CBSHouseholdCompositionType} the Java contract
+ * {@link Partner}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface CBSHouseholdCompositionType
+public interface Partner extends Individual
 {
-	String jsonKey();
-	
-	/** @return {@code true} for aggregates */
-	boolean aggregate();
-	
-	/** @return the number of adults incl. (step/adoptive) parents */
-	int adultCount();
 
-	/** @return {@code true} for a registered (married/cohabiting) couple */
-	default boolean couple()
+	RxCollection<? extends Partner> partners();
+
+	/**
+	 * @return
+	 */
+	default boolean isSingle()
 	{
-		return adultCount() == 2;
+		return partners().isEmpty();
 	}
-
-	/** @return {@code true} for a registered (married/cohabiting) couple */
-	boolean registered();
-
-	/** @return the number of children, incl. step/adopted, excl. foster */
-	int childCount();
-
-	/** @return {@code true} if more than {@link #kids} are allowed */
-	boolean more();
-
 }

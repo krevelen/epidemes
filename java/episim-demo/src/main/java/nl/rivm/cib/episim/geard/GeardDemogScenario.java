@@ -36,15 +36,8 @@ import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.Signal;
 import io.coala.time.TimeUnits;
-import nl.rivm.cib.episim.model.Gender;
-import nl.rivm.cib.episim.model.Individual;
-import nl.rivm.cib.episim.model.Partner;
-import nl.rivm.cib.episim.model.person.Household;
-import nl.rivm.cib.episim.model.person.HouseholdParticipant;
-import nl.rivm.cib.episim.model.person.HouseholdPopulation;
+import nl.rivm.cib.episim.model.person.Gender;
 import nl.rivm.cib.episim.model.person.MotherPicker;
-import nl.rivm.cib.episim.model.person.Participant;
-import nl.rivm.cib.episim.model.person.Population;
 
 /**
  * {@link GeardDemogScenario}
@@ -110,7 +103,7 @@ public class GeardDemogScenario implements Scenario
 		 */
 		public GenderAge( final Individual individual )
 		{
-			super( Arrays.asList( individual.gender(),
+			super( Arrays.asList( individual.gender().id(),
 					QuantityUtil.intValue( individual.now()
 							.subtract( individual.born() ).toQuantity(),
 							TimeUnits.ANNUM ) ) );
@@ -118,7 +111,7 @@ public class GeardDemogScenario implements Scenario
 
 		public Gender gender()
 		{
-			return (Gender) values().get( 0 );
+			return () -> (String) values().get( 0 );
 		}
 
 		public Integer age()
@@ -131,14 +124,14 @@ public class GeardDemogScenario implements Scenario
 	private static long INDIVIDUAL_COUNT = 0;
 
 	interface GeardIndividual extends Partner, HouseholdParticipant,
-		MotherPicker.Mother, Identified.Ordinal<String>
+		MotherPicker.Mother, Identified<String>
 	{
 		/**
 		 * @return {@code true} if this {@link Participant} can't leave home
 		 */
 		boolean isHomeMaker();
 
-		Household<GeardIndividual> household();
+		GeardHousehold<GeardIndividual> household();
 
 		/**
 		 * @param household
@@ -147,7 +140,8 @@ public class GeardDemogScenario implements Scenario
 		 * @param homeMaker
 		 * @return
 		 */
-		static GeardIndividual of( final Household<GeardIndividual> household,
+		static GeardIndividual of(
+			final GeardHousehold<GeardIndividual> household,
 			final Instant birth, final Gender gender, boolean homeMaker,
 			final Range<Integer> fertilityAges,
 			final Quantity<Time> recoveryPeriod )
@@ -171,7 +165,7 @@ public class GeardDemogScenario implements Scenario
 				}
 
 				@Override
-				public Household<GeardIndividual> household()
+				public GeardHousehold<GeardIndividual> household()
 				{
 					return household;
 				}
@@ -337,16 +331,13 @@ public class GeardDemogScenario implements Scenario
 		final NavigableMap<Integer, BigDecimal> maleDeathRates = GeardDemogConfig
 				.importMap( this.conf.death_rates_male(), 1, Integer::valueOf );
 		this.deathRates = ConditionalDistribution
-				.of( this.distFact::createBernoulli, (GenderAge tuple) -> adjust(
-						QuantityUtil.valueOf(
-								getOrCopyLast(
-										Gender.MALE.equals(
-												tuple.gender() )
-														? maleDeathRates
-														: femaleDeathRates,
-										tuple.age() ),
-								QuantityUtil.PURE ),
-						this.yearsPerDt ) );
+				.of( this.distFact::createBernoulli,
+						( GenderAge tuple ) -> adjust(
+								QuantityUtil.valueOf( getOrCopyLast(
+										tuple.gender().isMale() ? maleDeathRates
+												: femaleDeathRates,
+										tuple.age() ), QuantityUtil.PURE ),
+								this.yearsPerDt ) );
 
 		this.fertility_age_dist = this.distFact
 				.createCategorical( GeardDemogConfig.importFrequencies(
@@ -398,14 +389,14 @@ public class GeardDemogScenario implements Scenario
 		this.momPicker = MotherPicker.of( scheduler );
 		this.pop = HouseholdPopulation.of( "pop",
 				RxCollection.of( new HashSet<GeardIndividual>() ),
-				RxCollection.of( new HashSet<Household<GeardIndividual>>() ),
+				RxCollection
+						.of( new HashSet<GeardHousehold<GeardIndividual>>() ),
 				scheduler );
 		this.pop.events().ofType( Population.Birth.class ).subscribe( b ->
 		{
 			for( GeardIndividual i : ((Population.Birth<GeardIndividual>) b)
 					.arrivals() )
-				if( Gender.FEMALE.equals( i.gender() ) )
-					this.momPicker.register( i );
+				if( i.gender().isFemale() ) this.momPicker.register( i );
 		}, e -> LOG.error( "Problem", e ) );
 //		final ForkJoinPool pool = new ForkJoinPool();
 		final int popSize = this.conf.popSize();
@@ -455,12 +446,12 @@ public class GeardDemogScenario implements Scenario
 	}
 
 	protected GeardIndividual drawIndividual(
-		final Household<GeardIndividual> household, final Instant birth,
+		final GeardHousehold<GeardIndividual> household, final Instant birth,
 		boolean homeMaker )
 	{
 		final Gender gender = this.gender_dist.draw();
-		if( !Gender.FEMALE.equals( gender ) ) return GeardIndividual
-				.of( household, birth, gender, homeMaker, null, null );
+		if( !gender.isFemale() ) return GeardIndividual.of( household, birth,
+				gender, homeMaker, null, null );
 
 		final Range<Integer> fertilityAges = this.ageBirthing.current();
 		final Quantity<Time> recoveryPeriod = this.birthGap.draw();
@@ -472,9 +463,9 @@ public class GeardDemogScenario implements Scenario
 
 	private AtomicInteger hhCount = new AtomicInteger();
 
-	protected Household<GeardIndividual> drawHousehold()
+	protected GeardHousehold<GeardIndividual> drawHousehold()
 	{
-		final Household<GeardIndividual> result = Household.of(
+		final GeardHousehold<GeardIndividual> result = GeardHousehold.of(
 				"hh" + this.hhCount.incrementAndGet(), this.pop,
 				RxCollection.of( new HashSet<>() ) );
 		final Geard2011HouseholdComposition hh_comp = this.hh_comp_dist.draw();
@@ -558,8 +549,9 @@ public class GeardDemogScenario implements Scenario
 			}
 			if( drawLeavingHome( ind, tuple ) )
 			{
-				ind.moveHouse( Household.of( "hh" + System.currentTimeMillis(),
-						this.pop, RxCollection.of( new HashSet<>() ) ) );
+				ind.moveHouse( GeardHousehold.of(
+						"hh" + System.currentTimeMillis(), this.pop,
+						RxCollection.of( new HashSet<>() ) ) );
 				left++;
 			} // else
 			if( drawCoupling( ind, tuple ) )

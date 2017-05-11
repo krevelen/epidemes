@@ -53,7 +53,7 @@ public class MedicalStage extends Id.Ordinal<String>
 	}
 
 	public interface Attributable<THIS extends Attributable<?>>
-		extends Attributed
+		extends Attributed.Publisher
 	{
 		/** propertyName matching bean's getter/setter names */
 		String MEDICAL_STAGE_PROPERTY = "stage";

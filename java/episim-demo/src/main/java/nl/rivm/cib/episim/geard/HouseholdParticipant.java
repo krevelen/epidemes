@@ -17,11 +17,11 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.person;
+package nl.rivm.cib.episim.geard;
 
 import java.util.Collections;
 
-import nl.rivm.cib.episim.model.person.Household.MoveHouse;
+import nl.rivm.cib.episim.geard.GeardHousehold.MoveHouse;
 
 /**
  * {@link HouseholdParticipant} TODO make recursive (Social) Participant
@@ -32,7 +32,7 @@ import nl.rivm.cib.episim.model.person.Household.MoveHouse;
 @Deprecated
 public interface HouseholdParticipant extends Participant
 {
-	Household<? extends HouseholdParticipant> household();
+	GeardHousehold<? extends HouseholdParticipant> household();
 
 	@Override
 	default public Population<?> population()
@@ -42,7 +42,7 @@ public interface HouseholdParticipant extends Participant
 
 	@SuppressWarnings( "unchecked" )
 	default <T extends HouseholdParticipant> void
-		moveHouse( Household<T> newHome )
+		moveHouse( GeardHousehold<T> newHome )
 	{
 		newHome.members().add( (T) this );
 		newHome.emit( DemographicEvent.Builder.of( MoveHouse.class, now() )

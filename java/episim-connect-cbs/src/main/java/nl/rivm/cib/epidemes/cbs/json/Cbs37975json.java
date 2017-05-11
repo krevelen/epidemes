@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
@@ -60,7 +61,7 @@ public class Cbs37975json
 
 	public int countFor( final CBSHousehold comp )
 	{
-		return (Integer) this.props.get( comp.jsonKey );
+		return (Integer) this.props.get( comp.jsonKey() );
 	}
 
 	@JsonProperty( "per" )
@@ -69,6 +70,7 @@ public class Cbs37975json
 	@JsonProperty( "age" )
 	public String referentAge;
 
+	// FIXME create category with getters
 	public Tuple toKeyTuple( final CBSHousehold type )
 	{
 		return Tuple.of( type, this.referentAge );
@@ -76,6 +78,7 @@ public class Cbs37975json
 
 	public WeightedValue<Tuple> toWeightedValue( final CBSHousehold type )
 	{
+		Objects.requireNonNull( type, "missing type" );
 		return WeightedValue.of( toKeyTuple( type ), countFor( type ) );
 	}
 
@@ -83,7 +86,7 @@ public class Cbs37975json
 	public Stream<WeightedValue<Tuple>> asFrequencyStream()
 	{
 		return Arrays.stream( CBSHousehold.values() )
-				.filter( c -> !c.aggregate() ).map( c -> toWeightedValue( c ) );
+				.filter( c -> !c.aggregate() ).map( this::toWeightedValue );
 	}
 
 	@SuppressWarnings( "deprecation" )
@@ -102,7 +105,7 @@ public class Cbs37975json
 	{
 		return Observable.fromArray( CBSHousehold.values() )
 				.subscribeOn( Schedulers.computation() )
-				.filter( c -> !c.aggregate() ).map( c -> toWeightedValue( c ) );
+				.filter( c -> !c.aggregate() ).map( this::toWeightedValue );
 	}
 
 	public static Observable<WeightedValue<Tuple>>

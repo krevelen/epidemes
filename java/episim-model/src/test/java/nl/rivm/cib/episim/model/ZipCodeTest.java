@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNotEquals;
 
 import org.junit.Test;
 
+import nl.rivm.cib.episim.model.locate.ZipCode;
+
 /**
  * {@link ZipCodeTest} tests {@link ZipCode}
  * 

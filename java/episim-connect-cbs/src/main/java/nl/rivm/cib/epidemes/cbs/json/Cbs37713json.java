@@ -21,13 +21,10 @@ package nl.rivm.cib.epidemes.cbs.json;
 
 import java.io.InputStream;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,11 +33,9 @@ import java.util.stream.Stream;
 import javax.measure.quantity.Time;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
@@ -49,7 +44,6 @@ import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.TimeUnits;
 import io.reactivex.Observable;
-import nl.rivm.cib.episim.model.locate.Region;
 
 /**
  * {@link Cbs37713json} helps to import CBS table 37713 data (JSON formatted).
@@ -98,17 +92,17 @@ public class Cbs37713json
 	}
 
 	/** {@code Perioden} as ISO8601 date */
-	@JsonProperty( "since" )
-	@JsonFormat( shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd" )
-	public List<LocalDate> offset;
+//	@JsonProperty( "since" )
+//	@JsonFormat( shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd" )
+//	public List<LocalDate> offsets;
 
 	/** {@code Perioden} as duration (days) */
-	@JsonProperty( "ndays" )
-	public List<Integer> dayCounts;
+//	@JsonProperty( "ndays" )
+//	public List<Integer> dayCounts;
 
 	/** {@code Leeftijd}, range as int[] array */
 	@JsonProperty( "age" )
-	public String ages;
+	public int[] ages;
 
 	/** {@code Herkomstgroepering}, transformed */
 //	@JsonProperty( "ori" )
@@ -117,10 +111,6 @@ public class Cbs37713json
 	/** {@code RegioS} */
 	@JsonProperty( "reg" )
 	public String region;
-
-	/** {@code TotaalParticuliereHuishoudens_1} */
-	@JsonProperty( "pop" )
-	public List<Integer> totals;
 
 	/**
 	 * {@link Category} is {@link Tuple} of entries in the {@link Cbs37713json}
@@ -138,27 +128,23 @@ public class Cbs37713json
 	public static class Category extends Tuple
 	{
 
-		private static Map<String, Region.ID> REGION_ID_CACHE = new TreeMap<>();
-
 		/**
 		 * {@link Category} constructor
 		 * 
 		 * @param values
 		 */
-		public Category( final Cbs37713json entry, final ZonedDateTime offset,
-			final int index )
+		public Category( final Cbs37713json entry, final CBSGender gender )
 		{
 			super( Arrays.asList(
-					// key 1: region
-					REGION_ID_CACHE.computeIfAbsent( entry.region,
-							key -> Region.ID.of( entry.region.trim() ) )
+
+					// key 1
+					entry.region
 
 					// key 2: age bin
-					, Range.of( Integer.parseInt( entry.ages.split( ";" )[0] ),
-							Integer.parseInt( entry.ages.split( ";" )[0] ) + 5 )
+					, Range.of( entry.ages[0], entry.ages[0] + 5 )
 
-					, offset // for filtering
-					, Tuple.of( entry.frequenciesFor( index ) ) // needed for distributions
+					, gender // values
+
 			) );
 		}
 
@@ -168,16 +154,15 @@ public class Cbs37713json
 			return "hh" + JsonUtil.stringify( this );
 		}
 
-		@JsonProperty( "region_id" )
-		public Region.ID regionId()
+		@JsonProperty( "reg" )
+		public String regionRef()
 		{
-			return (Region.ID) super.values().get( 0 );
+			return (String) super.values().get( 0 );
 		}
 
-		@JsonIgnore
 		public CBSRegionType regionType()
 		{
-			return CBSRegionType.parse( regionId().unwrap() );
+			return CBSRegionType.parse( regionRef() );
 		}
 
 		@JsonProperty( "age_range" )
@@ -187,40 +172,10 @@ public class Cbs37713json
 			return (Range<Integer>) super.values().get( 1 );
 		}
 
-		@JsonProperty( "per" )
-		@JsonFormat( shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd" )
-		public ZonedDateTime offset()
+		@JsonProperty( "gender" )
+		public CBSGender gender()
 		{
-			return (ZonedDateTime) super.values().get( 2 );
-		}
-
-		@JsonProperty( "frq" )
-		@SuppressWarnings( "rawtypes" )
-		public List<? extends Comparable> frequencies()
-		{
-			return ((Tuple) super.values().get( 3 )).values();
-		}
-
-		/** @return reconstructed type/frequency combo's */
-		public List<WeightedValue<CBSGender>> genderWeights()
-		{
-			@SuppressWarnings( "rawtypes" )
-			final List<? extends Comparable> freq = frequencies();
-			return Arrays.stream( CBSGender.values() )
-					.map( g -> WeightedValue.of( g,
-							(Number) freq.get( g.ordinal() ) ) )
-					.collect( Collectors.toList() );
-		}
-
-		@JsonIgnore
-		private ProbabilityDistribution<CBSGender> genderDistCache = null;
-
-		public ProbabilityDistribution<CBSGender> genderDist(
-			final Function<List<WeightedValue<CBSGender>>, ProbabilityDistribution<CBSGender>> distFact )
-		{
-			return this.genderDistCache == null
-					? (this.genderDistCache = distFact.apply( genderWeights() ))
-					: this.genderDistCache;
+			return (CBSGender) super.values().get( 2 );
 		}
 
 		@JsonIgnore
@@ -239,56 +194,36 @@ public class Cbs37713json
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public Integer frequenciesFor( final CBSGender comp, final int index )
+	public Number frequencyOf( final CBSGender gender )
 	{
-		final List<Integer> freq = frequenciesFor( comp );
-		if( freq == null ) return Thrower.throwNew( NullPointerException.class,
-				"null values for " + comp + " in " + this );
-		if( freq.size() != this.dayCounts.size() )
-			return Thrower.throwNew( IllegalStateException.class,
-					"Inconsistent values for " + comp + " in " + this );
-		return Objects.requireNonNull( freq.get( index ),
-				"Got null for " + this.region + ":" + this.ages + ":" + index );
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public List<Integer> frequenciesFor( final CBSGender comp )
-	{
-		return (List<Integer>) this.props.computeIfAbsent( comp.jsonKey,
+		return (Number) this.props.computeIfAbsent( gender.jsonKey(),
 				key -> 0 );
 	}
 
-	/**
-	 * @param index
-	 * @return
-	 */
-	private List<Integer> frequenciesFor( final int index )
+	@SuppressWarnings( "unchecked" )
+	public List<Number> frequencies()
 	{
-		return Arrays.stream( CBSGender.values() )
-				.map( g -> frequenciesFor( g, index ) )
+		return Arrays.stream( CBSGender.values() ).map( this::frequencyOf )
 				.collect( Collectors.toList() );
 	}
 
-	public WeightedValue<Category> toWeightedValue( final ZonedDateTime dt,
-		final int index )
+	public WeightedValue<Category> toWeightedValue( final CBSGender gender )
 	{
-		return WeightedValue.of( new Category( this, dt, index ),
-				this.totals.get( index ) );
+		return WeightedValue.of( new Category( this, gender ),
+				frequencyOf( gender ) );
 	}
 
 	@Deprecated
 	public Stream<WeightedValue<Category>>
-		asFrequencyStream( final Range<ZonedDateTime> offsetRange )
+		asFrequencyStream( final Range<LocalDate> offsetRange )
 	{
-		return TimeUtil.indicesFor( this.offset, offsetRange ).entrySet()
-				.stream()
-				.map( e -> toWeightedValue( e.getKey(), e.getValue() ) );
+		return Arrays.stream( CBSGender.values() ).map( this::toWeightedValue );
 	}
 
 	@Deprecated
 	public static Stream<WeightedValue<Category>> readSync(
-		final Callable<InputStream> json,
-		final Range<ZonedDateTime> offsetRange ) throws Exception
+		final Callable<InputStream> json, final Range<LocalDate> offsetRange )
+		throws Exception
 	{
 		try( final InputStream is = json.call() )
 		{
@@ -298,17 +233,14 @@ public class Cbs37713json
 	}
 
 	public Observable<WeightedValue<Category>>
-		asFrequencyObservable( final Range<ZonedDateTime> offsetRange )
+		asFrequencyObservable( final Range<LocalDate> offsetRange )
 	{
-		final Map<ZonedDateTime, Integer> indices = TimeUtil
-				.indicesFor( this.offset, offsetRange );
-		return Observable.fromIterable( indices.entrySet() )
-				.map( e -> toWeightedValue( e.getKey(), e.getValue() ) );
+		return Observable.fromArray( CBSGender.values() )
+				.map( this::toWeightedValue );
 	}
 
 	public static Observable<WeightedValue<Category>> readAsync(
-		final Callable<InputStream> json,
-		final Range<ZonedDateTime> offsetRange )
+		final Callable<InputStream> json, final Range<LocalDate> offsetRange )
 	{
 		return JsonUtil.readArrayAsync( json, Cbs37713json.class )
 				.flatMap( tuple -> tuple.asFrequencyObservable( offsetRange ) );

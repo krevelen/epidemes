@@ -27,6 +27,8 @@ package nl.rivm.cib.epidemes.cbs.json;
  */
 public enum CBSPopulationDynamic
 {
+	/** the population count at period start */
+	POP( "pop_start", false ),
 	/** */
 	BIRTHS( "births", false ),
 	/** */

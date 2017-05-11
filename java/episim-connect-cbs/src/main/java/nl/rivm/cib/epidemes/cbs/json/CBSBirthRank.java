@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,41 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate;
-
-import io.coala.json.Attributed;
+package nl.rivm.cib.epidemes.cbs.json;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link CBSBirthRank}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public enum CBSBirthRank implements CBSJsonProperty
 {
-	Place.ID getPlaceRef();
+	/** */
+	FIRST( "sib_0" ),
+	/** */
+	SECOND( "sib_1" ),
+	/** */
+	THIRD( "sib_2" ),
+	/** */
+	FOURPLUS( "sib_3plus" );
 
-	void setPlaceRef( Place.ID placeRef );
+	private final String jsonKey;
 
-	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
+	private CBSBirthRank( final String jsonKey )
 	{
-		setPlaceRef( placeRef );
-		return (THIS) this;
+		this.jsonKey = jsonKey;
 	}
+
+	@Override
+	public String jsonKey()
+	{
+		return this.jsonKey;
+	}
+	
+	public int rank()
+	{
+		return ordinal();
+	}
+
 }

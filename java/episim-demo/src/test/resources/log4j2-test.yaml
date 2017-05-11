@@ -5,10 +5,10 @@ Configuration:
     Console:
       name: Console
       target: SYSTEM_OUT
+      # see https://logging.apache.org/log4j/2.x/manual/layouts.html#Patterns
       PatternLayout:
-#       Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m%n}"
+#        Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m%n}"
         Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C.%M(%F:%L)]%n}"
-        # see https://logging.apache.org/log4j/2.x/manual/layouts.html#Patterns
 
   Loggers:
     Root:
@@ -18,12 +18,16 @@ Configuration:
     Logger:
       - name: javax.management
         level: warn
+      - name: com.google.inject
+        level: info
       - name: com.zaxxer.hikari
         level: warn
       - name: org.hibernate
-        level: info
+        level: warn
+      - name: org.hibernate.tool.schema.internal
+        level: error
+      - name: org.hibernate.engine.jdbc.spi
+        level: fatal
       - name: hsqldb.db
         level: warn
-      - name: com.google.inject
-        level: info
         

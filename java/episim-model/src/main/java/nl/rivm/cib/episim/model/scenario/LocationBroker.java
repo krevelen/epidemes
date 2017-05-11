@@ -7,13 +7,13 @@ import java.util.function.Function;
 
 import com.eaio.uuid.UUID;
 
+import io.coala.enterprise.Actor;
 import io.coala.exception.ExceptionFactory;
 import io.coala.name.Id;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
-import io.coala.time.Scheduler;
 import io.coala.time.Proactive;
-import nl.rivm.cib.episim.model.Individual;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.locate.Place;
 
 /**
@@ -48,7 +48,7 @@ public interface LocationBroker extends Proactive
 	Registration registerDaycare( Place daycare,
 		Map<Integer, Integer> ageCapacities );
 
-	Registration findDaycare( Individual individual, Instant expiration,
+	Registration findDaycare( Actor.ID individual, Instant expiration,
 		Function<Place, Boolean> onSuggestion );
 
 	/**
@@ -59,7 +59,7 @@ public interface LocationBroker extends Proactive
 	Registration registerSchool( Place school,
 		Map<Integer, Integer> ageCapacities );
 
-	Registration findSchool( Individual individual, Instant expiration,
+	Registration findSchool( Actor.ID individual, Instant expiration,
 		Function<Place, Boolean> onSuggestion );
 
 	/**
@@ -69,7 +69,7 @@ public interface LocationBroker extends Proactive
 	 */
 	Registration registerCollege( Place college, Integer capacity );
 
-	Registration findCollege( Individual individual, Instant expiration,
+	Registration findCollege( Actor.ID individual, Instant expiration,
 		Function<Place, Boolean> onSuggestion );
 
 	/**
@@ -79,7 +79,7 @@ public interface LocationBroker extends Proactive
 	 */
 	Registration registerEmployer( Place office, Integer capacity );
 
-	Registration findEmployment( Individual individual, Instant expiration,
+	Registration findEmployment( Actor.ID individual, Instant expiration,
 		Function<Place, Boolean> onSuggestion );
 
 	/**
@@ -134,7 +134,7 @@ public interface LocationBroker extends Proactive
 		}
 
 		@Override
-		public Registration findDaycare( final Individual individual,
+		public Registration findDaycare( final Actor.ID individual,
 			final Instant expiration,
 			final Function<Place, Boolean> onSuggestion )
 		{
@@ -151,7 +151,7 @@ public interface LocationBroker extends Proactive
 		}
 
 		@Override
-		public Registration findSchool( final Individual individual,
+		public Registration findSchool( final Actor.ID individual,
 			final Instant expiration,
 			final Function<Place, Boolean> onSuggestion )
 		{
@@ -168,7 +168,7 @@ public interface LocationBroker extends Proactive
 		}
 
 		@Override
-		public Registration findCollege( final Individual individual,
+		public Registration findCollege( final Actor.ID individual,
 			final Instant expiration,
 			final Function<Place, Boolean> onSuggestion )
 		{
@@ -185,7 +185,7 @@ public interface LocationBroker extends Proactive
 		}
 
 		@Override
-		public Registration findEmployment( final Individual individual,
+		public Registration findEmployment( final Actor.ID individual,
 			final Instant expiration,
 			final Function<Place, Boolean> onSuggestion )
 		{

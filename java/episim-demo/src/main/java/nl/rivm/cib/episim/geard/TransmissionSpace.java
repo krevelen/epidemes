@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.disease.infection;
+package nl.rivm.cib.episim.geard;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -34,14 +34,22 @@ import io.coala.time.Accumulator;
 import io.coala.time.Instant;
 import io.reactivex.Observable;
 import nl.rivm.cib.episim.model.disease.Afflicted;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
+import nl.rivm.cib.episim.model.disease.infection.Contagion;
+import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+import nl.rivm.cib.episim.model.disease.infection.Occupancy;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
+import nl.rivm.cib.episim.model.disease.infection.Transmission;
+import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
+import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
 
 /**
  * {@link TransmissionSpace}
  * 
+ * @deprecated see {@link Contagium}
  * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
  * @author Rick van Krevelen
  */
+@Deprecated
 public interface TransmissionSpace extends Actor<Transmission>
 {
 

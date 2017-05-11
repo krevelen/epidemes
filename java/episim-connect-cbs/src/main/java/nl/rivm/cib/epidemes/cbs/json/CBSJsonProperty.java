@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,15 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate;
-
-import io.coala.json.Attributed;
+package nl.rivm.cib.epidemes.cbs.json;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link CBSJsonProperty}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public interface CBSJsonProperty
 {
-	Place.ID getPlaceRef();
-
-	void setPlaceRef( Place.ID placeRef );
-
-	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
-	{
-		setPlaceRef( placeRef );
-		return (THIS) this;
-	}
+	String jsonKey();
 }

@@ -17,23 +17,21 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.hesitant;
+package nl.rivm.cib.episim.model.person;
 
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 
 /**
- * {@link Disruption}
+ * {@link Plan} provides a (weekly) routine or process, e.g. working_parent
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Disruption extends Fact
+public interface Plan extends Fact
 {
-	/**
-	 * {@link Disruptor} handles {@link Disruption} execution
-	 */
-	public interface Disruptor extends Actor<Redirection>
+	/** {@link Planner} handles {@link Plan} requests */
+	interface Planner extends Actor<Plan>
 	{
 
 	}

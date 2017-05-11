@@ -20,11 +20,13 @@
 package nl.rivm.cib.episim.model.disease.infection;
 
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.measure.quantity.Frequency;
 
 import org.apache.logging.log4j.Logger;
 
@@ -36,25 +38,20 @@ import io.coala.enterprise.FactKind;
 import io.coala.log.LogUtil;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Duration;
-import io.coala.time.Instant;
-import io.coala.time.TimingMap;
 import io.coala.time.TimeUnits;
-import io.coala.util.Compare;
 import nl.rivm.cib.episim.model.disease.Afflict;
 import nl.rivm.cib.episim.model.disease.Afflicted;
-import nl.rivm.cib.episim.model.disease.ClinicalPhase;
 import nl.rivm.cib.episim.model.disease.Condition;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen.SimpleSEIR;
+import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
 import nl.rivm.cib.episim.model.locate.Place;
-import nl.rivm.cib.episim.model.person.Redirection;
 
 /**
  * Unlike disorders, allergies, or many other (bio)hazards known in etiology of
- * disease, {@link Pathogen}s are microbes living in {@link TransmissionSpace}s
- * and causing infectious/transmissible/communicable/contagious disease
- * {@link Transmission} include viruses, bacteria, fungi, and parasites for
- * which respective {@link Recovery} medications may exist (antibiotics,
- * antivirals, antifungals, and antiprotozoals/antihelminthics)
+ * disease, {@link Pathogen}s are microbes living in {@link Contagium}s, causing
+ * {@link Transmission} of infectious/transmissible/communicable/contagious
+ * disease. {@link Pathogen}s include viruses, bacteria, fungi, and parasites
+ * for which respective {@link Recovery} medications may exist (antibiotics,
+ * antivirals, antifungals, and antiprotozoals/antihelminthics).
  * 
  * <p>
  * Some terminology from
@@ -101,62 +98,8 @@ import nl.rivm.cib.episim.model.person.Redirection;
  * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
  * @author Rick van Krevelen
  */
-public interface Pathogen extends Actor<Pathogen.Transmission>
+public interface Pathogen extends Actor<Transmission>
 {
-
-	/**
-	 * {@link Transmission} initiated by some {@link Pathogen} represents its
-	 * attempt to invade a (secondary) {@link Afflicted} host, e.g. during their
-	 * {@link Occupancy} to a {@link TransmissionSpace}, having:
-	 * 
-	 * <li>{@link #id()}: fact identifier
-	 * <li>{@link #transaction()}: links initiator {@link Pathogen} &hArr;
-	 * executor {@link Afflicted}
-	 * <li>{@link #causeRef()}: reference to cause, e.g. some {@link Occupancy}
-	 * <li>{@link #kind()}
-	 * <ul>
-	 * <li>pressure ({@link FactKind#REQUESTED rq}) &rArr; invasion
-	 * ({@link FactKind#STATED st}) or escape (either explicit
-	 * {@link FactKind#DECLINED dc} or implicit {@link #expiration() expire})
-	 * </ul>
-	 * <li>{@link #getForce()} or <em>force of infection</em> to quantify the
-	 * {@link Pathogen}'s <em>infection pressure</em> upon the executing
-	 * {@link Afflicted} host's immune system {@link Condition}
-	 * 
-	 * @version $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
-	 * @author Rick van Krevelen
-	 */
-	public interface Transmission extends Afflict
-	{
-
-		/**
-		 * the <em>force of infection</em> expressed in a (dimensionless)
-		 * likelihood of invasion (assuming susceptible immune system), e.g.:
-		 * <li>{@code 1} for deterministic/unavoidable, or
-		 * <li>a fraction of (average) no. infectious per total occupancy
-		 * 
-		 * @return a dimensionless force of infection &isin; &lang;0,1]
-		 */
-		Number getForce();
-
-		/**
-		 * @return the {@link TimingMap} of {@link EpidemicCompartment} executed
-		 *         upon invasion
-		 */
-		TimingMap<EpidemicCompartment> getEpidemiology();
-
-		/**
-		 * @return the {@link TimingMap} of {@link ClinicalPhase} executed upon
-		 *         invasion
-		 */
-		TimingMap<ClinicalPhase> getPathology();
-
-		/**
-		 * @return the {@link TimingMap} of {@link Serostatus} executed upon
-		 *         invasion
-		 */
-		TimingMap<Serostatus> getSerology();
-	}
 
 	/**
 	 * {@link Recovery} transactions initiated by some {@link Afflicted} host
@@ -232,9 +175,9 @@ public interface Pathogen extends Actor<Pathogen.Transmission>
 		{
 			// handle response from Afflicted/Condition
 			emit( Transmission.class, FactKind.STATED )
-			.subscribe( this::onInvasion, this::onError );
+					.subscribe( this::onInvasion, this::onError );
 			emit( Transmission.class, FactKind.DECLINED )
-			.subscribe( this::onEscape, this::onError );
+					.subscribe( this::onEscape, this::onError );
 
 		}
 

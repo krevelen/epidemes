@@ -19,28 +19,19 @@
  */
 package nl.rivm.cib.episim.model.locate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import io.coala.json.DynaBean;
 import io.coala.math.LatLong;
 import io.coala.name.Id;
 import io.coala.name.Identified;
-import nl.rivm.cib.episim.model.ZipCode;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
 
 /**
- * {@link Place} is a stationary {@link TransmissionSpace} located in a
- * geographical region and position
+ * {@link Place} is a stationary inert space with a {@link ID} reference
  * 
  * 
  * @version $Id: 7d10f131de96809298e2af9ae72b548a24a90817 $
  * @author Rick van Krevelen
  */
-public interface Place extends Identified<Place.ID>
+public interface Place extends Identified.Ordinal<Place.ID>
 {
 	class ID extends Id.Ordinal<String>
 	{
@@ -48,24 +39,6 @@ public interface Place extends Identified<Place.ID>
 		{
 			return Util.of( value, new ID() );
 		}
-	}
-	
-	TransmissionSpace space();
-
-	/** @return the global centroid {@link LatLong} */
-	LatLong centroid();
-
-	Map<Geography, Region> regions();
-
-	/**
-	 * @return the default/admin region, or first known
-	 */
-	default Region region()
-	{
-		return regions() == null || regions().isEmpty() ? null
-				: regions().containsKey( Geography.DEFAULT )
-						? regions().get( Geography.DEFAULT )
-						: regions().values().iterator().next();
 	}
 
 	/**
@@ -77,81 +50,40 @@ public interface Place extends Identified<Place.ID>
 	}
 
 	/**
+	 * @param id the {@link ID}
+	 * @return a {@link Place}
+	 */
+	static Simple of( final ID id )
+	{
+		return new Simple( id );
+	}
+
+	/**
 	 * @param position the (centroid) {@link LatLong} position
 	 * @param zip the {@link ZipCode}, if any
 	 * @param region the {@link Region}
 	 * @return a {@link Place}
 	 */
-	public static Place of( final ID id, final LatLong position,
-		final Region region, final Geography... geographies )
+	static Geo of( final ID id, final LatLong position, final Region.ID region,
+		final Geography geography )
 	{
-		return of( id, position,
-				geographies == null || geographies.length == 0
-						? Collections.singletonMap( Geography.DEFAULT, region )
-						: Arrays.stream( geographies ).collect(
-								Collectors.toMap( g -> g, g -> region ) ) );
-	}
-
-	/**
-	 * @param id the {@link ID}
-	 * @param position the (centroid) {@link LatLong} position
-	 * @param region the {@link Region}
-	 * @return a {@link Place}
-	 */
-	public static Place of( final ID id, final LatLong position,
-		final Map<Geography, Region> regions )
-	{
-		return new Simple( id, position, regions );
+		return DynaBean.proxyOf( Geo.class ).with( id ).with( position )
+				.with( geography ).with( region );
 	}
 
 	class Simple extends Identified.SimpleOrdinal<ID> implements Place
 	{
-		private LatLong position;
-		private Map<Geography, Region> regions;
-
-		public Simple( final ID id, final LatLong position,
-			final Map<Geography, Region> regions )
+		public Simple( final ID id )
 		{
 			this.id = id;
-			this.position = position;
-			this.regions = regions;
 		}
+	}
 
-		@Override
-		public LatLong centroid()
-		{
-			return this.position;
-		}
-
-		@Override
-		public Map<Geography, Region> regions()
-		{
-			return this.regions;
-		}
-
-		@Override
-		public TransmissionSpace space()
-		{
-			// TODO Auto-generated method stub
-			return null;
-		}
-	};
-
-	static Iterable<Place> sortByDistance( final Iterable<Place> places,
-		final LatLong origin )
+	interface Geo extends Place, Geometric<Geo>, Geographic<Geo>
 	{
-		final List<Place> result = new ArrayList<>();
-		for( Place place : places )
-			result.add( place );
-
-		Collections.sort( result, ( place1, place2 ) ->
+		default Geo with( final ID id )
 		{
-			final LatLong p1 = place1.centroid();
-			final LatLong p2 = place2.centroid();
-			if( p1.getCoordinates().equals( p2.getCoordinates() ) ) return 0;
-			return origin.angularDistance( p1 )
-					.compareTo( origin.angularDistance( p2 ) );
-		} );
-		return result;
+			return with( Identified.ID_JSON_PROPERTY, id, Geo.class );
+		}
 	}
 }

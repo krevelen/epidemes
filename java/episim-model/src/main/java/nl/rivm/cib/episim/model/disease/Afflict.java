@@ -20,12 +20,11 @@
 package nl.rivm.cib.episim.model.disease;
 
 import io.coala.enterprise.Fact;
-import io.coala.name.Id;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
  * {@link Afflict} interactions represent pathogenesis and disease development
- * between initiator {@link Pathogen} &hArr; executor {@link Afflicted}
+ * between (initiator) {@link Pathogen} &hArr; (executor) {@link Afflicted}
  * 
  * @version $Id$
  * @author Rick van Krevelen

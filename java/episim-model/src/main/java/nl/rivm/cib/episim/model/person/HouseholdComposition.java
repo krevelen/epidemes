@@ -19,16 +19,34 @@
  */
 package nl.rivm.cib.episim.model.person;
 
-import io.coala.time.Proactive;
-
 /**
- * {@link Participant}
+ * {@link HouseholdComposition} the Java contract
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Participant extends Proactive
+public interface HouseholdComposition
 {
 
-	Population<?> population();
+	/** @return {@code true} for aggregates */
+	boolean aggregate();
+
+	/** @return the number of adults incl. (step/adoptive) parents */
+	int adultCount();
+
+	/** @return {@code true} for a registered (married/cohabiting) couple */
+	default boolean couple()
+	{
+		return adultCount() == 2;
+	}
+
+	/** @return {@code true} for a registered (married/cohabiting) couple */
+	boolean registered();
+
+	/** @return the number of children, incl. step/adopted, excl. foster */
+	int childCount();
+
+	/** @return {@code true} if more than {@link #kids} are allowed */
+	boolean more();
+
 }

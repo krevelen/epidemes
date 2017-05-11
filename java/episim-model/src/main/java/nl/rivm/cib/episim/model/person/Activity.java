@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,24 +17,22 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate.travel;
+package nl.rivm.cib.episim.model.person;
 
-import io.coala.time.Duration;
-import io.coala.time.Signal;
-import nl.rivm.cib.episim.model.locate.Locatable;
-import nl.rivm.cib.episim.model.locate.Place;
+import io.coala.enterprise.Actor;
+import io.coala.enterprise.Fact;
 
 /**
- * {@link Transportable}
- *
- * @version $Date$
+ * {@link Activity} triggers actions like movement or contact
+ * 
+ * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Transportable extends Locatable
+public interface Activity extends Fact
 {
+	/** {@link Activator} handles {@link Activity} requests */
+	interface Activator extends Actor<Activity>
+	{
 
-	Signal<Vehicle> vehicle();
-
-	void moveTo( Place newSpace, Vehicle transport, Duration travelTime );
-
+	}
 }

@@ -19,11 +19,7 @@
  */
 package nl.rivm.cib.episim.model.vaccine.attitude;
 
-import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
-import io.coala.enterprise.FactKind;
-import io.coala.log.LogUtil;
-import io.coala.time.Timed;
 import nl.rivm.cib.episim.model.vaccine.Vaccine;
 
 /**
@@ -36,41 +32,24 @@ import nl.rivm.cib.episim.model.vaccine.Vaccine;
 public interface Immunizable
 {
 
-	Attitude attitudeOn( VaccinationOccasion request );
-
-	default void handleOpportunities( Actor<VaccinationOccasion> target )
-	{
-		target.emit( FactKind.REQUESTED )
-				.subscribe( rq ->
-				{
-					if( !attitudeOn( rq ).isPositive() )
-					{
-						target.respond( rq, FactKind.DECLINED ).commit();
-						return;
-					}
-//					final VaccinationOccasion pm = 
-							target.respond( rq, FactKind.PROMISED ).commit();
-					// TODO schedule logistics (getting to the occasion, stating success, accepting result, etc)
-				}, e -> LogUtil.getLogger( Immunizable.class ).error( "Problem",
-						e ) );
-	}
-
-	/**
-	 * {@link Attitude} or stance may be dynamic, reflecting e.g. cumulative
-	 * experiences such as perceived safety/risk or influence from opinions
-	 * observed from the social network
-	 * 
-	 * @version $Id$
-	 * @author Rick van Krevelen
-	 */
-	interface Attitude extends Timed//Proactive
-	{
-
-		/**
-		 * @return {@code true} if this {@link Attitude} is (currently) positive
-		 */
-		boolean isPositive();
-	}
+//	Attitude attitudeOn( VaccinationOccasion request );
+//
+//	default void handleOpportunities( Actor<VaccinationOccasion> target )
+//	{
+//		target.emit( FactKind.REQUESTED )
+//				.subscribe( rq ->
+//				{
+//					if( !attitudeOn( rq ).isPositive() )
+//					{
+//						target.respond( rq, FactKind.DECLINED ).commit();
+//						return;
+//					}
+////					final VaccinationOccasion pm = 
+//							target.respond( rq, FactKind.PROMISED ).commit();
+//					// TODO schedule logistics (getting to the occasion, stating success, accepting result, etc)
+//				}, e -> LogUtil.getLogger( Immunizable.class ).error( "Problem",
+//						e ) );
+//	}
 
 	/**
 	 * {@link VaccinationOccasion} is a transaction kind for which requests may

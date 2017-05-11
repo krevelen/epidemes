@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.person;
+package nl.rivm.cib.episim.geard;
 
 import java.util.Objects;
 
@@ -38,15 +38,15 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 	extends Population<T>
 {
 
-	RxCollection<Household<T>> households();
+	RxCollection<GeardHousehold<T>> households();
 
-	default void onImmigration( final Household<T> immigrants )
+	default void onImmigration( final GeardHousehold<T> immigrants )
 	{
 		Objects.requireNonNull( immigrants );
 		immigrate( immigrants.members() );
 	}
 
-	default void onEmigration( final Household<T> emigrants )
+	default void onEmigration( final GeardHousehold<T> emigrants )
 	{
 		Objects.requireNonNull( emigrants );
 		immigrate( emigrants.members() );
@@ -54,7 +54,7 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 
 	static <T extends HouseholdParticipant> HouseholdPopulation<T> of(
 		final String name, final RxCollection<T> members,
-		final RxCollection<Household<T>> households, final Scheduler scheduler )
+		final RxCollection<GeardHousehold<T>> households, final Scheduler scheduler )
 	{
 		return new HouseholdPopulation<T>()
 		{
@@ -94,7 +94,7 @@ public interface HouseholdPopulation<T extends HouseholdParticipant>
 			}
 
 			@Override
-			public RxCollection<Household<T>> households()
+			public RxCollection<GeardHousehold<T>> households()
 			{
 				return households;
 			}

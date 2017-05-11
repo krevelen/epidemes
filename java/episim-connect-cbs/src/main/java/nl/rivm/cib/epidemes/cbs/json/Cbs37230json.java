@@ -22,7 +22,6 @@ package nl.rivm.cib.epidemes.cbs.json;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +50,8 @@ import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.TimeUnits;
 import io.reactivex.Observable;
-import nl.rivm.cib.episim.model.locate.Region;
+import nl.rivm.cib.episim.cbs.RegionPeriod;
+import nl.rivm.cib.episim.cbs.TimeUtil;
 
 /**
  * {@link Cbs37230json} helps to import CBS table 37230ned data (JSON
@@ -146,10 +146,6 @@ public class Cbs37230json
 	@JsonProperty( "ndays" )
 	public List<Integer> dayCounts;
 
-	/** the population count, not required */
-	@JsonProperty( "pop_start" )
-	public List<Integer> populationAtStart;
-
 	/**
 	 * Assumes Jackson's mapped Java type for JSON arrays is {@link List}, i.e.
 	 * {@link DeserializationFeature#USE_JAVA_ARRAY_FOR_JSON_ARRAY} is disabled
@@ -182,25 +178,21 @@ public class Cbs37230json
 	public static class Category extends Tuple
 	{
 
-		private static Map<String, Region.ID> REGION_ID_CACHE = new TreeMap<>();
-
 		/**
 		 * {@link Category} constructor
 		 * 
 		 * @param values
 		 */
-		public Category( final Cbs37230json entry, final ZonedDateTime offset,
-			//final Integer nDays, final Comparable<?> value
-			final int index, final CBSPopulationDynamic metric )
+		public Category( final Cbs37230json entry,
+			final CBSPopulationDynamic metric, final int index )
 		{
-			super( Arrays.asList( REGION_ID_CACHE.computeIfAbsent( entry.region,
-					key -> Region.ID.of( entry.region.trim() ) )
+			super( Arrays.asList(
 
-					, offset // for filtering
-					, entry.dayCounts.get( index ) // needed for frequency
-					, metric,
-					metric == null ? entry.populationAtStart.get( index )
-							: entry.frequenciesFor( metric ).get( index ) // needed for distributions
+					RegionPeriod.of( entry.region, entry.offset ) // key
+
+					, entry.dayCounts.get( index ) // calculate frequency/rate
+					, metric, // value filter
+					entry.frequenciesFor( metric ).get( index ) // value
 			) );
 		}
 
@@ -210,40 +202,45 @@ public class Cbs37230json
 			return "cbs37230" + JsonUtil.stringify( this );
 		}
 
-		@JsonProperty( "reg" )
-		public Region.ID regionId()
+		public RegionPeriod regionPeriod()
 		{
-			return (Region.ID) super.values().get( 0 );
+			return (RegionPeriod) super.values().get( 0 );
+		}
+
+		@JsonProperty( "reg" )
+		public String regionRef()
+		{
+			return (String) regionPeriod().regionRef();
 		}
 
 		public CBSRegionType regionType()
 		{
-			return CBSRegionType.parse( regionId().unwrap() );
+			return CBSRegionType.parse( regionPeriod().regionRef() );
 		}
 
-		@JsonProperty( "mon" )
-		@JsonFormat( shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM" )
-		public ZonedDateTime offset()
+		@JsonProperty( "per" )
+		@JsonFormat( shape = JsonFormat.Shape.STRING, pattern = "yyyy" )
+		public LocalDate offset()
 		{
-			return (ZonedDateTime) super.values().get( 1 );
+			return regionPeriod().periodRef();
 		}
 
 		@JsonProperty( "dur" )
 		public Integer dayCount()
 		{
-			return (Integer) super.values().get( 2 );
+			return (Integer) super.values().get( 1 );
 		}
 
 		@JsonProperty( "kpi" )
 		public CBSPopulationDynamic metric()
 		{
-			return (CBSPopulationDynamic) super.values().get( 3 );
+			return (CBSPopulationDynamic) super.values().get( 2 );
 		}
 
 		@JsonProperty( "val" )
 		public Integer value()
 		{
-			return (Integer) super.values().get( 4 );
+			return (Integer) super.values().get( 3 );
 		}
 
 		@JsonIgnore
@@ -269,70 +266,60 @@ public class Cbs37230json
 
 	}
 
-	public Category toTuple( final ZonedDateTime offset, final int index,
-		final CBSPopulationDynamic metric )
+	private WeightedValue<Category>
+		toWeightedValue( final CBSPopulationDynamic metric, final int index )
 	{
-		return new Category( this, offset, index, metric );
+		return WeightedValue.of( new Category( this, metric, index ),
+				frequenciesFor( metric ).get( index ) );
 	}
 
 	/**
-	 * @param weightedBy the {@linkCBSPopulationChange} frequency metric to use
-	 *            as weights, or null for {@link #populationAtStart}
+	 * @param metric the {@linkCBSPopulationChange} frequency metric to use as
+	 *            weights
 	 * @param offsetRange the offset range, or {@code null} for all available
 	 * @return the resolved/truncated offsets and respective weighted tuples
 	 */
 	@Deprecated
 	public Stream<WeightedValue<Category>> asFrequencyStream(
-		final CBSPopulationDynamic weightedBy,
-		final Range<ZonedDateTime> offsetRange )
+		final CBSPopulationDynamic metric, final Range<LocalDate> offsetRange )
 	{
-		final List<? extends Number> weights = weightedBy == null
-				? this.populationAtStart : frequenciesFor( weightedBy );
 		return TimeUtil.indicesFor( this.offset, this.dayCounts, offsetRange )
-				.entrySet().stream()
-				.map( e -> WeightedValue.of(
-						toTuple( e.getKey(), e.getValue(), weightedBy ),
-						weights.get( e.getValue() ) ) );
+				.values().stream().map( e -> toWeightedValue( metric, e ) );
 	}
 
 	/**
-	 * @param weightedBy the {@linkCBSPopulationChange} frequency metric to use
-	 *            as weights, or null for {@link #populationAtStart}
+	 * @param metric the {@linkCBSPopulationChange} frequency metric to use as
+	 *            weights
 	 * @param offsetRange the offset range, or {@code null} for all available
 	 * @return the resolved/truncated offsets and respective weighted tuples
 	 */
 	@Deprecated
 	public static Stream<WeightedValue<Category>> readSync(
-		final Callable<InputStream> json, final CBSPopulationDynamic weightedBy,
-		final Range<ZonedDateTime> offsetRange ) throws Exception
+		final Callable<InputStream> json, final CBSPopulationDynamic metric,
+		final Range<LocalDate> offsetRange ) throws Exception
 	{
 		try( final InputStream is = json.call() )
 		{
 			return Arrays.stream( JsonUtil.valueOf( is, Cbs37230json[].class ) )
-					.flatMap( tuple -> tuple.asFrequencyStream( weightedBy,
+					.flatMap( tuple -> tuple.asFrequencyStream( metric,
 							offsetRange ) );
 		}
 	}
 
 	/**
-	 * @param weightedBy the {@linkCBSPopulationChange} frequency metric to use
-	 *            as weights, or null for {@link #populationAtStart}
+	 * @param metric the {@linkCBSPopulationChange} frequency metric to use as
+	 *            weights
 	 * @param offsetRange the offset range, or {@code null} for all available
 	 * @return the resolved/truncated offsets and respective weighted tuples
 	 */
 	public Observable<WeightedValue<Category>> asFrequencyObservable(
-		final CBSPopulationDynamic weightedBy,
-		final Range<ZonedDateTime> offsetRange )
+		final CBSPopulationDynamic metric, final Range<LocalDate> offsetRange )
 	{
-		final List<? extends Number> weights = weightedBy == null
-				? this.populationAtStart : frequenciesFor( weightedBy );
 		return Observable
 				.fromIterable( TimeUtil
 						.indicesFor( this.offset, this.dayCounts, offsetRange )
-						.entrySet() )
-				.map( e -> WeightedValue.of(
-						toTuple( e.getKey(), e.getValue(), weightedBy ),
-						weights.get( e.getValue() ) ) );
+						.values() )
+				.map( e -> toWeightedValue( metric, e ) );
 	}
 
 	/**
@@ -342,12 +329,12 @@ public class Cbs37230json
 	 * @return the resolved/truncated offsets and respective weighted tuples
 	 */
 	public static Observable<WeightedValue<Category>> readAsync(
-		final Callable<InputStream> json, final CBSPopulationDynamic weightedBy,
-		final Range<ZonedDateTime> offsetRange )
+		final Callable<InputStream> json, final Range<LocalDate> offsetRange,
+		final Observable<CBSPopulationDynamic> metrics )
 	{
 		return JsonUtil.readArrayAsync( json, Cbs37230json.class )
-				.flatMap( tuple -> tuple.asFrequencyObservable( weightedBy,
-						offsetRange ) );
+				.flatMap( tuple -> metrics.flatMap( metric -> tuple
+						.asFrequencyObservable( metric, offsetRange ) ) );
 	}
 
 	/**
@@ -357,15 +344,12 @@ public class Cbs37230json
 	 * @return the resolved/truncated offsets and respective weighted tuples
 	 */
 	public static Observable<WeightedValue<Category>> readAsync(
-		final Callable<InputStream> json,
-		final Range<ZonedDateTime> offsetRange,
+		final Callable<InputStream> json, final Range<LocalDate> offsetRange,
 		final CBSPopulationDynamic... metrics )
 	{
-		final Observable<CBSPopulationDynamic> list = metrics == null
-				? Observable.just( (CBSPopulationDynamic) null )
-				: Observable.fromArray( metrics );
-		return JsonUtil.readArrayAsync( json, Cbs37230json.class )
-				.flatMap( tuple -> list.flatMap( metric -> tuple
-						.asFrequencyObservable( metric, offsetRange ) ) );
+		return readAsync( json, offsetRange,
+				metrics == null || metrics.length == 0
+						? Observable.just( CBSPopulationDynamic.POP )
+						: Observable.fromArray( metrics ) );
 	}
 }

@@ -23,7 +23,6 @@ import io.coala.time.Timing;
 import nl.rivm.cib.episim.hesitant.Advice.Advisor;
 import nl.rivm.cib.episim.hesitant.Motivation.Motivator;
 import nl.rivm.cib.episim.hesitant.Opinion.Opinionator;
-import nl.rivm.cib.episim.hesitant.Redirection.GoalType;
 import nl.rivm.cib.episim.hesitant.Redirection.Redirector;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 
@@ -172,7 +171,7 @@ public class HesitantScenario implements Scenario
 			LOG.trace( "{}", this.myVaccinationDelay.draw() );
 
 		// configure parental relations TODO from social network config?
-		kid.specialist( Redirector.class ).consultAdvisors( rivm.id() )
+		kid.subRole( Redirector.class ).consultAdvisors( rivm.id() )
 				.consultPersons( mom.id(), dad.id() );
 
 //		final Map<Actor.ID, Level> relationWeights = new HashMap<>();
@@ -207,7 +206,7 @@ public class HesitantScenario implements Scenario
 	private Actor<Fact> initHealth( final String name ) throws ParseException
 	{
 		final Actor<Fact> org = this.actorFactory.create( name );
-		final Advisor advisor = org.specialist( Advisor.class );
+		final Advisor advisor = org.subRole( Advisor.class );
 		final NavigableSet<VaxRegistrant> cohorts = new ConcurrentSkipListSet<>();
 
 		// self-initiate national campaign Advice 
@@ -251,23 +250,24 @@ public class HesitantScenario implements Scenario
 		// add Motivation execution behavior
 		org.specialist( Motivator.class, motivator ->
 		{
-			motivator.withAttitude( this.personHesitancyDist.draw() )
+			motivator.with( this.personHesitancyDist.draw() )
 					.emit( FactKind.REQUESTED ).subscribe( rq ->
 					{
-						motivator.getAttitude().observeRisk( rq.creatorRef(),
-								rq.getConfidence(), rq.getComplacency() );
-						rq.getOccasions()
-								.stream().filter( occ -> !motivator
-										.getAttitude().isHesitant( occ ) )
-								.forEach( occ ->
-								{
-									motivator
-											.initiate( Redirection.class,
-													org.id() )
-											.with( GoalType.VACCINATE )
-											.commit();
-									// TODO implement Goal handling
-								} );
+//						final VaxHesitancy att = (VaxHesitancy)rq.getAttitude();
+//						motivator.getAttitude().observeRisk( rq.creatorRef(),
+//								att.getConfidence(), att.getComplacency() );
+//						rq.getOccasions()
+//								.stream().filter( occ -> !motivator
+//										.getAttitude().isHesitant( occ ) )
+//								.forEach( occ ->
+//								{
+//									motivator
+//											.initiate( Redirection.class,
+//													org.id() )
+//											.with( GoalType.VACCINATE )
+//											.commit();
+//									// TODO implement Goal handling
+//								} );
 
 					}, HesitantScenario::logError );
 		} );

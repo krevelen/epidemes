@@ -20,10 +20,8 @@
 package nl.rivm.cib.epidemes.pilot;
 
 import java.io.IOException;
-import java.util.Collections;
 
 import javax.naming.NamingException;
-import javax.persistence.EntityManagerFactory;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
@@ -53,9 +51,10 @@ import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
+import io.coala.util.MapBuilder;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.locate.travel.Vehicle;
+import nl.rivm.cib.episim.model.locate.Transporter;
 import nl.rivm.cib.episim.pilot.OutbreakScenario;
 import nl.rivm.cib.episim.pilot.OutbreakScenario.MyDirectory;
 
@@ -155,12 +154,11 @@ public class OutbreakScenarioTest
 		LOG.info( "Starting measles test" );
 
 		// configure replication FIXME via LocalConfig?
-		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
-				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 1 ) );
+		ConfigCache.getOrCreate( ReplicateConfig.class, MapBuilder.unordered()
+				.put( ReplicateConfig.DURATION_KEY, "" + 1 )
+				.put( ReplicateConfig.OFFSET_KEY, "2012-01-01" ).build() );
 
 		// connect and setup database persistence
-		final EntityManagerFactory EMF = ConfigCache
-				.getOrCreate( MyORMConfig.class ).createEMF();
 
 		// load scenario
 		final LocalBinder binder = LocalConfig.builder().withId( "outbreak1" )
@@ -183,17 +181,24 @@ public class OutbreakScenarioTest
 						Transaction.Factory.LocalCaching.class )
 				.withProvider( Fact.Factory.class,
 						Fact.Factory.SimpleProxies.class )
-				.withProvider( FactBank.class, FactBank.SimpleJPA.class )
-				.withProvider( FactExchange.class,
-						FactExchange.SimpleBus.class )
+				.withProvider( FactBank.class,
+//						FactBank.SimpleJPA.class 
+//						FactBank.SimpleCache.class
+						FactBank.SimpleDrain.class
+				//
+				).withProvider( FactExchange.class, FactExchange.SimpleBus.class )
 
 				// epidemes API
 				.withProvider( Region.Directory.class, MyDirectory.class )
 				.withProvider( Place.Directory.class, MyDirectory.class )
-				.withProvider( Vehicle.Directory.class, MyDirectory.class )
+				.withProvider( Transporter.Directory.class, MyDirectory.class )
 
-				.build().createBinder( Collections
-						.singletonMap( EntityManagerFactory.class, EMF ) );
+				.build().createBinder(
+		//
+//						Collections.singletonMap( EntityManagerFactory.class, ConfigCache
+//						.getOrCreate( MyORMConfig.class ).createEMF() )
+		//
+		);
 
 		binder.inject( FactExchange.class ).snif()
 				.subscribe( f -> LOG.trace( "Sniffed {}", f ) );
@@ -207,7 +212,6 @@ public class OutbreakScenarioTest
 //			LOG.info( "Got DB entries: {}", FactDao.class );
 //		} );
 
-		EMF.close();
 		LOG.info( "Completed measles test" );
 	}
 

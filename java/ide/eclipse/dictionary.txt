@@ -189,3 +189,4 @@ venue
 serologic
 undulation
 geoidal
+contagium

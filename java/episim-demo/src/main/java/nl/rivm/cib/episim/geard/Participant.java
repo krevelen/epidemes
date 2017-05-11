@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,19 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate;
+package nl.rivm.cib.episim.geard;
 
-import io.coala.json.Attributed;
+import io.coala.time.Proactive;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link Participant}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public interface Participant extends Proactive
 {
-	Place.ID getPlaceRef();
 
-	void setPlaceRef( Place.ID placeRef );
-
-	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
-	{
-		setPlaceRef( placeRef );
-		return (THIS) this;
-	}
+	@SuppressWarnings( "deprecation" )
+	Population<?> population();
 }

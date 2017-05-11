@@ -19,33 +19,46 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
-import nl.rivm.cib.episim.model.person.Gender;
+import javax.measure.quantity.Time;
+
+import io.coala.math.QuantityUtil;
+import io.coala.math.Range;
+import io.coala.time.TimeUnits;
+import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link CBSGender}
+ * {@link CBSMotherAgeRange}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum CBSGender implements CBSJsonProperty, Gender
+public enum CBSMotherAgeRange implements CBSJsonProperty
 {
-	MALE( "mal" ),
 
-	FEMALE( "fem" ),
-
-	;
+	/** */
+	Y0_20( "age_0_20", "[0;20)" ),
+	/** */
+	Y20_25( "age_20_25", "[20;25)" ),
+	/** */
+	Y25_30( "age_25_30", "[25;30)" ),
+	/** */
+	Y30_35( "age_30_35", "[30;35)" ),
+	/** */
+	Y35_40( "age_35_40", "[35;40)" ),
+	/** */
+	Y40_45( "age_40_45", "[40;45)" ),
+	/** */
+	Y40_PLUS( "age_45plus", "[45;60]" );
 
 	private final String jsonKey;
 
-	private CBSGender( final String jsonKey )
+	private final Range<ComparableQuantity<Time>> cutoff;
+
+	private CBSMotherAgeRange( final String jsonKey, final String cutoff )
 	{
 		this.jsonKey = jsonKey;
-	}
-
-	@Override
-	public String id()
-	{
-		return name();
+		this.cutoff = Range.parse( cutoff, Integer.class )
+				.map( v -> QuantityUtil.valueOf( v, TimeUnits.ANNUM ) );
 	}
 
 	@Override
@@ -54,15 +67,8 @@ public enum CBSGender implements CBSJsonProperty, Gender
 		return this.jsonKey;
 	}
 
-	@Override
-	public boolean isMale()
+	public Range<ComparableQuantity<Time>> range()
 	{
-		return this == MALE;
-	}
-
-	@Override
-	public boolean isFemale()
-	{
-		return this == FEMALE;
+		return this.cutoff;
 	}
 }

@@ -19,22 +19,18 @@
  */
 package nl.rivm.cib.episim.hesitant;
 
-import java.util.Arrays;
-import java.util.List;
-
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import nl.rivm.cib.episim.hesitant.Advice.Advisor;
 import nl.rivm.cib.episim.hesitant.Information.Informer;
 import nl.rivm.cib.episim.hesitant.Opinion.Opinionator;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
+import nl.rivm.cib.episim.model.vaccine.attitude.Attitude;
 
 /**
  * T14 {@link Motivation} transactions are initiated by:
  * <ul>
- * <li>another O01 {@link PersonConfig}'s A13 {@link Opinionator} (e.g.
- * persuade a, relative, colleague, or other social network relation);</li>
+ * <li>another O01 {@link PersonConfig}'s A13 {@link Opinionator} (e.g. persuade
+ * a, relative, colleague, or other social network relation);</li>
  * <li>some O04 Inform organization's A40 {@link Informer}; or</li>
  * <li>some O05 Health organization's A50 {@link Advisor}.
  * </ul>
@@ -42,78 +38,71 @@ import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Motivation extends Fact
+public interface Motivation extends Fact, Attitude.Attributable<Motivation>
 {
 	/**
 	 * A14 {@link Motivator} handles T14 {@link Motivation} execution,
 	 * occasionally initiating a {@link Redirection}
 	 */
-	public interface Motivator extends Actor<Motivation>
+	public interface Motivator
+		extends Actor<Motivation>, Attitude.Attributable<Motivator>
 	{
-
-		/** @return the {@link VaxHesitancy} */
-		VaxHesitancy getAttitude();
-
-		default Motivation.Motivator withAttitude( final VaxHesitancy hes )
-		{
-			return with( "attitude", hes );
-		}
 
 	}
 
-	Number getConfidence();
+//	Number getConfidence();
+//
+//	default Motivation withConfidence( final Number confidence )
+//	{
+//		return with( "confidence", confidence );
+//	}
+//
+//	Number getComplacency();
+//
+//	default Motivation withComplacency( final Number complacency )
+//	{
+//		return with( "complacency", complacency );
+//	}
+//
+//	default Motivation withAttitude( final VaxHesitancy hes )
+//	{
+//		return withConfidence( hes.getConfidence() )
+//				.withComplacency( hes.getComplacency() );
+//	}
 
-	default Motivation withConfidence( final Number confidence )
-	{
-		return with( "confidence", confidence );
-	}
+//	/** @return {@link List} of the {@link VaxDose}s remaining */
+//	List<VaxDose> getRemaining();
+//
+//	void setRemaining( List<VaxDose> doses );
+//
+//	default Motivation withRemaining( final List<VaxDose> doses )
+//	{
+//		setRemaining( doses );
+//		return this;
+//	}
+//
+//	default Motivation with( final VaxDose... doses )
+//	{
+//		return withRemaining( Arrays.asList( doses ) );
+//	}
 
-	Number getComplacency();
-
-	default Motivation withComplacency( final Number complacency )
-	{
-		return with( "complacency", complacency );
-	}
-
-	default Motivation withAttitude( final VaxHesitancy hes )
-	{
-		return withConfidence( hes.getConfidence() )
-				.withComplacency( hes.getComplacency() );
-	}
-
-	/** @return {@link List} of the {@link VaxDose}s remaining */
-	List<VaxDose> getRemaining();
-
-	void setRemaining( List<VaxDose> doses );
-
-	default Motivation withRemaining( final List<VaxDose> doses )
-	{
-		setRemaining( doses );
-		return this;
-	}
-
-	default Motivation with( final VaxDose... doses )
-	{
-		return withRemaining( Arrays.asList( doses ) );
-	}
-
-	/**
-	 * @return {@link List} of {@link VaxOccasion}s, representing e.g.
-	 *         available week/days at a (youth) {@link HealthConfig} service
-	 */
-	List<VaxOccasion> getOccasions();
-
-	void setOccasions( List<VaxOccasion> occasions );
-
-	default Motivation withOccasions( final List<VaxOccasion> occasions )
-	{
-		setOccasions( occasions );
-		return this;
-	}
-
-	default Motivation with( final VaxOccasion... occasions )
-	{
-		return withOccasions(
-				occasions == null ? null : Arrays.asList( occasions ) );
-	}
+//	/**
+//	 * @return {@link List} of {@link VaxOccasion}s, representing e.g. available
+//	 *         week/days at a (youth) {@link HealthConfig} service
+//	 */
+//	List<VaxOccasion> getOccasions();
+//
+//	void setOccasions( List<VaxOccasion> occasions );
+//
+//	default Motivation withOccasions( final List<VaxOccasion> occasions )
+//	{
+//		setOccasions( occasions );
+//		return this;
+//	}
+//
+//	default Motivation with( final VaxOccasion... occasions )
+//	{
+//		return withOccasions(
+//				occasions == null ? null : Arrays.asList( occasions ) );
+//	}
 }

@@ -37,9 +37,9 @@ import io.coala.rx.RxCollection;
 import io.coala.time.Duration;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
+import nl.rivm.cib.episim.geard.Participant;
+import nl.rivm.cib.episim.geard.Population;
 import nl.rivm.cib.episim.model.locate.Place;
-import nl.rivm.cib.episim.model.person.Participant;
-import nl.rivm.cib.episim.model.person.Population;
 
 @Singleton
 public class EcosystemScenario implements Proactive

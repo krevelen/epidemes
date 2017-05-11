@@ -5,11 +5,11 @@ import java.util.Collections;
 
 import javax.measure.quantity.Dimensionless;
 
-import io.coala.random.QuantityDistribution;
+import io.coala.enterprise.Actor;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.time.Scheduler;
+import io.coala.random.QuantityDistribution;
 import io.coala.time.Proactive;
-import nl.rivm.cib.episim.model.Individual;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
@@ -39,7 +39,7 @@ public interface Vaccine extends Proactive
 	 *         oral, micro-needle arrays, stratum corneum disruption) for
 	 *         specified {@link Individual}'s traits (age, sex, &hellip;)
 	 */
-	QuantityDistribution<Dimensionless> getComfort( Individual person );
+	QuantityDistribution<Dimensionless> getComfort( Actor.ID person );
 
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
@@ -113,7 +113,7 @@ public interface Vaccine extends Proactive
 
 		@Override
 		public QuantityDistribution<Dimensionless>
-			getComfort( final Individual person )
+			getComfort( final Actor.ID person )
 		{
 			return this.comfort;
 		}

@@ -23,7 +23,6 @@ import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
 import nl.rivm.cib.episim.model.disease.Afflicted;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
 
 /**
  * {@link Contagion} is self-initiated by a {@link Contagium} (space, route,

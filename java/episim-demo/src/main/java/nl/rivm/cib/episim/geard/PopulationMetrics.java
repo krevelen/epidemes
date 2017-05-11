@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.person;
+package nl.rivm.cib.episim.geard;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Dimensionless;
@@ -26,10 +26,6 @@ import io.coala.math.QuantityUtil;
 import io.coala.time.Indicator;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.person.Population.Birth;
-import nl.rivm.cib.episim.model.person.Population.Death;
-import nl.rivm.cib.episim.model.person.Population.Emigration;
-import nl.rivm.cib.episim.model.person.Population.Immigration;
 
 /**
  * {@link PopulationMetrics} follows common
@@ -94,16 +90,16 @@ public interface PopulationMetrics extends Proactive
 				.of( population.scheduler(), initialImmigrated );
 		final Indicator<Dimensionless> emigrations = Indicator
 				.of( population.scheduler(), initialEmigrated );
-		population.on( Birth.class )
-				.doOnNext( birth -> births.add( birth.arrivals().size() ) );
-		population.on( Death.class )
-				.doOnNext( death -> deaths.add( death.departures().size() ) );
-		population.on( Immigration.class ).doOnNext( immigration -> immigrations
-				.add( immigration.arrivals().size() ) );
-		population.on( Emigration.class ).doOnNext( emigration -> emigrations
-				.add( emigration.departures().size() ) );
-		population.members().onSize().map( QuantityUtil::valueOf )
-				.doOnNext( i -> size.setValue( i ) );
+//		population.on( Birth.class )
+//				.doOnNext( birth -> births.add( birth.arrivals().size() ) );
+//		population.on( Death.class )
+//				.doOnNext( death -> deaths.add( death.departures().size() ) );
+//		population.on( Immigration.class ).doOnNext( immigration -> immigrations
+//				.add( immigration.arrivals().size() ) );
+//		population.on( Emigration.class ).doOnNext( emigration -> emigrations
+//				.add( emigration.departures().size() ) );
+//		population.members().onSize().map( QuantityUtil::valueOf )
+//				.doOnNext( i -> size.setValue( i ) );
 
 		return new PopulationMetrics()
 		{

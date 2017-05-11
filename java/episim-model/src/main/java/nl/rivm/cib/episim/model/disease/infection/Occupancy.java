@@ -25,10 +25,10 @@ import io.coala.time.Duration;
 import io.coala.time.Instant;
 import nl.rivm.cib.episim.model.disease.Afflict;
 import nl.rivm.cib.episim.model.disease.Afflicted;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
+import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
 
 /**
- * {@link Occupancy} is initiated by a person to a {@link TransmissionSpace},
+ * {@link Occupancy} is initiated by a person to a {@link Contagium},
  * possibly containing or introducing infectious {@link Afflicted} host(s) or
  * infested sites, to produce a mapping of <b>time-at-risk per disease</b>, each
  * accumulating to the likelihood of this or another susceptible visitor's
@@ -36,7 +36,7 @@ import nl.rivm.cib.episim.model.disease.infection.Pathogen.Transmission;
  * 
  * <li>{@link #id()}: fact identifier
  * <li>{@link #transaction()}: links {@link Afflicted} &hArr;
- * {@link TransmissionSpace}
+ * {@link Contagium}
  * <li>{@link #kind()}: enter = {@link FactKind#REQUESTED rq}, leave =
  * {@link FactKind#STATED st}
  * <li>{@link #occurrence()}: [rq] visit start {@link Instant}

@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,36 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate;
+package nl.rivm.cib.episim.model.person;
 
 import io.coala.json.Attributed;
+import io.coala.time.Duration;
+import io.coala.time.Instant;
+import io.coala.time.Timed;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link Ageing}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public interface Ageing<THIS> extends Timed, Attributed
 {
-	Place.ID getPlaceRef();
 
-	void setPlaceRef( Place.ID placeRef );
+	Instant getBirth();
+
+	void setBirth( Instant birth );
+
+	default Duration age()
+	{
+		return now().subtract( getBirth() );
+	}
 
 	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
+	default THIS with( final Instant birth )
 	{
-		setPlaceRef( placeRef );
+		setBirth( birth );
 		return (THIS) this;
 	}
+
 }

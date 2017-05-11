@@ -1,4 +1,4 @@
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.locate;
 
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -12,7 +12,7 @@ import io.coala.json.Wrapper;
  * @version $Id: b982370873248279b0a036896e18ecdfca28e257 $
  * @author Rick van Krevelen
  */
-public class ZipCode extends Wrapper.SimpleOrdinal<String>
+public class ZipCode extends Place.ID //Wrapper.SimpleOrdinal<String> 
 {
 
 	private static final Pattern POSTCODE_PATTERN = Pattern

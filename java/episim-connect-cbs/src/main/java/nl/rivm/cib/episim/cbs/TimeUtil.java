@@ -17,15 +17,14 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.cbs.json;
+package nl.rivm.cib.episim.cbs;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableMap;
-import java.util.SortedMap;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import io.coala.math.Range;
@@ -53,9 +52,9 @@ public class TimeUtil
 	 * @param range the offset range, or {@code null} for all available
 	 * @return
 	 */
-	public static SortedMap<ZonedDateTime, Integer> indicesFor(
+	public static NavigableMap<LocalDate, Integer> indicesFor(
 		final LocalDate offset, final List<Integer> dayCounts,
-		final Range<ZonedDateTime> range )
+		final Range<LocalDate> range )
 	{
 		return indicesFor( () -> new Iterator<LocalDate>()
 		{
@@ -79,21 +78,20 @@ public class TimeUtil
 	}
 
 	/**
-	 * @param offset
-	 * @param dayCounts
+	 * @param offsets
 	 * @param range the offset range, or {@code null} for all available
 	 * @return
 	 */
-	public static SortedMap<ZonedDateTime, Integer> indicesFor(
-		final Iterable<LocalDate> offsets, //final List<Integer> dayCounts,
-		final Range<ZonedDateTime> range )
+	public static NavigableMap<LocalDate, Integer> indicesFor(
+		final Iterable<LocalDate> offsets, final Range<LocalDate> range )
 	{
-		// Java8 Time conversions: http://stackoverflow.com/a/23197731/1418999
-		final NavigableMap<ZonedDateTime, Integer> indices = new TreeMap<>();
+		final NavigableMap<LocalDate, Integer> indices = new TreeMap<>();
 		int i = 0;
-		for( Iterator<LocalDate> it = offsets.iterator(); it.hasNext(); )
-			indices.put( it.next().atStartOfDay( NL_TZ ), i++ );
+		for( Iterator<LocalDate> it = Objects
+				.requireNonNull( offsets, "missing offsets" ).iterator(); it
+						.hasNext(); )
+			indices.put( it.next(), i++ );
 
-		return range == null ? indices : range.subMap( indices, true );
+		return range == null ? indices : range.apply( indices, true );
 	}
 }

@@ -22,17 +22,18 @@ package nl.rivm.cib.episim.pilot;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
@@ -47,18 +48,15 @@ import org.apache.logging.log4j.Logger;
 import io.coala.bind.InjectConfig;
 import io.coala.config.YamlConfig;
 import io.coala.enterprise.Actor;
+import io.coala.enterprise.Actor.ID;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
-import io.coala.exception.Thrower;
-import io.coala.function.ThrowingBiConsumer;
-import io.coala.json.Attributed;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.LatLong;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.WeightedValue;
-import io.coala.name.Id;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
@@ -67,25 +65,31 @@ import io.coala.time.Instant;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
-import io.coala.time.Timing;
+import io.coala.util.Compare;
 import io.coala.util.InputStreamConverter;
+import io.reactivex.internal.functions.Functions;
 import io.reactivex.observables.GroupedObservable;
 import nl.rivm.cib.epidemes.cbs.json.CBSGender;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.epidemes.cbs.json.CBSPopulationDynamic;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37201json;
 import nl.rivm.cib.epidemes.cbs.json.Cbs37230json;
 import nl.rivm.cib.epidemes.cbs.json.Cbs71486json;
 import nl.rivm.cib.epidemes.cbs.json.CbsBoroughPC6json;
-import nl.rivm.cib.epidemes.cbs.json.TimeUtil;
+import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.model.disease.Condition;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
-import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.locate.travel.Vehicle;
-import nl.rivm.cib.episim.model.person.Disruption;
-import nl.rivm.cib.episim.model.person.Disruption.Birth.Mother;
+import nl.rivm.cib.episim.model.locate.Transporter;
+import nl.rivm.cib.episim.model.person.DomesticChange;
+import nl.rivm.cib.episim.model.person.Gender;
+import nl.rivm.cib.episim.model.person.HouseholdComposition;
+import nl.rivm.cib.episim.model.person.MeetingTemplate.Purpose;
+import nl.rivm.cib.episim.model.person.Redirection;
+import nl.rivm.cib.episim.model.person.Redirection.Director;
+import nl.rivm.cib.episim.model.person.RelationType;
 import nl.rivm.cib.episim.model.person.Residence;
 import tec.uom.se.unit.Units;
 
@@ -104,12 +108,13 @@ public class OutbreakScenario implements Scenario
 		@DefaultValue( "" + 1000 )
 		int popSize();
 
-		@DefaultValue( "[2012-01-01; +inf>" )
-		String timeRange();
-
 		@DefaultValue( "cbs/pc6_buurt.json" )
 		@ConverterClass( InputStreamConverter.class )
 		InputStream cbsBoroughPC6();
+
+		@DefaultValue( "cbs/37201_TS_2010_2015.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream cbs37201();
 
 		@DefaultValue( "cbs/37713_2016JJ00_AllOrigins.json" )
 		@ConverterClass( InputStreamConverter.class )
@@ -157,7 +162,7 @@ public class OutbreakScenario implements Scenario
 	private transient Region.ID fallbackRegionRef = Region.ID.of( "GM0363" );
 
 	/** temporal scope of analysis */
-	private transient Range<ZonedDateTime> timeRange = null;
+	private transient Range<LocalDate> timeRange = null;
 
 //	FIXME private Map<Region.ID, Region> regions = new TreeMap<>();
 
@@ -165,26 +170,28 @@ public class OutbreakScenario implements Scenario
 //	private transient ConditionalDistribution<Cbs37713json.Category, ZonedDateTime> genderOriginDist = null;
 
 	/** national monthly demographic rates (births, deaths, migrations, ...) */
-	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, ZonedDateTime>> demogDelayDist = new EnumMap<>(
+	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, LocalDate>> demogDelayDist = new EnumMap<>(
 			CBSPopulationDynamic.class );
 
 	/** regional monthly demographic places (births, deaths, migrations, ...) */
-	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, ZonedDateTime>> demogRegionDist = new EnumMap<>(
+	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, LocalDate>> demogRegionDist = new EnumMap<>(
 			CBSPopulationDynamic.class );
 
-	private transient ConditionalDistribution<CbsBoroughPC6json, Region.ID> buurtDist;
+	private transient ConditionalDistribution<CbsBoroughPC6json, Region.ID> hoodDist;
 	/**
 	 * household types and referent ages, e.g. based on empirical CBS 71486
 	 * (composition) & 60036ned (age diff) & 37201 (mom age) data
 	 */
-	private transient ConditionalDistribution<Cbs71486json.Category, ZonedDateTime> hhTypeAgeDist = null;
+	private transient ConditionalDistribution<Cbs71486json.Category, RegionPeriod> localHouseholdDist = null;
+
+	private transient ConditionalDistribution<Cbs37201json.Category, RegionPeriod> localBirthDist = null;
 
 	private void readMonthlyRates( final CBSPopulationDynamic metric,
-		final BiConsumer<CBSPopulationDynamic, Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>>> national,
-		final BiConsumer<CBSPopulationDynamic, Map<ZonedDateTime, Collection<WeightedValue<Cbs37230json.Category>>>> regional )
+		final BiConsumer<CBSPopulationDynamic, Map<LocalDate, Collection<WeightedValue<Cbs37230json.Category>>>> national,
+		final BiConsumer<CBSPopulationDynamic, Map<LocalDate, Collection<WeightedValue<Cbs37230json.Category>>>> regional )
 	{
 		// FIXME parse and group by all metrics in a single parsing run
-		Cbs37230json.readAsync( this.config::cbs37230, metric, this.timeRange )
+		Cbs37230json.readAsync( this.config::cbs37230, this.timeRange, metric )
 				.groupBy( wv -> wv.getValue().regionType() ).blockingForEach( (
 					GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g ) ->
 				{
@@ -204,6 +211,20 @@ public class OutbreakScenario implements Scenario
 	// TODO partnership/marriage rate from CBS 37890 (region, age, gender) & 60036ned (age diff) ?
 
 	// TODO separation/divorce rate from CBS 37890 (region, age, gender) ?
+
+	private transient Instant dtInstant = null;
+	private transient LocalDate dtCache = null;
+
+	/** synthetic pop size / NL pop size */
+	private BigDecimal popSizeFactor = BigDecimal.ONE;
+
+	private final Map<HouseholdComposition, AtomicLong> immigrations = new HashMap<>();
+
+	private final Map<HouseholdComposition, AtomicLong> emigrations = new HashMap<>();
+
+	private AtomicLong households = new AtomicLong( 0 );
+
+	private AtomicLong persons = new AtomicLong( 0 );
 
 	private Actor<Fact> deme;
 
@@ -239,10 +260,8 @@ public class OutbreakScenario implements Scenario
 	public void init() throws Exception
 	{
 		this.timeRange = Range
-				.parse( this.config.timeRange(), LocalDate::parse )
-				.map( dt -> dt.atStartOfDay( TimeUtil.NL_TZ ) );
+				.upFromAndIncluding( scheduler().offset().toLocalDate() );
 		LOG.trace( "Init; range: {}", timeRange );
-//			final Population<?> pop = this.binder.inject( Population.class );
 
 		this.cbsRegionLevel = this.config.cbsRegionLevel();
 
@@ -257,13 +276,24 @@ public class OutbreakScenario implements Scenario
 								ConditionalDistribution.of(
 										this.distFact::createCategorical, map ) ) ) );
 
-		this.hhTypeAgeDist = ConditionalDistribution.of(
+		this.localHouseholdDist = ConditionalDistribution.of(
 				this.distFact::createCategorical,
 				Cbs71486json.readAsync( this.config::cbs71486, this.timeRange )
 						.filter( wv -> wv.getValue()
 								.regionType() == this.cbsRegionLevel )
-						.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
-								() -> new TreeMap<>() )
+						.toMultimap( wv -> wv.getValue().regionPeriod(),
+								Functions.identity(), () -> new TreeMap<>() )
+						.blockingGet() );
+
+		this.localBirthDist = ConditionalDistribution.of(
+				this.distFact::createCategorical,
+				Cbs37201json.readAsync( this.config::cbs37201, this.timeRange )
+						.filter( wv -> wv.getValue()
+								.regionType() == this.cbsRegionLevel )
+						.toMultimap( wv -> wv.getValue().regionPeriod(),
+								Functions.identity(),
+								// Navigable Map for out-of-bounds conditions
+								TreeMap::new )
 						.blockingGet() );
 
 		final Map<Region.ID, ProbabilityDistribution<CbsBoroughPC6json>> async = CbsBoroughPC6json
@@ -271,16 +301,15 @@ public class OutbreakScenario implements Scenario
 				.toMultimap( bu -> bu.regionRef( this.cbsRegionLevel ),
 						CbsBoroughPC6json::toWeightedValue )
 				.blockingGet().entrySet().parallelStream() // blocking
-				.collect( Collectors.toMap( e -> e.getKey(),
-						e -> distFact.createCategorical(
-								// consume WeightedValue's for garbage collector
-								e.getValue() ) ) );
-		this.buurtDist = ConditionalDistribution
+				.collect( Collectors.toMap( e -> e.getKey(), e -> this.distFact
+						.createCategorical( e.getValue() ) ) );
+
+		this.hoodDist = ConditionalDistribution
 				.of( id -> async.computeIfAbsent( id, key ->
 				{
 					LOG.warn( "Missing zipcodes for {}, falling back to {}",
-							key, fallbackRegionRef );
-					return async.get( fallbackRegionRef );
+							key, this.fallbackRegionRef );
+					return async.get( this.fallbackRegionRef );
 				} ) );
 
 //		this.genderOriginDist = ConditionalDistribution.of(
@@ -296,26 +325,39 @@ public class OutbreakScenario implements Scenario
 //				.readAsync( this.config::cbs37975 )
 //				.toList().blockingGet();
 
-		for( int i = 0, n = this.config.popSize(); i < n; )
+		// populate households
+		for( long start = System
+				.currentTimeMillis(), size = 0, hh = 0, popSize = this.config
+						.popSize(); size < popSize; )
 		{
-			CBSHousehold hh = createHousehold( false );
-			i += hh.size();
+			if( System.currentTimeMillis() - start > 1000 )
+			{
+				start = System.currentTimeMillis();
+				LOG.trace( "size = {} of {}, hh count: {}", size, popSize, hh );
+			}
+			size += createCBSHousehold( true ).size();
+			hh++;
 		}
 
+		// set DEME behavior for maintaining demographics
 		this.deme = this.actors.create( "DEME" );
 		this.deme.specialist( Residence.Deme.class, deme ->
 		{
-			deme.atEach( timing( CBSPopulationDynamic.BIRTHS, () -> 1 ) )
-					.subscribe( t -> deme
-							.initiate( Disruption.Birth.class, selectMother() )
-							.commit() );
+			deme.atEach( timing( CBSPopulationDynamic.BIRTHS,
+					() -> createOffspring().size() ) ).subscribe();
 			deme.atEach( timing( CBSPopulationDynamic.DEATHS, () -> 1 ) )
-					.subscribe( t -> deme.initiate( Disruption.Death.class,
+					.subscribe( t -> deme.initiate( DomesticChange.Death.class,
 							selectDiseased() ).commit() );
 			deme.atEach( timing( CBSPopulationDynamic.IMMIGRATION,
-					() -> createHousehold( true ).size() ) ).subscribe();
+					() -> createCBSHousehold( false ).size() ) ).subscribe();
 			deme.atEach( timing( CBSPopulationDynamic.EMIGRATION,
-					() -> removeHousehold().size() ) ).subscribe();
+					() -> removeCBSHousehold().size() ) ).subscribe();
+
+			deme.emit( DomesticChange.class, FactKind.STATED ).subscribe( st ->
+			// TODO update household registry
+			LOG.trace( "Confirmed: {}", st )
+//			registerHousehold(st.creatorRef(), regRef, hhType, hhRefAge)
+			);
 		} );
 
 		// TODO initiate Infections: diseases/outbreaks, vaccine/interventions
@@ -323,10 +365,126 @@ public class OutbreakScenario implements Scenario
 		LOG.info( "Initialized model" );
 	}
 
-	private transient Instant dtInstant = null;
-	private transient ZonedDateTime dtCache = null;
+	protected Collection<Fact> createOffspring()
+	{
+		// TODO draw multiplets?
+		return Collections.singleton(
+				this.deme.initiate( DomesticChange.Birth.class, selectNest() )
+						.commit() );
+	}
 
-	protected ZonedDateTime dt()
+	protected Actor.ID selectNest()
+	{
+//		final Region.ID regRef = 
+		demogSite( CBSPopulationDynamic.BIRTHS );
+
+//		LOG.trace( "t={}, birth occurs in {}", nowPretty(), regRef );
+		return this.deme.id(); // FIXME
+	}
+
+	protected Actor.ID selectDiseased()
+	{
+//		final Region.ID regRef = 
+		demogSite( CBSPopulationDynamic.DEATHS );
+
+//		LOG.trace( "t={}, death occurs in {}", nowPretty(), regRef );
+
+		// TODO deaths, add 83190ned (age, gender, position)
+		return this.deme.id(); // FIXME
+	}
+
+//	private final Map<Region.ID, NavigableMap<ZonedDateTime, Actor.ID>> localAgeMothers = new HashMap<>();
+
+	private transient final Map<Region.ID, Map<HouseholdComposition, NavigableMap<Instant, Actor.ID>>> hhReg = new HashMap<>();
+
+	protected NavigableMap<Instant, Actor.ID> householdRegistry(
+		final Region.ID regRef, final HouseholdComposition hhType )
+	{
+		if( regRef == null )
+			return this.hhReg.isEmpty() ? Collections.emptyNavigableMap()
+					: this.hhReg.entrySet().parallelStream().flatMap(
+							e -> e.getValue().entrySet().parallelStream() )
+							.flatMap( e -> e.getValue().entrySet()
+									.parallelStream() )
+							.collect( Collectors.toMap( Entry::getKey,
+									Entry::getValue, null, TreeMap::new ) );
+		else if( hhType == null ) return this.hhReg.isEmpty()
+				? Collections.emptyNavigableMap()
+				: this.hhReg.computeIfAbsent( regRef, key -> new HashMap<>() )
+						.entrySet().parallelStream()
+						.flatMap(
+								e -> e.getValue().entrySet().parallelStream() )
+						.collect( Collectors.toMap( Entry::getKey,
+								Entry::getValue, null, TreeMap::new ) );
+		return this.hhReg.computeIfAbsent( regRef, key -> new HashMap<>() )
+				.computeIfAbsent( hhType, key -> new TreeMap<>() );
+	}
+
+	protected void registerHousehold( final Actor.ID hhRef,
+		final Region.ID regRef, final HouseholdComposition hhType,
+		final Duration hhRefAge )
+	{
+		householdRegistry( Objects.requireNonNull( regRef, "missing region" ),
+				Objects.requireNonNull( hhType, "missing composition" ) ).put(
+						now().subtract( Objects.requireNonNull( hhRefAge,
+								"missing referent age" ) ),
+						Objects.requireNonNull( hhRef, "missing household" ) );
+		LOG.trace( "Registered {} {} {} {}", hhRef, regRef, hhType, hhRefAge );
+	}
+
+	protected Actor.ID selectEmigrantHousehold( final Region.ID regRef,
+		final HouseholdComposition hhType, final Range<Integer> hhRefAge )
+	{
+		final NavigableMap<Instant, Actor.ID> category = householdRegistry(
+				regRef, hhType );
+		if( category.isEmpty() )
+		{
+			if( regRef == null ) return null;
+			if( hhType == null )
+				return selectEmigrantHousehold( null, null, hhRefAge );
+			return selectEmigrantHousehold( regRef, null, hhRefAge );
+		}
+		final Actor.ID result;
+		if( hhRefAge == null )
+			result = this.distFact.getStream().nextElement( category.values() );
+		else
+		{
+			final Range<Instant> ageRange = hhRefAge.map( age -> now()
+					.subtract( Duration.of( age, TimeUnits.ANNUM ) ) );
+			final NavigableMap<Instant, Actor.ID> ageSelection = ageRange
+					.apply( category, false );
+			if( ageSelection.isEmpty() )
+			{
+				// get nearest to age range
+				final Entry<Instant, ID> younger = category
+						.floorEntry( ageRange.lowerValue() );
+				final Entry<Instant, ID> older = category
+						.ceilingEntry( ageRange.upperValue() );
+				result = older == null || Compare.lt(
+						// distance below range
+						ageRange.lowerValue().subtract( younger.getKey() ),
+						// distance above range
+						older.getKey().subtract( ageRange.upperValue() ) )
+								? younger.getValue() : older.getValue();
+			} else
+				result = this.distFact.getStream()
+						.nextElement( ageSelection.values() );
+		}
+		final long nr = this.emigrations
+				.computeIfAbsent( hhType, key -> new AtomicLong() )
+				.incrementAndGet();
+		LOG.trace( "t={}, emigration from {} of {} #{} ({}+{})", nowPretty(),
+				regRef, hhType, nr, hhType.adultCount(), hhType.childCount() );
+		return result;
+	}
+
+	@Override
+	public Scheduler scheduler()
+	{
+		return this.scheduler;
+	}
+
+	protected LocalDate dt()
 	{
 		return now().equals( this.dtInstant ) ? this.dtCache
 				: (this.dtCache = (this.dtInstant = now())
@@ -340,62 +498,23 @@ public class OutbreakScenario implements Scenario
 
 	protected Pretty nowPretty()
 	{
-		return now().prettify( this.timeRange.lowerValue(),
-				DateTimeFormatter.ISO_LOCAL_DATE_TIME );
+		return now().prettify( this.timeRange.lowerValue() );
 	}
 
-	/** synthetic pop size / NL pop size */
-	private BigDecimal popSizeFactor = BigDecimal.ONE;
+	private static Map<String, Region.ID> REGION_ID_CACHE = new TreeMap<>();
+//	v
 
 	protected Region.ID demogSite( final CBSPopulationDynamic metric )
 	{
-		return this.demogRegionDist.get( metric ).draw( dt() ).regionId();
-	}
-
-//	@FunctionalInterface
-//	public interface Infiniterator extends Iterator<Instant>
-//	{
-//		@Override
-//		default boolean hasNext()
-//		{
-//			return true;
-//		}
-//	}
-	public class Infiniterator implements Iterator<Instant>
-	{
-		private Instant current;
-		private final Callable<Quantity<Time>> dur;
-
-		public Infiniterator( final Instant offset,
-			final Callable<Quantity<Time>> dur )
-		{
-			this.current = offset;
-			this.dur = dur;
-		}
-
-		@Override
-		public boolean hasNext()
-		{
-			return true; // on to infinity!
-		}
-
-		@Override
-		public Instant next()
-		{
-			try
-			{
-				return this.current = this.current.add( this.dur.call() );
-			} catch( final Exception e )
-			{
-				return Thrower.rethrowUnchecked( e );
-			}
-		}
+		return REGION_ID_CACHE.computeIfAbsent(
+				this.demogRegionDist.get( metric ).draw( dt() ).regionRef(),
+				key -> Region.ID.of( key.trim() ) );
 	}
 
 	protected Iterable<Instant> timing( final CBSPopulationDynamic metric,
 		final IntSupplier hhSize )
 	{
-		return () -> new Infiniterator( now(), () ->
+		return () -> (Infiniterator) () ->
 		{
 			final QuantityDistribution<Time> timeDist = this.demogDelayDist
 					.get( metric ).draw( dt() )
@@ -406,35 +525,179 @@ public class OutbreakScenario implements Scenario
 			for( int n = hhSize.getAsInt(); n > 1; n-- )
 				dur = dur.add( timeDist.draw() );
 
-			return dur;//now().add( dur );
-		} );
+			return now().add( dur );
+		};
 	}
 
-	private AtomicInteger homeIds = new AtomicInteger( 0 );
-
-	protected Actor<Fact> createContagium()
+	protected CBSHousehold createCBSHousehold( final boolean initial )
 	{
-		return this.actors.create( this.homeIds.incrementAndGet() );
+		final LocalDate dt = dt();
+		// TODO immigration, add 37713 (gender, origin)
+
+		Region.ID regRef = demogSite( CBSPopulationDynamic.IMMIGRATION );
+		final CbsBoroughPC6json buurt = this.hoodDist.draw( regRef );
+		// regRef may not exist in 2016 zipcode data, update to fallback value
+		regRef = buurt.regionRef( this.cbsRegionLevel );
+		final Place.ID zip = buurt.zipDist( this.distFact::createCategorical )
+				.draw();
+
+		final Cbs71486json.Category hhCat = this.localHouseholdDist
+				.draw( RegionPeriod.of( regRef, dt ) );
+		final Quantity<Time> hhRefAge = hhCat
+				.ageDist( this.distFact::createUniformContinuous ).draw();
+		// TODO create household members with ages relative to hhRefAge
+		final CBSHousehold hhType = hhCat
+				.hhTypeDist( this.distFact::createCategorical ).draw();
+		if( initial )
+		{
+//			LOG.trace( "t={}, introduction into {} ({}) of {} ({}+{})",
+//					nowPretty(), regRef, zip, hhType, hhType.adultCount(),
+//					hhType.childCount() );
+		} else
+		{
+			final long nr = this.immigrations
+					.computeIfAbsent( hhType, key -> new AtomicLong() )
+					.incrementAndGet();
+			LOG.trace( "t={}, immigration into {} ({}) of {} #{} ({}+{})",
+					nowPretty(), regRef, zip, hhType, nr, hhType.adultCount(),
+					hhType.childCount() );
+		}
+
+		final Instant referentBirth = now().subtract( hhRefAge );
+		final Gender referentGender = CBSGender.MALE; // TODO draw
+		final Actor.ID referentRef = createPerson( referentGender,
+				referentBirth );
+		final Map<Actor.ID, RelationType> composition = new HashMap<>();
+		composition.put( referentRef, hhType.adultRelationType() );
+		for( int i = 1; i < hhType.adultCount(); i++ )
+			composition.put(
+					createPerson( CBSGender.FEMALE, referentBirth.add( 3 ) ),
+					hhType.adultRelationType() );
+		for( int i = 0; i < hhType.childCount(); i++ )
+			composition.put(
+					createPerson( CBSGender.FEMALE, referentBirth.add( 3 ) ),
+					RelationType.Simple.WARD );
+		createHousehold( regRef, zip, null, referentRef, composition );
+		return hhType;
 	}
 
-	private AtomicInteger personIds = new AtomicInteger( 0 );
+	protected Actor.ID createHousehold( final Region.ID regRef,
+		final Place.ID placeRef, final LatLong coord,
+		final Actor.ID referentRef,
+		final Map<Actor.ID, RelationType> composition )
+	{
+		// create the agent
+		final Actor<Fact> actor = this.actors.create(
+				String.format( "hh%08d", this.households.incrementAndGet() ) );
+		// set household domestic attributes
+		final DomesticChange.Household hh = actor
+				.subRole( DomesticChange.Household.class ).with( regRef )
+				.with( placeRef ).with( coord ).with( referentRef )
+				.with( composition == null
+						? new HashMap<Actor.ID, RelationType>() : composition );
+		// set birth handling
+		hh.emit( DomesticChange.Birth.class ).subscribe( rq ->
+		{
+			final Cbs37201json.Category cat = this.localBirthDist
+					.draw( RegionPeriod.of( rq.getRegionRef(), dt() ) );
+			final Gender babyGender = cat
+					.genderDist( this.distFact::createCategorical ).draw();
+			final Actor.ID babyRef = createPerson( babyGender, now() );
+			// notify family members FIXME extended kin?
+//			hh.getNetwork()
+//					.forEach( ( ref, rel ) -> hh
+//							.initiate( Redirection.Relation.class, ref )
+//							.with( rel ).with( babyRef ).commit() );
+			// adopt into family
+			hh.getNetwork().put( babyRef, RelationType.Simple.WARD );
+			// confirm to registry
+			hh.respond( rq, FactKind.STATED ).with( hh.getNetwork() ).commit();
+		} );
+		// set death handling
+		hh.emit( DomesticChange.Death.class ).subscribe( rq ->
+		{
+			final Actor.ID diseasedRef = rq.diseasedRef();
+			hh.getNetwork().remove( diseasedRef );
+			hh.initiate( Redirection.Termination.class, diseasedRef ).commit();
+			hh.respond( rq, FactKind.STATED ).with( hh.getNetwork() ).commit();
+		} );
+		// set family merger handling
+		hh.emit( DomesticChange.MergeHome.class ).subscribe( rq ->
+		{
+			hh.getNetwork().putAll( rq.arrivingRefs() );
+			hh.respond( rq, FactKind.STATED ).with( hh.getNetwork() ).commit();
+		} );
+		// set family split handling
+		hh.emit( DomesticChange.SplitHome.class ).subscribe( rq ->
+		{
+			final Map<ID, RelationType> members = hh.getNetwork();
+			rq.departingRefs().keySet().forEach(
+					ref -> members.computeIfPresent( ref, ( key, pos ) ->
+					{
+						// if a sexual member departs, all become non-sexual
+//						if( pos.isSexual() )
+//							members.forEach( ( otherRef, otherPos ) ->
+//							{
+//								if( !otherRef.equals( ref )
+//										&& otherPos.isSexual() )
+//									hh.initiate( Redirection.Relation.class,
+//											ref ).with( otherRef )
+//											.with( RelationType.Simple.SOCIAL )
+//											.commit();
+//							} );
+						return null; // remove
+					} ) );
+			hh.respond( rq, FactKind.STATED ).with( members ).commit();
+		} );
+		// set new household handling
+		hh.emit( DomesticChange.LeaveHome.class ).subscribe( rq ->
+		{
+			if( hh.getNetwork().remove( rq.departingRef() ) == null )
+				LOG.warn( "{} can't leave another home {}", rq.departingRef(),
+						hh.id().organizationRef() );
+			else
+			{
+				createHousehold( rq.getRegionRef(), rq.getPlaceRef(),
+						rq.getPosition(), rq.departingRef(), null );
+				hh.respond( rq, FactKind.STATED ).with( hh.getNetwork() )
+						.commit();
+			}
+		} );
+//		if( composition != null ) composition.forEach(
+//				( ref1, rel1 ) -> composition.forEach( ( ref2, rel2 ) ->
+//				{
+//					if( !ref1.equals( ref2 ) )
+//					{
+//						final RelationType rel = rel1.isSexual()
+//								&& rel2.isSexual() ? RelationType.Simple.SEXUAL
+//										: RelationType.Simple.SOCIAL;
+//						hh.initiate( Redirection.Relation.class, ref1 )
+//								.with( ref2 ).with( rel ).commit();
+//						hh.initiate( Redirection.Relation.class, ref2 )
+//								.with( ref1 ).with( rel ).commit();
+//					}
+//				} ) );
+		return hh.id();
+	}
 
-	protected Actor<Fact> createPerson( final CBSGender gender,
-		final Actor.ID homeRef )
+	protected Actor.ID createPerson( final Gender gender, final Instant birth )
 	{
 		final Actor<Fact> person = this.actors
-				.create( this.personIds.incrementAndGet() );
+				.create( this.persons.incrementAndGet() );
 
-		// TODO handle birth, death, migrate (de/reg at hh, pop, mun, ...)
-		if( gender == CBSGender.FEMALE ) person.specialist( Mother.class )
-				.emit( FactKind.REQUESTED ).subscribe( rq ->
-				{
-					// TODO apply CBS 37201 (child gender)
-//					final Actor<Fact> pp = createPerson( null, homeRef );
+//		final Motivator motiv = person.specialist( Motivator.class )
+//				.with( rq.getAttitude() );
 
-				} );
-
-		// TODO initiate Opinion: hesitancy, interaction
+		final Director dir = person.subRole( Director.class ).with( gender )
+				.with( birth );
+		dir.emit( Redirection.Relation.class ).subscribe( rq ->
+		{
+			// TODO join(rq)/split(rj), ...
+		} );
+		dir.emit( Redirection.Commitment.class ).subscribe( rq ->
+		{
+			// TODO routine ...
+		} );
 
 //		final Category profile = this.genderOriginDist
 //				.draw( genderDist.draw() );
@@ -469,86 +732,29 @@ public class OutbreakScenario implements Scenario
 
 		// TODO initiate Mixing: spaces/transports, mobility
 
-		return person;
+		return person.id();
 	}
 
-	protected CBSHousehold createHousehold( final boolean immigrant )
+	protected CBSHousehold removeCBSHousehold() // emigration
 	{
-		final ZonedDateTime dt = dt();
-		// TODO immigration, add 37713 (gender, origin)
-
-		Region.ID regRef = this.demogRegionDist
-				.get( CBSPopulationDynamic.IMMIGRATION ).draw( dt ).regionId();
-		final CbsBoroughPC6json buurt = this.buurtDist.draw( regRef );
-		// regRef may not exist in 2016 zipcode data, update to fallback value
-		regRef = buurt.regionRef( this.cbsRegionLevel );
-
-		final Cbs71486json.Category hhCat = this.hhTypeAgeDist.draw( dt );
-//		final Quantity<Time> hhRefAge = hhCat
-//				.ageDist( this.distFact::createUniformContinuous ).draw();
-		// TODO create household members with ages relative to hhRefAge
-		final CBSHousehold hh = hhCat
-				.hhTypeDist( this.distFact::createCategorical ).draw();
-//		final Actor<Fact> home = createContagium();
-		for( int i = 0; i < hh.adultCount(); i++ )
-		{
-//			createPerson( home.id() ); // parents
-		}
-		for( int i = 0; i < hh.childCount(); i++ )
-		{
-//			createPerson( home.id() ); // kids
-		}
-		LOG.trace( "t={}, {} into {} ({}) of {} ({}+{})", nowPretty(),
-				immigrant ? "immigration" : "relocation", regRef,
-				buurt.zipDist( this.distFact::createCategorical ).draw(), hh,
-				hh.adultCount(), hh.childCount() );
-		return hh;
-	}
-
-	protected CBSHousehold removeHousehold()
-	{
-		final ZonedDateTime dt = dt();
-
-		final Cbs71486json.Category hhCat = this.hhTypeAgeDist.draw( dt );
-//		final Quantity<Time> hhRefAge = hhCat
-//				.ageDist( this.distFact::createUniformContinuous ).draw();
-		// TODO draw household members from emigration dist, e.g. 70133NED
-		final CBSHousehold hh = hhCat
-				.hhTypeDist( this.distFact::createCategorical ).draw();
-
-		// TODO emigration, apply 70133NED (hh composition)
+		final LocalDate dt = dt();
 
 		final Region.ID regRef = demogSite( CBSPopulationDynamic.EMIGRATION );
 
-		LOG.trace( "t={}, emigration from {} of {} ({}+{})", nowPretty(),
-				regRef, hh, hh.adultCount(), hh.childCount() );
-		return hh;
-	}
+		// TODO draw household type/members from emigration dist, e.g. 70133NED
+		final Cbs71486json.Category hhCat = this.localHouseholdDist
+				.draw( RegionPeriod.of( regRef, dt ) );
 
-//	private final Map<Region.ID, NavigableMap<ZonedDateTime, Actor.ID>> localAgeMothers = new HashMap<>();
+		final CBSHousehold hhType = hhCat
+				.hhTypeDist( this.distFact::createCategorical ).draw();
+		final Actor.ID hhRef = selectEmigrantHousehold( regRef, hhType,
+				hhCat.ageRange() );
+		if( hhRef != null )
+			this.deme.initiate( DomesticChange.Emigrate.class, hhRef );
+		else
+			LOG.warn( "No households registered (yet)?" );
 
-	protected Actor.ID selectMother()
-	{
-		final Region.ID regRef = demogSite( CBSPopulationDynamic.BIRTHS );
-
-		LOG.trace( "t={}, birth occurs in {}", nowPretty(), regRef );
-		return this.deme.id(); // FIXME
-	}
-
-	protected Actor.ID selectDiseased()
-	{
-		final Region.ID regRef = demogSite( CBSPopulationDynamic.DEATHS );
-
-		LOG.trace( "t={}, death occurs in {}", nowPretty(), regRef );
-
-		// TODO deaths, add 83190ned (age, gender, position)
-		return this.deme.id(); // FIXME
-	}
-
-	@Override
-	public Scheduler scheduler()
-	{
-		return this.scheduler;
+		return hhType;
 	}
 
 	/**
@@ -571,7 +777,7 @@ public class OutbreakScenario implements Scenario
 		{
 			return super.create( Actor.ID
 					.of( "MV-" + this.mvTypeCounter.incrementAndGet(), id() ) )
-							.specialist( Pathogen.class );
+							.subRole( Pathogen.class );
 		}
 
 		/**
@@ -618,174 +824,9 @@ public class OutbreakScenario implements Scenario
 		}
 	}
 
-	/**
-	 * {@link Routine} categorizes the type of meeting, inspired by
-	 * Zhang:2016:phd
-	 */
-	public static class Purpose extends Id.Ordinal<String>
-	{
-		/**
-		 * career-related, including: (pre/elementary/high)school,
-		 * college/university, employment/retirement
-		 */
-		public static final OutbreakScenario.Purpose OCCUPATIONAL = of(
-				"OCCUPATIONAL" );
-
-		/** social events, including: family visits, sports, leisure, ... */
-		public static final OutbreakScenario.Purpose SOCIAL = of( "SOCIAL" );
-
-		/** recreational events, including: holidays, vacation, ... */
-		public static final OutbreakScenario.Purpose RECESS = of( "RECESS" );
-
-		/** medical events, including: doctor visits, hospitalize, ... */
-		public static final OutbreakScenario.Purpose MEDICAL = of( "MEDICAL" );
-
-		/** spiritual events, including: church visit, pilgrimage, ... */
-		public static final OutbreakScenario.Purpose SPRITUAL = of(
-				"SPRITUAL" );
-
-		public static OutbreakScenario.Purpose of( final String value )
-		{
-			return Util.of( value, new Purpose() );
-		}
-
-	}
-
-	public interface MeetingTemplate
-	{
-		/** determines type of venue and participants */
-		OutbreakScenario.Purpose purpose();
-
-		/** (daily/weekly/...) recurrence pattern, e.g. "0 0 8 ? * MON-FRI" */
-		Timing recurrence();
-
-		/** interruption-completion time span (positive), e.g. "[1 h; 2 h]" */
-		Range<Duration> duration();
-
-		static OutbreakScenario.MeetingTemplate of( final String purpose,
-			final String recurrence, final String duration )
-		{
-			return of( Purpose.of( purpose ), Timing.of( recurrence ),
-					Range.parse( duration, Duration.class ) );
-		}
-
-		static OutbreakScenario.MeetingTemplate of(
-			final OutbreakScenario.Purpose purpose, final Timing recurrence,
-			final Range<Duration> duration )
-		{
-			return new MeetingTemplate()
-			{
-				@Override
-				public OutbreakScenario.Purpose purpose()
-				{
-					return purpose;
-				}
-
-				@Override
-				public Timing recurrence()
-				{
-					return recurrence;
-				}
-
-				@Override
-				public Range<Duration> duration()
-				{
-					return duration;
-				}
-			};
-		}
-	}
-
-	/**
-	 * {@link Routine} categorizes the type of plans, inspired by Zhang:2016:phd
-	 */
-	public static class Routine extends Id.Ordinal<String>
-	{
-		/** day-care/school-child, working class hero, retiree */
-		public static final OutbreakScenario.Routine STANDARD = of(
-				"STANDARD" );
-
-		// for special-care, adjusted workplaces, elderly homes, ...
-		// TODO public static final Routine SPECIAL = of( "SPECIAL" );
-
-		public static OutbreakScenario.Routine of( final String value )
-		{
-			return Util.of( value, new Routine() );
-		}
-
-		public interface Attributable<THIS> extends Attributed
-		{
-			void setRoutine( OutbreakScenario.Routine routine );
-
-			OutbreakScenario.Routine getRoutine();
-
-			@SuppressWarnings( "unchecked" )
-			default THIS with( final OutbreakScenario.Routine routine )
-			{
-				setRoutine( routine );
-				return (THIS) this;
-			};
-		}
-	}
-
-	/** {@link Redirection} switches behaviors, e.g. work &hArr; holiday */
-	public interface Redirection
-		extends Fact, Routine.Attributable<OutbreakScenario.Redirection>
-	{
-
-		/** {@link Director} handles {@link Redirection} requests */
-		public interface Director extends Actor<OutbreakScenario.Redirection>,
-			Routine.Attributable<Redirection.Director>
-		{
-
-			/**
-			 * @param handler
-			 * @return self
-			 */
-			default Redirection.Director onRequest(
-				ThrowingBiConsumer<Redirection.Director, OutbreakScenario.Redirection, ?> handler )
-			{
-				emit( FactKind.REQUESTED ).subscribe( rq ->
-				{
-					try
-					{
-						handler.accept( this, rq );
-					} catch( final Throwable e )
-					{
-						Thrower.rethrowUnchecked( e );
-					}
-				}, e -> LOG.error( "Problem", e ) );
-				return this;
-			}
-
-		}
-	}
-
-	/**
-	 * {@link Plan} provides a (weekly) routine or process, e.g. working_parent
-	 */
-	public interface Plan extends Fact
-	{
-		/** {@link Planner} handles {@link Plan} requests */
-		interface Planner extends Actor<OutbreakScenario.Plan>
-		{
-
-		}
-	}
-
-	/** {@link Activity} triggers actions like movement or contact */
-	public interface Activity extends Fact
-	{
-		/** {@link Activator} handles {@link Activity} requests */
-		interface Activator extends Actor<OutbreakScenario.Activity>
-		{
-
-		}
-	}
-
 	@Singleton
 	public static class MyDirectory
-		implements Region.Directory, Place.Directory, Vehicle.Directory
+		implements Region.Directory, Place.Directory, Transporter.Directory
 	{
 		/** the regions: geographic areas, for analytics on clustering, ... */
 		private NavigableMap<Region.ID, Region> regions = new TreeMap<>();
@@ -797,11 +838,14 @@ public class OutbreakScenario implements Scenario
 		private NavigableMap<Place.ID, Place> places = new TreeMap<>();
 
 		/** the spaces: rooms, vehicles */
-		private NavigableMap<Actor.ID, Vehicle> vehicles = new TreeMap<>();
+		private NavigableMap<Actor.ID, Transporter> vehicles = new TreeMap<>();
 
 		/** RIVM National Institute for Public Health and the Environment */
 		public LatLong RIVM_POSITION = LatLong.of( 52.1185272, 5.1868699,
 				Units.DEGREE_ANGLE );
+
+		@Inject
+		private Actor.Factory actorFactory;
 
 		@Override
 		public Region lookup( final Region.ID id )
@@ -819,37 +863,17 @@ public class OutbreakScenario implements Scenario
 		@Override
 		public Place lookup( final Place.ID id )
 		{
-			return this.places.computeIfAbsent( id, key ->
-			{
-				final LatLong position = null;// TODO lookup
-				final Region region = null;// TODO lookup
-				final Geography[] geographies = null;// TODO lookup
-
-				return Place.of( id, position, region, geographies );
-			} );
+			return this.places.computeIfAbsent( id, key -> Place.of( id ) );
 		}
 
-		@Inject
-		private Actor.Factory actorFactory;
-
 		@Override
-		public Vehicle lookup( final Actor.ID id )
+		public Transporter lookup( final Actor.ID id )
 		{
 			return this.vehicles.computeIfAbsent( id, key ->
 			{
 				return this.actorFactory.create( id )
-						.specialist( Vehicle.class );
+						.subRole( Transporter.class );
 			} );
 		}
-	}
-
-	/**
-	 * @param key
-	 * @return
-	 */
-	public Number getRegionalValue( final Region.ID key )
-	{
-		LOG.trace( "Unknown region: {}", key );
-		return this.distFact.getStream().nextInt( 200 );
 	}
 }

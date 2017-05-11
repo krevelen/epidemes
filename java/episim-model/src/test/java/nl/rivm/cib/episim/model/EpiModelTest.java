@@ -87,7 +87,7 @@ public class EpiModelTest
 			final Actor<Fact> person1 = this.actors
 					.create( "pers" + this.personCounter.incrementAndGet() );
 
-			final Condition cond = person1.specialist( Condition.class );
+			final Condition cond = person1.subRole( Condition.class );
 			final Fact rq = cond.initiate( cond.id() ).commit();
 			LOG.trace( "initialized person specialist: {}, sent rq: {}",
 					cond.id(), rq );

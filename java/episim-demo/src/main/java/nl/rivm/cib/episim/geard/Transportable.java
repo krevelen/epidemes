@@ -17,26 +17,26 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.geard;
 
-import io.coala.rx.RxCollection;
+import io.coala.time.Duration;
+import io.coala.time.Signal;
+import nl.rivm.cib.episim.model.locate.Locatable;
+import nl.rivm.cib.episim.model.locate.Place;
+import nl.rivm.cib.episim.model.locate.Transporter;
 
 /**
- * {@link Partner}
- * 
- * @version $Id$
+ * {@link Transportable}
+ *
+ * @version $Date$
  * @author Rick van Krevelen
  */
-public interface Partner extends Individual
+@Deprecated
+public interface Transportable<THIS> extends Locatable<THIS>
 {
 
-	RxCollection<? extends Partner> partners();
+	Signal<Transporter> vehicle();
 
-	/**
-	 * @return
-	 */
-	default boolean isSingle()
-	{
-		return partners().isEmpty();
-	}
+	void moveTo( Place newSpace, Transporter transport, Duration travelTime );
+
 }

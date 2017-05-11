@@ -56,7 +56,7 @@ import io.coala.random.PseudoRandom;
 import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.locate.travel.Vehicle;
+import nl.rivm.cib.episim.model.locate.Transporter;
 import nl.rivm.cib.episim.pilot.OutbreakScenario;
 import nl.rivm.cib.episim.pilot.OutbreakScenario.MyDirectory;
 
@@ -299,7 +299,7 @@ public class JsonService
 					// epidemes API
 					.withProvider( Region.Directory.class, MyDirectory.class )
 					.withProvider( Place.Directory.class, MyDirectory.class )
-					.withProvider( Vehicle.Directory.class, MyDirectory.class )
+					.withProvider( Transporter.Directory.class, MyDirectory.class )
 
 					.build().createBinder( Collections
 							.singletonMap( EntityManagerFactory.class, EMF ) );

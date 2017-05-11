@@ -58,7 +58,8 @@ public interface EpidemicCompartment extends Identified<String>
 	 */
 	boolean isImmune();
 
-	interface Attributable<THIS extends Attributable<?>> extends Attributed
+	interface Attributable<THIS extends Attributable<?>>
+		extends Attributed.Publisher
 	{
 		/** propertyName matching bean's getter/setter names */
 		String EPIDEMIC_COMPARTMENT_PROPERTY = "compartment";

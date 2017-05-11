@@ -35,8 +35,8 @@ import io.coala.json.JsonUtil;
 import io.coala.math.WeightedValue;
 import io.coala.random.ProbabilityDistribution;
 import io.reactivex.Observable;
-import nl.rivm.cib.episim.model.ZipCode;
 import nl.rivm.cib.episim.model.locate.Region;
+import nl.rivm.cib.episim.model.locate.ZipCode;
 
 /**
  * {@link CbsBoroughPC6json} helps to import zip/burough data (JSON formatted).

@@ -1,4 +1,4 @@
-/* $Id: df183d79abaee941f3131012d3302d076bbcab74 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,26 +17,27 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.locate;
+package nl.rivm.cib.episim.model.person;
 
+import io.coala.enterprise.Actor;
 import io.coala.json.Attributed;
 
 /**
- * {@link Locatable} objects can emit their current {@link Place}
- *
+ * {@link Personal}
+ * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable<THIS> extends Attributed
+public interface Personal<THIS> extends Attributed
 {
-	Place.ID getPlaceRef();
+	Actor.ID getActorRef();
 
-	void setPlaceRef( Place.ID placeRef );
+	void setActorRef( Actor.ID actorRef );
 
 	@SuppressWarnings( "unchecked" )
-	default THIS with( Place.ID placeRef )
+	default THIS with( final Actor.ID actorRef )
 	{
-		setPlaceRef( placeRef );
+		setActorRef( actorRef );
 		return (THIS) this;
 	}
 }

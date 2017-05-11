@@ -62,11 +62,12 @@ public class ClinicalPhase extends Id.Ordinal<String>
 		return of( value );
 	}
 
-	public interface Attributable<THIS extends Attributable<?>> extends Attributed
+	public interface Attributable<THIS extends Attributable<?>>
+		extends Attributed.Publisher
 	{
 		/** propertyName matching bean's getter/setter names */
 		String CLINICAL_PHASE_PROPERTY = "phase";
-		
+
 		ClinicalPhase getPhase();
 
 		void setPhase( ClinicalPhase phase );

@@ -176,29 +176,29 @@ public class HesitantScenarioTest
 	public static class HesitantIndividual implements Social, VaxHesitancy
 	{
 
-		private EnumMap<HesitancyDimension, Number> vaxAtt = new EnumMap<>(
+		private EnumMap<HesitancyDimension, BigDecimal> vaxAtt = new EnumMap<>(
 				HesitancyDimension.class );
 
-		private Map<Actor.ID, Number> opinionatorAppreciation = new HashMap<>();
+		private Map<Actor.ID, BigDecimal> opinionatorAppreciation = new HashMap<>();
 
-		private Number DEFAULT_APPRECIATION = BigDecimal.valueOf( 5, 1 );
+		private BigDecimal DEFAULT_APPRECIATION = BigDecimal.valueOf( 5, 1 );
 
 		// TODO calc att
 
 		@Override
-		public Number getComplacency()
+		public BigDecimal getComplacency()
 		{
 			return this.vaxAtt.get( HesitancyDimension.complacency );
 		}
 
 		@Override
-		public Number getConfidence()
+		public BigDecimal getConfidence()
 		{
 			return this.vaxAtt.get( HesitancyDimension.confidence );
 		}
 
 		@Override
-		public Number getCalculation()
+		public BigDecimal getCalculation()
 		{
 			return this.vaxAtt.get( HesitancyDimension.calculation );
 		}
@@ -206,11 +206,12 @@ public class HesitantScenarioTest
 		@Override
 		public void setCalculation( final Number calculation )
 		{
-			this.vaxAtt.put( HesitancyDimension.calculation, calculation );
+			this.vaxAtt.put( HesitancyDimension.calculation,
+					DecimalUtil.valueOf( calculation ) );
 		}
 
 		@Override
-		public Number getAppreciation( final Actor.ID sourceRef )
+		public BigDecimal getAppreciation( final Actor.ID sourceRef )
 		{
 			return this.opinionatorAppreciation.computeIfAbsent( sourceRef,
 					id -> DEFAULT_APPRECIATION );

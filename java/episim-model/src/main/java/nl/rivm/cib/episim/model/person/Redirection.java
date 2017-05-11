@@ -21,31 +21,57 @@ package nl.rivm.cib.episim.model.person;
 
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
-import io.coala.enterprise.FactKind;
+import nl.rivm.cib.episim.model.person.Residence.Deme;
 
 /**
- * {@link Redirection}
+ * {@link Redirection} regards e.g. change or switch in Vitae (development,
+ * amusement, employment, retirement), Partner (romance, marriage, divorce),
+ * Guardianship (child birth, adoption, nest flight), Residence (migration)
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Redirection extends Fact
 {
-	
-	
-	interface Director extends Actor<Redirection>
+	/**
+	 * {@link Director} responds to various {@link Redirection}s, initiated by
+	 * e.g. a {@link Deme} based on {@link Residence} status, or a
+	 * {@link Motivator} based on successful {@link Motivation} execution
+	 */
+	interface Director
+		extends Actor<Redirection>, Gender.Attributable<Director>,
+		Ageing<Director>, Routine.Attributable<Director>
 	{
-		@Override
-		default void onInit()
-		{
-			// set default behaviors
-			emit( Redirection.class, FactKind.REQUESTED )
-					.subscribe( this::onRequest, this::onError );
-		}
 
-		default void onRequest( final Redirection rq )
+	}
+
+	interface Relation extends Redirection, Personal<Relation>,
+		RelationType.Attributable<Relation>
+	{
+		// friendly name
+		default Actor.ID relationRef()
 		{
-			System.err.println( "Handling " + rq );
+			return getActorRef();
 		}
+	}
+
+	interface Termination extends Redirection
+	{
+		// notify social network of own death
+	}
+
+	interface Commitment extends Redirection, Routine.Attributable<Redirection>
+	{
+//		interface Education extends Redirection.Commitment
+//		{
+//		}
+//
+//		interface Profession extends Redirection.Commitment
+//		{
+//		}
+//
+//		interface Avocation extends Redirection.Commitment
+//		{
+//		}
 	}
 }

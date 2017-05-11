@@ -1,4 +1,4 @@
-package nl.rivm.cib.episim.model.person;
+package nl.rivm.cib.episim.geard;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -10,14 +10,14 @@ import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 
 /**
- * {@link Household} adopts elements from
+ * {@link GeardHousehold} adopts elements from
  * <a href= "https://github.com/nlgn/sim-demog">Python code by Nic Geard</a>
  * 
  * @version $Id: 88e3618b2571332669cc3266f9d0836962e886d3 $
  * @author Rick van Krevelen
  */
 @Deprecated
-public interface Household<T extends HouseholdParticipant> extends Population<T>
+public interface GeardHousehold<T extends HouseholdParticipant> extends Population<T>
 {
 
 	HouseholdPopulation<T> population();
@@ -51,10 +51,10 @@ public interface Household<T extends HouseholdParticipant> extends Population<T>
 	{
 	}
 
-	static <T extends HouseholdParticipant> Household<T> of( final String name,
+	static <T extends HouseholdParticipant> GeardHousehold<T> of( final String name,
 		final HouseholdPopulation<T> population, final RxCollection<T> members )
 	{
-		final Household<T> result = new Household<T>()
+		final GeardHousehold<T> result = new GeardHousehold<T>()
 		{
 			private final ID id = ID.of( name );
 

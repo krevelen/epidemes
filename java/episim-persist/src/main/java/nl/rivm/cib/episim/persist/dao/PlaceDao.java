@@ -2,7 +2,6 @@ package nl.rivm.cib.episim.persist.dao;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -16,7 +15,6 @@ import javax.persistence.ManyToMany;
 import javax.persistence.MapKeyColumn;
 
 import io.coala.bind.LocalBinder;
-import nl.rivm.cib.episim.model.locate.Geography;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.persist.AbstractDao;
 
@@ -49,10 +47,11 @@ public class PlaceDao extends AbstractDao
 		final OffsetDateTime offset )
 	{
 		final PlaceDao result = new PlaceDao();
-		result.centroid = LatLongDao.of( location.centroid() );
-		result.regions = location.regions().entrySet().stream()
-				.collect( Collectors.toMap( e -> e.getKey().unwrap(),
-						e -> RegionDao.persist( em, e.getValue(), offset ) ) );
+		result.name = location.id().unwrap();
+//		result.centroid = LatLongDao.of( location );
+//		result.regions = location.regions().entrySet().stream()
+//				.collect( Collectors.toMap( e -> e.getKey().unwrap(),
+//						e -> RegionDao.persist( em, e.getValue(), offset ) ) );
 		em.persist( result );
 		return result;
 	}
@@ -60,11 +59,7 @@ public class PlaceDao extends AbstractDao
 	public Place toPlace( final LocalBinder binder,
 		final OffsetDateTime offset )
 	{
-		return Place.of( Place.ID.of( this.name ), this.centroid.toLatLong(),
-				this.regions.entrySet().stream()
-						.collect( Collectors.toMap(
-								e -> Geography.of( e.getKey() ), e -> e
-										.getValue().restore( binder ) ) ) );
+		return Place.of( Place.ID.of( this.name ) );
 	}
 
 }

@@ -20,90 +20,111 @@
 package nl.rivm.cib.episim.model.vaccine.attitude;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
 
 /**
- * The convenience of a {@link VaxOccasion} depends on the {@link VaxHesitancy}'s
- * judgment in terms of its (relative) "physical availability, affordability and
- * willingness-to-pay, geographical accessibility, ability to understand
- * (language and health literacy) and appeal of immunization service" (MacDonald
- * et al., 2015)
+ * The convenience of a {@link VaxOccasion} depends on the
+ * {@link VaxHesitancy}'s judgment in terms of its (relative) "physical
+ * availability, affordability and willingness-to-pay, geographical
+ * accessibility, ability to understand (language and health literacy) and
+ * appeal of immunization service" (MacDonald et al., 2015)
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class VaxOccasion
+public interface VaxOccasion
 {
 
 	enum Index
 	{
-		PROXIMITY, CLARITY, UTILITY, AFFINITY;
+		/** physical availability, affordability and willingness-to-pay */
+		UTILITY,
+
+		/** geographical accessibility */
+		PROXIMITY,
+
+		/** ability to understand (language and health literacy) */
+		CLARITY,
+
+		/** appeal of immunization service */
+		AFFINITY;
 	}
 
-	public static VaxOccasion of( final Number proximity, final Number clarity,
-		final Number utility, final Number affinity )
+	Map<Index, BigDecimal> asMap();
+
+	default Collection<BigDecimal> getConvenience()
 	{
-		final VaxOccasion result = new VaxOccasion();
-		result.values[Index.PROXIMITY.ordinal()] = DecimalUtil
-				.valueOf( proximity );
-		result.values[Index.CLARITY.ordinal()] = DecimalUtil.valueOf( clarity );
-		result.values[Index.UTILITY.ordinal()] = DecimalUtil.valueOf( utility );
-		result.values[Index.AFFINITY.ordinal()] = DecimalUtil
-				.valueOf( affinity );
-		return result;
+		return asMap().values();
 	}
 
 	@JsonProperty
-	private BigDecimal[] values = new BigDecimal[Index.values().length];
-
-	/**
-	 * @return the {@link BigDecimal level &isin; [0,1]} of physical
-	 *         availability and geographical accessibility, given mobility
-	 */
-	@JsonIgnore
-	public BigDecimal getProximity()
+	default void setConvenience( final List<BigDecimal> list )
 	{
-		return this.values[Index.PROXIMITY.ordinal()];
-	}
-
-	/**
-	 * @return the {@link BigDecimal level &isin; [0,1]} of language
-	 *         understandability, given health literacy
-	 */
-	@JsonIgnore
-	public BigDecimal getClarity()
-	{
-		return this.values[Index.CLARITY.ordinal()];
+		for( Index factor : Index.values() )
+			asMap().put( factor, list.get( factor.ordinal() ) );
 	}
 
 	/**
 	 * @return the {@link BigDecimal level &isin; [0,1]} of (social)
 	 *         affordability (given willingness-to-pay)
 	 */
-	@JsonIgnore
-	public BigDecimal getUtility()
+	default BigDecimal utility()
 	{
-		return this.values[Index.UTILITY.ordinal()];
+		return asMap().get( Index.UTILITY );
+	}
+
+	/**
+	 * @return the {@link BigDecimal level &isin; [0,1]} of physical
+	 *         availability and geographical accessibility, given mobility
+	 */
+	default BigDecimal proximity()
+	{
+		return asMap().get( Index.PROXIMITY );
+	}
+
+	/**
+	 * @return the {@link BigDecimal level &isin; [0,1]} of language
+	 *         understandability, given health literacy
+	 */
+	default BigDecimal clarity()
+	{
+		return asMap().get( Index.CLARITY );
 	}
 
 	/**
 	 * @return the {@link BigDecimal level &isin; [0,1]} of vaccination service
 	 *         appeal
 	 */
-	@JsonIgnore
-	public BigDecimal getAffinity()
+	default BigDecimal affinity()
 	{
-		return this.values[Index.AFFINITY.ordinal()];
+		return asMap().get( Index.AFFINITY );
 	}
 
-	@Override
-	public String toString()
+	public static VaxOccasion of( final Number utility, final Number proximity,
+		final Number clarity, final Number affinity )
 	{
-		return JsonUtil.stringify( this );
+		final VaxOccasion result = new VaxOccasion()
+		{
+			private final Map<Index, BigDecimal> map = new EnumMap<>(
+					Index.class );
+
+			@Override
+			public Map<Index, BigDecimal> asMap()
+			{
+				return this.map;
+			}
+		};
+		result.asMap().put( Index.UTILITY, DecimalUtil.valueOf( utility ) );
+		result.asMap().put( Index.PROXIMITY, DecimalUtil.valueOf( proximity ) );
+		result.asMap().put( Index.CLARITY, DecimalUtil.valueOf( clarity ) );
+		result.asMap().put( Index.AFFINITY, DecimalUtil.valueOf( affinity ) );
+		return result;
 	}
 }
