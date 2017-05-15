@@ -22,7 +22,9 @@ package nl.rivm.cib.epidemes.cbs.json;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.text.ParseException;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
@@ -47,9 +49,12 @@ import io.coala.random.ConditionalDistribution;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
+import io.coala.time.Instant;
+import io.coala.time.Timing;
 import io.coala.util.FileUtil;
 import io.reactivex.internal.functions.Functions;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
+import nl.rivm.cib.episim.cbs.TimeUtil;
 import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.model.locate.ZipCode;
 
@@ -98,6 +103,17 @@ public class CbsImportTest
 		timeRange = Range.of( "2012-06-13", "2014-02-13" )
 				// Range.upFromAndIncluding( "2012-06-13" ) 
 				.map( LocalDate::parse );
+	}
+
+	@Test
+	public void testTiming() throws ParseException
+	{
+		final ZonedDateTime dt = LocalDate.parse( "2012-01-01" )
+				.atStartOfDay( TimeUtil.NL_TZ );
+		for( Instant t : Timing.of( "0 0 * * * ?" ).offset( dt ).max( 10L )
+				.iterate() )
+			LOG.trace( "t={}, dt={} (offset: {} -> {})", t, t.prettify( dt ),
+					dt, dt.toInstant() );
 	}
 
 	@SuppressWarnings( "deprecation" )

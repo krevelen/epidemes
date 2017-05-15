@@ -19,8 +19,10 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
+import io.coala.exception.Thrower;
+import nl.rivm.cib.episim.model.person.ConnectionType;
+import nl.rivm.cib.episim.model.person.Domestic;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
-import nl.rivm.cib.episim.model.person.RelationType;
 
 /**
  * {@link CBSHousehold} the JSON 'implementation' of a CBS household composition
@@ -37,64 +39,64 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	TOTAL( "hh", true, 0, false, 0, true, null ),
 
 	/** total multiple adults with no kids == 'hh_b_0' + 'hh_m_0' + 'hh_o' */
-	POLY_NOKIDS( "hh_p_0", true, 2, false, 0, false, RelationType.Simple.SEXUAL ),
+	POLY_NOKIDS( "hh_p_0", true, 2, false, 0, false, ConnectionType.Simple.PARTNER ),
 
 	/**
 	 * total multiple adults with 1+ kids ==
 	 * 'hh_b_1'+'hh_b_2'+'hh_b_3+'+'hh_m_1'+'hh_m_2'+'hh_m_3+'+'hh_s_1'+'hh_s_2'+'hh_s_3+'
 	 */
-	POLY_1PLUSKIDS( "hh_p_1p", true, 2, false, 1, true, RelationType.Simple.SEXUAL ),
+	POLY_1PLUSKIDS( "hh_p_1p", true, 2, false, 1, true, ConnectionType.Simple.PARTNER ),
 
 	/** single adult, no kids */
-	SOLO_NOKIDS( "hh_l", false, 1, false, 0, false, RelationType.Simple.SINGLE ),
+	SOLO_NOKIDS( "hh_l", false, 1, false, 0, false, ConnectionType.Simple.SINGLE ),
 
 	/** total single parent with 1+ [step/adopted] kids */
-	SOLO_1PLUSKIDS( "hh_s", true, 1, false, 1, true, RelationType.Simple.SINGLE ),
+	SOLO_1PLUSKIDS( "hh_s", true, 1, false, 1, true, ConnectionType.Simple.SINGLE ),
 
 	/** single parent with 1 [step/adopted] kid */
-	SOLO_1KID( "hh_s_1", false, 1, false, 1, false, RelationType.Simple.SINGLE ),
+	SOLO_1KID( "hh_s_1", false, 1, false, 1, false, ConnectionType.Simple.SINGLE ),
 
 	/** single parent with 2 [step/adopted] kids */
-	SOLO_2KIDS( "hh_s_2", false, 1, false, 2, false, RelationType.Simple.SINGLE ),
+	SOLO_2KIDS( "hh_s_2", false, 1, false, 2, false, ConnectionType.Simple.SINGLE ),
 
 	/** single parent with >=3 [step/adopted] kids */
-	SOLO_3PLUSKIDS( "hh_s_3p", false, 1, false, 3, true, RelationType.Simple.SINGLE ),
+	SOLO_3PLUSKIDS( "hh_s_3p", false, 1, false, 3, true, ConnectionType.Simple.SINGLE ),
 
 	/** total unregistered couples == 'hh_b_0'+'hh_b_1'+'hh_b_2'+'hh_b_3+' */
-	DUO_0PLUSKIDS( "hh_b", true, 2, false, 0, true, RelationType.Simple.SEXUAL ),
+	DUO_0PLUSKIDS( "hh_b", true, 2, false, 0, true, ConnectionType.Simple.PARTNER ),
 
 	/** unregistered couple with no kids */
-	DUO_NOKIDS( "hh_b_0", false, 2, false, 0, false, RelationType.Simple.SEXUAL ),
+	DUO_NOKIDS( "hh_b_0", false, 2, false, 0, false, ConnectionType.Simple.PARTNER ),
 
 	/** unregistered couple with one [step/adopted] kid */
-	DUO_1KID( "hh_b_1", false, 2, false, 1, false, RelationType.Simple.SEXUAL ),
+	DUO_1KID( "hh_b_1", false, 2, false, 1, false, ConnectionType.Simple.PARTNER ),
 
 	/** unregistered couple with 2 [step/adopted] kids */
-	DUO_2KIDS( "hh_b_2", false, 2, false, 2, false, RelationType.Simple.SEXUAL ),
+	DUO_2KIDS( "hh_b_2", false, 2, false, 2, false, ConnectionType.Simple.PARTNER ),
 
 	/** unregistered couple with >=3 [step/adopted] kids */
-	DUO_3PLUSKIDS( "hh_b_3p", false, 2, false, 3, true, RelationType.Simple.SEXUAL ),
+	DUO_3PLUSKIDS( "hh_b_3p", false, 2, false, 3, true, ConnectionType.Simple.PARTNER ),
 
 	/**
 	 * total registered (married/cohabiting) couples ==
 	 * 'hh_m_0'+'hh_m_1'+'hh_m_2'+'hh_m_3+'
 	 */
-	REGDUO_0PLUS( "hh_m", true, 2, true, 0, true, RelationType.Simple.SEXUAL ),
+	REGDUO_0PLUS( "hh_m", true, 2, true, 0, true, ConnectionType.Simple.PARTNER ),
 
 	/** registered (married/cohabiting) couple with no kids */
-	REGDUO_NOKIDS( "hh_m_0", false, 2, true, 0, false, RelationType.Simple.SEXUAL ),
+	REGDUO_NOKIDS( "hh_m_0", false, 2, true, 0, false, ConnectionType.Simple.PARTNER ),
 
 	/** registered (married/cohabiting) couple with 1 [step/adopted] kid */
-	REGDUO_1KID( "hh_m_1", false, 2, true, 1, false, RelationType.Simple.SEXUAL ),
+	REGDUO_1KID( "hh_m_1", false, 2, true, 1, false, ConnectionType.Simple.PARTNER ),
 
 	/** registered (married/cohabiting) couple with 2 [step/adopted] kids */
-	REGDUO_2KIDS( "hh_m_2", false, 2, true, 2, false, RelationType.Simple.SEXUAL ),
+	REGDUO_2KIDS( "hh_m_2", false, 2, true, 2, false, ConnectionType.Simple.PARTNER ),
 
 	/** registered (married/cohabiting) couple and 3+ [step/adopted] kids */
-	REGDUO_3PLUSKIDS( "hh_m_3p", false, 2, false, 3, true, RelationType.Simple.SEXUAL ),
+	REGDUO_3PLUSKIDS( "hh_m_3p", false, 2, true, 3, true, ConnectionType.Simple.PARTNER ),
 
 	/** total other private compositions (siblings, boarder, fosters, ...) */
-	OTHER( "hh_o", true, 0, false, 0, true, RelationType.Simple.WARD ),
+	OTHER( "hh_o", true, 0, false, 0, true, ConnectionType.Simple.WARD ),
 
 	;
 
@@ -104,11 +106,11 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	private final boolean registered;
 	private final int childCount; // incl. adopted/step, excl. foster
 	private final boolean orMoreKids;
-	private final RelationType relationType;
+	private final ConnectionType.Simple relationType;
 
 	private CBSHousehold( final String jsonKey, final boolean aggregate,
 		final int adultCount, final boolean registered, final int kidCount,
-		final boolean orMoreKids, final RelationType relationType )
+		final boolean orMoreKids, final ConnectionType.Simple relationType )
 	{
 		this.jsonKey = jsonKey;
 		this.aggregate = aggregate;
@@ -162,8 +164,34 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	}
 
 	/** @return the referent relation type */
-	public RelationType adultRelationType()
+	public ConnectionType.Simple partnerRelationType()
 	{
 		return this.relationType;
+	}
+
+	public static CBSHousehold of( final Domestic<?> household )
+	{
+		final long adultCount = household.getMembers().values().stream()
+				.filter( m -> m.relationType().isInformative() ).count(),
+				childCount = household.getMembers().size() - adultCount;
+		// check if registered couple is still together
+		final boolean registered = household.getComposition().registered()
+				&& adultCount == 2;
+		for( CBSHousehold hhType : values() )
+			if(
+			// skip aggregates
+			!hhType.aggregate()
+					// match registered
+					&& hhType.registered() == registered
+					// match adult count
+					&& hhType.adultCount() == adultCount
+					// match child count exactly or range
+					&& (hhType.childCount() == childCount || (hhType.more()
+							&& hhType.childCount() < childCount)) )
+				return hhType;
+		return Thrower.throwNew( IllegalArgumentException::new,
+				() -> "Unknown composition for " + household.getMembers()
+						+ ", adults: " + adultCount + ", children: "
+						+ childCount + ", registered: " + registered );
 	}
 }

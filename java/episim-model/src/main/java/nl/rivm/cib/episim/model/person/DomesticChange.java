@@ -34,18 +34,19 @@ import nl.rivm.cib.episim.model.person.Redirection.Relation;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface DomesticChange extends Fact, Social<DomesticChange>
+public interface DomesticChange extends Fact, Domestic<DomesticChange>
 {
 	// friendly name
-	default Map<Actor.ID, RelationType> resultRefs()
+	default Map<Actor.ID, HouseholdMember> resultRefs()
 	{
-		return getNetwork();
+		return getMembers();
 	}
 
 	interface Household extends Actor<DomesticChange>, Geographic<Household>,
 		Geometric<Household>, Locatable<Household>, Personal<Household>,
-		Social<Household>
+		Domestic<Household>
 	{
+
 		// friendly name
 		default Actor.ID referentRef()
 		{
@@ -53,14 +54,18 @@ public interface DomesticChange extends Fact, Social<DomesticChange>
 		}
 
 	}
-	
-	interface Emigrate extends DomesticChange
+
+	interface Immigrate extends DomesticChange
 	{
-		
+
 	}
 
-	interface Birth
-		extends DomesticChange, Gender.Attributable<Birth>, Geographic<Birth>
+	interface Emigrate extends DomesticChange
+	{
+
+	}
+
+	interface Birth extends DomesticChange, Gender.Attributable<Birth>//, Geographic<Birth>
 	{
 //		interface Mother extends Actor<Birth>
 //		{
@@ -80,21 +85,26 @@ public interface DomesticChange extends Fact, Social<DomesticChange>
 	interface MergeHome extends DomesticChange
 	{
 		// friendly name
-		default Map<Actor.ID, RelationType> arrivingRefs()
+		default Map<Actor.ID, HouseholdMember> arrivingRefs()
 		{
-			return getNetwork();
+			return getMembers();
 		}
 	}
 
 	interface SplitHome extends DomesticChange
 	{
 		// friendly name
-		default Map<Actor.ID, RelationType> departingRefs()
+		default Map<Actor.ID, HouseholdMember> departingRefs()
 		{
-			return getNetwork();
+			return getMembers();
 		}
 	}
 
+	/**
+	 * {@link LeaveHome} special case of {@link SplitHome} where a
+	 * {@link ConnectionType.Simple#WARD} becomes a
+	 * {@link ConnectionType.Simple#SINGLE} adult without children
+	 */
 	interface LeaveHome extends DomesticChange, Geographic<Household>,
 		Geometric<Household>, Locatable<Household>, Personal<Relation>
 	{

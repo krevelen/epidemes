@@ -21,12 +21,23 @@ package nl.rivm.cib.episim.model.person;
 
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
+import nl.rivm.cib.episim.model.locate.Geographic;
+import nl.rivm.cib.episim.model.locate.Geometric;
+import nl.rivm.cib.episim.model.locate.Locatable;
 
 /**
  * {@link Residence} status controls population membership and adjustments
+ * 
  */
-public interface Residence extends Fact
+public interface Residence
+	extends Fact, Locatable<Residence>, Geographic<Residence>,
+	Geometric<Residence>, Domestic<Residence>, Personal<Residence>
 {
+	// friendly naming
+	default Actor.ID referentRef()
+	{
+		return getActorRef();
+	}
 
 	/**
 	 * {@link Deme} executes {@link Residence}s initiated by candidate

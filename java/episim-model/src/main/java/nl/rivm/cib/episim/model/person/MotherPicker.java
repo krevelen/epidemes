@@ -239,6 +239,7 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 				return this.candidateRemovals.size();
 			}
 
+			@SuppressWarnings( "unchecked" )
 			@Override
 			public Collection<Mother>
 				candidatesBornIn( final Range<Instant> birthFilter )

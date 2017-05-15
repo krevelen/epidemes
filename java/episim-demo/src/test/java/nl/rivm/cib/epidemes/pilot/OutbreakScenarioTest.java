@@ -161,7 +161,7 @@ public class OutbreakScenarioTest
 		// connect and setup database persistence
 
 		// load scenario
-		final LocalBinder binder = LocalConfig.builder().withId( "outbreak1" )
+		final LocalBinder binder = LocalConfig.builder().withId( "pop1" )
 
 				// time API (virtual time management)
 				.withProvider( Scheduler.class, Dsol3Scheduler.class )

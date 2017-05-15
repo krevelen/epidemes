@@ -46,7 +46,7 @@ public interface Redirection extends Fact
 	}
 
 	interface Relation extends Redirection, Personal<Relation>,
-		RelationType.Attributable<Relation>
+		ConnectionType.Attributable<Relation>
 	{
 		// friendly name
 		default Actor.ID relationRef()

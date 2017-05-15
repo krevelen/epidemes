@@ -43,7 +43,7 @@ public class TimeUtil
 		// singleton constructor
 	}
 
-	/** time zone used for timestamps of local dates in the Dutch census data */
+	/** time zone used for converting local dates in the Dutch census data */
 	public static final ZoneId NL_TZ = ZoneId.of( "CET" );
 
 	/**

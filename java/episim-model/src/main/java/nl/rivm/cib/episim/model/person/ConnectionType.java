@@ -22,12 +22,13 @@ package nl.rivm.cib.episim.model.person;
 import io.coala.json.Attributed;
 
 /**
- * {@link RelationType} determines behavioral/physical contagion
+ * {@link ConnectionType} determines behavioral/physical contagion, see e.g.
+ * https://www.cbs.nl/nl-nl/onze-diensten/methoden/begrippen?tab=p#id=positie-in-het-huishouden
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface RelationType
+public interface ConnectionType
 {
 
 	/** affects attitude */
@@ -44,30 +45,30 @@ public interface RelationType
 
 	interface Attributable<THIS> extends Attributed
 	{
-		RelationType getRelationType();
+		ConnectionType getRelationType();
 
-		void setRelationType( RelationType relationType );
+		void setRelationType( ConnectionType relationType );
 
 		@SuppressWarnings( "unchecked" )
-		default THIS with( final RelationType relationType )
+		default THIS with( final ConnectionType relationType )
 		{
 			setRelationType( relationType );
 			return (THIS) this;
 		}
 	}
 
-	enum Simple implements RelationType
+	enum Simple implements ConnectionType
 	{
 		/** e.g. online forum, media, authority, peer */
-		INFORM( true, false, false/*, false*/ ),
-		/** e.g. mate, colleague, fellow, cohabiting */
-		SOCIAL( true, true, false/*, false */),
+		INFORM( true, false, false/* , false */ ),
+		/** e.g. parent/child, mate, colleague, fellow, cohabiting */
+		SOCIAL( true, true, false/* , false */ ),
 		/** e.g. casual, marital */
-		SEXUAL( true, true, true/*, false*/ ),
+		PARTNER( true, true, true/* , false */ ),
 		/** e.g. bachelor, single parent */
-		SINGLE(true, true, false/*, false*/),
-		/** e.g. represented by biological/foster/step/co-parent or guardian */
-		WARD( false, true, false/*, true*/ );
+		SINGLE( true, true, false/* , false */ ),
+		/** represented by guardian, e.g. biological/foster/step/co-parent */
+		WARD( false, true, false/* , true */ );
 
 		private final boolean informative;
 		private final boolean contiguous;
@@ -75,7 +76,7 @@ public interface RelationType
 //		private final boolean representative;
 
 		private Simple( final boolean informative, final boolean contiguous,
-			final boolean sexual/*, final boolean representative*/ )
+			final boolean sexual/* , final boolean representative */ )
 		{
 			this.informative = informative;
 			this.contiguous = contiguous;

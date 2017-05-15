@@ -25,22 +25,46 @@ import io.coala.enterprise.Actor;
 import io.coala.json.Attributed;
 
 /**
- * {@link Social}
+ * {@link Domestic}
  * 
  * @version $Id$
- * @author Rick van Krevelen
+ * @author Rick van KrevelenHouseholdMember
  */
-public interface Social<THIS> extends Attributed
+public interface Domestic<THIS> extends Attributed
 {
 
-	Map<Actor.ID, ConnectionType> getNetwork();
+	HouseholdComposition getComposition();
 
-	void setNetwork( Map<Actor.ID, ConnectionType> network );
+	void setComposition( HouseholdComposition composition );
 
 	@SuppressWarnings( "unchecked" )
-	default THIS with( final Map<Actor.ID, ConnectionType> network )
+	default THIS with( HouseholdComposition composition )
 	{
-		setNetwork( network );
+		setComposition( composition );
+		return (THIS) this;
+	}
+
+	Map<Actor.ID, HouseholdMember> getMembers();
+
+	void setMembers( Map<Actor.ID, HouseholdMember> composition );
+
+	@SuppressWarnings( "unchecked" )
+	default THIS with( final Map<Actor.ID, HouseholdMember> composition )
+	{
+		setMembers( composition );
+		return (THIS) this;
+	}
+
+	default HouseholdMember member( final Actor.ID memberRef )
+	{
+		return getMembers().get( memberRef );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	default THIS with( final Domestic<?> domestic )
+	{
+		setComposition( domestic.getComposition() );
+		setMembers( domestic.getMembers() );
 		return (THIS) this;
 	}
 }
