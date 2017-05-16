@@ -21,6 +21,7 @@
 
 	<properties>
 		<hsqldb.version>2.3.4</hsqldb.version>
+		<ujmp.version>0.3.0</ujmp.version>
 		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
 		<m2e.jpa.activation>false</m2e.jpa.activation>
 	</properties>
@@ -79,6 +80,15 @@
 			<artifactId>jta</artifactId>
 			<scope>provided</scope>
 		</dependency>
+
+		<!-- matrix calculations -->
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-core</artifactId>
+			<version>${ujmp.version}</version>
+		</dependency>
+		<!-- <dependency> <groupId>org.ujmp</groupId> <artifactId>ujmp-gui</artifactId> 
+			<version>${ujmp.version}</version> <scope>test</scope> </dependency> -->
 
 		<!-- incl. in-memory JDBC database -->
 		<dependency>

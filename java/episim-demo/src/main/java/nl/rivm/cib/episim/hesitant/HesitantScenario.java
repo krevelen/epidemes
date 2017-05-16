@@ -39,7 +39,8 @@ public class HesitantScenario implements Scenario
 	private static final Logger LOG = LogUtil
 			.getLogger( HesitantScenario.class );
 
-	private final HesitantScenarioConfig config = HesitantScenarioConfig.getOrFromYaml();
+	private final HesitantScenarioConfig config = HesitantScenarioConfig
+			.getOrFromYaml();
 
 	@Inject
 	private ProbabilityDistribution.Parser distParser;
@@ -122,7 +123,7 @@ public class HesitantScenario implements Scenario
 			@Override
 			public VaxHesitancy draw()
 			{
-				return VaxHesitancy.averager( //org.id(),
+				return VaxHesitancy.WeightedAverager.of(
 						this.myConfidence.draw(), this.myComplacency.draw(),
 						this.myCalculation.draw() );
 			}

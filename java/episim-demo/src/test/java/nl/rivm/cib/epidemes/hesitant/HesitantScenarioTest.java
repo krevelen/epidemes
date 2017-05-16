@@ -23,19 +23,16 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
-import org.ujmp.core.SparseMatrix;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.bind.LocalBinder;
-import io.coala.enterprise.Actor;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
@@ -43,11 +40,8 @@ import io.coala.math.Range;
 import io.coala.math.WeightedValue;
 import io.coala.name.Identified;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.random.PseudoRandom;
-import io.coala.random.PseudoRandom.Name;
 import io.coala.util.FileUtil;
 import nl.rivm.cib.episim.hesitant.HesitantScenarioConfig;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 
 /**
  * {@link HesitantScenarioTest}
@@ -173,126 +167,59 @@ public class HesitantScenarioTest
 
 	}
 
-	public static class HesitantIndividual implements Social, VaxHesitancy
-	{
-
-		private EnumMap<HesitancyDimension, BigDecimal> vaxAtt = new EnumMap<>(
-				HesitancyDimension.class );
-
-		private Map<Actor.ID, BigDecimal> opinionatorAppreciation = new HashMap<>();
-
-		private BigDecimal DEFAULT_APPRECIATION = BigDecimal.valueOf( 5, 1 );
-
-		// TODO calc att
-
-		@Override
-		public BigDecimal getComplacency()
-		{
-			return this.vaxAtt.get( HesitancyDimension.complacency );
-		}
-
-		@Override
-		public BigDecimal getConfidence()
-		{
-			return this.vaxAtt.get( HesitancyDimension.confidence );
-		}
-
-		@Override
-		public BigDecimal getCalculation()
-		{
-			return this.vaxAtt.get( HesitancyDimension.calculation );
-		}
-
-		@Override
-		public void setCalculation( final Number calculation )
-		{
-			this.vaxAtt.put( HesitancyDimension.calculation,
-					DecimalUtil.valueOf( calculation ) );
-		}
-
-		@Override
-		public BigDecimal getAppreciation( final Actor.ID sourceRef )
-		{
-			return this.opinionatorAppreciation.computeIfAbsent( sourceRef,
-					id -> DEFAULT_APPRECIATION );
-		}
-
-		@Override
-		public void observe( final Actor.ID sourceRef, final Number complacency,
-			final Number confidence )
-		{
-			// TODO handle opinion
-
-		}
-
-	}
-
-	@Test
-	public void matrixTest() throws IOException, InterruptedException
-	{
-		final HesitantScenarioConfig conf = HesitantScenarioConfig
-				.getOrFromYaml();
-		LOG.info( "Starting matrix test with config: {}", conf.toYAML() );
-		final LocalBinder binder = conf.createBinder();
-		final PseudoRandom rnd = //JavaRandom.Factory.instance().create();
-				binder.inject( PseudoRandom.Factory.class )
-						.create( Name.of( "rng" ), 1L );
-
-		final int numInd = 100; // 1Mx1M fits in normal heap size
-		final int numLoc = 100; // 1Mx1M fits in normal heap size
-
-//		final LocalId ctx = LocalId.of( new UUID() );
-//		final List<Actor.ID> ids = IntStream.range( 0, n )
-//				.mapToObj( Integer::toString ).map( i -> Actor.ID.of( i, ctx ) )
-//				.collect( Collectors.toList() );
-
-		// create a very large sparse matrix
-		SparseMatrix pos = SparseMatrix.Factory.zeros( numInd, numLoc );
-		LOG.trace( "Position matrix size: {}", pos.getSize() );
-
-		for( int ind = 0; ind < numInd; ind++ )
-		{
-			int loc = rnd.nextInt( numLoc );
-			double dur = rnd.nextDouble();
-			pos.setAsBigDecimal( BigDecimal.valueOf( dur ), ind, loc );
-		}
-
-		// set diagonal (i.e. self-appreciation)
-//		for( int i = n - 1; i >= 0; i-- )
+//	public static class HesitantIndividual implements Social, VaxHesitancy
+//	{
+//
+//		private EnumMap<HesitancyDimension, BigDecimal> vaxAtt = new EnumMap<>(
+//				HesitancyDimension.class );
+//
+//		private Map<Actor.ID, BigDecimal> opinionatorAppreciation = new HashMap<>();
+//
+//		private BigDecimal DEFAULT_APPRECIATION = BigDecimal.valueOf( 5, 1 );
+//
+//		// TODO calc att
+//
+//		@Override
+//		public BigDecimal getComplacency()
 //		{
-//			pos.setAsBigDecimal( BigDecimal.ONE, i, i );
+//			return this.vaxAtt.get( HesitancyDimension.complacency );
 //		}
-
-		LOG.trace( "Positions:\n{}", pos );
-
-//		final CountDownLatch latch = new CountDownLatch( 1 );
-//		final JFrame gui = m1.showGUI();
-//		gui.addWindowListener( new WindowAdapter()
+//
+//		@Override
+//		public BigDecimal getConfidence()
 //		{
-//			public void windowClosing( final WindowEvent evt )
-//			{
-//				latch.countDown();
-//			}
-//		} );
-//		gui.addli
-//		latch.await();
-		// basic calculations
-//		Matrix transpose = dense.transpose();
-//		Matrix sum = dense.plus(sparse);
-//		Matrix difference = dense.minus(sparse);
-//		Matrix matrixProduct = dense.mtimes(sparse);
-//		Matrix scaled = dense.times(2.0);
+//			return this.vaxAtt.get( HesitancyDimension.confidence );
+//		}
 //
-//		Matrix inverse = dense.inv();
-//		Matrix pseudoInverse = dense.pinv();
-//		double determinant = dense.det();
+//		@Override
+//		public BigDecimal getCalculation()
+//		{
+//			return this.vaxAtt.get( HesitancyDimension.calculation );
+//		}
 //
-//		Matrix[] singularValueDecomposition = dense.svd();
-//		Matrix[] eigenValueDecomposition = dense.eig();
-//		Matrix[] luDecomposition = dense.lu();
-//		Matrix[] qrDecomposition = dense.qr();
-//		Matrix choleskyDecomposition = dense.chol();
-	}
+//		@Override
+//		public void setCalculation( final Number calculation )
+//		{
+//			this.vaxAtt.put( HesitancyDimension.calculation,
+//					DecimalUtil.valueOf( calculation ) );
+//		}
+//
+//		@Override
+//		public BigDecimal getAppreciation( final Actor.ID sourceRef )
+//		{
+//			return this.opinionatorAppreciation.computeIfAbsent( sourceRef,
+//					id -> DEFAULT_APPRECIATION );
+//		}
+//
+//		@Override
+//		public void observe( final Actor.ID sourceRef, final Number complacency,
+//			final Number confidence )
+//		{
+//			// TODO handle opinion
+//
+//		}
+//
+//	}
 
 	@Test
 	public void configTest() throws IOException

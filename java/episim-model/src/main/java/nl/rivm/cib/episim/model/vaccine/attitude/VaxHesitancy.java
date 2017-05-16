@@ -22,14 +22,20 @@ package nl.rivm.cib.episim.model.vaccine.attitude;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 
 import org.apfloat.Apfloat;
+import org.ujmp.core.Matrix;
+import org.ujmp.core.calculation.Calculation.Ret;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.enterprise.Actor;
+import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.util.Compare;
@@ -62,12 +68,59 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 	/** @return confidence {@link Number} (perceived utility of vaccination) */
 	BigDecimal getConfidence();
 
+	/**
+	 * perceived barriers may cause an "intention-behavior gap" (Sheeran, 2002)
+	 * when there is no clear preference, i.e. fence-sitting (Leask, 2011)
+	 * 
+	 * @param occ the {@link VaxOccasion}
+	 * @return {@code true} iff convenience does not match or outweigh perceived
+	 *         barrier (i.e. complacency vs. confidence attitudes)
+	 *         <p>
+	 *         <table style="width:400; border:1px solid black;
+	 *         cell-padding:2px; cell-spacing:0px;">
+	 *         <caption><em><b>default</b> convenience levels leading to
+	 *         hesitancy behavior, i.e. where:</em>
+	 *         <nobr><code>{@link #getConvenience( VaxOccasion ) convenience} <= {@link #getComplacency() complacency}
+				- {@link #getConfidence()
+	 *         confidence}</code></nobr></caption>
+	 *         <tr>
+	 *         <th rowSpan=2 vAlign=bottom>{@linkplain #getConfidence()
+	 *         confidence} level</th>
+	 *         <th colSpan=3>{@linkplain #getComplacency() complacency}
+	 *         level</th>
+	 *         </tr>
+	 *         <tr>
+	 *         <th>LO</th>
+	 *         <th>MID</th>
+	 *         <th>HI</th>
+	 *         <td><em><nobr>&#8599; hesitate</nobr> (convenience
+	 *         barrier)</em></td>
+	 *         </tr>
+	 *         <tr>
+	 *         <th>LO</th>
+	 *         <td align=center>LO</td>
+	 *         <td align=center>LO, MID</td>
+	 *         <td align=center>all</td>
+	 *         </tr>
+	 *         <tr>
+	 *         <th>MID</th>
+	 *         <td align=center>none</td>
+	 *         <td align=center>LO</td>
+	 *         <td align=center>LO, MID</td>
+	 *         </tr>
+	 *         <tr>
+	 *         <th>HI</th>
+	 *         <td align=center>none</td>
+	 *         <td align=center>none</td>
+	 *         <td align=center>LO</td>
+	 *         </tr>
+	 *         <tr>
+	 *         <td align=right><em><nobr>vaccinate &#8601;</nobr></em></td>
+	 *         </tr>
+	 *         </table>
+	 */
 	@Override
-	default boolean isPositive( VaxOccasion occ )
-	{
-		return Compare.gt( getConfidence().subtract( getComplacency() ),
-				getConvenience( occ ) );
-	}
+	boolean isPositive( VaxOccasion occ );
 
 	/**
 	 * convenience level depends on the {@link VaxHesitancy}'s judgment of a
@@ -79,11 +132,7 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 	 * @param occ the {@link VaxOccasion} to judge
 	 * @return the perceived convenience {@link Number}
 	 */
-	default BigDecimal getConvenience( final VaxOccasion occ )
-	{
-		return Compare.min( occ.utility(), occ.proximity(), occ.clarity(),
-				occ.affinity() );
-	}
+	BigDecimal getConvenience( VaxOccasion occ );
 
 	/**
 	 * HIGH: no "strong pre-existing attitude, extensive search for pros and
@@ -159,65 +208,13 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 	 */
 	default BigDecimal appreciationWeight( final Actor.ID sourceRef )
 	{
-		return Compare.max( BigDecimal.ZERO,
-				getAppreciation( sourceRef )
-						.subtract( DEFAULT_APPRECIATION_WEIGHT_MINIMUM )
-						.add( getCalculation() ) );
+		return Compare.max( BigDecimal.ZERO, getAppreciation( sourceRef )
+				.subtract( ONE_HALF ).add( getCalculation() ) );
 	}
 
-	BigDecimal DEFAULT_APPRECIATION_WEIGHT_MINIMUM = BigDecimal.valueOf( 5, 1 );
+	BigDecimal ONE_HALF = BigDecimal.valueOf( 5, 1 );
 
-	/**
-	 * perceived barriers may cause an "intention-behavior gap" (Sheeran, 2002)
-	 * when there is no clear preference, i.e. fence-sitting (Leask, 2011)
-	 * 
-	 * @param occ the {@link VaxOccasion}
-	 * @return {@code true} iff convenience does not match or outweigh perceived
-	 *         barrier (i.e. complacency vs. confidence attitudes)
-	 *         <p>
-	 *         <table style="width:400; border:1px solid black;
-	 *         cell-padding:2px; cell-spacing:0px;">
-	 *         <caption><em><b>default</b> convenience levels leading to
-	 *         hesitancy behavior, i.e. where:</em>
-	 *         <nobr><code>{@link #getConvenience( VaxOccasion ) convenience} <= {@link #getComplacency() complacency}
-				- {@link #getConfidence()
-	 *         confidence}</code></nobr></caption>
-	 *         <tr>
-	 *         <th rowSpan=2 vAlign=bottom>{@linkplain #getConfidence()
-	 *         confidence} level</th>
-	 *         <th colSpan=3>{@linkplain #getComplacency() complacency}
-	 *         level</th>
-	 *         </tr>
-	 *         <tr>
-	 *         <th>LO</th>
-	 *         <th>MID</th>
-	 *         <th>HI</th>
-	 *         <td><em><nobr>&#8599; hesitate</nobr> (convenience
-	 *         barrier)</em></td>
-	 *         </tr>
-	 *         <tr>
-	 *         <th>LO</th>
-	 *         <td align=center>LO</td>
-	 *         <td align=center>LO, MID</td>
-	 *         <td align=center>all</td>
-	 *         </tr>
-	 *         <tr>
-	 *         <th>MID</th>
-	 *         <td align=center>none</td>
-	 *         <td align=center>LO</td>
-	 *         <td align=center>LO, MID</td>
-	 *         </tr>
-	 *         <tr>
-	 *         <th>HI</th>
-	 *         <td align=center>none</td>
-	 *         <td align=center>none</td>
-	 *         <td align=center>LO</td>
-	 *         </tr>
-	 *         <tr>
-	 *         <td align=right><em><nobr>vaccinate &#8601;</nobr></em></td>
-	 *         </tr>
-	 *         </table>
-	 */
+	// TODO check
 	default boolean isHesitant( final VaxOccasion occ )
 	{
 		final Apfloat comp = DecimalUtil.toApfloat( getComplacency() );
@@ -230,20 +227,206 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 										DecimalUtil.binaryEntropy( conf ) ) ) );
 	}
 
-	static WeightedAverager averager( //final Actor.ID myRef,
-		final Number myConfidence, final Number myComplacency,
-		final Number myCalculation )
+	enum MyDeterminant
 	{
-		return new WeightedAverager( //myRef, 
-				myConfidence, myComplacency, myCalculation );
+		CONFIDENCE, COMPLACENCY;
 	}
 
-	static WeightedAverager weightedAverager( final Number myConfidence,
-		final Number myComplacency, final Number myCalculation,
-		final Function<Actor.ID, Number> appreciator )
+	/**
+	 * @param appreciations a (m x n) {@link Matrix} to store m attitudes having
+	 *            up to n connection weights
+	 * @param positions a (n x 2) {@link Matrix} to store 2 determinants
+	 *            observed for up to n connections
+	 * @param owner an {@link Actor.ID} reference
+	 * @param indexConverter a {@link Function} to convert {@link Actor.ID} into
+	 *            a {@link Long} row index, such that: 0 <= row < m
+	 * @return the {@link VaxHesitancy} attitude
+	 */
+	static VaxHesitancy of( final Matrix positions, final Matrix appreciations,
+		final Actor.ID owner, final Function<Actor.ID, Long> indexConverter )
 	{
-		return new WeightedAverager( //myRef,
-				myConfidence, myComplacency, myCalculation, appreciator );
+		return of( positions, appreciations, owner, indexConverter, Compare::ge,
+				occ -> Compare.min( occ.utility(), occ.proximity(),
+						occ.clarity(), occ.affinity() ),
+				( conf, comp ) -> ONE_HALF.subtract(
+						ONE_HALF.multiply( conf.subtract( comp ) ) ) );
+	}
+
+	/**
+	 * @param appreciations a (m x n) {@link Matrix} to store m attitudes having
+	 *            up to n connection weights
+	 * @param positions a (n x 2) {@link Matrix} to store 2 determinants
+	 *            observed for up to n connections
+	 * @param owner an {@link Actor.ID} reference
+	 * @param indexConverter a {@link Function} to convert {@link Actor.ID} into
+	 *            a {@link Long} row index, such that: 0 <= row < m
+	 * @param calculationFilter {@link BiPredicate} : (appreciation,
+	 *            calculation) &rarr; include &isin; [T,F]
+	 * @param convenienceEvaluator {@link Function} : {@link VaxOccasion} &rarr;
+	 *            convenience, a {@link BigDecimal} &isin; [0,1]
+	 * @param barrierEvaluator {@link BiFunction} : (confidence, complacency)
+	 *            &rarr; barrier, each a {@link BigDecimal} &isin; [0,1]
+	 * @return the {@link VaxHesitancy} attitude
+	 */
+	static VaxHesitancy of( final Matrix positions, final Matrix appreciations,
+		final Actor.ID owner, final Function<Actor.ID, Long> indexConverter,
+		final BiPredicate<BigDecimal, BigDecimal> calculationFilter,
+		final Function<VaxOccasion, BigDecimal> convenienceEvaluator,
+		final BiFunction<BigDecimal, BigDecimal, BigDecimal> barrierEvaluator )
+	{
+		// sanity checks
+		if( appreciations.getSize( 1 ) != positions.getSize( 0 ) )
+			Thrower.throwNew( IllegalArgumentException::new,
+					() -> "Dimensions incompatible, (n x "
+							+ appreciations.getSize( 1 ) + ") vs ("
+							+ positions.getSize( 0 ) + " x m)" );
+		if( positions.getSize( 1 ) < MyDeterminant.values().length )
+			Thrower.throwNew( IllegalArgumentException::new,
+					() -> "Determinant columns missing, use (n x "
+							+ MyDeterminant.values().length + ")" );
+
+		return new VaxHesitancy()
+		{
+			private final long row = indexFor( owner );
+			private BigDecimal calculation = ONE_HALF;
+			private transient Matrix positionCache = null;
+
+			private long indexFor( final Actor.ID ref )
+			{
+				final long row = indexConverter.apply( ref );
+				if( row >= appreciations.getSize( 0 ) )
+					Thrower.throwNew( IndexOutOfBoundsException::new,
+							() -> row + " >= " + appreciations.getSize( 0 ) );
+				if( row >= appreciations.getSize( 1 ) )
+					Thrower.throwNew( IndexOutOfBoundsException::new,
+							() -> row + " >= " + appreciations.getSize( 1 ) );
+				if( row >= positions.getSize( 0 ) )
+					Thrower.throwNew( IndexOutOfBoundsException::new,
+							() -> row + " >= " + positions.getSize( 0 ) );
+				return row;
+			}
+
+			@Override
+			public String toString()
+			{
+				final Object label = positions.getRowLabel( this.row );
+				return label == null ? owner.toString() : label.toString();
+			}
+
+			@Override
+			public void setCalculation( final Number calculation )
+			{
+				this.calculation = DecimalUtil.valueOf( calculation );
+				this.positionCache = null;
+			}
+
+			@Override
+			public BigDecimal getCalculation()
+			{
+				return this.calculation;
+			}
+
+			private Matrix determinants()
+			{
+				return this.positionCache != null ? this.positionCache
+						: (this.positionCache = MatrixUtil.apply(
+								appreciations.selectRows( Ret.NEW, this.row ),
+								bd -> calculationFilter.test( bd,
+										this.calculation ) ? bd
+												: BigDecimal.ZERO )
+								.mtimes( positions ));
+			}
+
+			@Override
+			public BigDecimal getConfidence()
+			{
+				return determinants().getAsBigDecimal( 0,
+						MyDeterminant.CONFIDENCE.ordinal() );
+			}
+
+			@Override
+			public BigDecimal getComplacency()
+			{
+				return determinants().getAsBigDecimal( 0,
+						MyDeterminant.COMPLACENCY.ordinal() );
+			}
+
+			@Override
+			public void observe( final Actor.ID sourceRef,
+				final Number complacency, final Number confidence )
+			{
+				final long row = indexConverter.apply( sourceRef );
+				positions.setAsBigDecimal( DecimalUtil.valueOf( complacency ),
+						row, MyDeterminant.COMPLACENCY.ordinal() );
+				positions.setAsBigDecimal( DecimalUtil.valueOf( confidence ),
+						row, MyDeterminant.CONFIDENCE.ordinal() );
+				this.positionCache = null;
+			}
+
+			@Override
+			public BigDecimal getAppreciation( final Actor.ID sourceRef )
+			{
+				return appreciations.getAsBigDecimal( this.row,
+						indexFor( sourceRef ) );
+			}
+
+			@Override
+			public BigDecimal getConvenience( final VaxOccasion occ )
+			{
+				return convenienceEvaluator.apply( occ );
+			}
+
+			@Override
+			public boolean isPositive( final VaxOccasion occ )
+			{
+				return Compare.gt( getConvenience( occ ), barrierEvaluator
+						.apply( getConfidence(), getComplacency() ) );
+			}
+		};
+	}
+
+	class MatrixUtil
+	{
+		public static Matrix apply( final Matrix m,
+			final Function<BigDecimal, BigDecimal> func )
+		{
+			return apply( m, func, m::getAsBigDecimal, m::setAsBigDecimal );
+		}
+
+		public static <T> Matrix apply( final Matrix m,
+			final Function<T, T> func, final Function<long[], T> getter,
+			final BiConsumer<T, long[]> setter )
+		{
+			if( m.getDimensionCount() > 3 )
+				return Thrower.throwNew( UnsupportedOperationException::new,
+						() -> "Too many dimensions: " + m.getDimensionCount() );
+
+			for( long row = m.getSize( 0 ) - 1; row >= 0; row-- )
+				if( m.getDimensionCount() == 1 )
+				{
+					final long[] coords = { row };
+					setter.accept( func.apply( getter.apply( coords ) ),
+							coords );
+				} else
+					for( long col = m.getSize( 1 ) - 1; col >= 0; col-- )
+						if( m.getDimensionCount() == 2 )
+						{
+							final long[] coords = { row, col };
+							setter.accept( func.apply( getter.apply( coords ) ),
+									coords );
+						} else
+							for( long lev = m.getSize( 2 )
+									- 1; lev >= 0; lev-- )
+								if( m.getDimensionCount() == 3 )
+								{
+									final long[] coords = { row, col, lev };
+									setter.accept(
+											func.apply(
+													getter.apply( coords ) ),
+											coords );
+								}
+			return m;
+		}
 	}
 
 	/**
@@ -257,9 +440,34 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 	 */
 	class WeightedAverager implements VaxHesitancy
 	{
-//		private final Actor.ID myRef;
+		public static WeightedAverager of( final Number myConfidence,
+			final Number myComplacency, final Number myCalculation )
+		{
+			return of( myConfidence, myComplacency, myCalculation,
+					id -> BigDecimal.ONE );
+		}
+
+		public static WeightedAverager of( final Number myConfidence,
+			final Number myComplacency, final Number myCalculation,
+			final Function<Actor.ID, Number> appreciator )
+		{
+			return of( myConfidence, myComplacency, myCalculation, appreciator,
+					occ -> Compare.min( occ.utility(), occ.proximity(),
+							occ.clarity(), occ.affinity() ) );
+		}
+
+		public static WeightedAverager of( final Number myConfidence,
+			final Number myComplacency, final Number myCalculation,
+			final Function<Actor.ID, Number> appreciator,
+			final Function<VaxOccasion, Number> evaluator )
+		{
+			return new WeightedAverager( myConfidence, myComplacency,
+					myCalculation, appreciator, evaluator );
+		}
 
 		private final Function<Actor.ID, BigDecimal> appreciator;
+
+		private final Function<VaxOccasion, BigDecimal> evaluator;
 
 		/** (dynamic) argument "memory" of an individual */
 		@JsonProperty
@@ -273,21 +481,15 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 		private BigDecimal calculation;
 
 		public WeightedAverager( final Number myConfidence,
-			final Number myComplacency, final Number myCalculation )
-		{
-			this( //myRef, 
-					myConfidence, myComplacency, myCalculation,
-					id -> BigDecimal.ONE );
-		}
-
-		public WeightedAverager( // final Actor.ID myRef,
-			final Number myConfidence, final Number myComplacency,
-			final Number myCalculation,
-			final Function<Actor.ID, Number> appreciator )
+			final Number myComplacency, final Number myCalculation,
+			final Function<Actor.ID, Number> appreciator,
+			final Function<VaxOccasion, Number> evaluator )
 		{
 			setCalculation( myCalculation );
 			this.appreciator = id -> DecimalUtil
 					.valueOf( appreciator.apply( id ) );
+			this.evaluator = occ -> DecimalUtil
+					.valueOf( evaluator.apply( occ ) );
 			this.myDefault = toPosition( myConfidence, myComplacency );
 			reset();
 		}
@@ -404,6 +606,19 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 				for( int i = 0; i < sums.length; i++ )
 					this.myPosition[i] = DecimalUtil.divide( sums[i], w );
 			return this.myPosition;
+		}
+
+		@Override
+		public BigDecimal getConvenience( VaxOccasion occ )
+		{
+			return this.evaluator.apply( occ );
+		}
+
+		@Override
+		public boolean isPositive( final VaxOccasion occ )
+		{
+			return Compare.gt( getConfidence().subtract( getComplacency() ),
+					getConvenience( occ ) );
 		}
 	}
 }

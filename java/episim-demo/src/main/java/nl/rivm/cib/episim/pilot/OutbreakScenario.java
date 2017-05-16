@@ -142,11 +142,11 @@ public class OutbreakScenario implements Scenario
 		@ConverterClass( InputStreamConverter.class )
 		InputStream cbs37230();
 
-		/**
-		 * @return
-		 */
 		@DefaultValue( "[15:50]" )
 		String momAgeRange();
+
+		@DefaultValue( "0 0 * * * ?" )
+		String statisticsRecurrence();
 
 //		@DefaultValue( "cbs/37975_2016JJ00.json" )
 //		@ConverterClass( InputStreamConverter.class )
@@ -181,8 +181,6 @@ public class OutbreakScenario implements Scenario
 	/** temporal scope of analysis */
 	private transient Range<LocalDate> timeRange = null;
 
-//	FIXME private Map<Region.ID, Region> regions = new TreeMap<>();
-
 	/** population initialization and immigration */
 //	private transient ConditionalDistribution<Cbs37713json.Category, ZonedDateTime> genderOriginDist = null;
 
@@ -193,6 +191,10 @@ public class OutbreakScenario implements Scenario
 	/** regional monthly demographic places (births, deaths, migrations, ...) */
 	private transient Map<CBSPopulationDynamic, ConditionalDistribution<Cbs37230json.Category, LocalDate>> demogRegionDist = new EnumMap<>(
 			CBSPopulationDynamic.class );
+
+	// TODO partnership/marriage rate from CBS 37890 (region, age, gender) & 60036ned (age diff) ?
+
+	// TODO separation/divorce rate from CBS 37890 (region, age, gender) ?
 
 	private transient ConditionalDistribution<CbsBoroughPC6json, Region.ID> hoodDist;
 	/**
@@ -224,10 +226,6 @@ public class OutbreakScenario implements Scenario
 										.blockingGet() );
 				} );
 	}
-
-	// TODO partnership/marriage rate from CBS 37890 (region, age, gender) & 60036ned (age diff) ?
-
-	// TODO separation/divorce rate from CBS 37890 (region, age, gender) ?
 
 	private transient Instant dtInstant = null;
 	private transient LocalDate dtCache = null;
@@ -378,6 +376,7 @@ public class OutbreakScenario implements Scenario
 				registerHousehold( rq.getRegionRef(), rq.getComposition() ).put(
 						rq.creatorRef(),
 						rq.member( rq.referentRef() ).birth() );
+				deme.respond( rq, FactKind.STATED ).commit();
 			}, this::error );
 			// update household registry
 			deme.emit( DomesticChange.class, FactKind.STATED ).subscribe( st ->
@@ -415,26 +414,25 @@ public class OutbreakScenario implements Scenario
 				LOG.trace( "size = {} of {}, hh count: {}", this.persons.get(),
 						popSize, this.households.get() );
 			}
-			;
 		}
 
-		final LocalDateTime offset = this.timeRange.lowerValue().atStartOfDay();
-		atEach( Timing.of( "0 0 * * * ?" )
+		atEach( Timing.of( this.config.statisticsRecurrence() )
 				.offset( dt().atStartOfDay( TimeUtil.NL_TZ ) ).iterate() )
-						.subscribe( t ->
-						{
-							LOG.info( "t={}, hh[{}+{}-{}] pp[{}+{}-{}]",
-									t.prettify( offset ), this.households.get(),
-									this.immigrations.getAndSet( 0L ),
-									this.emigrations.getAndSet( 0L ),
-									this.persons.get(),
-									this.births.getAndSet( 0L ),
-									this.deaths.getAndSet( 0L ) );
-						}, this::error );
+						.subscribe( this::stats, this::error );
 
 		// TODO initiate Infections: diseases/outbreaks, vaccine/interventions
 
 		LOG.info( "Initialized model" );
+	}
+
+	final LocalDateTime offset = this.timeRange.lowerValue().atStartOfDay();
+
+	private void stats( final Instant t )
+	{
+		LOG.info( "t={}, hh[{}+{}-{}] pp[{}+{}-{}]", t.prettify( offset ),
+				this.households.get(), this.immigrations.getAndSet( 0L ),
+				this.emigrations.getAndSet( 0L ), this.persons.get(),
+				this.births.getAndSet( 0L ), this.deaths.getAndSet( 0L ) );
 	}
 
 	private void error( final Throwable e )
@@ -522,6 +520,9 @@ public class OutbreakScenario implements Scenario
 //		LOG.trace( "t={}, death occurs in {}", nowPretty(), regRef );
 
 		// TODO deaths, add 83190ned (age, gender, position)
+//		this.householdRegistry( regRef).
+
+		// TODO remove from actors factory cache
 		return this.deme.id(); // FIXME
 	}
 
@@ -809,6 +810,7 @@ public class OutbreakScenario implements Scenario
 
 	protected Actor.ID createPerson( final Gender gender, final Instant birth )
 	{
+		// TODO re-use removed ID's first
 		final Actor<Fact> person = this.actors
 				.create( this.persons.incrementAndGet() );
 
@@ -864,7 +866,7 @@ public class OutbreakScenario implements Scenario
 
 	protected void removePerson( final Actor.ID personRef )
 	{
-		// TODO unregister contacts etc
+		// TODO unregister contacts, remove from actors factory cache, etc...
 	}
 
 	protected Collection<Fact> createOffspring()

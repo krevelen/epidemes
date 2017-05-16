@@ -120,6 +120,12 @@ public interface VaxOccasion
 			{
 				return this.map;
 			}
+
+			@Override
+			public String toString()
+			{
+				return asMap().toString();
+			}
 		};
 		result.asMap().put( Index.UTILITY, DecimalUtil.valueOf( utility ) );
 		result.asMap().put( Index.PROXIMITY, DecimalUtil.valueOf( proximity ) );
