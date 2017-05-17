@@ -110,27 +110,11 @@ public interface VaxOccasion
 	public static VaxOccasion of( final Number utility, final Number proximity,
 		final Number clarity, final Number affinity )
 	{
-		final VaxOccasion result = new VaxOccasion()
-		{
-			private final Map<Index, BigDecimal> map = new EnumMap<>(
-					Index.class );
-
-			@Override
-			public Map<Index, BigDecimal> asMap()
-			{
-				return this.map;
-			}
-
-			@Override
-			public String toString()
-			{
-				return asMap().toString();
-			}
-		};
-		result.asMap().put( Index.UTILITY, DecimalUtil.valueOf( utility ) );
-		result.asMap().put( Index.PROXIMITY, DecimalUtil.valueOf( proximity ) );
-		result.asMap().put( Index.CLARITY, DecimalUtil.valueOf( clarity ) );
-		result.asMap().put( Index.AFFINITY, DecimalUtil.valueOf( affinity ) );
-		return result;
+		final Map<Index, BigDecimal> map = new EnumMap<>( Index.class );
+		map.put( Index.UTILITY, DecimalUtil.valueOf( utility ) );
+		map.put( Index.PROXIMITY, DecimalUtil.valueOf( proximity ) );
+		map.put( Index.CLARITY, DecimalUtil.valueOf( clarity ) );
+		map.put( Index.AFFINITY, DecimalUtil.valueOf( affinity ) );
+		return () -> map;
 	}
 }

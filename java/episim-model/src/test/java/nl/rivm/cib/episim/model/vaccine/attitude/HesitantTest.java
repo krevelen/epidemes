@@ -22,6 +22,7 @@ package nl.rivm.cib.episim.model.vaccine.attitude;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,10 @@ import org.ujmp.core.SparseMatrix;
 
 import io.coala.enterprise.Actor;
 import io.coala.log.LogUtil;
+import io.coala.math.DecimalUtil;
+import io.coala.math.MatrixUtil;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy.Column;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy.MatrixWeightedAverager;
 
 /**
  * {@link HesitantTest}
@@ -94,41 +99,83 @@ public class HesitantTest
 //				binder.inject( PseudoRandom.Factory.class )
 //						.create( Name.of( "rng" ), 1L );
 
-		LOG.info( "Started test of {}", VaxHesitancy.class.getSimpleName() );
-		final long n = 3;
-		final Matrix determinants = SparseMatrix.Factory.rand( n, 2 );
-		final Matrix connections = SparseMatrix.Factory.rand( n, n );
-		connections.setLabel( "connections" );
-		determinants.setLabel( "attitude" );
-		for( VaxHesitancy.MyDeterminant det : VaxHesitancy.MyDeterminant
-				.values() )
-			determinants.setColumnLabel( det.ordinal(), det.name() );
-		final List<VaxHesitancy> hes = new ArrayList<>();
+		LOG.info( "Started test of {}",
+				MatrixWeightedAverager.class.getSimpleName() );
+		final long n = 10;
+		final Matrix opinions = Matrix.Factory.zeros( n, 2 );
+		final Matrix pressure = Matrix.Factory.zeros( n, n );
+		// partition/neighborhood 1
+		MatrixUtil.insertBigDecimal( pressure,
+				SparseMatrix.Factory.ones( n / 2, n / 2 ), 0, 0 );
+		// partition/neighborhood 2
+		MatrixUtil.insertBigDecimal( pressure,
+				SparseMatrix.Factory.ones( n / 2, n / 2 ), n / 2, n / 2 );
+		pressure.setLabel( "Pressure" );
+		opinions.setLabel( "Opinion" );
+		Arrays.stream( Column.values() ).forEach(
+				col -> opinions.setColumnLabel( col.ordinal(), col.name() ) );
+		final List<MatrixWeightedAverager> hes = new ArrayList<>();
 		for( long i = 0; i < n; i++ )
 		{
-			final String label = "ind" + i;
-			determinants.setRowLabel( i, label );
-			connections.setRowLabel( i, label );
-			connections.setColumnLabel( i, "conn_" + label );
-			hes.add( VaxHesitancy.of( determinants, connections,
-					Actor.ID.of( i, null ), id -> (Long) id.unwrap() ) );
+			opinions.setAsBigDecimal(
+					BigDecimal.valueOf( (i + 2) * .2 % 1 + .1 ), i,
+					Column.CONFIDENCE.ordinal() );
+			opinions.setAsBigDecimal( BigDecimal.valueOf( i * .2 % 1 ), i,
+					Column.COMPLACENCY.ordinal() );
+			final String label = "hh" + i;
+			opinions.setRowLabel( i, label );
+			pressure.setRowLabel( i, label );
+			pressure.setColumnLabel( i, "appr_" + label );
+			// incremental self-reliance on (i,i) coordinates
+			pressure.setAsBigDecimal( BigDecimal.valueOf( i ), i, i );
+			final MatrixWeightedAverager att = MatrixWeightedAverager.of(
+					opinions, pressure, id -> (Long) id.unwrap(),
+					Actor.ID.of( i, null ) );
+			opinions.setRowLabel( i, "" + att.isPositive() + i );
+			hes.add( att );
 		}
-		LOG.trace( "Created matrices:\n{}\n{}", determinants, connections );
-		final VaxOccasion vax = VaxOccasion.of( VaxHesitancy.ONE_HALF,
-				VaxHesitancy.ONE_HALF, VaxHesitancy.ONE_HALF,
-				VaxHesitancy.ONE_HALF );
-		LOG.trace( "Attitude towards occasion {}: {}", vax,
-				hes.stream().collect( Collectors.toMap( h -> h,
-						h -> h.isPositive( vax ) ) ) );
-		
-		// position observed by one hesitant (ind1) is shared with all
-		hes.get( 0 ).observe( Actor.ID.of( 1L, null ), BigDecimal.ONE,
-				VaxHesitancy.ONE_HALF );
-		LOG.trace( "Updated matrices:\n{}\n{}", determinants, connections );
-		LOG.trace( "Attitude towards occasion {}: {}", vax,
-				hes.stream().collect( Collectors.toMap( h -> h,
-						h -> h.isPositive( vax ) ) ) );
-		LOG.info( "Completed test of {}", VaxHesitancy.class.getSimpleName() );
+		LOG.trace( "Created matrices:\n{}\n{}", opinions, pressure );
+		final VaxOccasion vax = VaxOccasion.of( DecimalUtil.ONE_HALF,
+				DecimalUtil.ONE_HALF, DecimalUtil.ONE_HALF,
+				DecimalUtil.ONE_HALF );
+		LOG.trace( "Attitude towards occasion #1 {} -> {}",
+				vax.asMap().values(), hes.stream().collect( Collectors
+						.toMap( att -> att, att -> att.isPositive( vax ) ) ) );
+
+		final Actor.ID authority = Actor.ID.of( 4L, null );
+		// position set by one hesitant (ind1) is shared immediately with all
+		hes.get( 0 ).setPosition( authority, BigDecimal.ONE, BigDecimal.ZERO );
+		// isolate one position from influences, effectively fixing its values
+		hes.get( 0 ).setAppreciation( authority, Matrix.Factory.zeros( 1, n ) );
+		// expected: family 1 converges faster (to authority) than family 2
+		LOG.trace( "Updated matrices:\n{}\n{}", opinions, pressure );
+
+		// update opinions based on new occasion
+		// expected: group 1 converges faster than group 2, opinion #4 stable
+		LOG.trace( "Attitude towards occasion #2 {} -> {}, current:\n{}",
+				vax.asMap()
+						.values(),
+				hes.stream()
+						.collect(
+								Collectors.toMap( att -> att,
+										att -> att.reset() // reset to update values
+												.isPositive( vax ) ) ),
+				opinions );
+
+		// update opinions based on new occasion
+		// expected: group 1 converges faster than group 2, opinion #4 stable
+		LOG.trace( "Attitude towards occasion #3 {} -> {}, current:\n{}",
+				vax.asMap()
+						.values(),
+				hes.stream()
+						.collect(
+								Collectors.toMap( att -> att,
+										att -> att.reset() // reset to update values
+												.isPositive( vax ) ) ),
+				opinions );
+
+		LOG.info( "Completed test of {}",
+				MatrixWeightedAverager.class.getSimpleName() );
 	}
 
 	/**
@@ -139,43 +186,43 @@ public class HesitantTest
 	{
 		LOG.info( "Started test of {}", VaxHesitancy.class.getSimpleName() );
 
-		final VaxHesitancy.WeightedAverager hes = VaxHesitancy.WeightedAverager
+		final VaxHesitancy.SimpleWeightedAverager hes = VaxHesitancy.SimpleWeightedAverager
 				.of( 1, 0, .5, id -> .5 );
 		final VaxOccasion occ = VaxOccasion.of( 1, 1, .5, .5 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
-				hes.getCalculation(), occ, hes.getConvenience( occ ),
-				hes.getConfidence(), hes.getComplacency(),
-				hes.isHesitant( occ ) );
+				hes.getCalculation(), occ.asMap().values(),
+				hes.getConvenience( occ ), hes.getConfidence(),
+				hes.getComplacency(), hes.isPositive( occ ) );
 //		assertTrue("should be hesitant by default", hes.isHesitant( occ ));
 
 		hes.observeRisk( Actor.ID.of( "pro-vax", null ), 0, 1 );
 		hes.observeRisk( Actor.ID.of( "anti-vax", null ), 1, 0 );
 		hes.observeRisk( Actor.ID.of( "anti-vax", null ), 1, 0 ); // will overwrite?
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
-				hes.getCalculation(), occ, hes.getConvenience( occ ),
-				hes.getConfidence(), hes.getComplacency(),
-				hes.isHesitant( occ ) );
+				hes.getCalculation(), occ.asMap().values(),
+				hes.getConvenience( occ ), hes.getConfidence(),
+				hes.getComplacency(), hes.isPositive( occ ) );
 //		assertFalse("should become non-hesitant", hes.isHesitant( occ ));
 
 		hes.observeRisk( Actor.ID.of( "anti-vax2", null ), 1, 0 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
-				hes.getCalculation(), occ, hes.getConvenience( occ ),
-				hes.getConfidence(), hes.getComplacency(),
-				hes.isHesitant( occ ) );
+				hes.getCalculation(), occ.asMap().values(),
+				hes.getConvenience( occ ), hes.getConfidence(),
+				hes.getComplacency(), hes.isPositive( occ ) );
 //		assertTrue("should become hesitant again", hes.isHesitant( occ ));
 
 		hes.observeRisk( Actor.ID.of( "pro-vax2", null ), 0, 1 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
-				hes.getCalculation(), occ, hes.getConvenience( occ ),
-				hes.getConfidence(), hes.getComplacency(),
-				hes.isHesitant( occ ) );
+				hes.getCalculation(), occ.asMap().values(),
+				hes.getConvenience( occ ), hes.getConfidence(),
+				hes.getComplacency(), hes.isPositive( occ ) );
 //		assertFalse("should be non-hesitant again", hes.isHesitant( occ ));
 
 		hes.setCalculation( 0 );
 		LOG.trace( "hes1: calc={}, conv({})={}, conf={}, compl={} => {}",
-				hes.getCalculation(), occ, hes.getConvenience( occ ),
-				hes.getConfidence(), hes.getComplacency(),
-				hes.isHesitant( occ ) );
+				hes.getCalculation(), occ.asMap().values(),
+				hes.getConvenience( occ ), hes.getConfidence(),
+				hes.getComplacency(), hes.isPositive( occ ) );
 		LOG.trace( "hes1: {}", hes );
 //		assertTrue("should be hesitant again", hes.isHesitant( occ ));
 

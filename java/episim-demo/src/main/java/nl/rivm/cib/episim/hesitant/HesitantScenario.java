@@ -123,7 +123,7 @@ public class HesitantScenario implements Scenario
 			@Override
 			public VaxHesitancy draw()
 			{
-				return VaxHesitancy.WeightedAverager.of(
+				return VaxHesitancy.SimpleWeightedAverager.of(
 						this.myConfidence.draw(), this.myComplacency.draw(),
 						this.myCalculation.draw() );
 			}
