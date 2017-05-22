@@ -54,11 +54,10 @@ import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.time.Scheduler;
-import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.locate.Transporter;
+import nl.rivm.cib.episim.pilot.DemePersistence;
+import nl.rivm.cib.episim.pilot.DemeStats;
 import nl.rivm.cib.episim.pilot.OutbreakScenario;
-import nl.rivm.cib.episim.pilot.OutbreakScenario.MyDirectory;
 
 /**
  * {@link JsonService} see e.g. http://cxf.apache.org/docs/jax-rs.html
@@ -297,9 +296,9 @@ public class JsonService
 							FactExchange.SimpleBus.class )
 
 					// epidemes API
-					.withProvider( Region.Directory.class, MyDirectory.class )
-					.withProvider( Place.Directory.class, MyDirectory.class )
-					.withProvider( Transporter.Directory.class, MyDirectory.class )
+					.withProvider( DemePersistence.class,
+							DemePersistence.MemCache.class )
+					.withProvider( DemeStats.class, DemeStats.Simple.class )
 
 					.build().createBinder( Collections
 							.singletonMap( EntityManagerFactory.class, EMF ) );

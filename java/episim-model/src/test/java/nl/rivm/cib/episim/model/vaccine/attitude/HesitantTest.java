@@ -35,7 +35,8 @@ import io.coala.enterprise.Actor;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.math.MatrixUtil;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy.Column;
+import nl.rivm.cib.episim.model.person.Attitude;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy.SocialFactors;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy.MatrixWeightedAverager;
 
 /**
@@ -112,16 +113,16 @@ public class HesitantTest
 				SparseMatrix.Factory.ones( n / 2, n / 2 ), n / 2, n / 2 );
 		pressure.setLabel( "Pressure" );
 		opinions.setLabel( "Opinion" );
-		Arrays.stream( Column.values() ).forEach(
+		Arrays.stream( SocialFactors.values() ).forEach(
 				col -> opinions.setColumnLabel( col.ordinal(), col.name() ) );
 		final List<MatrixWeightedAverager> hes = new ArrayList<>();
 		for( long i = 0; i < n; i++ )
 		{
 			opinions.setAsBigDecimal(
 					BigDecimal.valueOf( (i + 2) * .2 % 1 + .1 ), i,
-					Column.CONFIDENCE.ordinal() );
+					SocialFactors.CONFIDENCE.ordinal() );
 			opinions.setAsBigDecimal( BigDecimal.valueOf( i * .2 % 1 ), i,
-					Column.COMPLACENCY.ordinal() );
+					SocialFactors.COMPLACENCY.ordinal() );
 			final String label = "hh" + i;
 			opinions.setRowLabel( i, label );
 			pressure.setRowLabel( i, label );

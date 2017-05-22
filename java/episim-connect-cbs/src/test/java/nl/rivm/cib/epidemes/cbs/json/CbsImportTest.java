@@ -195,17 +195,17 @@ public class CbsImportTest
 //						.map( dist -> Collections.entry( gr.getKey(),
 //								dist ) ) );
 
-		final Map<Region.ID, ProbabilityDistribution<CbsBoroughPC6json>> async = CbsBoroughPC6json
+		final Map<Region.ID, ProbabilityDistribution<CbsNeighborhood>> async = CbsNeighborhood
 				.readAsync( () -> FileUtil.toInputStream( CBS_PC6_FILE ) )
 				.toMultimap( bu -> bu.municipalRef(),
-						CbsBoroughPC6json::toWeightedValue )
+						CbsNeighborhood::toWeightedValue )
 				.blockingGet().entrySet().parallelStream() // blocking
 				.collect( Collectors.toMap( e -> e.getKey(),
 						e -> distFact.createCategorical(
 								// consume WeightedValue's for garbage collector
 								e.getValue() ) ) );
 
-		final ConditionalDistribution<CbsBoroughPC6json, Region.ID> dist = ConditionalDistribution
+		final ConditionalDistribution<CbsNeighborhood, Region.ID> dist = ConditionalDistribution
 				.of( async::get );
 		// region: not weighted, draw from another (weighted) distribution?
 		final Region.ID regRef = distFact.getStream()
@@ -213,7 +213,7 @@ public class CbsImportTest
 		for( int i = 0; i < 10; i++ )
 		{
 			// borough: weighted by address count
-			final CbsBoroughPC6json buurt = dist.draw( regRef );
+			final CbsNeighborhood buurt = dist.draw( regRef );
 			// zip: weighted by address count
 			final ZipCode zip = buurt.zipDist( distFact::createCategorical )
 					.draw();

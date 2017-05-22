@@ -52,11 +52,9 @@ import io.coala.random.PseudoRandom;
 import io.coala.time.ReplicateConfig;
 import io.coala.time.Scheduler;
 import io.coala.util.MapBuilder;
-import nl.rivm.cib.episim.model.locate.Place;
-import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.locate.Transporter;
+import nl.rivm.cib.episim.pilot.DemePersistence;
+import nl.rivm.cib.episim.pilot.DemeStats;
 import nl.rivm.cib.episim.pilot.OutbreakScenario;
-import nl.rivm.cib.episim.pilot.OutbreakScenario.MyDirectory;
 
 /**
  * {@link OutbreakScenarioTest}
@@ -155,7 +153,7 @@ public class OutbreakScenarioTest
 
 		// configure replication FIXME via LocalConfig?
 		ConfigCache.getOrCreate( ReplicateConfig.class, MapBuilder.unordered()
-				.put( ReplicateConfig.DURATION_KEY, "" + 1 )
+				.put( ReplicateConfig.DURATION_KEY, "" + 1 ) // duration (days)
 				.put( ReplicateConfig.OFFSET_KEY, "2012-01-01" ).build() );
 
 		// connect and setup database persistence
@@ -189,9 +187,9 @@ public class OutbreakScenarioTest
 				).withProvider( FactExchange.class, FactExchange.SimpleBus.class )
 
 				// epidemes API
-				.withProvider( Region.Directory.class, MyDirectory.class )
-				.withProvider( Place.Directory.class, MyDirectory.class )
-				.withProvider( Transporter.Directory.class, MyDirectory.class )
+				.withProvider( DemePersistence.class,
+						DemePersistence.MemCache.class )
+				.withProvider( DemeStats.class, DemeStats.Simple.class )
 
 				.build().createBinder(
 		//

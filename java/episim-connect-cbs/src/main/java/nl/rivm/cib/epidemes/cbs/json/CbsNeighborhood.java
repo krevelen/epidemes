@@ -39,7 +39,7 @@ import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.model.locate.ZipCode;
 
 /**
- * {@link CbsBoroughPC6json} helps to import zip/burough data (JSON formatted).
+ * {@link CbsNeighborhood} helps to import zip/burough data (JSON formatted).
  * See
  * https://www.cbs.nl/nl-nl/maatwerk/2016/38/dominante-buurtcode-2016-bij-postcode-en-huisnummer-combinatie
  * 
@@ -70,7 +70,7 @@ write( jsonlite::toJSON( GAB_GWD.Json, pretty=T, auto_unbox=T ), file=destFile )
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = false )
-public class CbsBoroughPC6json
+public class CbsNeighborhood
 {
 
 	/** the borough code */
@@ -146,27 +146,27 @@ public class CbsBoroughPC6json
 				.orElse( 0 );
 	}
 
-	public WeightedValue<CbsBoroughPC6json> toWeightedValue()
+	public WeightedValue<CbsNeighborhood> toWeightedValue()
 	{
 		return WeightedValue.of( this, zipCount() );
 	}
 
 	/** @return the parsed entries */
 	@Deprecated
-	public static Stream<CbsBoroughPC6json>
+	public static Stream<CbsNeighborhood>
 		readSync( final Callable<InputStream> json ) throws Exception
 	{
 		try( final InputStream is = json.call() )
 		{
 			return Arrays.stream(
-					JsonUtil.valueOf( is, CbsBoroughPC6json[].class ) );
+					JsonUtil.valueOf( is, CbsNeighborhood[].class ) );
 		}
 	}
 
 	/** @return the parsed entries */
-	public static Observable<CbsBoroughPC6json>
+	public static Observable<CbsNeighborhood>
 		readAsync( final Callable<InputStream> json )
 	{
-		return JsonUtil.readArrayAsync( json, CbsBoroughPC6json.class );
+		return JsonUtil.readArrayAsync( json, CbsNeighborhood.class );
 	}
 }

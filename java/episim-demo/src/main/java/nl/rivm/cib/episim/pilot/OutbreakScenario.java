@@ -19,10 +19,9 @@
  */
 package nl.rivm.cib.episim.pilot;
 
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,9 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
@@ -45,9 +42,10 @@ import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
+import org.ujmp.core.Matrix;
+import org.ujmp.core.SparseMatrix;
 
 import io.coala.bind.InjectConfig;
-import io.coala.config.YamlConfig;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Actor.ID;
 import io.coala.enterprise.Fact;
@@ -57,7 +55,6 @@ import io.coala.log.LogUtil.Pretty;
 import io.coala.math.LatLong;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
-import io.coala.math.WeightedValue;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
@@ -68,11 +65,8 @@ import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
 import io.coala.util.Compare;
-import io.coala.util.InputStreamConverter;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
-import io.reactivex.internal.functions.Functions;
-import io.reactivex.observables.GroupedObservable;
 import nl.rivm.cib.epidemes.cbs.json.CBSGender;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.epidemes.cbs.json.CBSPopulationDynamic;
@@ -80,26 +74,24 @@ import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.Cbs37201json;
 import nl.rivm.cib.epidemes.cbs.json.Cbs37230json;
 import nl.rivm.cib.epidemes.cbs.json.Cbs71486json;
-import nl.rivm.cib.epidemes.cbs.json.CbsBoroughPC6json;
+import nl.rivm.cib.epidemes.cbs.json.CbsNeighborhood;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.cbs.TimeUtil;
-import nl.rivm.cib.episim.model.disease.Condition;
-import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.locate.Place;
 import nl.rivm.cib.episim.model.locate.Region;
-import nl.rivm.cib.episim.model.locate.Transporter;
+import nl.rivm.cib.episim.model.person.Attitude;
 import nl.rivm.cib.episim.model.person.ConnectionType;
 import nl.rivm.cib.episim.model.person.Domestic;
 import nl.rivm.cib.episim.model.person.DomesticChange;
 import nl.rivm.cib.episim.model.person.Gender;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
 import nl.rivm.cib.episim.model.person.HouseholdMember;
-import nl.rivm.cib.episim.model.person.MeetingTemplate.Purpose;
 import nl.rivm.cib.episim.model.person.Redirection;
 import nl.rivm.cib.episim.model.person.Redirection.Director;
 import nl.rivm.cib.episim.model.person.Residence;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 import tec.uom.se.ComparableQuantity;
-import tec.uom.se.unit.Units;
 
 /**
  * {@link OutbreakScenario}
@@ -111,54 +103,18 @@ import tec.uom.se.unit.Units;
 public class OutbreakScenario implements Scenario
 {
 
-	public interface Config extends YamlConfig
-	{
-		@DefaultValue( "" + 1000 )
-		int popSize();
-
-//		@DefaultValue( "[18;50]" )
-//		String refParentAge();
-
-		@DefaultValue( "MUNICIPAL" )
-		CBSRegionType cbsRegionLevel();
-
-		@DefaultValue( "cbs/pc6_buurt.json" )
-		@ConverterClass( InputStreamConverter.class )
-		InputStream cbsBoroughPC6();
-
-		@DefaultValue( "cbs/37201_TS_2010_2015.json" )
-		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs37201();
-
-		@DefaultValue( "cbs/37713_2016JJ00_AllOrigins.json" )
-		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs37713();
-
-		@DefaultValue( "cbs/71486ned-TS-2010-2016.json" )
-		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs71486();
-
-		@DefaultValue( "cbs/37230ned_TS_2012_2017.json" )
-		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs37230();
-
-		@DefaultValue( "[15:50]" )
-		String momAgeRange();
-
-		@DefaultValue( "0 0 * * * ?" )
-		String statisticsRecurrence();
-
-//		@DefaultValue( "cbs/37975_2016JJ00.json" )
-//		@ConverterClass( InputStreamConverter.class )
-//		InputStream cbs37975();
-	}
-
 	/** */
 	private static final Logger LOG = LogUtil
 			.getLogger( OutbreakScenario.class );
 
 	@InjectConfig
-	private transient Config config;
+	private transient OutbreakConfig config;
+
+	@Inject
+	private transient DemeStats stats;
+
+//	@Inject
+//	private transient DemePersistence directory;
 
 	@Inject
 	private transient Scheduler scheduler;
@@ -169,17 +125,21 @@ public class OutbreakScenario implements Scenario
 	@Inject
 	private transient ProbabilityDistribution.Factory distFact;
 
-//		@Inject
-//		private LocalBinder binder;
-
 	/** spatial scope of analysis */
 	private transient CBSRegionType cbsRegionLevel = null;
 
 	/** the fallbackRegionRef, e.g. 'GM0363' = Amsterdam */
-	private transient Region.ID fallbackRegionRef = Region.ID.of( "GM0363" );
+	private transient Region.ID fallbackRegionRef;
 
-	/** temporal scope of analysis */
-	private transient Range<LocalDate> timeRange = null;
+	private Range<ComparableQuantity<Time>> fallbackMomAge;
+
+	private Matrix hesitancy;
+	private Matrix pressure;
+
+	/** synthetic pop size / NL pop size */
+	private BigDecimal popSizeFactor = BigDecimal.ONE;
+	private final AtomicLong households = new AtomicLong();
+	private final AtomicLong persons = new AtomicLong();
 
 	/** population initialization and immigration */
 //	private transient ConditionalDistribution<Cbs37713json.Category, ZonedDateTime> genderOriginDist = null;
@@ -196,7 +156,7 @@ public class OutbreakScenario implements Scenario
 
 	// TODO separation/divorce rate from CBS 37890 (region, age, gender) ?
 
-	private transient ConditionalDistribution<CbsBoroughPC6json, Region.ID> hoodDist;
+	private transient ConditionalDistribution<CbsNeighborhood, Region.ID> hoodDist;
 	/**
 	 * household types and referent ages, e.g. based on empirical CBS 71486
 	 * (composition) & 60036ned (age diff) & 37201 (mom age) data
@@ -205,45 +165,28 @@ public class OutbreakScenario implements Scenario
 
 	private transient ConditionalDistribution<Cbs37201json.Category, RegionPeriod> localBirthDist = null;
 
-	private void readMonthlyRates( final CBSPopulationDynamic metric,
-		final BiConsumer<CBSPopulationDynamic, Map<LocalDate, Collection<WeightedValue<Cbs37230json.Category>>>> national,
-		final BiConsumer<CBSPopulationDynamic, Map<LocalDate, Collection<WeightedValue<Cbs37230json.Category>>>> regional )
-	{
-		// FIXME parse and group by all metrics in a single parsing run
-		Cbs37230json.readAsync( this.config::cbs37230, this.timeRange, metric )
-				.groupBy( wv -> wv.getValue().regionType() ).blockingForEach( (
-					GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g ) ->
-				{
-					if( g.getKey() == this.cbsRegionLevel )
-						regional.accept( metric,
-								g.toMultimap( wv -> wv.getValue().offset(),
-										wv -> wv, TreeMap::new )
-										.blockingGet() );
-					if( g.getKey() == CBSRegionType.COUNTRY ) // top level
-						national.accept( metric,
-								g.toMultimap( wv -> wv.getValue().offset(),
-										wv -> wv, TreeMap::new )
-										.blockingGet() );
-				} );
-	}
+	/** temporal scope of analysis */
+	private transient Range<LocalDate> timeRange = null;
 
 	private transient Instant dtInstant = null;
 	private transient LocalDate dtCache = null;
 
-	/** synthetic pop size / NL pop size */
-	private BigDecimal popSizeFactor = BigDecimal.ONE;
-
-	/** stats */
-	private final AtomicLong immigrations = new AtomicLong();
-	private final AtomicLong emigrations = new AtomicLong();
-	private final AtomicLong households = new AtomicLong();
-	private final AtomicLong persons = new AtomicLong();
-	private final AtomicLong births = new AtomicLong();
-	private final AtomicLong deaths = new AtomicLong();
-
 	private Actor<Fact> deme;
 
-	private Range<ComparableQuantity<Time>> momAgeRange;
+	private final Map<Region.ID, Object> fallbacks = new HashMap<>();
+
+	private Region.ID fallbackFor( final Region.ID missing,
+		final Object message )
+	{
+		this.fallbacks.computeIfAbsent( missing, key ->
+		{
+			LOG.trace( "t={}, falling back to {} <- {}: {}", nowPretty(),
+					this.fallbackRegionRef, missing,
+					message == null ? "n/a" : message );
+			return message;
+		} );
+		return this.fallbackRegionRef;
+	}
 
 	/**
 	 * social network (household/opinions):
@@ -276,163 +219,130 @@ public class OutbreakScenario implements Scenario
 	@Override
 	public void init() throws Exception
 	{
+		// TODO from single config
 		this.timeRange = Range
 				.upFromAndIncluding( scheduler().offset().toLocalDate() );
-		this.momAgeRange = Range.parse( this.config.momAgeRange() )
-				.map( yr -> QuantityUtil.valueOf( yr, TimeUnits.ANNUM ) );
+		this.cbsRegionLevel = this.config.cbsRegionLevel();
+		this.fallbackRegionRef = this.config.fallbackRegionRef();
+		this.fallbackMomAge = this.config.momAgeRange();
 		LOG.trace( "Init; range: {}", timeRange );
 
-		this.cbsRegionLevel = this.config.cbsRegionLevel();
-
-		Arrays.asList( CBSPopulationDynamic.BIRTHS, CBSPopulationDynamic.DEATHS,
-				CBSPopulationDynamic.IMMIGRATION,
-				CBSPopulationDynamic.EMIGRATION )
-				.forEach( metric -> readMonthlyRates( metric, ( key,
-					map ) -> this.demogDelayDist.put( key,
-							ConditionalDistribution.of(
-									this.distFact::createCategorical, map ) ),
-						( key, map ) -> this.demogRegionDist.put( key,
+		this.config.cbs37230( this.timeRange,
+				( metric, regionType ) -> timeSeries ->
+				{
+					if( regionType == this.cbsRegionLevel )
+						this.demogRegionDist.put( metric,
 								ConditionalDistribution.of(
-										this.distFact::createCategorical, map ) ) ) );
+										this.distFact::createCategorical,
+										timeSeries ) );
+					else if( regionType == CBSRegionType.COUNTRY ) // top level
+						this.demogDelayDist.put( metric,
+								ConditionalDistribution.of(
+										this.distFact::createCategorical,
+										timeSeries ) );
+				} );
 
 		this.localHouseholdDist = ConditionalDistribution.of(
 				this.distFact::createCategorical,
-				Cbs71486json.readAsync( this.config::cbs71486, this.timeRange )
-						.filter( wv -> wv.getValue()
-								.regionType() == this.cbsRegionLevel )
-						.toMultimap( wv -> wv.getValue().regionPeriod(),
-								Functions.identity(), () -> new TreeMap<>() )
-						.blockingGet() );
+				this.config.cbs71486( this.timeRange ) );
 
 		this.localBirthDist = ConditionalDistribution.of(
 				this.distFact::createCategorical,
-				Cbs37201json.readAsync( this.config::cbs37201, this.timeRange )
-						.filter( wv -> wv.getValue()
-								.regionType() == this.cbsRegionLevel )
-						.toMultimap( wv -> wv.getValue().regionPeriod(),
-								Functions.identity(),
-								// Navigable Map for out-of-bounds conditions
-								TreeMap::new )
-						.blockingGet() );
+				this.config.cbs37201( this.timeRange ) );
 
-		final Map<Region.ID, ProbabilityDistribution<CbsBoroughPC6json>> async = CbsBoroughPC6json
-				.readAsync( this.config::cbsBoroughPC6 )
-				.toMultimap( bu -> bu.regionRef( this.cbsRegionLevel ),
-						CbsBoroughPC6json::toWeightedValue )
-				.blockingGet().entrySet().parallelStream() // blocking
-				.collect( Collectors.toMap( e -> e.getKey(), e -> this.distFact
+		final Map<Region.ID, ProbabilityDistribution<CbsNeighborhood>> async = this.config
+				.cbsNeighborhoods().entrySet().parallelStream()
+				.collect( Collectors.toMap( Entry::getKey, e -> this.distFact
 						.createCategorical( e.getValue() ) ) );
 
-		this.hoodDist = ConditionalDistribution
-				.of( id -> async.computeIfAbsent( id, key ->
-				{
-					LOG.warn( "Missing zipcodes for {}, falling back to {}",
-							key, this.fallbackRegionRef );
-					return async.get( this.fallbackRegionRef );
-				} ) );
+		this.hoodDist = ConditionalDistribution.of( id -> async
+				.computeIfAbsent( id, key -> async.get( this.fallbackFor( key,
+						Pretty.of( () -> "no zipcodes" ) ) ) ) );
 
-//		this.genderOriginDist = ConditionalDistribution.of(
-//				this.distFact::createCategorical,
-//				Cbs37713json.readAsync( this.config::cbs37713, this.timeRange )
-//						.filter( wv -> wv.getValue()
-//								.regionType() == this.cbsRegionLevel )
-//						.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
-//								() -> new TreeMap<>() )
-//						.blockingGet() );
-
-//		Cbs37975json
-//				.readAsync( this.config::cbs37975 )
-//				.toList().blockingGet();
+		final long popSize = this.config.popSize();
+		this.hesitancy = SparseMatrix.Factory.zeros( popSize,
+				VaxHesitancy.SocialFactors.values().length );
+		this.pressure = SparseMatrix.Factory.zeros( popSize, popSize );
 
 		// set DEME behavior for maintaining demographics
 		this.deme = this.actors.create( "DEME" );
 		this.deme.specialist( Residence.Deme.class, deme ->
 		{
+			// register new households in residence
+			deme.emit( FactKind.REQUESTED ).subscribe( rq ->
+			{
+				householdRegistryFor( rq.getRegionRef(), rq.getComposition() )
+						.put( rq.creatorRef().organizationRef(),
+								rq.member( rq.referentRef() ).birth() );
+//				after( Duration.ZERO )
+//						.call( deme.respond( rq, FactKind.STATED )::commit );
+			}, this::error );
+
 			// trigger births
-			deme.atEach( timing( CBSPopulationDynamic.BIRTHS,
+			atEach( timing( CBSPopulationDynamic.BIRTHS,
 					() -> createOffspring().size() ) ).subscribe( t ->
 					{
 						// empty
 					}, this::error );
 			// trigger deaths
-			deme.atEach( timing( CBSPopulationDynamic.DEATHS, () -> 1 ) )
-					.subscribe( t -> deme.initiate( DomesticChange.Death.class,
-							selectDiseased() ).commit() );
+			atEach( timing( CBSPopulationDynamic.DEATHS, () -> 1 ) )
+					.subscribe( t -> at( t )
+							.call( deme.initiate( DomesticChange.Death.class,
+									selectDiseased() )::commit ) );
 			// trigger immigrations
-			deme.atEach( timing( CBSPopulationDynamic.IMMIGRATION,
-					() -> createCBSHousehold( false ).size() ) ).subscribe( t ->
+			atEach( timing( CBSPopulationDynamic.IMMIGRATION,
+					() -> createCBSHousehold( false ) ) ).subscribe( t ->
 					{
 						// empty
 					}, this::error );
 			// trigger emigrations
-			deme.atEach( timing( CBSPopulationDynamic.EMIGRATION,
-					() -> removeCBSHousehold().size() ) ).subscribe( t ->
+			atEach( timing( CBSPopulationDynamic.EMIGRATION,
+					() -> removeCBSHousehold() ) ).subscribe( t ->
 					{
 						// empty
 					}, this::error );
-			// register new households in residence
-			deme.emit( Residence.class, FactKind.REQUESTED ).subscribe( rq ->
-			{
-				registerHousehold( rq.getRegionRef(), rq.getComposition() ).put(
-						rq.creatorRef(),
-						rq.member( rq.referentRef() ).birth() );
-				deme.respond( rq, FactKind.STATED ).commit();
-			}, this::error );
-			// update household registry
-			deme.emit( DomesticChange.class, FactKind.STATED ).subscribe( st ->
-			{
-				// TODO re-registerHousehold(st.creatorRef(), regRef, hhType, hhRefAge)
-				if( st instanceof DomesticChange.Immigrate )
-				{
-					this.immigrations.incrementAndGet();
-				} else if( st instanceof DomesticChange.Emigrate )
-				{
-					this.emigrations.incrementAndGet();
-				} else if( st instanceof DomesticChange.Birth )
-//					this.persons.computeIfAbsent( ConnectionType.Simple.WARD,
-//							key -> new AtomicLong() ).incrementAndGet();
-					this.births.incrementAndGet();
-				else if( st instanceof DomesticChange.Death )
-//					this.persons.computeIfAbsent( st.getComposition(),
-//							key -> new AtomicLong() ).decrementAndGet();
-					this.deaths.incrementAndGet();
-//				else if( st instanceof DomesticChange.LeaveHome )
-//				else if( st instanceof DomesticChange.SplitHome )
-//				else if( st instanceof DomesticChange.MergeHome )
-			}, this::error );
+			// unregister diseased persons
+			deme.emit( DomesticChange.Death.class, FactKind.STATED )
+					.subscribe( st ->
+					{
+						if( st.getMembers().isEmpty() ) unregisterHousehold(
+								st.creatorRef().organizationRef() );
+						this.unregisterPerson( st.diseasedRef() );
+					}, this::error );
+			// unregister emigrated persons
+			deme.emit( DomesticChange.Emigrate.class, FactKind.STATED )
+					.subscribe( st ->
+					{
+						st.getMembers().keySet()
+								.forEach( this::unregisterPerson );
+					}, this::error );
+
+			this.stats
+					.reportDeme(
+							Timing.of( this.config.statisticsRecurrence() )
+									.offset( dt()
+											.atStartOfDay( TimeUtil.NL_TZ ) ),
+							deme );
 		} );
 
 		// populate households
-		for( long start = System
-				.currentTimeMillis(), size = 0, popSize = this.config
-						.popSize(); size < popSize; size += createCBSHousehold(
-								true ).size() )
+		for( long time = 0, size = 0, hhSize = 0, agPrev = 0; size < popSize; size += hhSize )
 		{
-			if( System.currentTimeMillis() - start > 1000 )
+			hhSize = createCBSHousehold( true );
+			if( System.currentTimeMillis() - time > 1000 )
 			{
-				start = System.currentTimeMillis();
-				LOG.trace( "size = {} of {}, hh count: {}", this.persons.get(),
-						popSize, this.households.get() );
+				time = System.currentTimeMillis();
+				long agNow = this.persons.get() + this.households.get();
+				LOG.trace( "#pp: {} (of {}) over {} hh (= {} ag/s) in {} regs",
+						this.persons.get(), popSize, this.hhIndex.size(),
+						agNow - agPrev, this.hhReg.size() );
+				agPrev = agNow;
 			}
 		}
 
-		atEach( Timing.of( this.config.statisticsRecurrence() )
-				.offset( dt().atStartOfDay( TimeUtil.NL_TZ ) ).iterate() )
-						.subscribe( this::stats, this::error );
-
 		// TODO initiate Infections: diseases/outbreaks, vaccine/interventions
 
-		LOG.info( "Initialized model" );
-	}
-
-	final LocalDateTime offset = this.timeRange.lowerValue().atStartOfDay();
-
-	private void stats( final Instant t )
-	{
-		LOG.info( "t={}, hh[{}+{}-{}] pp[{}+{}-{}]", t.prettify( offset ),
-				this.households.get(), this.immigrations.getAndSet( 0L ),
-				this.emigrations.getAndSet( 0L ), this.persons.get(),
-				this.births.getAndSet( 0L ), this.deaths.getAndSet( 0L ) );
+		LOG.info( "Initialized model, households: {}", this.hhReg );
 	}
 
 	private void error( final Throwable e )
@@ -441,50 +351,6 @@ public class OutbreakScenario implements Scenario
 	}
 
 //	private final Map<Region.ID, NavigableMap<ZonedDateTime, Actor.ID>> localAgeMothers = new HashMap<>();
-
-	private transient final Map<Region.ID, Map<HouseholdComposition, NavigableMap<Actor.ID, Instant>>> hhReg = new HashMap<>();
-
-	protected NavigableMap<Actor.ID, Instant> registerHousehold(
-		final Region.ID regRef, final HouseholdComposition hhType )
-	{
-		// registry of all households of given composition in given region
-		return this.hhReg.computeIfAbsent( regRef, key -> new HashMap<>() )
-				.computeIfAbsent( hhType, key -> new TreeMap<>() );
-	}
-
-	protected Observable<Entry<Actor.ID, Instant>> householdRegistry(
-		final Region.ID regFilter, final HouseholdComposition... hhFilter )
-	{
-		if( this.hhReg.isEmpty() ) return Observable.empty();
-
-		if( regFilter == null )
-			// copy from all regions and compositions
-			return Observable.fromIterable( this.hhReg.entrySet() )
-					.flatMap( byReg -> Observable
-							.fromIterable( byReg.getValue().entrySet() ) )
-					.flatMap( byType -> Observable
-							.fromIterable( byType.getValue().entrySet() ) );
-
-		if( hhFilter == null || hhFilter.length == 0
-				|| (hhFilter.length == 1 && hhFilter[0] == null) )
-			// copy from all compositions in given region
-			// FIXME toMultiMap a la guava: http://stackoverflow.com/a/23003630/1418999
-			return Observable
-					.fromIterable(
-							this.hhReg
-									.computeIfAbsent( regFilter,
-											key -> new HashMap<>() )
-									.entrySet() )
-					.flatMap( byType -> Observable
-							.fromIterable( byType.getValue().entrySet() ) );
-
-		// copy from given compositions in given region
-		return Observable.fromArray( hhFilter )
-				.flatMap( hhType -> Observable.fromIterable( this.hhReg
-						.computeIfAbsent( regFilter, key -> new HashMap<>() )
-						.computeIfAbsent( hhType, key -> new TreeMap<>() )
-						.entrySet() ) );
-	}
 
 	private static final HouseholdComposition[] COMPOSITIONS_WITH_MOTHERS = Arrays
 			.stream( CBSHousehold.values() )
@@ -497,13 +363,13 @@ public class OutbreakScenario implements Scenario
 	// TODO , final int siblingCount, final int multiplets 
 	{
 
-		final Observable<Entry<ID, Instant>> localMothers = householdRegistry(
+		final Observable<Entry<ID, Instant>> localMothers = householdsFor(
 				regRef, COMPOSITIONS_WITH_MOTHERS ).cache();
 		final Range<Instant> birthRange = momAgeRange
 				// TODO subtract average referent age difference?
 				.map( age -> now().subtract( age ) );
 		final List<Actor.ID> ageFilter = (localMothers.isEmpty().blockingGet()
-				? householdRegistry( null, COMPOSITIONS_WITH_MOTHERS )
+				? householdsFor( null, COMPOSITIONS_WITH_MOTHERS )
 				: localMothers)
 						.filter( e -> birthRange.contains( e.getValue() ) )
 						.map( Entry::getKey ).toList().blockingGet();
@@ -529,7 +395,7 @@ public class OutbreakScenario implements Scenario
 	protected Actor.ID selectEmigrantHousehold( final Region.ID regRef,
 		final HouseholdComposition hhType, final Range<Integer> hhRefAge )
 	{
-		final Observable<Entry<Actor.ID, Instant>> category = householdRegistry(
+		final Observable<Entry<Actor.ID, Instant>> category = householdsFor(
 				regRef, hhType ).cache();
 		if( category.isEmpty().blockingGet() )
 		{
@@ -622,21 +488,22 @@ public class OutbreakScenario implements Scenario
 							freq.multiply( this.popSizeFactor ) ) );
 
 			Quantity<Time> dur = timeDist.draw();
-			for( int n = hhSize.getAsInt(); n > 1; n-- )
+
+			// skip for each household member separately
+			for( int i = 1, n = hhSize.getAsInt(); i < n; i++ )
 				dur = dur.add( timeDist.draw() );
 
 			return now().add( dur );
 		};
 	}
 
-	protected Map<ID, HouseholdMember>
-		createCBSHousehold( final boolean initial )
+	protected int createCBSHousehold( final boolean initial )
 	{
 		final LocalDate dt = dt();
 		// TODO immigration, add 37713 (gender, origin)
 
 		Region.ID regRef = demogSite( CBSPopulationDynamic.IMMIGRATION );
-		final CbsBoroughPC6json buurt = this.hoodDist.draw( regRef );
+		final CbsNeighborhood buurt = this.hoodDist.draw( regRef );
 		// regRef may not exist in 2016 zipcode data, update to fallback value
 		regRef = buurt.regionRef( this.cbsRegionLevel );
 		final Place.ID zip = buurt.zipDist( this.distFact::createCategorical )
@@ -656,27 +523,43 @@ public class OutbreakScenario implements Scenario
 				referentBirth );
 		final Map<Actor.ID, HouseholdMember> members = new HashMap<>();
 		members.put( referentRef, HouseholdMember.of( referentBirth,
-				hhType.partnerRelationType() ) );
+				hhType.partnerRelationType(), referentRef ) );
 		for( int i = 1; i < hhType.adultCount(); i++ )
 		{
 			final Instant birth = referentBirth.add( 3 * i ); // TODO draw ?
-			members.put( createPerson( CBSGender.FEMALE, birth ),
-					HouseholdMember.of( birth, hhType.partnerRelationType() ) );
+			final Gender gender = CBSGender.FEMALE;
+			final Actor.ID partnerRef = createPerson( gender, birth );
+			members.put( partnerRef, HouseholdMember.of( birth,
+					hhType.partnerRelationType(), partnerRef ) );
 		}
 		for( int i = 0; i < hhType.childCount(); i++ )
 		{
 			final Instant birth = referentBirth.add( 25 + i * 2 ); // TODO draw ?
 			final Gender gender = CBSGender.FEMALE;
-			members.put( createPerson( gender, birth ),
-					HouseholdMember.of( birth, ConnectionType.Simple.WARD ) );
+			final Actor.ID wardRef = createPerson( gender, birth );
+			members.put( wardRef, HouseholdMember.of( birth,
+					ConnectionType.Simple.WARD, wardRef ) );
 		}
+
 		final Actor.ID hhRef = createHousehold( regRef, zip, null, referentRef,
 				hhType, members );
 
 		if( !initial ) this.deme
 				.initiate( DomesticChange.Immigrate.class, hhRef ).commit();
 
-		return members;
+		return members.size();
+	}
+
+	private final Map<Actor.ID, Long> hhIndex = new HashMap<>();
+
+	private final List<Long> hhIndexRecycler = new ArrayList<>();
+
+	private long toIndex( final Actor.ID hhRef )
+	{
+		return this.hhIndex.computeIfAbsent( hhRef,
+				key -> this.hhIndexRecycler.isEmpty()
+						? (long) this.hhIndex.size()
+						: this.hhIndexRecycler.remove( 0 ) );
 	}
 
 	protected Actor.ID createHousehold( final Region.ID regRef,
@@ -687,11 +570,17 @@ public class OutbreakScenario implements Scenario
 		// create the agent
 		final Actor<Fact> actor = this.actors.create(
 				String.format( "hh%08d", this.households.incrementAndGet() ) );
+
+		// TODO from config
+		final Attitude<VaxOccasion> att = VaxHesitancy.MatrixWeightedAverager
+				.of( this.hesitancy, this.pressure, this::toIndex, actor.id() );
+
 		// set household domestic attributes
 		final DomesticChange.Household hh = actor
 				.subRole( DomesticChange.Household.class ).with( regRef )
 				.with( placeRef ).with( coord ).with( referentRef )
-				.with( members ).with( composition );
+				.withMembers( members ).with( composition )
+				.with( VaxOccasion.class, att );
 		// set birth handling
 		hh.emit( DomesticChange.Birth.class ).subscribe( rq ->
 		{
@@ -702,11 +591,11 @@ public class OutbreakScenario implements Scenario
 //							.initiate( Redirection.Relation.class, ref )
 //							.with( rel ).with( babyRef ).commit() );
 			// adopt into family
-			hh.getMembers().put( babyRef,
-					HouseholdMember.of( now(), ConnectionType.Simple.WARD ) );
+			hh.getMembers().put( babyRef, HouseholdMember.of( now(),
+					ConnectionType.Simple.WARD, babyRef ) );
 			// confirm to registry
 			hh.respond( rq, FactKind.STATED ).with( updateComposition( hh ) )
-					.commit();
+					.commit( true );
 		} );
 		// set death handling
 		hh.emit( DomesticChange.Death.class ).subscribe( rq ->
@@ -715,14 +604,14 @@ public class OutbreakScenario implements Scenario
 			members.remove( diseasedRef );
 			hh.initiate( Redirection.Termination.class, diseasedRef ).commit();
 			hh.respond( rq, FactKind.STATED ).with( updateComposition( hh ) )
-					.commit();
+					.commit( true );
 		} );
 		// set family merger handling
 		hh.emit( DomesticChange.MergeHome.class ).subscribe( rq ->
 		{
 			members.putAll( rq.arrivingRefs() );
-			hh.respond( rq, FactKind.STATED ).with( updateComposition( hh ) )
-					.commit();
+			after( Duration.ZERO ).call( () -> hh.respond( rq, FactKind.STATED )
+					.with( updateComposition( hh ) ).commit( true ) );
 		} );
 		// set family split handling
 		hh.emit( DomesticChange.SplitHome.class ).subscribe( rq ->
@@ -745,39 +634,38 @@ public class OutbreakScenario implements Scenario
 						return null; // remove
 					} ) );
 			hh.respond( rq, FactKind.STATED ).with( updateComposition( hh ) )
-					.commit();
+					.commit( true );
 		} );
 		// set new household handling
 		hh.emit( DomesticChange.LeaveHome.class ).subscribe( rq ->
 		{
-			if( members.remove( rq.departingRef() ) == null )
+			final Actor.ID memberRef = rq.departingRef();
+			final HouseholdMember memberEntry = members.remove( memberRef );
+			if( memberEntry == null )
 			{
-				LOG.warn( "{} can't leave another home {}", rq.departingRef(),
+				LOG.warn( "{} can't leave another home {}", memberRef,
 						hh.id().organizationRef() );
 				return;
 			}
 			createHousehold( rq.getRegionRef(), rq.getPlaceRef(),
-					rq.getPosition(), rq.departingRef(), rq.getComposition(),
+					rq.getPosition(), memberRef, rq.getComposition(),
 					MapBuilder.<Actor.ID, HouseholdMember>unordered()
-							.put( rq.departingRef(),
-									HouseholdMember.of(
-											members.get( rq.departingRef() )
-													.birth(),
-											ConnectionType.Simple.SINGLE ) )
+							.put( memberRef,
+									memberEntry
+											.with( ConnectionType.Simple.SINGLE ) )
 							.build() );
 			hh.respond( rq, FactKind.STATED ).with( updateComposition( hh ) )
-					.commit();
+					.commit( true );
 		} );
 		// set added household handling
 		hh.emit( DomesticChange.Immigrate.class ).subscribe( rq ->
 		{
-			hh.respond( rq, FactKind.STATED ).with( hh ).commit();
+			hh.respond( rq, FactKind.STATED ).with( hh ).commit( true );
 		} );
 		// set removed household handling
 		hh.emit( DomesticChange.Emigrate.class ).subscribe( rq ->
 		{
-			members.keySet().forEach( this::removePerson );
-			hh.respond( rq, FactKind.STATED ).with( hh ).commit();
+			hh.respond( rq, FactKind.STATED ).with( hh ).commit( true );
 		} );
 //		if( composition != null ) composition.forEach(
 //				( ref1, rel1 ) -> composition.forEach( ( ref2, rel2 ) ->
@@ -793,10 +681,14 @@ public class OutbreakScenario implements Scenario
 //								.with( ref1 ).with( rel ).commit();
 //					}
 //				} ) );
-		hh.initiate( Residence.class, this.deme.id() ).with( regRef )
-				.with( placeRef ).with( coord ).with( referentRef )
-				.with( composition ).with( members ).commit();
-		return hh.id();
+
+		// all handlers are set up, now we can safely initiate deme residency
+		final Residence rq = hh.initiate( Residence.class, this.deme.id() )
+				.with( regRef ).with( placeRef ).with( coord )
+				.with( referentRef ).with( composition ).withMembers( members )
+				.commit();
+
+		return rq.creatorRef();
 	}
 
 	/**
@@ -864,7 +756,7 @@ public class OutbreakScenario implements Scenario
 		return person.id();
 	}
 
-	protected void removePerson( final Actor.ID personRef )
+	protected void unregisterPerson( final Actor.ID personRef )
 	{
 		// TODO unregister contacts, remove from actors factory cache, etc...
 	}
@@ -882,20 +774,18 @@ public class OutbreakScenario implements Scenario
 //				.draw().rank();
 		Actor.ID hhRef = selectNest( regRef, momAgeRange );
 		// retry for full mother age range
-		if( hhRef == null ) hhRef = selectNest( regRef, this.momAgeRange );
+		if( hhRef == null ) hhRef = selectNest( regRef, this.fallbackMomAge );
 		if( hhRef == null )
 		{
-			LOG.trace( "t={}, no mothers (yet) in {} aged {}, fall back to {}",
-					nowPretty(), regRef, this.momAgeRange,
-					this.fallbackRegionRef );
-			hhRef = selectNest( this.fallbackRegionRef, momAgeRange );
+			final Region.ID fallbackReg = this.fallbackFor( regRef,
+					Pretty.of( () -> "no mothers" ) );
+			hhRef = selectNest( fallbackReg, momAgeRange );
 			if( hhRef == null )
-				hhRef = selectNest( this.fallbackRegionRef, this.momAgeRange );
+				hhRef = selectNest( fallbackReg, this.fallbackMomAge );
 		}
 		if( hhRef == null )
 		{
-			LOG.warn( "t={}, no fall-back mothers (yet) in {}, referent age {}",
-					nowPretty(), this.fallbackRegionRef, this.momAgeRange );
+			LOG.warn( "t={}, no fall-back mothers (yet)", nowPretty() );
 			return Collections.emptySet();
 		}
 
@@ -908,7 +798,7 @@ public class OutbreakScenario implements Scenario
 						.with( babyGender ).commit() );
 	}
 
-	protected CBSHousehold removeCBSHousehold() // emigration
+	protected int removeCBSHousehold() // emigration
 	{
 		final LocalDate dt = dt();
 
@@ -922,144 +812,75 @@ public class OutbreakScenario implements Scenario
 				.hhTypeDist( this.distFact::createCategorical ).draw();
 		final Actor.ID hhRef = selectEmigrantHousehold( regRef, hhType,
 				hhCat.ageRange() );
-		if( hhRef != null )
+		if( hhRef == null )
 		{
-			DomesticChange.Emigrate removed = null;
-			regLoop: for( Map<HouseholdComposition, NavigableMap<Actor.ID, Instant>> byReg : this.hhReg
-					.values() )
-				for( NavigableMap<Actor.ID, Instant> byType : byReg.values() )
-					if( byType.remove( hhRef ) != null )
-					{
-						removed = this.deme.initiate(
-								DomesticChange.Emigrate.class, hhRef ).commit();
-						break regLoop;
-					}
-			if( removed == null )
-				LOG.warn( "Can't remove {}: not registered", hhRef.unwrap() );
-		} else
 			LOG.warn( "No population (yet), current: {}", this.hhReg );
+			return 0;
+		}
+		if( unregisterHousehold( hhRef ) )
+		{
+			this.deme.initiate( DomesticChange.Emigrate.class, hhRef ).commit();
+			return hhType.size(); // FIXME use actual
+		}
 
-		return hhType;
+		LOG.warn( "Can't remove {}: not registered", hhRef.unwrap() );
+		return 0;
 	}
 
-	/**
-	 * {@link Measles}
-	 * 
-	 * <p>
-	 * Disease (Vink et al. 2014) Serial Interval (latent + infectious), days
-	 * Anderson and May 1991 (6) Vynnycky and White 2010 (8) <br>
-	 * Influenza A 3–6 vs 2–4 <br>
-	 * Measles 12–16 vs 7–16 <br>
-	 * HPV 100-150?
-	 */
-	@Singleton
-	public static class MeaslesFactory extends Actor.Factory.LocalCaching
+	private transient final Map<Region.ID, Map<HouseholdComposition, NavigableMap<Actor.ID, Instant>>> hhReg = new HashMap<>();
+
+	protected NavigableMap<Actor.ID, Instant> householdRegistryFor(
+		final Region.ID regRef, final HouseholdComposition hhType )
 	{
-		// globally unique?
-		private transient AtomicInteger mvTypeCounter = new AtomicInteger( 0 );
-
-		public Pathogen createMeasles()
-		{
-			return super.create( Actor.ID
-					.of( "MV-" + this.mvTypeCounter.incrementAndGet(), id() ) )
-							.subRole( Pathogen.class );
-		}
-
-		/**
-		 * {@link Measles} force of infection should result in a mean generation
-		 * time (time between primary infecting secondary) of ca 11-12 days,
-		 * with st.dev. 2-3 days, see Klinkenberg:2011:jtbi, secondary attack
-		 * rate >90% in household/institutional contacts
-		 * <p>
-		 * for incubation and symptom times, see e.g.
-		 * https://wwwnc.cdc.gov/travel/yellowbook/2016/infectious-diseases-related-to-travel/measles-rubeola
-		 */
-		public MeaslesFactory( final Scheduler scheduler,
-			final ProbabilityDistribution.Factory distFact,
-			final Condition.Factory conditionFactory )
-		{
-			super();
-
-			// Pathogen.SimpleSEIR 
-
-			// latent period (E->I) t+0, onset around t+14 but infectious already 4 days before
-			distFact.createTriangular( 1, 14 - 4, 21 - 4 )//
-					.toQuantities( TimeUnits.DAYS ).map( Duration::of );
-
-			// infectious period (I->R): t+14-4, [onset-4,onset+4] 
-			distFact.createTriangular( 0, 8, 10 ).toQuantities( TimeUnits.DAYS )
-					.map( Duration::of );
-
-			// wane period (R->S): infinite, forever immune
-			distFact.createDeterministic( Duration.of( 100, TimeUnits.YEAR ) );
-
-			// incubation period (E->C, sub->clinical symptoms)
-			// : t+7-21 days, rash, fever, Koplik spots, ...
-			// : t+9-12 days (https://www.wikiwand.com/en/Incubation_period)
-			distFact.createTriangular( 7, 11, 21 )
-					.toQuantities( TimeUnits.DAYS ).map( Duration::of );
-
-			// symptom period (C->N, normal/asymptomatic)
-			distFact.createTriangular( 4, 5, 7 ).toQuantities( TimeUnits.DAYS )
-					.map( Duration::of );
-
-//				force of infection (S->E): t=?, viral shedding -> respiratory/surface contact 
-//				if( // TODO if  (infection pressure [=#contacts] > threshold) &&
-//				conditionOf( person ).compartment().isSusceptible() )
-		}
+		// registry of all households of given composition in given region
+		return this.hhReg.computeIfAbsent( regRef, key -> new HashMap<>() )
+				.computeIfAbsent( hhType, key -> new TreeMap<>() );
 	}
 
-	@Singleton
-	public static class MyDirectory
-		implements Region.Directory, Place.Directory, Transporter.Directory
+	protected Observable<Entry<Actor.ID, Instant>> householdsFor(
+		final Region.ID regFilter, final HouseholdComposition... hhFilter )
 	{
-		/** the regions: geographic areas, for analytics on clustering, ... */
-		private NavigableMap<Region.ID, Region> regions = new TreeMap<>();
+		if( this.hhReg.isEmpty() ) return Observable.empty();
 
-		/**
-		 * the places: geographic locations, to broker by type
-		 * ({@link Purpose}), proximity ({@link LatLong})
-		 */
-		private NavigableMap<Place.ID, Place> places = new TreeMap<>();
+		if( regFilter == null )
+			// copy from all regions and compositions
+			return Observable.fromIterable( this.hhReg.entrySet() )
+					.flatMap( byReg -> Observable
+							.fromIterable( byReg.getValue().entrySet() ) )
+					.flatMap( byType -> Observable
+							.fromIterable( byType.getValue().entrySet() ) );
 
-		/** the spaces: rooms, vehicles */
-		private NavigableMap<Actor.ID, Transporter> vehicles = new TreeMap<>();
+		if( hhFilter == null || hhFilter.length == 0
+				|| (hhFilter.length == 1 && hhFilter[0] == null) )
+			// copy from all compositions in given region
+			// FIXME toMultiMap a la guava: http://stackoverflow.com/a/23003630/1418999
+			return Observable
+					.fromIterable(
+							this.hhReg
+									.computeIfAbsent( regFilter,
+											key -> new HashMap<>() )
+									.entrySet() )
+					.flatMap( byType -> Observable
+							.fromIterable( byType.getValue().entrySet() ) );
 
-		/** RIVM National Institute for Public Health and the Environment */
-		public LatLong RIVM_POSITION = LatLong.of( 52.1185272, 5.1868699,
-				Units.DEGREE_ANGLE );
+		// copy from given compositions in given region
+		return Observable.fromArray( hhFilter )
+				.flatMap( hhType -> Observable.fromIterable( this.hhReg
+						.computeIfAbsent( regFilter, key -> new HashMap<>() )
+						.computeIfAbsent( hhType, key -> new TreeMap<>() )
+						.entrySet() ) );
+	}
 
-		@Inject
-		private Actor.Factory actorFactory;
+	protected boolean unregisterHousehold( final Actor.ID hhRef ) // emigration
+	{
+		final Long index = this.hhIndex.remove( hhRef );
+		if( index != null ) this.hhIndexRecycler.add( index );
 
-		@Override
-		public Region lookup( final Region.ID id )
-		{
-			return this.regions.computeIfAbsent( id, key ->
-			{
-				final String name = null;// TODO lookup
-				final Region parent = null;// TODO lookup
-				final Collection<Region> children = null;// TODO lookup
-
-				return new Region.Simple( id, name, parent, children );
-			} );
-		}
-
-		@Override
-		public Place lookup( final Place.ID id )
-		{
-			return this.places.computeIfAbsent( id, key -> Place.of( id ) );
-		}
-
-		@Override
-		public Transporter lookup( final Actor.ID id )
-		{
-			return this.vehicles.computeIfAbsent( id, key ->
-			{
-				return this.actorFactory.create( id )
-						.subRole( Transporter.class );
-			} );
-		}
+		for( Map<HouseholdComposition, NavigableMap<Actor.ID, Instant>> byReg : this.hhReg
+				.values() )
+			for( NavigableMap<Actor.ID, Instant> byType : byReg.values() )
+				if( byType.remove( hhRef ) != null ) return true;
+		return false;
 	}
 
 	/**
@@ -1068,7 +889,6 @@ public class OutbreakScenario implements Scenario
 	 */
 	public Number getRegionalValue( final Region.ID key )
 	{
-		// TODO Auto-generated method stub
 		return this.hhReg.computeIfAbsent( key, k -> new HashMap<>() ).size();
 	}
 }

@@ -23,8 +23,10 @@ import io.coala.exception.Thrower;
 import nl.rivm.cib.episim.model.locate.Region;
 
 /**
- * {@link CBSRegionType} FIXME: regular expressions to distinguish digit lengths
- * 
+ * {@link CBSRegionType}
+ * <p>
+ * TODO: regular expressions to distinguish digit lengths
+ * <p>
  * see http://statline.cbs.nl/StatWeb/selection/default.aspx?DM=SLNL&PA=83287ned
  * 
  * @version $Id$

@@ -21,27 +21,29 @@ package nl.rivm.cib.episim.model.person;
 
 import java.util.Arrays;
 
+import io.coala.enterprise.Actor;
 import io.coala.math.Tuple;
 import io.coala.time.Instant;
 import io.coala.time.TimeUnits;
 
 /**
- * {@link HouseholdMember} contains information on a Household member such as
- * relation/position and birth, see e.g.
+ * {@link HouseholdMember} contains lookup-information on a Household member,
+ * such as relation/position and birth, see e.g.
  * https://www.cbs.nl/nl-nl/onze-diensten/methoden/begrippen?tab=p#id=positie-in-het-huishouden
  */
 public class HouseholdMember extends Tuple
 {
 	public static HouseholdMember of( final Instant birth,
-		final ConnectionType.Simple relationType )
+		final ConnectionType.Simple relationType, final Actor.ID ref )
 	{
-		return new HouseholdMember( birth, relationType );
+		return new HouseholdMember( birth, relationType, ref );
 	}
 
 	private HouseholdMember( final Instant birth,
-		final ConnectionType.Simple relationType )
+		final ConnectionType.Simple relationType, final Actor.ID ref )
 	{
-		super( Arrays.asList( birth.to( TimeUnits.ANNUM ), relationType ) );
+		super( Arrays.asList( birth.to( TimeUnits.ANNUM ), relationType,
+				ref ) );
 	}
 
 	public Instant birth()
@@ -52,5 +54,16 @@ public class HouseholdMember extends Tuple
 	public ConnectionType.Simple relationType()
 	{
 		return (ConnectionType.Simple) values().get( 1 );
+	}
+
+	public Actor.ID ref()
+	{
+		return (Actor.ID) values().get( 2 );
+	}
+
+	public HouseholdMember with( final ConnectionType.Simple connectionType )
+	{
+		values().set( 1, connectionType );
+		return this;
 	}
 }

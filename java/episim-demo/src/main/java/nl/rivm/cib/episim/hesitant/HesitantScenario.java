@@ -25,6 +25,7 @@ import nl.rivm.cib.episim.hesitant.Motivation.Motivator;
 import nl.rivm.cib.episim.hesitant.Opinion.Opinionator;
 import nl.rivm.cib.episim.hesitant.Redirection.Redirector;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 
 /**
  * {@link HesitantScenario}
@@ -251,7 +252,7 @@ public class HesitantScenario implements Scenario
 		// add Motivation execution behavior
 		org.specialist( Motivator.class, motivator ->
 		{
-			motivator.with( this.personHesitancyDist.draw() )
+			motivator.with( VaxOccasion.class, this.personHesitancyDist.draw() )
 					.emit( FactKind.REQUESTED ).subscribe( rq ->
 					{
 //						final VaxHesitancy att = (VaxHesitancy)rq.getAttitude();

@@ -19,6 +19,7 @@
  */
 package nl.rivm.cib.episim.model.person;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import io.coala.enterprise.Actor;
@@ -49,9 +50,22 @@ public interface Domestic<THIS> extends Attributed
 	void setMembers( Map<Actor.ID, HouseholdMember> composition );
 
 	@SuppressWarnings( "unchecked" )
-	default THIS with( final Map<Actor.ID, HouseholdMember> composition )
+	default THIS withMembers( final Map<Actor.ID, HouseholdMember> composition )
 	{
 		setMembers( composition );
+		return (THIS) this;
+	}
+
+	@SuppressWarnings( "unchecked" )
+	default <T> THIS with( final HouseholdMember member )
+	{
+		Map<Actor.ID, HouseholdMember> composition = getMembers();
+		if( composition == null )
+		{
+			composition = new HashMap<>();
+			setMembers( composition );
+		}
+		composition.put( member.ref(), member );
 		return (THIS) this;
 	}
 

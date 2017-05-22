@@ -24,7 +24,7 @@ import io.coala.enterprise.Fact;
 import nl.rivm.cib.episim.hesitant.Advice.Advisor;
 import nl.rivm.cib.episim.hesitant.Information.Informer;
 import nl.rivm.cib.episim.hesitant.Opinion.Opinionator;
-import nl.rivm.cib.episim.model.vaccine.attitude.Attitude;
+import nl.rivm.cib.episim.model.person.Attitude;
 
 /**
  * T14 {@link Motivation} transactions are initiated by:

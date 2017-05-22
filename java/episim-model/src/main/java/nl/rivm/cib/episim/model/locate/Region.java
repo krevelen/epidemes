@@ -26,6 +26,12 @@ public interface Region extends Identified<Region.ID>
 			JsonUtil.checkRegistered( JsonUtil.getJOM(), Region.ID.class );
 		}
 
+		// for Config default conversion
+		public static ID valueOf( final String value )
+		{
+			return of( value );
+		}
+
 		public static ID of( final String value )
 		{
 			return Util.of( value, new ID() );

@@ -37,6 +37,7 @@ import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.math.MatrixUtil;
 import io.coala.util.Compare;
+import nl.rivm.cib.episim.model.person.Attitude;
 
 /**
  * {@link VaxHesitancy} is an extended {@link Attitude} towards vaccination
@@ -280,9 +281,13 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 				occ.affinity() );
 	}
 
-	enum Column
+	/**
+	 * {@link SocialFactors} of vaccination hesitancy are influenced socially
+	 */
+	enum SocialFactors
 	{
 		CONFIDENCE, COMPLACENCY;
+		// calculation and convenience are not influenced socially
 	}
 
 	/**
@@ -343,10 +348,10 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 						() -> "Dimensions incompatible, (n x "
 								+ appreciations.getSize( 1 ) + ") vs ("
 								+ positions.getSize( 0 ) + " x m)" );
-			if( positions.getSize( 1 ) < Column.values().length )
+			if( positions.getSize( 1 ) < SocialFactors.values().length )
 				Thrower.throwNew( IllegalArgumentException::new,
 						() -> "Determinant columns missing, use (n x "
-								+ Column.values().length + ")" );
+								+ SocialFactors.values().length + ")" );
 
 			this.positions = positions;
 			this.appreciations = appreciations;
@@ -471,14 +476,14 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 		public BigDecimal getConfidence()
 		{
 			return determinants().getAsBigDecimal( 0,
-					Column.CONFIDENCE.ordinal() );
+					SocialFactors.CONFIDENCE.ordinal() );
 		}
 
 		@Override
 		public BigDecimal getComplacency()
 		{
 			return determinants().getAsBigDecimal( 0,
-					Column.COMPLACENCY.ordinal() );
+					SocialFactors.COMPLACENCY.ordinal() );
 		}
 
 		public void setPosition( final Actor.ID sourceRef,
@@ -486,9 +491,9 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 		{
 			final long row = this.indexConverter.apply( sourceRef );
 			this.positions.setAsBigDecimal( DecimalUtil.valueOf( confidence ),
-					row, Column.CONFIDENCE.ordinal() );
+					row, SocialFactors.CONFIDENCE.ordinal() );
 			this.positions.setAsBigDecimal( DecimalUtil.valueOf( complacency ),
-					row, Column.COMPLACENCY.ordinal() );
+					row, SocialFactors.COMPLACENCY.ordinal() );
 			reset();
 		}
 
@@ -645,14 +650,14 @@ public interface VaxHesitancy extends Attitude<VaxOccasion>
 		@JsonIgnore
 		public BigDecimal getComplacency()
 		{
-			return myPosition()[Column.COMPLACENCY.ordinal()];
+			return myPosition()[SocialFactors.COMPLACENCY.ordinal()];
 		}
 
 		@Override
 		@JsonIgnore
 		public BigDecimal getConfidence()
 		{
-			return myPosition()[Column.CONFIDENCE.ordinal()];
+			return myPosition()[SocialFactors.CONFIDENCE.ordinal()];
 		}
 
 		private BigDecimal[] toPosition( final Number confidence,

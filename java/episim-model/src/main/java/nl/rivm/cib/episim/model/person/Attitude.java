@@ -17,9 +17,11 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.vaccine.attitude;
+package nl.rivm.cib.episim.model.person;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
@@ -146,17 +148,35 @@ public interface Attitude<T> //extends Timed
 	 * 
 	 * @param <THIS> the concrete sub-type
 	 */
-	@SuppressWarnings( "rawtypes" )
 	interface Attributable<THIS> extends Attributed
 	{
-		Attitude getAttitude();
+		Map<Class<?>, Attitude<?>> getAttitudes();
 
-		void setAttitude( Attitude attitude );
+		void setAttitudes( Map<Class<?>, Attitude<?>> attitudes );
 
 		@SuppressWarnings( "unchecked" )
-		default THIS with( final Attitude attitude )
+		default THIS withAttitudes( final Map<Class<?>, Attitude<?>> attitudes )
 		{
-			setAttitude( attitude );
+			setAttitudes( attitudes );
+			return (THIS) this;
+		}
+
+		@SuppressWarnings( "unchecked" )
+		default <T> THIS with( final Class<T> type, final Attitude<T> attitude )
+		{
+			Map<Class<?>, Attitude<?>> attitudes;
+			try
+			{
+				attitudes = getAttitudes();
+			} catch( final NullPointerException e )
+			{
+				attitudes = new HashMap<>();
+				setAttitudes( attitudes );
+			}
+			// FIXME TypeArguments type loops infinitely
+//			final Class<T> type = (Class<T>) TypeArguments
+//					.of( Attitude.class, attitude.getClass() ).get( 0 );
+			attitudes.put( type, attitude );
 			return (THIS) this;
 		}
 	}

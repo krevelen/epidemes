@@ -20,6 +20,7 @@
 package nl.rivm.cib.episim.model.vaccine.attitude;
 
 import io.coala.enterprise.Fact;
+import nl.rivm.cib.episim.model.person.Attitude;
 import nl.rivm.cib.episim.model.vaccine.Vaccine;
 
 /**

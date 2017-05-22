@@ -44,7 +44,7 @@ public interface DomesticChange extends Fact, Domestic<DomesticChange>
 
 	interface Household extends Actor<DomesticChange>, Geographic<Household>,
 		Geometric<Household>, Locatable<Household>, Personal<Household>,
-		Domestic<Household>
+		Domestic<Household>, Attitude.Attributable<Household>
 	{
 
 		// friendly name
