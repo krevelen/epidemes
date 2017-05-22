@@ -1,0 +1,337 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>epidemes</artifactId>
+		<version>0.1.0</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>epidemes-demo</artifactId>
+
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Common Components for the RIVM Vaccination Acceptance Simulator
+		$Id: fa471254d688eb29ba72683a3f2f6e0ff0182dfd $
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+		<hsqldb.version>2.3.4</hsqldb.version>
+		<hikari.version>2.4.7</hikari.version>
+
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<docker.repoName>default</docker.repoName>
+		<docker.imageName>${project.artifactId}</docker.imageName>
+		<docker.tagName>${project.version}</docker.tagName>
+		<docker.buildDir>docker</docker.buildDir>
+		<!-- <main.class>nl.rivm.cib.episim.hesitant.HesitantConfig</main.class> -->
+		<!-- <main.class>nl.rivm.cib.episim.geard.GeardDemogConfig</main.class> -->
+		<main.class>nl.rivm.cib.episim.hesitant.Demo</main.class>
+		<dist.libDir>lib</dist.libDir>
+		<dist.srcDir>src/main/dist</dist.srcDir>
+
+		<!-- <spark.version>2.1.0</spark.version> -->
+		<!-- 2.6.x is still compatible with spark, see http://quabr.com/41464444/play-and-spark-incompatible-jackson-versions -->
+		<!-- <jackson.version>2.6.7</jackson.version> -->
+		<ujmp.version>0.3.0</ujmp.version>
+		<mockito.version>1.9.5</mockito.version>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+		</repository>
+
+		<repository>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
+			<url>https://github.com/krevelen/epidemes/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+		</repository>
+
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<name>Pentaho Public Repository</name>
+			<id>pentaho</id>
+			<url>http://repository.pentaho.org/content/groups/omni/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<!-- <dependencyManagement> <dependencies> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
+		<artifactId>jackson-databind</artifactId> <version>${jackson.version}</version> 
+		</dependency> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
+		<artifactId>jackson-core</artifactId> <version>${jackson.version}</version> 
+		</dependency> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
+		<artifactId>jackson-annotations</artifactId> <version>${jackson.version}</version> 
+		</dependency> </dependencies> </dependencyManagement> -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>epidemes-persist</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>epidemes-connect-cbs</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- matrix calculations -->
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-core</artifactId>
+			<version>${ujmp.version}</version>
+		</dependency>
+		<!-- <dependency> <groupId>org.ujmp</groupId> <artifactId>ujmp-gui</artifactId> 
+			<version>${ujmp.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>guice4-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>eve3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>vecmath</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>j3d-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<!-- <dependency> <groupId>javax.transaction</groupId> <artifactId>jta</artifactId> 
+			<version>${jta.version}</version> <scope>provided</scope> </dependency> -->
+
+		<!-- incl. in-memory JDBC database -->
+		<!-- <dependency> <groupId>org.hsqldb</groupId> <artifactId>hsqldb</artifactId> 
+			<version>${hsqldb.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- https://mvnrepository.com/artifact/org.hibernate.ogm/hibernate-ogm-neo4j -->
+		<dependency>
+			<groupId>org.hibernate.ogm</groupId>
+			<artifactId>hibernate-ogm-neo4j</artifactId>
+		</dependency>
+		<!-- replaces default Hibernate connection pool (C3P0) -->
+		<!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-hikaricp</artifactId> 
+			<version>${hibernate.version}</version> <exclusions> <exclusion> <artifactId>HikariCP-java6</artifactId> 
+			<groupId>com.zaxxer</groupId> </exclusion> </exclusions> </dependency> <dependency> 
+			<groupId>com.zaxxer</groupId> <artifactId>HikariCP</artifactId> <version>${hikari.version}</version> 
+			</dependency> -->
+
+		<!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.11 
+			gave java.lang.NoSuchMethodError: scala.Predef$.$conforms()Lscala/Predef$$less$colon$less -->
+		<!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.10 
+			has better compatibility, see http://stackoverflow.com/a/33387106/1418999 -->
+		<!-- <dependency> <groupId>org.apache.spark</groupId> <artifactId>spark-core_2.11</artifactId> 
+			<version>${spark.version}</version> <exclusions> <exclusion> <groupId>org.slf4j</groupId> 
+			<artifactId>slf4j-log4j12</artifactId> </exclusion> </exclusions> </dependency> -->
+
+		<!-- incl. in-memory JDBC database -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- <dependency> <groupId>org.mockito</groupId> <artifactId>mockito-all</artifactId> 
+			<version>${mockito.version}</version> <scope>test</scope> </dependency> -->
+		<!-- <dependency> <groupId>com.github.h-thurow</groupId> <artifactId>simple-jndi</artifactId> 
+			<version>0.13.0</version> <scope>test</scope> <exclusions> <exclusion> <groupId>ch.qos.logback</groupId> 
+			<artifactId>logback-classic</artifactId> </exclusion> </exclusions> </dependency> -->
+
+		<!-- tomcat-catalina used solely for Apache JNDI implementation -->
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- see e.g. https://help.pentaho.com/Documentation/7.0/0H0/Specify_Data_Connections_for_the_Pentaho_Server/Set_Up_JNDI_Connections_for_the_Pentaho_Server#Defining_JNDI_Connections_for_PDI_Clients -->
+		<!-- <dependency> <groupId>pentaho</groupId> <artifactId>simple-jndi</artifactId> 
+			<version>1.0.1</version> <scope>test</scope> </dependency> -->
+	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+
+			<!-- create a single executable uberjar, excluding security certificates -->
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<finalName>${project.artifactId}-full</finalName>
+							<outputDirectory>${docker.buildDir}</outputDirectory>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>${main.class}</mainClass>
+								</transformer>
+							</transformers>
+							<filters>
+								<filter>
+									<artifact>*:*:*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- copy (non-"provided"-scope) dependency jars to ${dist.libDir} -->
+			<!-- <plugin> <artifactId>maven-dependency-plugin</artifactId> <executions> 
+				<execution> <id>copy</id> <phase>package</phase> <goals> <goal>copy-dependencies</goal> 
+				</goals> <configuration> <excludeGroupIds>junit</excludeGroupIds> <includeScope>runtime</includeScope> 
+				<outputDirectory>${docker.buildDir}/${dist.libDir}</outputDirectory> <silent>false</silent> 
+				<overWriteIfNewer>true</overWriteIfNewer> <overWriteReleases>false</overWriteReleases> 
+				<overWriteSnapshots>false</overWriteSnapshots> </configuration> </execution> 
+				</executions> </plugin> -->
+
+			<!-- copy static distribution files -->
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-resource-one</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${docker.buildDir}</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${dist.srcDir}</directory>
+									<filtering>true</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- set main class and class-path for executable java archive -->
+			<!-- <plugin> <groupId>org.apache.maven.plugins</groupId> <artifactId>maven-jar-plugin</artifactId> 
+				<configuration> <archive> <manifest> <mainClass>${main.class}</mainClass> 
+				<addClasspath>true</addClasspath> <classpathPrefix>${dist.libDir}/</classpathPrefix> 
+				<useUniqueVersions>false</useUniqueVersions> below config should be default 
+				<classpathLayoutType>custom</classpathLayoutType> <customClasspathLayout>$${artifact.artifactId}-$${artifact.version}$${dashClassifier?}.$${artifact.extension}</customClasspathLayout> 
+				</manifest> <index>true</index> <manifestEntries> <mode>development</mode> 
+				<url>${project.url}</url> <key>value</key> </manifestEntries> </archive> 
+				</configuration> </plugin> -->
+
+			<!-- build, tag, and push docker image -->
+			<!-- <plugin> <groupId>com.spotify</groupId> <artifactId>docker-maven-plugin</artifactId> 
+				<version>${docker-maven-plugin.version}</version> <configuration> <imageName>${docker.imageName}</imageName> 
+				<imageTags> <imageTag>${docker.tagName}</imageTag> <imageTag>latest</imageTag> 
+				</imageTags> <baseImage>java</baseImage> <entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint> 
+				<resources> <resource> <targetPath>/</targetPath> <directory>${project.build.directory}</directory> 
+				<include>${project.build.finalName}.jar</include> </resource> </resources> 
+				</configuration> <executions> <execution> <id>build-image</id> <phase>package</phase> 
+				<goals> <goal>build</goal> </goals> </execution> <execution> <id>tag-image</id> 
+				<phase>package</phase> <goals> <goal>tag</goal> </goals> <configuration> 
+				<image>${docker.imageName}:${docker.tagName}</image> <newName>${docker.repoName}/${docker.imageName}:${docker.tagName}</newName> 
+				</configuration> </execution> <execution> <id>push-image</id> <phase>deploy</phase> 
+				<goals> <goal>push</goal> </goals> <configuration> <imageName>${docker.repoName}/${docker.imageName}:${docker.tagName}</imageName> 
+				</configuration> </execution> </executions> </plugin> -->
+		</plugins>
+	</build>
+
+</project>

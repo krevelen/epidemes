@@ -1,0 +1,208 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>epidemes</artifactId>
+		<version>0.1.0</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>epidemes-mas</artifactId>
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Multi-agent system for the RIVM Epidemics Simulator
+		$Id: 0614cade0ad2c9d423a61135045a9e58aaf3706f $
+	</description>
+	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
+
+	<properties>
+		<!-- stand-alone runnable JAR config -->
+		<dist.dir>${basedir}/mas</dist.dir>
+		<main.class>nl.rivm.cib.episim.mas.eve.EpisimMasServer</main.class>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+		</repository>
+
+		<repository>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
+			<url>https://github.com/krevelen/epidemes/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>epidemes-model</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>epidemes-api</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>eve3-coala-adapter</artifactId>
+			<exclusions>
+				<!-- websocket dependency not inside a WAR file! <exclusion> <groupId>org.eclipse.jetty.websocket</groupId> 
+					<artifactId>javax-websocket-server-impl</artifactId> </exclusion> <exclusion> 
+					<groupId>javax.websocket</groupId> <artifactId>javax.websocket-api</artifactId> 
+					</exclusion> -->
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>vecmath</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>j3d-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-clean-plugin</artifactId>
+				<configuration>
+					<filesets>
+						<fileset>
+							<directory>${dist.dir}</directory>
+							<includes>
+								<include>**/*.jar</include>
+								<include>**/*.log</include>
+							</includes>
+							<followSymlinks>false</followSymlinks>
+						</fileset>
+					</filesets>
+				</configuration>
+			</plugin>
+
+			<!-- copy (non-"provided"-scope) dependency jars to ${dist.dir}/lib -->
+			<!-- <plugin> <artifactId>maven-dependency-plugin</artifactId> <executions> 
+				<execution> <id>copy</id> <phase>package</phase> <goals> <goal>copy-dependencies</goal> 
+				</goals> <configuration> <excludeGroupIds>junit</excludeGroupIds> <includeScope>runtime</includeScope> 
+				<outputDirectory>${dist.dir}/lib</outputDirectory> <silent>false</silent> 
+				<overWriteIfNewer>true</overWriteIfNewer> <overWriteReleases>false</overWriteReleases> 
+				<overWriteSnapshots>false</overWriteSnapshots> </configuration> </execution> 
+				</executions> </plugin> -->
+
+			<!-- set main class and class-path for executable java archive -->
+			<!-- <plugin> <artifactId>maven-jar-plugin</artifactId> <configuration> 
+				<archive> <manifest> <mainClass>${main.class}</mainClass> <addClasspath>true</addClasspath> 
+				<classpathPrefix>lib/</classpathPrefix> <useUniqueVersions>false</useUniqueVersions> 
+				below config should be default <classpathLayoutType>custom</classpathLayoutType> 
+				<customClasspathLayout>$${artifact.artifactId}-$${artifact.version}$${dashClassifier?}.$${artifact.extension}</customClasspathLayout> 
+				</manifest> </archive> </configuration> </plugin> -->
+
+			<!-- copy packaged artifact to distribution directory -->
+			<!-- <plugin> <artifactId>maven-antrun-plugin</artifactId> <executions> 
+				<execution> <id>copy-jar</id> <phase>package</phase> <goals> <goal>run</goal> 
+				</goals> <configuration> <tasks> <copy file="${project.build.directory}/${project.build.finalName}.${project.packaging}" 
+				tofile="${dist.dir}/${project.artifactId}.${project.packaging}" /> </tasks> 
+				</configuration> </execution> </executions> </plugin> -->
+
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<finalName>${project.artifactId}-full</finalName>
+							<outputDirectory>${dist.dir}</outputDirectory>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>${main.class}</mainClass>
+								</transformer>
+							</transformers>
+							<filters>
+								<filter>
+									<artifact>*:*:*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<!-- jetty:run starts this Eve web-app in a Jetty container -->
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-maven-plugin</artifactId>
+				<configuration>
+					<scanIntervalSeconds>1</scanIntervalSeconds>
+					<systemProperties>
+						<systemProperty>
+							<name>log4j.configurationFile</name>
+							<value>mas/log4j2.yaml</value>
+						</systemProperty>
+					</systemProperties>
+					<webApp>
+						<contextPath>/</contextPath>
+					</webApp>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>

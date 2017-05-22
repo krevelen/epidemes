@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>nl.rivm.cib</groupId>
+  <artifactId>epidemes-connect-cbs</artifactId>
+  <version>0.1.1-SNAPSHOT</version>
+  <dependencies>
+    <dependency>
+      <groupId>io.coala</groupId>
+      <artifactId>coala-api</artifactId>
+      <version>0.2.0-b5</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>fluent-hc</artifactId>
+      <version>4.5.1</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.olingo</groupId>
+      <artifactId>odata-client-core</artifactId>
+      <version>4.0.0-beta-02</version>
+      <scope>runtime</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>slf4j-api</artifactId>
+          <groupId>*</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+  <description>A demonstration of maven POM customization</description>
+</project>

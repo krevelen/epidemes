@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>nl.rivm.cib</groupId>
+  <artifactId>epidemes-mas</artifactId>
+  <version>0.1.1-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20161118.195329</timestamp>
+      <buildNumber>4</buildNumber>
+    </snapshot>
+    <lastUpdated>20161118195329</lastUpdated>
+  </versioning>
+</metadata>
