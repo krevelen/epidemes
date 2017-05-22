@@ -5,7 +5,7 @@
 
 	<groupId>nl.rivm.cib</groupId>
 	<artifactId>epidemes</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 
@@ -40,7 +40,7 @@
 		<!-- for JaCoCO java agent, as per http://stackoverflow.com/a/21633345/1418999 -->
 		<argLine />
 
-		<coala.version>0.2.0-b6</coala.version>
+		<coala.version>0.2.0-b7-SNAPSHOT</coala.version>
 		<log4j.version>2.8.2</log4j.version>
 		<jackson.version>2.8.8</jackson.version>
 		<hibernate.version>5.1.0.Final</hibernate.version>
