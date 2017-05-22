@@ -22,12 +22,15 @@ package nl.rivm.cib.episim.cbs;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.logging.log4j.Logger;
 import org.apache.olingo.commons.api.edm.Edm;
-import org.apache.olingo.commons.api.edm.EdmEntityType;
-import org.apache.olingo.commons.api.edm.EdmSchema;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -86,22 +89,41 @@ public class CBSConnectorTest
 		LOG.trace( "Got result: " + JsonUtil.toJSON( result ) );
 	}
 
+//	@Ignore
 	@Test
 	public void testOlingo() throws IOException
 	{
-		final String serviceUrl = "http://opendata.cbs.nl/ODataApi/odata/37422ned";//"http://opendata.cbs.nl/ODataApi/odata/81435ned";
+		final String serviceUrl = "http://opendata.cbs.nl/ODataApi/odata/83225ned";//"http://opendata.cbs.nl/ODataApi/odata/81435ned";
 		final Edm edm = ODataUtil.readEdm( serviceUrl );
-		edm.getSchemas().forEach( ( EdmSchema s ) ->
+		edm.getSchemas().forEach( s ->
 		{
-			s.getEntityTypes().forEach( ( EdmEntityType t ) ->
+			s.getEntityTypes().forEach( t ->
 			{
-
-				LOG.trace( "{} :: {}", t.getFullQualifiedName(),
-						t.getPropertyNames()
-				/*
-				 * ,ODataUtil .readEntities( edm, serviceUrl, t.getName() )
-				 */ );
+				t.getPropertyNames().forEach( p ->
+				{
+					if(p.equals( "Key" ))
+						System.err.println(ODataUtil.readEntities( edm, serviceUrl, t.getName()+"$select=" ));
+					LOG.trace( "{}.{} :: {} ({})", t.getNamespace(),
+							t.getName(), p, t.getProperty( p ).getType());
+				} );
 			} );
+//			final Map<Object, Object> dims = s.getEntityTypes().stream().filter( e->e.getPropertyNames().contains( "Key" ) )
+//					.collect( Collectors.toMap(
+//							e -> e.getProperty( "Key" ),
+//							e -> e.getProperty( "Title" ) ) );
+//			LOG.trace( "{} dims: {}", s.getNamespace(), dims );
+			
+			final String dim = "Geslacht";
+			final Map<Object, Object> keys = StreamSupport
+					.stream( Spliterators.spliteratorUnknownSize(
+							ODataUtil.readEntities( edm, serviceUrl, dim ),
+							Spliterator.CONCURRENT ), false )
+					.collect( Collectors.toMap(
+							e -> e.getProperty( "Key" ).getPrimitiveValue()
+									.toValue(),
+							e -> e.getProperty( "Title" ).getPrimitiveValue()
+									.toValue() ) );
+			LOG.trace( "{} keys: {}", dim, keys );
 		} );
 
 	}

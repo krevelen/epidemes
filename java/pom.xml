@@ -4,19 +4,166 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>nl.rivm.cib</groupId>
-	<artifactId>episim</artifactId>
+	<artifactId>epidemes</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
+
+	<name>${project.artifactId} ${project.version}</name>
+	<url>https://github.com/krevelen/epidemes</url>
+	<description> 
+		EPIDEMES Simulator
+	</description>
+	<organization>
+		<name>RIVM</name>
+		<url>http://www.rivm.nl/en</url>
+	</organization>
+	<developers>
+		<developer>
+			<id>krevelvr</id>
+			<name>Rick van Krevelen</name>
+			<organization>RIVM</organization>
+			<roles>
+				<role>lead</role>
+			</roles>
+		</developer>
+	</developers>
+
+	<properties>
+		<source>1.8</source>
+		<encoding>UTF-8</encoding>
+		<skipTests>false</skipTests>
+		<maven.test.skip>${skipTests}</maven.test.skip>
+		<project.build.sourceLevel>${source}</project.build.sourceLevel>
+		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
+		<!-- for JaCoCO java agent, as per http://stackoverflow.com/a/21633345/1418999 -->
+		<argLine />
+
+		<coala.version>0.2.0-b6</coala.version>
+		<log4j.version>2.8.2</log4j.version>
+		<jackson.version>2.8.8</jackson.version>
+		<hibernate.version>5.1.0.Final</hibernate.version>
+		<wildfly.version>10.1.1.Final</wildfly.version>
+		<tomcat.version>8.5.13</tomcat.version>
+		<jetty.version>9.3.9.v20160517</jetty.version>
+		<httpcomponents.version>4.5.1</httpcomponents.version>
+
+		<!-- test coverage versions -->
+		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
+		<jacoco.covered-ratio>0.0</jacoco.covered-ratio>
+
+		<!-- set reporting versions (e.g. unit test code coverage) -->
+		<maven-project-info-reports-plugin.version>2.9</maven-project-info-reports-plugin.version>
+		<maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+
+		<!-- set distribution versions -->
+		<wagon-ssh.version>1.0-beta-7</wagon-ssh.version>
+		<github.global.server>github</github.global.server>
+		<github.repository.name>epidemes</github.repository.name>
+		<github.repository.branch>mvn-repo</github.repository.branch>
+		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
+		<github.repository.localid>internal.repo</github.repository.localid>
+		<github.repository.tmpdir>${user.dir}/..</github.repository.tmpdir>
+		<github.repository.url>https://raw.github.com/krevelen/epidemes/mvn-repo/</github.repository.url>
+		<site-maven-plugin.version>0.9</site-maven-plugin.version>
+
+		<!-- set dependency versions -->
+		<junit.version>4.11</junit.version>
+		<hamcrest.version>1.3</hamcrest.version>
+		<concurrentunit.version>0.4.2</concurrentunit.version>
+		<log4j.version>2.6.2</log4j.version>
+
+		<!-- JSR versions -->
+		<javaee-api.version>7.0</javaee-api.version>
+		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
+		<javax.ws.rs-api.version>2.0.1</javax.ws.rs-api.version>
+		<javax.inject.version>1</javax.inject.version>
+		<jta.version>1.1</jta.version>
+
+		<!-- Maven plugin versions for mojo execution -->
+		<lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
+		<maven-clean-plugin.version>3.0.0</maven-clean-plugin.version>
+		<maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
+		<maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
+		<maven-source-plugin.version>3.0.0</maven-source-plugin.version>
+		<maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
+		<maven-war-plugin.version>2.6</maven-war-plugin.version>
+		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+		<maven-resources-plugin.version>3.0.1</maven-resources-plugin.version>
+		<!-- maven-jar-plugin may not work in Eclipse Neon, for Luna/Mars.2 try 
+			m2e-mavenarchiver from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
+		<maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
+		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
+		<maven-shade-plugin.version>2.4.3</maven-shade-plugin.version>
+		<exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
+		<build-helper-maven-plugin.version>1.10</build-helper-maven-plugin.version>
+		<maven-processor-plugin.version>3.2.0</maven-processor-plugin.version>
+
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<docker.skip>true</docker.skip>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
+	</properties>
+
 	<profiles>
+		<!-- see https://www.dontpanicblog.co.uk/2017/02/28/activate-the-maven-docker-plugin/ -->
+		<profile>
+			<id>enableDocker</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+		</profile>
+		<!-- Activate on Linux systems. Assume presence of docker.pid file indicates 
+			Docker is available -->
+		<profile>
+			<id>enableDocker-linux</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<file>
+					<exists>/var/run/docker.pid</exists>
+				</file>
+			</activation>
+		</profile>
+		<!-- Activate on Windows 10 systems with native Docker. Check for docker.exe 
+			in default install directory -->
+		<profile>
+			<id>enableDocker-win10</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<file>
+					<exists>C:\Program Files\Docker\Docker\resources\bin\docker.exe</exists>
+				</file>
+			</activation>
+		</profile>
+		<!-- Activate on Windows (Docker Toolbox) systems. Assume presence of DOCKER_HOST 
+			indicates Docker is available -->
+		<profile>
+			<id>enableDocker-toolbox</id>
+			<properties>
+				<docker.skip>false</docker.skip>
+			</properties>
+			<activation>
+				<property>
+					<name>env.DOCKER_HOST</name>
+				</property>
+			</activation>
+		</profile>
 		<profile>
 			<id>model</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<modules>
-				<module>episim-common</module>
-
 				<module>episim-connect-cbs</module>
 				<module>episim-connect-geodb</module>
 				<module>episim-connect-pienter2</module>
@@ -30,9 +177,11 @@
 			</activation>
 			<modules>
 				<module>episim-persist</module>
-				<module>episim-persist-kundera</module>
+				<!-- <module>episim-persist-kundera</module> -->
 				<module>episim-api</module>
 				<module>episim-mas</module>
+				<module>episim-demo</module>
+				<module>epidemes-demo-webapp</module>
 			</modules>
 		</profile>
 		<profile>
@@ -40,99 +189,18 @@
 			<activation>
 				<file>
 					<!-- set system property "npm" with any value -->
-					<exists>episim-webapp/node_modules</exists>
+					<exists>episim-webapp/node*</exists>
 				</file>
 			</activation>
 			<modules>
-				<module>episim-webapp</module>
+				<!-- <module>episim-webapp</module> -->
 				<!-- <module>episim-dist</module> -->
 			</modules>
 		</profile>
 	</profiles>
 
-	<name>${project.artifactId} ${project.version}</name>
-	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
-	<description> 
-		RIVM Vaccination Acceptance Simulator
-	</description>
-	<organization>
-		<name>RIVM</name>
-		<url>http://www.rivm.nl/en</url>
-	</organization>
-	<developers>
-		<developer>
-			<id>krevelen</id>
-			<name>Rick van Krevelen</name>
-			<organization>RIVM</organization>
-			<roles>
-				<role>developer</role>
-			</roles>
-		</developer>
-	</developers>
-
-	<properties>
-		<source>1.8</source>
-		<encoding>UTF-8</encoding>
-		<skipTests>false</skipTests>
-
-		<maven.test.skip>${skipTests}</maven.test.skip>
-		<project.build.sourceLevel>${source}</project.build.sourceLevel>
-		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
-
-		<coala.version>0.2.0-b4</coala.version>
-		<httpcomponents.version>4.5.1</httpcomponents.version>
-		<jackson.version>2.7.4</jackson.version>
-		<jetty.version>9.3.9.v20160517</jetty.version>
-
-		<!-- set reporting versions (e.g. unit test code coverage) -->
-		<cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
-		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
-		<jacoco.covered-ratio>0.0</jacoco.covered-ratio>
-
-		<!-- set distribution versions -->
-		<wagon-ssh.version>1.0-beta-7</wagon-ssh.version>
-		<github.global.server>github</github.global.server>
-		<github.repository.name>rivm-episim</github.repository.name>
-		<github.repository.branch>mvn-repo</github.repository.branch>
-		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
-		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}/..</github.repository.tmpdir>
-		<github.repository.url>https://raw.github.com/krevelen/rivm-episim/mvn-repo/</github.repository.url>
-		<site-maven-plugin.version>0.9</site-maven-plugin.version>
-
-		<!-- set dependency versions -->
-		<junit.version>4.11</junit.version>
-		<hamcrest.version>1.3</hamcrest.version>
-		<concurrentunit.version>0.4.2</concurrentunit.version>
-		<log4j.version>2.6.2</log4j.version>
-		<javaee-api.version>7.0</javaee-api.version>
-		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
-		<javax.ws.rs-api.version>2.0.1</javax.ws.rs-api.version>
-		<javax.inject.version>1</javax.inject.version>
-		<javax.inject-api.version>1.0.0-PRD</javax.inject-api.version>
-
-		<!-- set maven mojo execution plugin versions -->
-		<lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
-		<maven-clean-plugin.version>3.0.0</maven-clean-plugin.version>
-		<maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
-		<maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
-		<maven-source-plugin.version>3.0.0</maven-source-plugin.version>
-		<maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
-		<maven-war-plugin.version>2.6</maven-war-plugin.version>
-		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
-		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
-		<maven-resources-plugin.version>3.0.1</maven-resources-plugin.version>
-		<!-- May not work in Eclipse Neon, for Luna/Mars.2 try m2e-mavenarchiver from: https://otto.takari.io/content/sites/m2e.extras/m2eclipse-mavenarchiver/0.17.1/N/LATEST/ -->
-		<maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
-		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
-		<maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
-		<exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
-		<build-helper-maven-plugin.version>1.10</build-helper-maven-plugin.version>
-	</properties>
-
 	<distributionManagement>
-		<downloadUrl>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</downloadUrl>
+		<downloadUrl>https://github.com/krevelen/epidemes/raw/mvn-repo/</downloadUrl>
 		<repository>
 			<id>${github.repository.localid}</id>
 			<name>Temporary Staging Repository</name>
@@ -144,23 +212,19 @@
 		<dependencies>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>episim-common</artifactId>
+				<artifactId>epidemes-api</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>episim-api</artifactId>
+				<artifactId>epidemes-model</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
+			<!-- FIXME: import coala BOM bundle -->
 			<dependency>
 				<groupId>io.coala</groupId>
 				<artifactId>coala-api</artifactId>
-				<version>${coala.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>io.coala</groupId>
-				<artifactId>coala-api-capability</artifactId>
 				<version>${coala.version}</version>
 			</dependency>
 			<dependency>
@@ -192,6 +256,38 @@
 				<groupId>io.coala</groupId>
 				<artifactId>math3-coala-adapter</artifactId>
 				<version>${coala.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>javax</groupId>
+				<artifactId>javaee-api</artifactId>
+				<version>${javaee-api.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax</groupId>
+				<artifactId>javaee-web-api</artifactId>
+				<version>${javaee-api.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.servlet</groupId>
+				<artifactId>javax.servlet-api</artifactId>
+				<version>${javax.servlet-api.version}</version>
+			</dependency>
+			<dependency>
+				<!-- artifactId: jsr311-api=v1; javax.ws.rs-api=JSR-339/v2 -->
+				<groupId>javax.ws.rs</groupId>
+				<artifactId>javax.ws.rs-api</artifactId>
+				<version>${javax.ws.rs-api.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.inject</groupId>
+				<artifactId>javax.inject</artifactId>
+				<version>${javax.inject.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.transaction</groupId>
+				<artifactId>jta</artifactId>
+				<version>${jta.version}</version>
 			</dependency>
 
 			<dependency>
@@ -247,50 +343,57 @@
 				<version>${hamcrest.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>com.fasterxml.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>${jackson.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
 				<groupId>org.apache.logging.log4j</groupId>
-				<artifactId>log4j-core</artifactId>
+				<artifactId>log4j-bom</artifactId>
 				<version>${log4j.version}</version>
-			</dependency>
-
-			<!-- <dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> 
-				<version>${log4j.version}</version> </dependency> <dependency> <groupId>org.slf4j</groupId> 
-				<artifactId>slf4j-log4j12</artifactId> <version>${slf4j.version}</version> 
-				</dependency> <dependency> <groupId>org.slf4j</groupId> <artifactId>jcl-over-slf4j</artifactId> 
-				<version>${slf4j.version}</version> </dependency> <dependency> <groupId>org.slf4j</groupId> 
-				<artifactId>jul-to-slf4j</artifactId> <version>${slf4j.version}</version> 
-				</dependency> <dependency> <groupId>joda-time</groupId> <artifactId>joda-time</artifactId> 
-				<version>${joda-time.version}</version> </dependency> <dependency> <groupId>com.eaio.uuid</groupId> 
-				<artifactId>uuid</artifactId> <version>${uuid.version}</version> </dependency> -->
-			<dependency>
-				<groupId>javax</groupId>
-				<artifactId>javaee-api</artifactId>
-				<version>${javaee-api.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 			<dependency>
-				<groupId>javax</groupId>
-				<artifactId>javaee-web-api</artifactId>
-				<version>${javaee-api.version}</version>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 			<dependency>
-				<groupId>javax.servlet</groupId>
-				<artifactId>javax.servlet-api</artifactId>
-				<version>${javax.servlet-api.version}</version>
+				<groupId>org.hibernate</groupId>
+				<artifactId>hibernate-hikaricp</artifactId>
+				<version>${hibernate.version}</version>
 			</dependency>
 			<dependency>
-				<!-- artifactId: jsr311-api=v1; javax.ws.rs-api=JSR-339/v2 -->
-				<groupId>javax.ws.rs</groupId>
-				<artifactId>javax.ws.rs-api</artifactId>
-				<version>${javax.ws.rs-api.version}</version>
+				<groupId>org.wildfly.bom</groupId>
+				<artifactId>wildfly-javaee7</artifactId>
+				<version>${wildfly.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 			<dependency>
-				<groupId>javax.inject</groupId>
-				<artifactId>inject-api</artifactId>
-				<version>${javax.inject-api.version}</version>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-catalina</artifactId>
+				<version>${tomcat.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>javax.inject</groupId>
-				<artifactId>javax.inject</artifactId>
-				<version>${javax.inject.version}</version>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-jdbc</artifactId>
+				<version>${tomcat.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-dbcp</artifactId>
+				<version>${tomcat.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-servlet-api</artifactId>
+				<version>${tomcat.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -359,6 +462,10 @@
 					<version>${maven-assembly-plugin.version}</version>
 				</plugin>
 				<plugin>
+					<artifactId>maven-shade-plugin</artifactId>
+					<version>${maven-shade-plugin.version}</version>
+				</plugin>
+				<plugin>
 					<artifactId>maven-deploy-plugin</artifactId>
 					<version>${maven-deploy-plugin.version}</version>
 					<configuration>
@@ -370,6 +477,11 @@
 					<groupId>org.eclipse.jetty</groupId>
 					<artifactId>jetty-maven-plugin</artifactId>
 					<version>${jetty.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>com.spotify</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<version>${docker-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
 					<groupId>com.github.github</groupId>
@@ -408,22 +520,6 @@
 						<lifecycleMappingMetadata>
 							<pluginExecutions>
 
-								<!-- Configure "org.codehaus.mojo:cobertura-maven-plugin:clean" goal 
-									execution in Eclipse IDE -->
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.codehaus.mojo</groupId>
-										<artifactId>cobertura-maven-plugin</artifactId>
-										<versionRange>[0.0.0,)</versionRange>
-										<goals>
-											<goal>clean</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore />
-									</action>
-								</pluginExecution>
-
 								<!-- Configure "org.jacoco:jacoco-maven-plugin:{prepare-agent,report,check}" 
 									goal execution in Eclipse IDE -->
 								<pluginExecution>
@@ -439,6 +535,25 @@
 									</pluginExecutionFilter>
 									<action>
 										<ignore />
+									</action>
+								</pluginExecution>
+
+								<!-- Configure "org.bsc.maven:maven-processor-plugin:process" goal 
+									execution in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.bsc.maven</groupId>
+										<artifactId>maven-processor-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>process</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnConfiguration>true</runOnConfiguration>
+											<runOnIncremental>false</runOnIncremental>
+										</execute>
 									</action>
 								</pluginExecution>
 
@@ -501,30 +616,6 @@
 				<executions> <execution> <goals> <goal>site</goal> </goals> <phase>deploy</phase> 
 				</execution> </executions> </plugin> -->
 
-			<!-- see http://mojo.codehaus.org/cobertura-maven-plugin/usage.html -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>${cobertura-maven-plugin.version}</version>
-				<configuration>
-					<instrumentation>
-						<ignores>
-							<ignore>io.coala.boringcode.*</ignore>
-						</ignores>
-						<excludes>
-							<exclude>io/coala/dullcode/**/*.class</exclude>
-						</excludes>
-					</instrumentation>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>clean</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -572,14 +663,31 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>${maven-project-info-reports-plugin.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>${maven-javadoc-plugin.version}</version>
-			</plugin>
-			<!-- see http://mojo.codehaus.org/cobertura-maven-plugin/usage.html -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>${cobertura-maven-plugin.version}</version>
+				<configuration>
+					<failOnError>false</failOnError>
+				</configuration>
+				<reportSets>
+					<reportSet>
+						<id>default</id>
+						<reports>
+							<report>javadoc</report>
+							<!-- <report>test-javadoc</report> -->
+						</reports>
+					</reportSet>
+					<reportSet>
+						<id>aggregate</id>
+						<reports>
+							<report>aggregate</report>
+						</reports>
+					</reportSet>
+				</reportSets>
 			</plugin>
 		</plugins>
 	</reporting>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Configuration>
+<!-- DOCTYPE added, see http://stackoverflow.com/a/22294554/1418999 -->
+<!-- must use XML to avoid mixing with Json -->
+<Configuration status="error" name="DefaultLogging">
+  <Appenders>
+    <Console name="STDOUT">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5p [%t] %m%n"/>
+    </Console>
+  </Appenders>
+ 
+  <Loggers>
+    <Root level="info">
+      <AppenderRef ref="STDOUT"/>
+    </Root>
+  </Loggers>
+ 
+</Configuration>

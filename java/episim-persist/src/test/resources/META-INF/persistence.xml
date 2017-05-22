@@ -7,31 +7,23 @@
 
 	<persistence-unit name="hibernate_test_pu"
 		transaction-type="RESOURCE_LOCAL">
-		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-		<!-- JPA needs all entities as <class/> in Java SE environments :( -->
-		<class>io.coala.bind.LocalId$Dao</class>
-		<class>io.coala.enterprise.Fact$Dao</class>
 		
-		<class>nl.rivm.cib.episim.persist.dao.BuurtDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.GemeenteDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.GgdDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.LandsdeelDao</class>
+		<!-- <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider> -->
+		<provider>org.hibernate.ogm.jpa.HibernateOgmPersistence</provider>
+
+		<!-- List all @Entities: no JPA auto-discovery in Java SE runtime :( -->
+		<class>io.coala.bind.persist.LocalIdDao</class>
+		<class>io.coala.enterprise.persist.FactDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.LatLongDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.PlaceDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.ProvincieDao</class>
 		<class>nl.rivm.cib.episim.persist.dao.RegionDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.WijkDao</class>
-		<class>nl.rivm.cib.episim.persist.dao.ZipCodeDao</class>
-		<class>nl.rivm.cib.episim.persist.dimension.SpaceDimensionDao</class>
-		<class>nl.rivm.cib.episim.persist.dimension.TimeDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.CbsSpaceDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.ActorDimensionDao</class>
 		<class>nl.rivm.cib.episim.persist.fact.TransmissionFactDao</class>
-		<!-- <shared-cache-mode>ALL</shared-cache-mode> -->
-		<!-- <validation-mode>AUTO</validation-mode> -->
+		<class>nl.rivm.cib.episim.persist.fact.ContactFactDao</class>
+
 		<properties>
-			<!-- <property name="hibernate.archive.autodetection" value="class,hbm" /> -->
-			<!-- <property name="kundera.annotations.scan.package" value="nl.rivm.cib.episim.persist" 
-				/> <property name="kundera.client.lookup.class" value="com.impetus.client.rdbms.RDBMSClientFactory" 
-				/> -->
 		</properties>
 	</persistence-unit>
 </persistence>

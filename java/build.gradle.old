@@ -1,0 +1,63 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.2'
+}
+
+allprojects {
+  apply plugin: 'maven-publish'
+
+  group = 'nl.rivm.cib'
+  version = '0.1.1-SNAPSHOT'
+}
+  
+ext {
+  coalaVersion = '0.2.0-b6-SNAPSHOT'
+  hibernateVersion = '5.2.1.Final'
+}
+
+subprojects {
+  apply plugin: 'java'
+  
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+
+  task packageSources(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+  }
+
+  task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+  }
+  
+  artifacts.archives packageSources
+  
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    
+    maven { url "https://github.com/krevelen/coala-binder/raw/mvn-repo/" }
+    maven { url "https://github.com/krevelen/epidemes/raw/mvn-repo/" }
+    maven { url "http://download.java.net/maven/2" }
+    maven { url "http://download.osgeo.org/webdav/geotools/" }
+    maven { url "http://simulation.tudelft.nl/maven" }
+  }
+  
+  publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom .withXml {
+              asNode().appendNode('description', 'A demonstration of maven POM customization')
+            }
+       }
+    }
+  }
+  
+  publishing {
+    repositories {
+      maven {
+        url "file://"+file("..")+"/.."
+       }
+    }
+  }
+}

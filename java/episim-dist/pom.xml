@@ -5,17 +5,17 @@
 
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
-		<artifactId>episim</artifactId>
+		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>episim-dist</artifactId>
+	<artifactId>epidemes-dist</artifactId>
 	<packaging>pom</packaging>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
-		Distribution assembler/packager for the RIVM Epidemics Simulator
-		$Id: 272935d8f841a99a3932f9fafe7713a6e5ddef97 $
+		Distribution assembler/packager for the Epidemicron Simulator
+		$Id: eb7beeac9e532aae063aa84ea30ff176faf1acf0 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

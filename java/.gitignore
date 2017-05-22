@@ -10,3 +10,9 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 **/*~
+/.gradle/
+/.vagrant/
+/.externalToolBuilders/
+/build/
+/epidemes.sublime-project
+/epidemes.sublime-workspace

@@ -5,16 +5,16 @@
 
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
-		<artifactId>episim</artifactId>
+		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
-	<artifactId>episim-connect-pienter2</artifactId>
+	<artifactId>epidemes-connect-pienter2</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id: 9ad58cedeb45ffc1e9a677d7c40f0a4df177cd62 $
+		$Id: 65850d01489065a2ad00253ed15a231d91b0177e $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
@@ -29,25 +29,17 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
-			</snapshots>
+			</releases>
 		</repository>
 		<repository>
-			<name>EPISIM Public Maven Repository</name>
-			<id>episim-public</id>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
-			</snapshots>
+			</releases>
 		</repository>
 	</repositories>
 
@@ -67,6 +59,12 @@
 			<groupId>org.eobjects.metamodel-extras</groupId>
 			<artifactId>MetaModel-extras-sas</artifactId>
 			<version>${metamodel-extras.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- <dependency> <groupId>org.apache.metamodel</groupId> <artifactId>MetaModel-full</artifactId> 
 			<version>${metamodel.version}</version> </dependency> -->

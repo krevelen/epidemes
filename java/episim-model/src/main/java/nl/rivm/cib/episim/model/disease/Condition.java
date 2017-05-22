@@ -19,211 +19,64 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
-import io.coala.time.Proactive;
-import nl.rivm.cib.episim.model.Individual;
-import nl.rivm.cib.episim.model.TransitionEvent;
+import io.coala.enterprise.Actor;
 import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
-import nl.rivm.cib.episim.model.disease.infection.Infection;
-import rx.Observable;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
+import nl.rivm.cib.episim.model.disease.infection.Serostatus;
 
 /**
- * {@link Condition} represents the {@link Infection} bookkeeping dynamics for
- * an individual {@link Afflicted}
+ * {@link Condition} actor roles represent an {@link Afflicted} person's
+ * {@link Afflict} (co-)morbidity dynamics, i.e. physiological changes and
+ * status due to (combined) disorders, allergies, (immune system response) to
+ * {@link Pathogen} microbes, or many other (bio)hazards known in the etiology
+ * of disease. {@link Condition} may include attributes such as:
+ * <li>epidemic compartment:
+ * {@link EpidemicCompartment.Attributable#getCompartment()}
+ * <li>medical stage: {@link MedicalStage.Attributable#getStage()}
+ * <li>clinical phase: {@link ClinicalPhase.Attributable#getPhase()}
+ * <li>serologic state: {@link Serostatus.Attributable#getState()}
  * 
  * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
  * @author Rick van Krevelen
  */
-public interface Condition extends Proactive
+public interface Condition extends Actor<Afflict>
 {
 
-	Individual host();
+	/**
+	 * {@link Epidemic} adds a {@link #getCompartment()} attribute to the
+	 * {@link Condition} actor/role for dynamics related to contagion
+	 */
+	interface Epidemic
+		extends Condition, EpidemicCompartment.Attributable<Epidemic>
+	{
 
-	Infection disease();
+	}
 
 	/**
-	 * @return the current {@link EpidemicCompartment} of this {@link Condition}
+	 * {@link Medical} adds a {@link #getStage()} attribute to the
+	 * {@link Condition} actor/role for dynamics related to medical treatment
 	 */
-	EpidemicCompartment getCompartment();
+	interface Medical extends Condition, MedicalStage.Attributable<Medical>
+	{
 
-	/** @return the current {@link TreatmentStage} of this {@link Condition} */
-	TreatmentStage getTreatmentStage();
-
-	/** @return the current {@link SymptomPhase} of this {@link Condition} */
-	SymptomPhase getSymptomPhase();
+	}
 
 	/**
-	 * @return {@code true} iff this {@link Condition} yields seropositive blood
-	 *         tests (i.e. after seroconversion, where antibody &gt;&gt;
-	 *         antigen), {@code false} otherwise
+	 * {@link Clinical} adds a {@link #getPhase()} attribute to the
+	 * {@link Condition} actor/role for dynamics related to clinical symptoms
 	 */
-	//Boolean isSeropositive();
+	interface Clinical extends Condition, ClinicalPhase.Attributable<Clinical>
+	{
+
+	}
 
 	/**
-	 * @param event an {@link Observable} stream of {@link TransitionEvent}s for
-	 *            this {@link Infection}
+	 * {@link Serologic} adds a {@link #getState()} attribute to the
+	 * {@link Condition} actor/role for dynamics related to the immune system
 	 */
-	Observable<TransitionEvent<?>> transitions();
+	interface Serologic
+		extends Condition, Serostatus.Attributable<Serologic>
+	{
 
-	/**
-	 * initiate infection (infectiousness, symptoms, etc.)
-	 */
-	void infect();
-
-	// FIXME void treat(TreatmentStage stage);
-
-//	/**
-//	 * {@link Simple} implementation of {@link Condition}
-//	 * 
-//	 * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
-//	 * @author Rick van Krevelen
-//	 */
-//	class Simple implements Condition
-//	{
-//
-//		/**
-//		 * @param individual the {@link Individual}
-//		 * @param infection the {@link Infection}
-//		 * @return a {@link Simple} instance of {@link Condition}
-//		 */
-//		public static Simple of( final Individual individual,
-//			final Infection infection )
-//		{
-//			return of( individual, infection,
-//					EpidemicCompartment.Simple.SUSCEPTIBLE,
-//					SymptomPhase.ASYMPTOMATIC, TreatmentStage.UNTREATED );
-//		}
-//
-//		/**
-//		 * @param individual the {@link Individual}
-//		 * @param infection the {@link Infection}
-//		 * @param compartment the {@link EpidemicCompartment}
-//		 * @param symptoms the {@link SymptomPhase}
-//		 * @param treatment the {@link TreatmentStage}
-//		 * @return a {@link Simple} instance of {@link Condition}
-//		 */
-//		public static Simple of( final Individual individual,
-//			final Infection infection, final EpidemicCompartment compartment,
-//			final SymptomPhase symptoms, final TreatmentStage treatment )
-//		{
-//			return new Simple( individual, infection, compartment, symptoms,
-//					treatment );
-//		}
-//
-//		private final Individual individual;
-//
-//		private final Infection infection;
-//
-//		private EpidemicCompartment compartment;
-//
-//		private SymptomPhase symptoms;
-//
-//		private TreatmentStage treatment;
-//
-//		private final Subject<TransitionEvent<?>, TransitionEvent<?>> transitions = PublishSubject
-//				.create();
-//
-//		/**
-//		 * {@link Simple} constructor
-//		 * 
-//		 * @param individual the {@link Individual}
-//		 * @param infection the {@link Infection}
-//		 * @param compartment the {@link EpidemicCompartment}
-//		 * @param symptoms the {@link SymptomPhase}
-//		 * @param treatment the {@link TreatmentStage}
-//		 */
-//		public Simple( final Individual individual, final Infection infection,
-//			final EpidemicCompartment compartment, final SymptomPhase symptoms,
-//			final TreatmentStage treatment )
-//		{
-//			this.individual = individual;
-//			this.infection = infection;
-//			this.compartment = compartment;
-//			this.symptoms = symptoms;
-//			this.treatment = treatment;
-//		}
-//
-//		protected void setCompartment( final EpidemicCompartment compartment )
-//		{
-//			this.transitions.onNext( TransitionEvent.of( this, compartment ) );
-//			this.compartment = compartment;
-//		}
-//
-//		protected void setTreatmentStage( final TreatmentStage treatment )
-//		{
-//			this.transitions.onNext( TransitionEvent.of( this, treatment ) );
-//			this.treatment = treatment;
-//		}
-//
-//		protected void setSymptomPhase( final SymptomPhase symptoms )
-//		{
-//			this.transitions.onNext( TransitionEvent.of( this, symptoms ) );
-//			this.symptoms = symptoms;
-//		}
-//
-//		@Override
-//		public Individual getIndividual()
-//		{
-//			return this.individual;
-//		}
-//
-//		@Override
-//		public Scheduler scheduler()
-//		{
-//			return getIndividual().scheduler();
-//		}
-//
-//		@Override
-//		public Infection getInfection()
-//		{
-//			return this.infection;
-//		}
-//
-//		@Override
-//		public EpidemicCompartment getCompartment()
-//		{
-//			return this.compartment;
-//		}
-//
-//		@Override
-//		public TreatmentStage getTreatmentStage()
-//		{
-//			return this.treatment;
-//		}
-//
-//		@Override
-//		public SymptomPhase getSymptomPhase()
-//		{
-//			return this.symptoms;
-//		}
-//
-//		@Override
-//		public Observable<TransitionEvent<?>> emitTransitions()
-//		{
-//			return this.transitions.asObservable();
-//		}
-//
-//		@Override
-//		public void infect()
-//		{
-//			if( !getCompartment().isSusceptible() )
-//				throw ExceptionFactory.createUnchecked(
-//						"Can't become exposed when: {}", getCompartment() );
-//
-//			setCompartment( EpidemicCompartment.Simple.EXPOSED );
-//
-//			after( getInfection().drawLatentPeriod() )
-//					.call( this::setCompartment,
-//							EpidemicCompartment.Simple.INFECTIVE )
-//					.thenAfter( getInfection().drawRecoverPeriod() )
-//					.call( this::setCompartment,
-//							EpidemicCompartment.Simple.RECOVERED )
-//					.thenAfter( getInfection().drawWanePeriod() )
-//					.call( this::setCompartment,
-//							EpidemicCompartment.Simple.SUSCEPTIBLE );
-//			after( getInfection().drawOnsetPeriod() )
-//					.call( this::setSymptomPhase, SymptomPhase.SYSTEMIC )
-//					.thenAfter( getInfection().drawSymptomPeriod() )
-//					.call( this::setSymptomPhase, SymptomPhase.ASYMPTOMATIC );
-//		}
-//	}
+	}
 }

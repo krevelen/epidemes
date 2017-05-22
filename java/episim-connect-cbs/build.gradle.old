@@ -1,0 +1,10 @@
+
+description = 'CBS StatLine opendata tooling'
+dependencies {
+    compile group: 'io.coala', name: 'coala-api', version:'0.2.0-b5'
+    compile group: 'org.apache.httpcomponents', name: 'fluent-hc', version:'4.5.1'
+    compile(group: 'org.apache.olingo', name: 'odata-client-core', version:'4.0.0-beta-02') {
+      exclude(module: 'slf4j-api')
+    }
+    testCompile group: 'junit', name: 'junit', version:'4.11'
+}

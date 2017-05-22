@@ -1,0 +1,9 @@
+
+description = 'epidemes-connect-pienter2 0.1.0-SNAPSHOT'
+dependencies {
+    compile group: 'io.coala', name: 'coala-api', version:'0.2.0-b5'
+    compile(group: 'org.eobjects.metamodel-extras', name: 'MetaModel-extras-sas', version:'4.4.0') {
+exclude(module: 'slf4j-api')
+    }
+    testCompile group: 'junit', name: 'junit', version:'4.11'
+}

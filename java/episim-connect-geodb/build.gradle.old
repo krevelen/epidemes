@@ -1,0 +1,20 @@
+
+description = 'GeoDB PostGIS server connection tooling (not outside RIVM campus domain)'
+
+dependencies {
+    compile 'io.coala:coala-api:'+rootProject.coalaVersion
+
+//  compileOnly 'javax:javaee-api:7.0'
+//  compileOnly 'javax.transaction:jta:1.1'
+    
+    compile 'org.hsqldb:hsqldb:2.3.4'
+    compile 'org.hibernate:hibernate-entitymanager:'+rootProject.hibernateVersion
+    compile 'org.hibernate:hibernate-spatial:'+rootProject.hibernateVersion
+    compile('org.hibernate:hibernate-hikaricp:'+rootProject.hibernateVersion) {
+      exclude(module: 'HikariCP-java6')
+    }
+    compile 'com.zaxxer:HikariCP:2.4.7'
+    
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
+}

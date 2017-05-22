@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+             http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd"
+	version="2.1">
+
+	<persistence-unit name="epidemes_pu" transaction-type="RESOURCE_LOCAL">
+
+		<provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+		<!-- List all @Entities: no JPA auto-discovery in Java SE runtime :( -->
+		<class>io.coala.bind.persist.LocalIdDao</class>
+		<class>io.coala.enterprise.persist.FactDao</class>
+		<class>nl.rivm.cib.episim.persist.dao.LatLongDao</class>
+		<class>nl.rivm.cib.episim.persist.dao.PlaceDao</class>
+		<class>nl.rivm.cib.episim.persist.dao.RegionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.CbsSpaceDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.IsoTimeDimensionDao</class>
+		<class>nl.rivm.cib.episim.persist.dimension.ActorDimensionDao</class>
+
+		<properties>
+		</properties>
+	</persistence-unit>
+</persistence>

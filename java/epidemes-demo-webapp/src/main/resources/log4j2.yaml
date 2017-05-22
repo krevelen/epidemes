@@ -1,0 +1,31 @@
+Configuration:
+  status: warn
+
+  Appenders:
+    Console:
+      name: Console
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C.%M(%F:%L)]%n}"
+
+  Loggers:
+    Root:
+      level: trace
+      AppenderRef:
+        ref: Console
+    Logger:
+      - name: javax.management
+        level: warn
+      - name: javax.management
+        level: warn
+      - name: com.zaxxer.hikari
+        level: warn
+      - name: org.hibernate
+        level: info
+      - name: hsqldb.db
+        level: warn
+      - name: com.google.inject
+        level: info
+      - name: org.apache.cxf
+        level: info
+        

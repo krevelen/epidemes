@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<!-- example: http://visjs.org/examples/network/layout/hierarchicalLayout.html -->
+<head>
+<title>Network | Hierarchical layout</title>
+
+<style type="text/css">
+body {
+	font: 10pt sans;
+}
+
+#rvpschema {
+	width: 300px;
+	height: 300px;
+	border: 1px solid lightgray;
+	float: left;
+}
+
+#rvpschema2 {
+	width: 300px;
+	height: 300px;
+	border: 1px solid lightgray;
+	float: left;
+}
+</style>
+
+<script type="text/javascript"
+	src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis.min.js"></script>
+<link
+	href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis-network.min.css"
+	rel="stylesheet" type="text/css" />
+
+
+<script type="text/javascript">
+	var nodes = null;
+	var edges = null;
+	var network = null;
+
+	function destroy() {
+		if (network !== null) {
+			network.destroy();
+			network = null;
+		}
+	}
+
+	var from;
+	function sequence(data, to, idx, arr) {
+		data.nodes.push({
+			id : to,
+			label : String(to)
+		});
+		if (from)
+			data.edges.push({
+				from : from,
+				to : to,
+				arrows : 'to',
+				label : '90%',
+				font : {
+					align : 'top'
+				}
+			});
+		from = to;
+	}
+
+	function draw() {
+		destroy();
+		// randomly create some nodes and edges
+		var nodeCount = document.getElementById('nodeCount').value;
+		var data = {
+			nodes : [],
+			edges : []
+		};
+
+		from = null;
+		[ 'dktp1-1', 'dktp2-1' ].forEach(function(to, i, arr) {
+			sequence(data, to, i, arr);
+		});
+
+		// create a network
+		var directionInput = document.getElementById("direction").value;
+		var options = {
+			layout : {
+				hierarchical : {
+					direction : directionInput
+				}
+			}
+		};
+		network = new vis.Network(document.getElementById('rvpschema'), data,
+				options);
+		network = new vis.Network(document.getElementById('rvpschema2'), data,
+				options);
+
+		// add event listeners
+		network.on('select', function(params) {
+			document.getElementById('selection').innerHTML = 'Selection: '
+					+ params.nodes;
+		});
+	}
+</script>
+</head>
+
+<body onload="draw();">
+	<h2>Hierarchical Layout - Scale-Free-Network</h2>
+
+	<div style="width: 700px; font-size: 14px; text-align: justify;">
+		This example shows the randomly generated <b>scale-free-network</b>
+		set of nodes and connected edges from example 2. In this example,
+		hierarchical layout has been enabled and the vertical levels are
+		determined automatically.
+	</div>
+	<br />
+
+	<form onsubmit="draw(); return false;">
+		<label for="nodeCount">Number of nodes:</label> <input id="nodeCount"
+			type="text" value="25" style="width: 50px;"> <input
+			type="submit" value="Go">
+	</form>
+	<p>
+		<input type="button" id="btn-UD" value="Up-Down"> <input
+			type="button" id="btn-DU" value="Down-Up"> <input
+			type="button" id="btn-LR" value="Left-Right"> <input
+			type="button" id="btn-RL" value="Right-Left"> <input
+			type="hidden" id='direction' value="LR">
+	</p>
+
+	<script type="text/javascript">
+		var directionInput = document.getElementById("direction");
+		var btnUD = document.getElementById("btn-UD");
+		btnUD.onclick = function() {
+			directionInput.value = "UD";
+			draw();
+		}
+		var btnDU = document.getElementById("btn-DU");
+		btnDU.onclick = function() {
+			directionInput.value = "DU";
+			draw();
+		};
+		var btnLR = document.getElementById("btn-LR");
+		btnLR.onclick = function() {
+			directionInput.value = "LR";
+			draw();
+		};
+		var btnRL = document.getElementById("btn-RL");
+		btnRL.onclick = function() {
+			directionInput.value = "RL";
+			draw();
+		};
+	</script>
+	<br>
+
+	<div id="rvpschema"></div>
+
+	<div id="rvpschema2"></div>
+
+	<p id="selection"></p>
+</body>
+</html>

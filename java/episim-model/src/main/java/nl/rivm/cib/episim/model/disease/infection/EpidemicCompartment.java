@@ -19,7 +19,10 @@
  */
 package nl.rivm.cib.episim.model.disease.infection;
 
-import nl.rivm.cib.episim.model.TransitionEvent;
+import io.coala.json.Attributed;
+import io.coala.name.Identified;
+import io.reactivex.Observable;
+import nl.rivm.cib.episim.model.disease.Afflicted;
 import nl.rivm.cib.episim.model.disease.Condition;
 
 /**
@@ -35,7 +38,7 @@ import nl.rivm.cib.episim.model.disease.Condition;
  * @version $Id: c7fde65ca5b752da73a2422971867884017a49fb $
  * @author Rick van Krevelen
  */
-public interface EpidemicCompartment
+public interface EpidemicCompartment extends Identified<String>
 {
 	/**
 	 * @return {@code true} iff this compartment represents an INFECTIVE
@@ -49,79 +52,79 @@ public interface EpidemicCompartment
 	 */
 	boolean isSusceptible();
 
-	public static class CompartmentEvent
-		extends TransitionEvent<EpidemicCompartment>
+	/**
+	 * @return {@code true} iff this compartment represents an IMMUNE
+	 *         {@link Condition}
+	 */
+	boolean isImmune();
+
+	interface Attributable<THIS extends Attributable<?>>
+		extends Attributed.Publisher
 	{
+		/** propertyName matching bean's getter/setter names */
+		String EPIDEMIC_COMPARTMENT_PROPERTY = "compartment";
 
-		public static CompartmentEvent of( final TransmissionEvent transmission,
-			final EpidemicCompartment newStage )
+		EpidemicCompartment getCompartment();
+
+		void setCompartment( EpidemicCompartment compartment );
+
+		@SuppressWarnings( "unchecked" )
+		default THIS with( final EpidemicCompartment compartment )
 		{
-			return of( transmission.getContact().getSecondaryCondition(),
-					newStage );
+			setCompartment( compartment );
+			return (THIS) this;
 		}
 
-		/**
-		 * @param condition
-		 * @param compartment
-		 * @return an {@link CompartmentEvent}
-		 */
-		public static CompartmentEvent of( final Condition condition,
-			final EpidemicCompartment compartment )
+		default Observable<EpidemicCompartment> emitCompartment()
 		{
-			final CompartmentEvent result = new CompartmentEvent();
-			result.time = condition.now();
-//			result.condition = condition;
-			result.oldValue = condition.getCompartment();
-			result.newValue = compartment;
-			return result;
+			return emitChanges( EPIDEMIC_COMPARTMENT_PROPERTY,
+					EpidemicCompartment.class );
 		}
-
 	}
 
 	/**
 	 * {@link Simple}
-	 * 
-	 * @version $Id: c7fde65ca5b752da73a2422971867884017a49fb $
-	 * @author Rick van Krevelen
 	 */
 	enum Simple implements EpidemicCompartment
 	{
 		/**
-		 * a {@link Condition} where a {@link Carrier} infant is MATERNALLY
-		 * DERIVED or PASSIVELY IMMUNE to some {@link Infection} (e.g. measles
-		 * due to maternal antibodies in placenta and colostrum)
+		 * a {@link Condition} where a {@link Afflicted} infant is MATERNALLY
+		 * DERIVED or PASSIVELY IMMUNE to some {@link Pathogen} (e.g. naturally
+		 * due to maternal antibodies in placenta and colostrum, or artificially
+		 * induced via antibody-transfer). See
+		 * https://www.wikiwand.com/en/Passive_immunity
 		 */
 		PASSIVE_IMMUNE,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is SUSCEPTIBLE to some
-		 * {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} is SUSCEPTIBLE to some
+		 * {@link Pathogen}
 		 */
 		SUSCEPTIBLE,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is EXPOSED to, LATENT
-		 * INFECTED by, or PRE-INFECTIVE of some {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} is EXPOSED to, LATENT
+		 * INFECTED by, or PRE-INFECTIVE of some {@link Pathogen}
 		 */
 		EXPOSED,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is INFECTIVE of some
-		 * {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} is INFECTIVE of some
+		 * {@link Pathogen}
 		 */
 		INFECTIVE,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is RECOVERED from and
-		 * IMMUNE to some {@link Infection} or otherwise REMOVED (i.e. dead)
+		 * a {@link Condition} where a {@link Afflicted} is RECOVERED from, and
+		 * IMMUNE to, some {@link Pathogen} or otherwise REMOVED (i.e. dead)
 		 */
 		RECOVERED,
 
 		/**
-		 * a {@link Condition} where a {@link Carrier} is non-recovered CARRIER
-		 * of some {@link Infection}
+		 * a {@link Condition} where a {@link Afflicted} remains non-recovered
+		 * CARRIER of some {@link Pathogen}
 		 */
-		CARRIER,
+//		CARRIER,
 
 		;
 
@@ -135,6 +138,18 @@ public interface EpidemicCompartment
 		public boolean isSusceptible()
 		{
 			return equals( SUSCEPTIBLE );
+		}
+
+		@Override
+		public String id()
+		{
+			return name();
+		}
+
+		@Override
+		public boolean isImmune()
+		{
+			return equals( PASSIVE_IMMUNE ) || equals( RECOVERED );
 		}
 	}
 }

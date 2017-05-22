@@ -9,7 +9,9 @@ Configuration:
       name: Console
       target: SYSTEM_OUT
       PatternLayout:
+#        Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m%n}"
         Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5p [%t] %m [at %C.%M(%F:%L)]%n}"
+        # see https://logging.apache.org/log4j/2.x/manual/layouts.html#Patterns
 
   Loggers:
     Root:
@@ -17,12 +19,13 @@ Configuration:
       AppenderRef:
         ref: Console
     Logger:
-      - level: warn
-        name: javax.management
-        AppenderRef:
-          ref: Console
-      - level: info
-        name: com.google.inject
-        AppenderRef:
-          ref: Console
-          
+      - name: javax.management
+        level: warn
+      - name: com.zaxxer.hikari
+        level: warn
+      - name: org.hibernate
+        level: info
+      - name: hsqldb.db
+        level: warn
+      - name: com.google.inject
+        level: info

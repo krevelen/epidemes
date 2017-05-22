@@ -1,0 +1,16 @@
+
+description = 'epidemes-mas 0.1.0-SNAPSHOT'
+
+def coalaVersion = '0.2.0-b5'
+
+dependencies {
+  compile project(':epidemes-model')
+  compile project(':epidemes-api')
+  compile  'io.coala:dsol3-coala-adapter:'+coalaVersion
+  compile  'io.coala:math3-coala-adapter:'+coalaVersion
+  compile ('io.coala:eve3-coala-adapter:'+coalaVersion){
+  	exclude group: 'org.eclipse.jetty', module: 'jetty-jndi'
+  }
+  
+  testCompile  'junit:junit:4.11'
+}

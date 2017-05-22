@@ -28,12 +28,10 @@ import io.coala.time.Timed;
  * @version $Id: 03a6f266df7741da3277d78567f9417b9d1459b7 $
  * @author Rick van Krevelen
  */
+@Deprecated
 public class TransitionEvent<T> implements Timed
 {
 	protected Instant time;
-
-//	/** the {@link Condition} undergoing a {@link TransitionEvent} */
-//	protected Condition condition;
 
 	/** */
 	protected T oldValue;
@@ -54,12 +52,6 @@ public class TransitionEvent<T> implements Timed
 	{
 		return this.time;
 	}
-
-//	/** @return the {@link Condition} that is progressing */
-//	public Condition getCondition()
-//	{
-//		return this.condition;
-//	}
 
 	/** */
 	public T getOldValue()

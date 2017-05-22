@@ -1,0 +1,406 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>epidemes</artifactId>
+		<version>0.1.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>epidemes-demo-webapp</artifactId>
+	<name>epidemes-demo-webapp</name>
+	<packaging>war</packaging>
+
+	<properties>
+		<git.commit.id.abbrev>$Id$</git.commit.id.abbrev>
+
+		<cxf.version>3.1.10</cxf.version>
+
+		<wildfly-maven-plugin.version>1.1.0.Final</wildfly-maven-plugin.version>
+
+		<cargo.version>1.6.2</cargo.version>
+		<cargo.maven.skip>false</cargo.maven.skip>
+		<cargo.context>/demo</cargo.context>
+		<cargo.tmpDir>${basedir}/.cargo</cargo.tmpDir>
+		<cargo.container>tomcat8x</cargo.container>
+		<!-- <cargo.container.dist> http://www.apache.org/dyn/closer.cgi?action=download%26filename=tomcat/tomcat-8/v8.5.13/bin/apache-tomcat-8.5.13.zip 
+			</cargo.container.dist> -->
+		<tomcat.version>8.5.13</tomcat.version>
+
+		<!-- global "java:comp/env/" context name is prepended by Tomcat -->
+		<jdbc.jndi>java:comp/env/jdbc/demoDB</jdbc.jndi>
+		<jdbc.driver>org.hsqldb.jdbc.JDBCDataSource</jdbc.driver>
+		<!-- jdbc:mysql://localhost/testdb -->
+		<!-- jdbc:neo4j:bolt://192.168.99.100:7687/db/data -->
+		<!-- jdbc:hsqldb:file:target/testdb -->
+		<!-- jdbc:hsqldb:mem:mymemdb -->
+		<jdbc.url>jdbc:hsqldb:mem:demodb</jdbc.url>
+		<jdbc.username>SA</jdbc.username>
+		<jdbc.password></jdbc.password>
+
+		<!-- <cargo.container.dist>http://download.jboss.org/wildfly/10.1.0.Final/wildfly-10.1.0.Final.zip</cargo.container.dist> -->
+		<!-- <cargo.container>wildfly10x</cargo.container> -->
+
+		<!-- Jetty9 embedded conflicts with Weld (in Hibernate), see https://issues.jboss.org/browse/WELD-1908 -->
+		<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
+			and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
+		<!-- apparently, cargo's Jetty embedded container (org.codehaus.cargo.container.jetty.internal.JettyExecutorThread#run()) 
+			also requires Jersey CDI implementation (com.sun.jersey.spi.inject.InjectableProvider) -->
+		<!-- <cargo.container.dist>http://central.maven.org/maven2/org/eclipse/jetty/jetty-distribution/9.4.3.v20170317/jetty-distribution-9.4.3.v20170317.zip</cargo.container.dist> -->
+		<!-- <cargo.container>jetty9x</cargo.container> -->
+
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<skipDocker>true</skipDocker>
+
+		<docker-maven-plugin.version>0.4.13</docker-maven-plugin.version>
+		<docker.repoName>epidemes</docker.repoName>
+		<docker.imageName>demo</docker.imageName>
+		<docker.tagName>${project.version}</docker.tagName>
+		<docker.buildDir>docker</docker.buildDir>
+
+		<!-- docker run -d -p 8080:8080 -v ${cargo.tmpDir}:/home/cargo epidemes/demo-webapp -->
+		<hsqldb.version>2.3.4</hsqldb.version>
+		<hikari.version>2.4.7</hikari.version>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
+			<url>https://github.com/krevelen/epidemes/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+
+		<!-- <dependency> <groupId>javax</groupId> <artifactId>javaee-api</artifactId> 
+			<scope>provided</scope> </dependency> -->
+
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>nl.rivm.cib</groupId>
+			<artifactId>epidemes-demo</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- JAX-RS provider for REST application -->
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-frontend-jaxrs</artifactId>
+			<version>${cxf.version}</version>
+		</dependency>
+		<!-- <dependency> <groupId>org.apache.cxf</groupId> <artifactId>cxf-rt-transports-http-jetty</artifactId> 
+			<version>${cxf.version}</version> </dependency> -->
+
+		<!-- JPA provider incl. OGM database (Neo4J, also embedded and JDBC) -->
+		<dependency>
+			<groupId>org.hibernate.ogm</groupId>
+			<artifactId>hibernate-ogm-neo4j</artifactId>
+		</dependency>
+
+		<!-- classic ORM database (HSQLDB, also embedded and JDBC) -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+		</dependency>
+
+		<!-- used for Apache's JNDI implementation incl. DB connection pool -->
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-dbcp</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<configuration>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+
+			<!-- build, tag, and push docker image -->
+			<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<configuration>
+					<imageName>${docker.imageName}</imageName>
+					<imageTags>
+						<imageTag>${docker.tagName}</imageTag>
+						<imageTag>latest</imageTag>
+					</imageTags>
+					<!-- <baseImage>java</baseImage> -->
+					<!-- <entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint> -->
+					<dockerDirectory>${basedir}</dockerDirectory>
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<!-- <include>${project.build.finalName}.jar</include> -->
+						</resource>
+					</resources>
+				</configuration>
+				<executions>
+					<execution>
+						<id>build-image</id>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>tag-image</id>
+						<phase>package</phase>
+						<goals>
+							<goal>tag</goal>
+						</goals>
+						<configuration>
+							<image>${docker.imageName}:${docker.tagName}</image>
+							<newName>${docker.repoName}/${docker.imageName}:${docker.tagName}</newName>
+						</configuration>
+					</execution>
+					<execution>
+						<id>push-image</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>push</goal>
+						</goals>
+						<configuration>
+							<imageName>${docker.repoName}/${docker.imageName}:${docker.tagName}</imageName>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- see https://codehaus-cargo.github.io/cargo/Maven2+plugin.html -->
+			<!-- mvn clean verify org.codehaus.cargo:cargo-maven2-plugin:run -->
+			<plugin>
+				<groupId>org.codehaus.cargo</groupId>
+				<artifactId>cargo-maven2-plugin</artifactId>
+				<version>${cargo.version}</version>
+				<dependencies>
+
+					<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
+						and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
+					<!-- <dependency> <groupId>org.jboss.weld.servlet</groupId> <artifactId>weld-servlet-core</artifactId> 
+						<version>2.4.2.Final</version> </dependency> -->
+
+					<!-- apparently, cargo's Jetty embedded container (org.codehaus.cargo.container.jetty.internal.JettyExecutorThread#run()) 
+						requires CDI implementation (com.sun.jersey.spi.inject.InjectableProvider) 
+						from Jersey Servlet -->
+					<!-- <dependency> <groupId>org.glassfish.jersey.containers</groupId> 
+						<artifactId>jersey-container-servlet</artifactId> <version>2.25.1</version> 
+						</dependency> -->
+				</dependencies>
+				<configuration>
+					<!-- configure: cargo, [container], [deployables] -->
+					<configuration>
+						<!-- <home>${project.build.directory}/jetty-home</home> -->
+						<!-- the adapted jetty/webdefault.xml: (1) points Jetty's DefaultServlet 
+							resourceBase to ${maven.src.dir}/webapp; and (2) fixes Jetty's file locking 
+							in Windows -->
+						<configfiles>
+							<!-- Jetty -->
+							<!-- <configfile> <file>${basedir}/src/main/jetty/my-webdefault.xml</file> 
+								<tofile>etc/webdefault.xml</tofile> </configfile> -->
+							<!-- <configfile> <file>${basedir}/src/main/jetty/jetty-logging.properties</file> 
+								<todir>resources</todir> </configfile> -->
+							<!-- <configfile> <file>${project.build.resources[0].directory}/log4j2.yaml</file> 
+								<todir>resources</todir> </configfile> -->
+							<!-- Tomcat -->
+							<configfile>
+								<file>${project.build.resources[0].directory}/log4j2.yaml</file>
+								<todir>conf</todir>
+							</configfile>
+							<configfile>
+								<file>${basedir}/src/main/tomcat/my-context.xml</file>
+								<tofile>conf/context.xml</tofile>
+							</configfile>
+							<configfile>
+								<file>${basedir}/src/main/tomcat/my-web.xml</file>
+								<tofile>conf/web.xml</tofile>
+							</configfile>
+						</configfiles>
+						<properties>
+							<cargo.logging>high</cargo.logging>
+							<!-- <cargo.hostname>127.0.0.1</cargo.hostname> -->
+							<!-- <cargo.jboss.management-http.port>9990</cargo.jboss.management-http.port> -->
+							<!-- <cargo.servlet.users>adminUser:admin1234!</cargo.servlet.users> -->
+							<!-- <cargo.jetty.createContextXml>false</cargo.jetty.createContextXml> -->
+							<cargo.datasource.datasource.hsqldb>
+								cargo.datasource.driver=${jdbc.driver}|
+								cargo.datasource.url=${jdbc.url}|
+								cargo.datasource.jndi=${jdbc.jndi}|
+								cargo.datasource.username=${jdbc.username}|
+								cargo.datasource.password=${jdbc.password}
+							</cargo.datasource.datasource.hsqldb>
+						</properties>
+					</configuration>
+					<container>
+						<containerId>${cargo.container}</containerId>
+						<type>embedded</type> <!-- embedded lives with plugin -->
+						<!-- Jetty9 embedded conflicts with Weld (in Hibernate), see https://issues.jboss.org/browse/WELD-1908 -->
+						<!-- <zipUrlInstaller> <url>${cargo.container.dist}</url> <downloadDir>${cargo.tmpDir}/downloads</downloadDir> 
+							<extractDir>${cargo.tmpDir}/extracts</extractDir> </zipUrlInstaller> -->
+						<artifactInstaller>
+							<!-- <groupId>org.eclipse.jetty</groupId> <artifactId>jetty-distribution</artifactId> 
+								<version>${jetty.version}</version> -->
+							<groupId>org.apache.tomcat</groupId>
+							<artifactId>tomcat</artifactId>
+							<version>${tomcat.version}</version>
+							<extractDir>${cargo.tmpDir}/extracts</extractDir>
+						</artifactInstaller>
+						<log>${project.build.directory}/cargo.log</log>
+						<output>${project.build.directory}/${cargo.container}.log</output>
+						<append>false</append>
+						<systemProperties>
+							<!-- CXF logging -> SLF4J, see http://cxf.apache.org/docs/general-cxf-logging.html -->
+							<org.apache.cxf.Logger>org.apache.cxf.common.logging.Slf4jLogger</org.apache.cxf.Logger>
+							<!-- java.util.logging -> Log4J2, see https://logging.apache.org/log4j/2.0/log4j-jul/ -->
+							<java.util.logging.manager>org.apache.logging.log4j.jul.LogManager</java.util.logging.manager>
+							<!-- Jetty logging -> SLF4J, see https://www.eclipse.org/jetty/documentation/9.4.x/configuring-logging.html -->
+							<!-- <org.eclipse.jetty.util.log.class>org.eclipse.jetty.util.log.Slf4jLog</org.eclipse.jetty.util.log.class> -->
+						</systemProperties>
+						<dependencies>
+							<!-- <dependency> <groupId>org.slf4j</groupId> <artifactId>slf4j-api</artifactId> 
+								<classpath>shared</classpath> see https://codehaus-cargo.github.io/cargo/Application+Classpath.html 
+								</dependency> -->
+							<!-- SLF4J -> Log4J2, see https://codehaus-cargo.github.io/cargo/Application+Classpath.html -->
+							<dependency>
+								<groupId>org.apache.logging.log4j</groupId>
+								<artifactId>log4j-slf4j-impl</artifactId>
+								<classpath>shared</classpath>
+							</dependency>
+							<!-- required for Hibernate EntityManagerFactory -->
+							<dependency>
+								<groupId>org.hibernate</groupId>
+								<artifactId>hibernate-entitymanager</artifactId>
+								<classpath>shared</classpath>
+							</dependency>
+							<dependency>
+								<groupId>javax.transaction</groupId>
+								<artifactId>jta</artifactId>
+								<classpath>shared</classpath>
+							</dependency>
+							<dependency>
+								<groupId>org.apache.tomcat</groupId>
+								<artifactId>tomcat-dbcp</artifactId>
+								<classpath>extra</classpath>
+							</dependency>
+							<!-- <dependency>
+								<groupId>org.hsqldb</groupId>
+								<artifactId>hsqldb</artifactId>
+								<classpath>shared</classpath>
+							</dependency> -->
+
+							<!-- apparently, Jetty requires Weld CDI, see http://www.eclipse.org/jetty/documentation/9.4.x/framework-weld.html 
+								and https://docs.jboss.org/weld/reference/latest/en-US/html/environments.html#weld-servlet -->
+							<!-- <dependency> <groupId>org.jboss.weld.servlet</groupId> <artifactId>weld-servlet-core</artifactId> 
+								<classpath>extra</classpath> see https://codehaus-cargo.github.io/cargo/Application+Classpath.html 
+								</dependency> -->
+							<!-- apparently, cargo's Jetty embedded container (org.codehaus.cargo.container.jetty.internal.JettyExecutorThread#run) 
+								requires CDI implementation (com.sun.jersey.spi.inject.InjectableProvider) 
+								from Jersey Servlet -->
+							<!-- <dependency> <groupId>org.glassfish.jersey.containers</groupId> 
+								<artifactId>jersey-container-servlet</artifactId> <classpath>extra</classpath> 
+								</dependency> -->
+						</dependencies>
+					</container>
+					<deployables>
+						<deployable>
+							<properties>
+								<context>${cargo.context}</context>
+							</properties>
+							<!-- <pingURL>http://localhost:8080${cargo.context}</pingURL> -->
+							<pingTimeout>2000</pingTimeout> <!-- 2min (millis) -->
+							<location>${project.build.directory}/${project.build.finalName}</location>
+						</deployable>
+					</deployables>
+				</configuration>
+				<executions>
+					<!-- <execution> <id>start-cargo</id> <phase>pre-integration-test</phase> 
+						<goals> <goal>start</goal> </goals> </execution> -->
+					<!-- <execution> <id>stop-cargo</id> <phase>post-integration-test</phase> 
+						<goals> <goal>stop</goal> </goals> </execution> -->
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>

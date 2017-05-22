@@ -20,13 +20,12 @@
 package nl.rivm.cib.episim.persist.dimension;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.Entity;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.Table;
 
-import nl.rivm.cib.episim.model.Individual;
-import nl.rivm.cib.episim.model.person.HouseholdParticipant;
-import nl.rivm.cib.episim.persist.AbstractDao;
+import io.coala.enterprise.Actor;
 
 /**
  * {@link ActorDimensionDao}
@@ -34,15 +33,13 @@ import nl.rivm.cib.episim.persist.AbstractDao;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@Embeddable
-public class ActorDimensionDao extends AbstractDao
+@Entity
+@Table( name = "DIM_ACTOR" )
+@Inheritance( strategy = InheritanceType.SINGLE_TABLE )
+//SINGLE_TABLE preferred, see https://en.wikibooks.org/wiki/Java_Persistence/Inheritance
+public class ActorDimensionDao //extends LocalIdDao
 {
-	@Id
-	@GeneratedValue
-	@Column( name = "ID" )
-	protected int id;
-
-	@Column( name = "NAME", nullable = false, updatable = false )
+	@Column( name = "NAME", nullable = true, updatable = false )
 	protected String name;
 
 	@Column( name = "ROLE", nullable = true, updatable = false )
@@ -58,16 +55,14 @@ public class ActorDimensionDao extends AbstractDao
 	protected String world;
 
 	/**
-	 * @param secondaryCondition
+	 * @param individual
 	 * @return
 	 */
-	public static ActorDimensionDao of( final Individual individual )
+	public static ActorDimensionDao of( final Actor.ID personRef )
 	{
+		// TODO resolve attributes recursively from LocalId
 		final ActorDimensionDao result = new ActorDimensionDao();
-		if( individual instanceof HouseholdParticipant )
-		{
-			((HouseholdParticipant) individual).household().id().unwrap();
-		}
+		System.err.println( "persisting " + personRef );
 		return result;
 	}
 

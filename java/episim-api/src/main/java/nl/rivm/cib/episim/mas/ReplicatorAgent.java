@@ -26,8 +26,7 @@ import java.net.URI;
 import java.util.Date;
 import java.util.List;
 
-import javax.measure.quantity.Duration;
-import javax.measure.unit.Unit;
+import javax.measure.Unit;
 
 import org.aeonbits.owner.Converter;
 import org.joda.time.DateTime;
@@ -39,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.coala.config.ConfigUtil;
 import io.coala.config.GlobalConfig;
 import io.coala.json.JsonUtil;
+import io.coala.time.TimeUnitsConverter;
 import io.coala.time.Timing;
 
 /**
@@ -79,9 +79,9 @@ public interface ReplicatorAgent
 	{
 
 		@Key( TIME_UNIT_KEY )
-		@DefaultValue( "day" )
-		@ConverterClass( DurationUnitParser.class )
-		Unit<Duration> timeUnit();
+		@DefaultValue( "days" )
+		@ConverterClass( TimeUnitsConverter.class )
+		Unit<?> timeUnit();
 
 		/** the start {@link Date} of this scenario replication */
 		@Key( OFFSET_KEY )
@@ -99,22 +99,6 @@ public interface ReplicatorAgent
 		@Key( TOPICS_KEY )
 		@DefaultValue( TIME_TOPIC + ConfigUtil.CONFIG_VALUE_SEP + PACE_TOPIC )
 		List<String> topics();
-
-		/**
-		 * {@link DurationUnitParser} helper class for parsing units of duration
-		 * 
-		 * @version $Id: bd4a1bd2f9feaaaba7d8afa1d961ae91953ffd6c $
-		 * @author Rick van Krevelen
-		 */
-		class DurationUnitParser implements Converter<Unit<Duration>>
-		{
-			@Override
-			public Unit<Duration> convert( final Method method,
-				final String input )
-			{
-				return Unit.valueOf( input ).asType( Duration.class );
-			}
-		}
 
 		class DateTimeParser implements Converter<DateTime>
 		{
@@ -141,19 +125,21 @@ public interface ReplicatorAgent
 //		@JsonProperty( TIME_KEY )
 //		public Date time;
 
-		/** the (virtual) milliseconds between delays; =<0: paused */
+		/** the (virtual) milliseconds between delays; &le;0: paused */
 		@JsonProperty( VIRTUAL_MILLIS_KEY )
 		public BigDecimal virtualMS;
 
-		/** the minimum (actual) milliseconds step delay; =<0: maximum speed */
+		/**
+		 * the minimum (actual) milliseconds step delay; &le;0: maximum speed
+		 */
 		@JsonProperty( ACTUAL_MILLIS_KEY )
 		public BigDecimal actualMS;
 
 		/**
-		 * @param virtualStepMS the (virtual) milliseconds between delays; =<0:
-		 *            paused
+		 * @param virtualStepMS the (virtual) milliseconds between delays;
+		 *            &le;0: paused
 		 * @param actualStepMS the minimum (actual) milliseconds step delay;
-		 *            =<0: maximum speed
+		 *            &le;0: maximum speed
 		 * @return the {@link StepRatio} POJO
 		 */
 		public static StepRatio of( final BigDecimal virtualStepMS,

@@ -1,0 +1,10 @@
+
+description = 'Epidemes modeling components'
+
+dependencies {
+  compile 'io.coala:coala-api-enterprise:'+rootProject.coalaVersion
+    
+  testCompile 'junit:junit:4.11'
+  testCompile 'net.jodah:concurrentunit:0.4.2'
+  testCompile 'org.hamcrest:hamcrest-all:1.3'
+}

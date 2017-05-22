@@ -19,51 +19,44 @@
  */
 package nl.rivm.cib.episim.model.locate;
 
-import static io.coala.math.MeasureUtil.angularDistance;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import javax.measure.quantity.Angle;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
-
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.physics.amount.Amount;
-import org.opengis.spatialschema.geometry.geometry.Position;
-
-import io.coala.time.Units;
-import nl.rivm.cib.episim.model.ZipCode;
-import nl.rivm.cib.episim.model.disease.infection.TransmissionSpace;
-import nl.rivm.cib.episim.model.person.Population;
+import io.coala.json.DynaBean;
+import io.coala.math.LatLong;
+import io.coala.name.Id;
+import io.coala.name.Identified;
 
 /**
- * {@link Place} is a stationary {@link TransmissionSpace} located at a
- * geographical position, dimension entity?
- * (wijk/buurt/stad/gemeente/provincie/landsdeel)
+ * {@link Place} is a stationary inert space with a {@link ID} reference
+ * 
  * 
  * @version $Id: 7d10f131de96809298e2af9ae72b548a24a90817 $
  * @author Rick van Krevelen
  */
-public interface Place
+public interface Place extends Identified.Ordinal<Place.ID>
 {
+	class ID extends Id.Ordinal<String>
+	{
+		public static ID of( final String value )
+		{
+			return Util.of( value, new ID() );
+		}
+	}
 
-	/** RIVM National Institute for Public Health and the Environment */
-	LatLong RIVM_POSITION = LatLong.valueOf( 52.1185272, 5.1868699,
-			NonSI.DEGREE_ANGLE );
+	/**
+	 * {@link Directory} will retrieve or generate specified {@link Place}
+	 */
+	interface Directory
+	{
+		Place lookup( Place.ID id );
+	}
 
-	/** the NO_ZIP {@link ZipCode} constant */
-	ZipCode NO_ZIP = ZipCode.valueOf( "0000" );
-
-	Region region();
-
-	/** @return the global centroid {@link Position} */
-	LatLong centroid();
-
-	/** @return the {@link ZipCode} */
-	ZipCode zipCode();
+	/**
+	 * @param id the {@link ID}
+	 * @return a {@link Place}
+	 */
+	static Simple of( final ID id )
+	{
+		return new Simple( id );
+	}
 
 	/**
 	 * @param position the (centroid) {@link LatLong} position
@@ -71,62 +64,26 @@ public interface Place
 	 * @param region the {@link Region}
 	 * @return a {@link Place}
 	 */
-	public static Place of( final LatLong position, final ZipCode zip,
-		final Region region )
+	static Geo of( final ID id, final LatLong position, final Region.ID region,
+		final Geography geography )
 	{
-		return new Place()
-		{
-			@Override
-			public LatLong centroid()
-			{
-				return position;
-			}
-
-			@Override
-			public ZipCode zipCode()
-			{
-				return zip;
-			}
-
-			@Override
-			public Region region()
-			{
-				return region;
-			}
-		};
+		return DynaBean.proxyOf( Geo.class ).with( id ).with( position )
+				.with( geography ).with( region );
 	}
 
-	static Iterable<Place> sortByDistance( final Iterable<Place> places,
-		final LatLong origin )
+	class Simple extends Identified.SimpleOrdinal<ID> implements Place
 	{
-		final List<Place> result = new ArrayList<>();
-		for( Place place : places )
-			result.add( place );
-
-		Collections.sort( result, ( place1, place2 ) ->
+		public Simple( final ID id )
 		{
-			final LatLong p1 = place1.centroid();
-			final LatLong p2 = place2.centroid();
-			if( p1 == p2 || Arrays.equals( p1.getCoordinates(),
-					p2.getCoordinates() ) )
-				return 0;
-			final Amount<Angle> d1 = angularDistance( origin, p1 );
-			final Amount<Angle> d2 = angularDistance( origin, p2 );
-			return d1.approximates( d2 ) ? 0 : d1.compareTo( d2 );
-		} );
-		return result;
-	}
-
-	interface Inhabited extends Place
-	{
-
-		Population<?> population();
-
-		default Amount<?> populationDensity()
-		{
-			return Amount.valueOf( population().members().size(), Unit.ONE )
-					.divide( region().surfaceArea() ).to( Units.PER_KM2 );
+			this.id = id;
 		}
+	}
 
+	interface Geo extends Place, Geometric<Geo>, Geographic<Geo>
+	{
+		default Geo with( final ID id )
+		{
+			return with( Identified.ID_JSON_PROPERTY, id, Geo.class );
+		}
 	}
 }

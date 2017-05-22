@@ -19,17 +19,24 @@
  */
 package nl.rivm.cib.episim.model.locate;
 
-import io.coala.time.Signal;
-import io.coala.time.Proactive;
+import io.coala.json.Attributed;
 
 /**
- * {@link Locatable}
+ * {@link Locatable} objects can emit their current {@link Place}
  *
- * @version $Date$
+ * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Locatable extends Proactive
+public interface Locatable<THIS> extends Attributed
 {
-	/** @return a {@link Signal} of my current {@link Place} */
-	Signal<Place> place();
+	Place.ID getPlaceRef();
+
+	void setPlaceRef( Place.ID placeRef );
+
+	@SuppressWarnings( "unchecked" )
+	default THIS with( Place.ID placeRef )
+	{
+		setPlaceRef( placeRef );
+		return (THIS) this;
+	}
 }

@@ -5,17 +5,17 @@ import java.util.Collections;
 
 import javax.measure.quantity.Dimensionless;
 
-import io.coala.random.AmountDistribution;
+import io.coala.enterprise.Actor;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.time.Scheduler;
+import io.coala.random.QuantityDistribution;
 import io.coala.time.Proactive;
-import nl.rivm.cib.episim.model.Individual;
+import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.disease.Condition;
-import nl.rivm.cib.episim.model.disease.infection.Infection;
+import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 
 /**
  * {@link Vaccine}s trigger the immune system to protect against some
- * {@link Infection}
+ * {@link Pathogen}
  * 
  * @version $Id: 61e2466aa6bbc87325a9001452de624ce2ac198e $
  * @author Rick van Krevelen
@@ -23,7 +23,7 @@ import nl.rivm.cib.episim.model.disease.infection.Infection;
 public interface Vaccine extends Proactive
 {
 
-	Collection<Infection> getTargets();
+	Collection<Pathogen> getTargets();
 
 	/**
 	 * @param condition the {@link Condition} to improve
@@ -39,7 +39,7 @@ public interface Vaccine extends Proactive
 	 *         oral, micro-needle arrays, stratum corneum disruption) for
 	 *         specified {@link Individual}'s traits (age, sex, &hellip;)
 	 */
-	AmountDistribution<Dimensionless> getComfort( Individual person );
+	QuantityDistribution<Dimensionless> getComfort( Actor.ID person );
 
 	/**
 	 * {@link Simple} implementation of {@link Vaccine}
@@ -52,16 +52,16 @@ public interface Vaccine extends Proactive
 
 		/**
 		 * @param scheduler the {@link Scheduler}
-		 * @param target the target {@link Infection}
+		 * @param target the target {@link Pathogen}
 		 * @param efficacy <em>actual</em> efficacy distribution for everyone
 		 * @param comfort <em>actual</em> delivery method comfort distribution
 		 *            for everyone
 		 * @return a {@link Simple} instance of {@link Vaccine}
 		 */
 		public static Simple of( final Scheduler scheduler,
-			final Infection target,
+			final Pathogen target,
 			final ProbabilityDistribution<Boolean> efficacy,
-			final AmountDistribution<Dimensionless> comfort )
+			final QuantityDistribution<Dimensionless> comfort )
 		{
 			return new Simple( scheduler, Collections.singleton( target ),
 					efficacy, comfort );
@@ -69,22 +69,22 @@ public interface Vaccine extends Proactive
 
 		private final Scheduler scheduler;
 
-		private final Collection<Infection> targets;
+		private final Collection<Pathogen> targets;
 
 		private final ProbabilityDistribution<Boolean> efficacy;
 
-		private final AmountDistribution<Dimensionless> comfort;
+		private final QuantityDistribution<Dimensionless> comfort;
 
 		/**
 		 * {@link Simple} constructor
 		 * 
 		 * @param scheduler the {@link Scheduler}
-		 * @param targets the target {@link Infection}s
+		 * @param targets the target {@link Pathogen}s
 		 */
 		public Simple( final Scheduler scheduler,
-			final Collection<Infection> targets,
+			final Collection<Pathogen> targets,
 			final ProbabilityDistribution<Boolean> efficacy,
-			final AmountDistribution<Dimensionless> comfort )
+			final QuantityDistribution<Dimensionless> comfort )
 		{
 			this.scheduler = scheduler;
 			this.targets = targets;
@@ -99,7 +99,7 @@ public interface Vaccine extends Proactive
 		}
 
 		@Override
-		public Collection<Infection> getTargets()
+		public Collection<Pathogen> getTargets()
 		{
 			return this.targets;
 		}
@@ -112,8 +112,8 @@ public interface Vaccine extends Proactive
 		}
 
 		@Override
-		public AmountDistribution<Dimensionless>
-			getComfort( final Individual person )
+		public QuantityDistribution<Dimensionless>
+			getComfort( final Actor.ID person )
 		{
 			return this.comfort;
 		}

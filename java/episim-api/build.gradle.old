@@ -1,0 +1,8 @@
+
+description = 'API for simulating models based on epidemes'
+dependencies {
+    compile group: 'io.coala', name: 'coala-api-time', version:'0.2.0-b5'
+    compileOnly group: 'javax.ws.rs', name: 'javax.ws.rs-api', version:'2.0.1' 
+    testCompile group: 'junit', name: 'junit', version:'4.11'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-all', version:'1.3'
+}

@@ -30,6 +30,7 @@ import nl.rivm.cib.episim.persist.AbstractDao;
  * 
  * @version $Id$
  * @author Rick van Krevelen
+ * @deprecated incomplete FIXME
  */
 public class PathogenDimensionDao extends AbstractDao
 {

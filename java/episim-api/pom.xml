@@ -8,12 +8,12 @@
 
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
-		<artifactId>episim</artifactId>
-		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<artifactId>epidemes</artifactId>
+		<version>0.1.0</version>
+		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>episim-api</artifactId>
+	<artifactId>epidemes-api</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator
@@ -31,26 +31,18 @@
 			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
-			</snapshots>
+			</releases>
 		</repository>
 
 		<repository>
-			<name>EPISIM Public Maven Repository</name>
-			<id>episim-public</id>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
 			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
 				<updatePolicy>never</updatePolicy>
-			</snapshots>
+			</releases>
 		</repository>
 	</repositories>
 
@@ -58,11 +50,6 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>coala-api-time</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>episim-common</artifactId>
 		</dependency>
 
 		<!-- javax.ws.rs-api (JSR-311=v1, JSR-339/javax.ws.rs-api=v2) -->

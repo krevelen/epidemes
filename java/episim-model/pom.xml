@@ -5,21 +5,25 @@
 
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
-		<artifactId>episim</artifactId>
+		<artifactId>epidemes</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
+		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>episim-model</artifactId>
+	<artifactId>epidemes-model</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Vaccination Acceptance Simulator
-		$Id: 8d09ddf65a201c93d7a319200f94b6a76ee624ea $
+		$Id: 99eadb6819ffc6a785f33dc51de47dd44f0342b8 $
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 
 	<properties>
+		<hsqldb.version>2.3.4</hsqldb.version>
+		<ujmp.version>0.3.0</ujmp.version>
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
 	</properties>
 
 	<repositories>
@@ -31,30 +35,22 @@
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
 			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
 		</repository>
 
-		<!-- TU Delft simulation repository -->
 		<repository>
-			<name>DSOL Public Repository</name>
-			<id>dsol</id>
-			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
-			<url>http://simulation.tudelft.nl/maven</url>
+			<name>EPIDEMES Public Maven Repository</name>
+			<id>epidemes-public</id>
+			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
 			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
 		</repository>
 
 		<repository>
-			<name>EPISIM Public Maven Repository</name>
-			<id>episim-public</id>
-			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<url>http://simulation.tudelft.nl/maven</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
@@ -67,36 +63,59 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>episim-common</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>coala-api-enterprise</artifactId>
 		</dependency>
 
+		<!-- Java Enterprise eXtension APIs, including JPA 2.1 and Servlet 3 -->
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- matrix calculations -->
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-core</artifactId>
+			<version>${ujmp.version}</version>
+		</dependency>
+		<!-- <dependency> <groupId>org.ujmp</groupId> <artifactId>ujmp-gui</artifactId> 
+			<version>${ujmp.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- incl. in-memory JDBC database -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- JPA provider -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- local binder -->
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>guice4-coala-adapter</artifactId>
 			<scope>test</scope>
 		</dependency>
 
+		<!-- scheduler -->
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>dsol3-coala-adapter</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>io.coala</groupId>
-			<artifactId>math3-coala-adapter</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>io.coala</groupId>
-			<artifactId>eve3-coala-adapter</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -105,16 +124,10 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>net.jodah</groupId>
-			<artifactId>concurrentunit</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest-all</artifactId>
-			<scope>test</scope>
-		</dependency>
+		<!-- <dependency> <groupId>net.jodah</groupId> <artifactId>concurrentunit</artifactId> 
+			<scope>test</scope> </dependency> -->
+		<!-- <dependency> <groupId>org.hamcrest</groupId> <artifactId>hamcrest-all</artifactId> 
+			<scope>test</scope> </dependency> -->
 	</dependencies>
 
 	<build>
