@@ -1,7 +1,6 @@
 package nl.rivm.cib.episim.mas.eve;
 
 import static java.lang.System.currentTimeMillis;
-import static org.aeonbits.owner.util.Collections.entry;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -40,6 +39,7 @@ import io.coala.time.Instant;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
+import io.coala.util.MapBuilder;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
@@ -134,12 +134,12 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 				TimeUnits.MILLIS );
 		this.pace.onNext( zeroPace );
 		this.myPace = zeroPace;
-		final Dsol3Config config = Dsol3Config
-				.of( entry( Dsol3Config.ID_KEY, getId() ),
-						entry( Dsol3Config.START_TIME_KEY, "0 " + timeUnit ),
-						entry( Dsol3Config.RUN_LENGTH_KEY, QuantityUtil
-								.toBigDecimal( this.myDuration, timeUnit )
-								.toString() ) );
+		final Dsol3Config config = Dsol3Config.of( MapBuilder
+				.<String, Object>unordered().put( Dsol3Config.ID_KEY, getId() )
+				.put( Dsol3Config.START_TIME_KEY, "0 " + timeUnit )
+				.put( Dsol3Config.RUN_LENGTH_KEY, QuantityUtil
+						.toBigDecimal( this.myDuration, timeUnit ).toString() )
+				.build() );
 		LOG.info( "Starting replication, config: {}", config.toYAML() );
 		this.scheduler = config.create( s ->
 		{

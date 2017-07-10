@@ -51,7 +51,7 @@ import io.coala.log.LogUtil;
 import io.coala.math.QuantityConfigConverter;
 import io.coala.math.WeightedValue;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.time.ReplicateConfig;
+import io.coala.time.SchedulerConfig;
 import io.coala.time.Scenario;
 import io.coala.time.TimeUnits;
 import io.coala.util.Compare;
@@ -64,7 +64,7 @@ import io.coala.util.FileUtil;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface GeardDemogConfig extends ReplicateConfig
+public interface GeardDemogConfig extends SchedulerConfig
 {
 
 	@DefaultValue( "7500000" )
@@ -255,11 +255,11 @@ public interface GeardDemogConfig extends ReplicateConfig
 	default Scenario createScenario()
 	{
 		final Map<String, Object> export = ConfigUtil.export( this );
-		export.put( ReplicateConfig.ID_KEY, SCENARIO_NAME );
+		export.put( SchedulerConfig.ID_KEY, SCENARIO_NAME );
 		export.put( LocalConfig.ID_KEY, SCENARIO_NAME );
 
 		// configure replication FIXME via LocalConfig?
-		ReplicateConfig.getOrCreate( export );
+		SchedulerConfig.getOrCreate( export );
 
 		return ConfigFactory.create( LocalConfig.class, export ).createBinder()
 				.inject( scenarioType() );

@@ -72,7 +72,7 @@
 		<junit.version>4.11</junit.version>
 		<hamcrest.version>1.3</hamcrest.version>
 		<concurrentunit.version>0.4.2</concurrentunit.version>
-		<log4j.version>2.6.2</log4j.version>
+		<log4j.version>2.8.2</log4j.version>
 
 		<!-- JSR versions -->
 		<javaee-api.version>7.0</javaee-api.version>
@@ -433,6 +433,24 @@
 				<plugin>
 					<artifactId>maven-source-plugin</artifactId>
 					<version>${maven-source-plugin.version}</version>
+				</plugin>
+				<!-- generate JPA MetaModel classes and add to class path -->
+				<plugin>
+					<groupId>org.bsc.maven</groupId>
+					<artifactId>maven-processor-plugin</artifactId>
+					<version>${maven-processor-plugin.version}</version>
+					<configuration>
+						<processors>
+							<processor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</processor>
+						</processors>
+					</configuration>
+					<dependencies>
+						<dependency>
+							<groupId>org.hibernate</groupId>
+							<artifactId>hibernate-jpamodelgen</artifactId>
+							<version>${hibernate.version}</version>
+						</dependency>
+					</dependencies>
 				</plugin>
 				<plugin>
 					<artifactId>maven-war-plugin</artifactId>

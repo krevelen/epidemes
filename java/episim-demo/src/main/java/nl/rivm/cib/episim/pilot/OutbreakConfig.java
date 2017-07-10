@@ -80,6 +80,39 @@ public interface OutbreakConfig extends YamlConfig
 						CbsNeighborhood::toWeightedValue )
 				.blockingGet();
 	}
+	
+//	default ConditionalDistribution<CbsNeighborhood, Region.ID>
+//	neighborhoodDist( final Factory distFactory,
+//		//final Map<String, Map<CBSRegionType, String>> regionTypes,
+//		final Function<Region.ID, Region.ID> fallback )
+//{
+//	final CBSRegionType cbsRegionLevel = cbsRegionLevel();
+////	final io.reactivex.functions.Function<? super CbsNeighborhood, Region.ID> regional;
+////	if( regionTypes != null && cbsRegionLevel != CBSRegionType.MUNICIPAL
+////			&& cbsRegionLevel != CBSRegionType.WARD
+////			&& cbsRegionLevel != CBSRegionType.BOROUGH )
+////		regional = bu -> Region.ID
+////				.of( regionTypes
+////						.computeIfAbsent( bu.municipalRef().unwrap(),
+////								key -> new EnumMap<>(
+////										CBSRegionType.class ) )
+////						.computeIfAbsent( cbsRegionLevel,
+////								key -> "unknown" ) );
+////	else // municipal / ward / borough already in neighborhood data
+////		regional = bu -> bu.regionRef( cbsRegionLevel );
+//
+//	final Map<Region.ID, ProbabilityDistribution<CbsNeighborhood>> async = CbsNeighborhood
+//			.readAsync( this::cbsNeighborhoodsData )
+//			.groupBy( bu -> bu.regionRef( cbsRegionLevel ) )
+//			.toMap( GroupedObservable::getKey,
+//					group -> distFactory.createCategorical( group
+//							.map( CbsNeighborhood::toWeightedValue )
+//							.toList( HashSet::new ).blockingGet() ) )
+//			.blockingGet();
+//
+//	return ConditionalDistribution.of( id -> async.computeIfAbsent( id,
+//			key -> async.get( fallback.apply( key ) ) ) );
+//}
 
 	@DefaultValue( "cbs/37201_TS_2010_2015.json" )
 	@ConverterClass( InputStreamConverter.class )

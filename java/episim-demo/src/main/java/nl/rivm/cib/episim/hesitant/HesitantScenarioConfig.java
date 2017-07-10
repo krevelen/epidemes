@@ -34,14 +34,14 @@ import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
 import io.coala.exception.Thrower;
 import io.coala.log.LogUtil;
-import io.coala.time.ReplicateConfig;
+import io.coala.time.SchedulerConfig;
 import io.coala.time.Scenario;
 import io.coala.util.FileUtil;
 
 /**
  * {@link HesitantScenarioConfig}
  */
-public interface HesitantScenarioConfig extends ReplicateConfig//, LocalConfig
+public interface HesitantScenarioConfig extends SchedulerConfig//, LocalConfig
 {
 
 	String HESITANT_YAML_FILE = "hesitant.yaml";
@@ -64,11 +64,11 @@ public interface HesitantScenarioConfig extends ReplicateConfig//, LocalConfig
 	default LocalBinder createBinder()
 	{
 		final Map<String, Object> export = ConfigUtil.export( this );
-		export.put( ReplicateConfig.ID_KEY, SCENARIO_NAME );
+		export.put( SchedulerConfig.ID_KEY, SCENARIO_NAME );
 		export.put( LocalConfig.ID_KEY, SCENARIO_NAME );
 
 		// configure replication FIXME via LocalConfig?
-		ReplicateConfig.getOrCreate( export );
+		SchedulerConfig.getOrCreate( export );
 
 		return ConfigFactory.create( LocalConfig.class, export ).createBinder();
 	}

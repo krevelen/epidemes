@@ -74,7 +74,7 @@
 			</snapshots>
 		</repository>
 	</repositories>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>io.coala</groupId>
@@ -112,11 +112,8 @@
 			<version>${hsqldb.version}</version>
 		</dependency>
 
-		<!-- <dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-hibernate5</artifactId>
-			<version>2.7.4</version>
-		</dependency> -->
+		<!-- <dependency> <groupId>com.fasterxml.jackson.datatype</groupId> <artifactId>jackson-datatype-hibernate5</artifactId> 
+			<version>2.7.4</version> </dependency> -->
 
 		<dependency>
 			<groupId>org.hibernate</groupId>
@@ -173,6 +170,21 @@
 
 	<build>
 		<plugins>
+			<!-- generate JPA MetaModel classes and add to class path -->
+			<plugin>
+				<groupId>org.bsc.maven</groupId>
+				<artifactId>maven-processor-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>process</id>
+						<goals>
+							<goal>process</goal>
+						</goals>
+						<phase>generate-sources</phase>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>

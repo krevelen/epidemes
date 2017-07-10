@@ -49,7 +49,7 @@ import io.coala.persist.HibernateJPAConfig;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
-import io.coala.time.ReplicateConfig;
+import io.coala.time.SchedulerConfig;
 import io.coala.time.Scheduler;
 import io.coala.util.MapBuilder;
 import nl.rivm.cib.episim.pilot.DemePersistence;
@@ -152,9 +152,9 @@ public class OutbreakScenarioTest
 		LOG.info( "Starting measles test" );
 
 		// configure replication FIXME via LocalConfig?
-		ConfigCache.getOrCreate( ReplicateConfig.class, MapBuilder.unordered()
-				.put( ReplicateConfig.DURATION_KEY, "" + 1 ) // duration (days)
-				.put( ReplicateConfig.OFFSET_KEY, "2012-01-01" ).build() );
+		ConfigCache.getOrCreate( SchedulerConfig.class, MapBuilder.unordered()
+				.put( SchedulerConfig.DURATION_KEY, "" + 1 ) // duration (days)
+				.put( SchedulerConfig.OFFSET_KEY, "2012-01-01" ).build() );
 
 		// connect and setup database persistence
 
@@ -182,9 +182,9 @@ public class OutbreakScenarioTest
 				.withProvider( FactBank.class,
 //						FactBank.SimpleJPA.class 
 //						FactBank.SimpleCache.class
-						FactBank.SimpleDrain.class
-				//
-				).withProvider( FactExchange.class, FactExchange.SimpleBus.class )
+						FactBank.SimpleDrain.class )
+				.withProvider( FactExchange.class,
+						FactExchange.SimpleBus.class )
 
 				// epidemes API
 				.withProvider( DemePersistence.class,

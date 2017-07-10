@@ -1,0 +1,126 @@
+# $Id$
+#
+# PILOT scenario sample configuration file
+#
+
+javax:
+  persistence:
+    jdbc:
+      url: jdbc:h2:~/morphdat/h2_hhdb;AUTO_SERVER=TRUE
+      user: sa
+      password: sa
+      
+scenario:
+  # anything below is persisted, except for YAML comments
+  comment: blabla
+  replication:
+    run-name: run1
+    duration-period: P18M
+    offset-date: 2012-06-01
+    statistics:
+      recurrence: 1 0 0 ? * MON *
+#      db-enabled: true
+  population:
+    size: 10000
+    hh-type-dist: const(SOLO_1KID)
+    hh-ref-age-dist: uniform(20;25)
+    hh-leavehome-age: 5 yr
+    hh-migrate-rate: .02 annual
+#   vaccination occasions recur to hesitant parents of susceptible children
+    vaccination:
+      # http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html
+      # e.g.: 0 0 0 7 * ? * # each 7th day of the month
+      occasion-recurrence: 0 0 12 1 1/2 ? 2013-2020
+      occasion-utility-dist: const(0.5)
+      occasion-clarity-dist: const(0.5)
+      occasion-affinity-dist: const(0.5)
+      occasion-proximity-dist: const(0.5)
+    hesitancy:
+      # TODO include in hesitancy profile sample?
+      calculation-dist: const(0.5)
+      # incl. covariate sample indices
+      profiles: conf/hesitancy-univariate.json
+      profile-sample: conf/hesitancy-initial.json
+      relation-frequencies: conf/relation-frequency.json
+      evaluator: nl.rivm.cib.morphine.household.HHAttitudeEvaluator$Average
+      propagator: nl.rivm.cib.morphine.household.HHAttitudePropagator$Shifted
+      propagator-recurrence: 0 0 0 ? * MON *
+      # avg. no. family + friends + neighbors
+      social-network-degree: 30
+      # 0 = lattice, 1 = random network
+      social-network-beta: 0.5
+      # fraction of 'similar' connections
+      social-assortativity: 0.85
+      # whether school is 'similar'
+      school-assortativity-dist: bernoulli(0.75) 
+      school-capacities: 
+        0-4: 50
+        4-12: 100
+        12-20: 200
+        
+      attractor-factory: nl.rivm.cib.morphine.household.HHAttractor$Factory$SimpleBinding
+      attractors:
+      # local pressure, mainly from e.g. Health Services
+        sec-reg:
+          religious: 0
+          alternative: 0
+          confidence: 1
+          complacency: 0
+          # relative impact per it., >1: outweigh soc. network
+          impression-inpeer-weight: 1
+          impression-outpeer-weight: 1
+          impression-self-multiplier: 100
+          impression-attractor-multiplier: 1
+          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
+      # local pressure, mainly from e.g. Protestantists
+        rel-reg:
+          religious: 1
+          alternative: 0
+          confidence: .5
+          complacency: 1
+          # 1 = relative impact per it., >1: outweigh soc. network
+          impression-inpeer-weight: 1
+          impression-outpeer-weight: 1
+          impression-self-multiplier: 100
+          impression-attractor-multiplier: 1
+          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
+          schedule: 
+          # spike monthly and adjust every 2 days 5x toward original values
+          - occurrence: 0 0 0 1 * ? *
+            period: P2D
+            series:
+              confidence:  [.5, .6, .7, .8, .9, 1]
+              complacency: [.5, .4, .3, .2, .1, 0]
+      # local pressure, mainly from e.g. Traditionalists
+        sec-alt:
+          religious: 0
+          alternative: 1
+          confidence: 0
+          complacency: 1
+          # 1 = relative impact per it., >1: outweigh soc. network
+          impression-inpeer-weight: 1
+          impression-outpeer-weight: 1
+          impression-self-multiplier: 100
+          impression-attractor-multiplier: 1
+          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
+      # local pressure, mainly from e.g. Mixture
+        rel-alt:
+          religious: 1
+          alternative: 1
+          confidence: .5
+          complacency: .5
+          # 1 = relative impact per it., >1: outweigh soc. network
+          impression-inpeer-weight: 1
+          impression-outpeer-weight: 1
+          impression-self-multiplier: 100
+          impression-attractor-multiplier: 1
+          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
+          # schedule disturbances by triggering series of new values
+          schedule: 
+          # spike monthly and adjust every 2 days 5x toward original values
+          - occurrence: 0 0 0 1 * ? *
+            period: P2D
+            series:
+              confidence:  [1, .9, .8, .7, .6, .5]
+              complacency: [0, .1, .2, .3, .4, .5]
+  

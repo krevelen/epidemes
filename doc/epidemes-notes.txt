@@ -1,0 +1,39 @@
+EPIDEMES
+
+29 maart
+
+- force of infection: benaderingen, zie Sellke (1983) of Ferguson (nature 2006 suppl)
+  1. cumulative = hazard rate perperson (lambda) per tijdseenheid -> exponentiele verdeling (survival theory)
+  2. threshold (exponentieel verdeeld) vs persoon-uren, bepaald door transmissierate/Beta * (It aantal contacten / Nt aantal infectieus)
+- mazelen shedding door ruimte/tijd: niet modeleren, is al na paar uur niet meer besmettelijk
+- CBS vereenvoudigen: empirisch statisch
+infection pressure = number of contacts
+
+8 maart
+
+- eerst SIR, dan MORPHINE
+- carline en albert-jan snel inschakelen
+- begin april demo + tech report (wetenschappelijk) + how-to appendix (joram) voor Aura & Ardine
+- ca 7 april doorsturen klankbord ivm vakantiedagen
+- pasen/meivakanties
+- 2e helft mei: feedback verwerken
+
+November
+
+- test met 12GB uitvoeren
+- uitzoeken hardware met meer GB
+- social network Eames -> kostenplaatje
+- ook voor Joram later
+- enkele input-punten bedenken voor aura/ardine en klankbordgroep, bijv hardware specs
+- Carline: format moet eerder aangele erd door ZonMW anders kan Rick niet helpen
+- even langs Don voor beste papers
+- mazelen: s -> e -> i -> r
+  L = B * I / N
+  ds/dt = -L s
+  di/dt = L s - S 
+
+Beta =20/6=3.1/dag
+R_0 = 15 a 20
+E=6dgn ->  
+S=6dgn
+

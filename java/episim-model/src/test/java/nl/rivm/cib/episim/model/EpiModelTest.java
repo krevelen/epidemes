@@ -28,7 +28,7 @@ import io.coala.enterprise.Transaction;
 import io.coala.exception.ExceptionStream;
 import io.coala.log.LogUtil;
 import io.coala.persist.HibernateJPAConfig;
-import io.coala.time.ReplicateConfig;
+import io.coala.time.SchedulerConfig;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import nl.rivm.cib.episim.model.disease.Condition;
@@ -156,8 +156,8 @@ public class EpiModelTest
 		throws TimeoutException, IOException, InterruptedException
 	{
 		// configure replication FIXME via LocalConfig?
-		ConfigCache.getOrCreate( ReplicateConfig.class, Collections
-				.singletonMap( ReplicateConfig.DURATION_KEY, "" + 200 ) );
+		ConfigCache.getOrCreate( SchedulerConfig.class, Collections
+				.singletonMap( SchedulerConfig.DURATION_KEY, "" + 200 ) );
 
 		// configure tooling
 		final LocalBinder binder = LocalConfig.builder().withId( "world1" )

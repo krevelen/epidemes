@@ -1,0 +1,77 @@
+
+1. Create Git account at https://github.com
+
+2. Download
+ - Git portable (https://git-scm.com/downloads -> Windows x64 portable version)
+ - Java 8 SDK (Standard Edition Development Kit, http://www.oracle.com/technetwork/java/javase/downloads/)
+ - Eclipse for Java EE Developers (http://www.eclipse.org/downloads/)
+ - Maven (https://maven.apache.org/download.cgi)
+
+3. Install/extract the Git portable command line interface, eg. into:
+    C:\Dev\Git
+ - start 'git-cmd'
+ - create and change to RIVM development folder, eg.
+    md C:\Dev\RIVM
+    cd C:\Dev\RIVM
+ - clone 'rivm-episim' repository into this folder, eg:
+    git clone https://github.com/krevelen/rivm-episim.git
+ - switch to a new local 'develop' branch which should track the remote develop branch, eg:
+    cd rivm-episim
+    git checkout -b develop origin/develop
+ - clone 'coala-binder' dependency repository and switch to 'develop' branch there as well, eg:
+    cd C:\Dev\RIVM
+    git clone https://github.com/krevelen/coala-binder.git
+    cd coala-binder
+    git checkout -b develop origin/develop
+ - optionally, create and configure taskbar shortcut
+   a. right-click taskbar-icon and select 'pin this program to task bar' to create the shortcut
+   b. right-click taskbar-icon and right-click 'Git for Windows' and select 'Properties' to configure the shortcut
+     - 'Layout' to eg: 200 x 9999 (WxH buffer size) and 200 x 50 (WxH window size)
+     - 'Font' to eg: 16pt [bold] Consolas
+     - 'Shortcut -> Start in' folder to eg: C:\Dev\RIVM
+
+4. Install Java 8 SDK, eg. into:
+    C:\Dev\Java\jdk1.8.0_73
+ - for Maven, add 'New' system variable called 'JAVA_HOME' (hit Win+Break for System Properties -> Advanced System Settings -> Environment Variables) and point it to your installation dir, eg:
+    C:\Dev\Java\jdk1.8.0_73
+
+5. Install/extract Maven, eg. into: 
+    C:\Dev\Maven\3.3.9
+ - 'Edit' the 'Path' system variable (hit Win+Break for System Properties -> Advanced System Settings -> Environment Variables) and prepend your <Maven>\bin directory and a semi-colon, e.g. 
+    C:\Dev\Maven\3.3.9\bin;<current-path>
+ - Create or find common repository folder, e.g. 
+    C:\Dev\Maven\repository
+ - Configure Maven accordingly by adding a line to your <Maven>/conf/settings.xml <settings> tag: 
+    <localRepository>C:\Dev\Maven\repository</localRepository>
+ - optionally, test Maven on cloned repositories:
+   a. start git-cmd
+    cd C:\Dev\RIVM\coala-binder
+    mvn -Dmaven.skip.test=true install
+    cd C:\Dev\RIVM\rivm-episim\java
+    mvn -Dmaven.skip.test=true install
+    (should download external dependency libs and install locally assembled libs to your repository location)
+
+6. Install/extract Eclipse, e.g. into:
+    C:\Dev\EclipseMars2
+ - modify eclipse.ini to use the correct Java 8 SDK by adding two lines with its full path (without environment variables), eg:
+    -vm
+    C:\Dev\Java\jdk1.8.0_73\bin
+ - start Eclipse using a new personal workspace folder, eg:
+    C:\Dev\RIVM\workspace
+ - configure Maven user settings (Window -> Preferences -> Maven -> User Settings) and set the global settings file, eg:
+    C:\Dev\Maven\3.3.9\conf\settings.xml 
+   (repository location should now point to the one in your Maven config)
+ - optionally, prefer your Maven installation over the embedded Eclipse Maven version (Window -> Preferences -> Maven -> Installations -> Add)
+ - configure Spelling settings (Window -> Preferences -> General -> Editors -> Text Editors -> Spelling) to use the user-defined dictionary for EpiSim, eg:
+    C:\Dev\RIVM\rivm-episim\java\ide\eclipse\dictionary.txt
+ - configure the Java code style (Window -> Preferences -> Java -> Code Style -> Code Templates) by importing the Episim code templates file, eg:
+    C:\Dev\RIVM\rivm-episim\java\ide\eclipse\codetemplates.xml
+ - configure the Java code formatter (Window -> Preferences -> Java -> Code Style -> Formatter) by importing the Episim code formatter file, eg:
+    C:\Dev\RIVM\rivm-episim\java\ide\eclipse\codeformatter.xml
+ - create Java working set 'COALA' and 'EPISIM' (File -> New -> Java Workins Set)
+ - import COALA modules  (File -> Import -> Maven -> Existing Maven Projects) and check 'Add project(s) to working set: COALA', from eg:
+     C:\Dev\RIVM\coala-binder
+ - import EPISIM modules  (File -> Import -> Maven -> Existing Maven Projects) and check 'Add project(s) to working set: EPISIM', from eg:
+     C:\Dev\RIVM\rivm-episim\java
+ - optionally, open Java perspective (Window -> Perspective -> Open -> Java) and set 'Package Explorer' pane settings (downward triangle icon) 'Top Level Elements' to 'Working Sets'
+ - optionally, check Maven console (Window -> Show View -> Console -> Open Console (screen-with-yellow-plus icon) -> Maven Console) as you re-build eg EPISIM (right-click 'episim' parent project -> Run As -> Maven build -> goals: 'clean install')
