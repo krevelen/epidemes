@@ -1,34 +1,31 @@
-package nl.rivm.cib.episim.geodb;
+package nl.rivm.cib.epidemes.geodb.jdbc;
 
 import java.net.URI;
-import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
 
-import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.cfg.AvailableSettings;
-import org.hibernate.dialect.Dialect;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
-import io.coala.persist.HibernateSchemaPolicy;
 import io.coala.persist.HikariHibernateJPAConfig;
-import io.coala.persist.JDBCConfig;
 import io.coala.persist.JDBCUtil;
 import io.coala.persist.JPAUtil;
-import nl.rivm.cib.epidemes.geodb.adm.LRKEntryDao;
-import nl.rivm.cib.epidemes.geodb.adm.NHREntryDao;
+import nl.rivm.cib.epidemes.geodb.adm.LRKEntryDao_;
+import nl.rivm.cib.epidemes.geodb.adm.NHREntryDao_;
+import nl.rivm.cib.epidemes.geodb.bag.NHREntryDao;
+import nl.rivm.cib.epidemes.geodb.jdbc.GeoDBConfig;
+import nl.rivm.cib.epidemes.geodb.jdbc.GeoJPAConfig;
+import nl.rivm.cib.epidemes.geodb.voorz.LRKEntryDao;
 
 /**
  * {@link GeoDBConnectorTest}
@@ -42,54 +39,6 @@ public class GeoDBConnectorTest
 	/** */
 	private static final Logger LOG = LogUtil
 			.getLogger( GeoDBConnectorTest.class );
-
-	@Sources( { "classpath:geodb.properties" } )
-	public interface GeoDBConfig extends JDBCConfig
-	{
-		@Key( JDBC_DRIVER_KEY )
-		@DefaultValue( "org.postgresql.Driver" )
-		Class<? extends Driver> jdbcDriver();
-
-		@Key( JDBC_URL_KEY )
-		@DefaultValue( "jdbc:postgresql://geodb.rivm.nl/sde_gdbrivm" )
-		URI jdbcUrl();
-
-//		@DefaultValue( "" + true )
-//		boolean ssl();
-
-	}
-
-	/**
-	 * {@link GeoJPAConfig} provides a default {@link EntityManagerFactory}
-	 * configuration for the RIVM GeoDB Postgres datasource, allowing values to
-	 * be replaced/extended in a {@link Properties} file named
-	 * {@link #CONFIG_PATH}
-	 */
-	@Sources( { "classpath:geodb.properties" } )
-	public interface GeoJPAConfig extends HikariHibernateJPAConfig, GeoDBConfig
-	{
-		@DefaultValue( "geodb_test_pu" )
-		String[] jpaUnitNames();
-
-		@Key( AvailableSettings.HBM2DDL_AUTO )
-		@DefaultValue( "validate" )
-		HibernateSchemaPolicy hibernateSchemaPolicy();
-
-		@Key( AvailableSettings.DEFAULT_SCHEMA )
-		@DefaultValue( "nl" )
-		String hibernateDefaultSchema();
-
-		@Key( AvailableSettings.DIALECT )
-		@DefaultValue( "nl.rivm.cib.episim.geodb.PostgisDialectExtended" )
-		Class<? extends Dialect> hibernateDialect();
-
-		// see https://github.com/brettwooldridge/HikariCP/wiki/Configuration#popular-datasource-class-names
-
-		@Key( AvailableSettings.DRIVER )
-		@DefaultValue( "org.postgresql.ds.PGSimpleDataSource" )
-		Class<? extends DataSource> jdbcDataSourceDriver();
-
-	}
 
 	/**
 	 * testing code from
@@ -124,8 +73,11 @@ public class GeoDBConnectorTest
 		JPAUtil.session( GEODB ).subscribe( em ->
 		{
 			final AtomicInteger count = new AtomicInteger( 0 );
-			final String[] atts = { "registryCode", "name", "employeeFull",
-					"employeeTotal", "zip" };
+			final String[] atts = { NHREntryDao_.registryCode.getName(),
+					NHREntryDao_.name.getName(),
+					NHREntryDao_.employeeFull.getName(),
+					NHREntryDao_.employeeTotal.getName(),
+					NHREntryDao_.zip.getName() };
 			em.createQuery(
 					"SELECT e." + String.join( ", e.", atts )
 							+ ", asgeojson(Transform(e.geometrie,4326)) FROM "
@@ -143,13 +95,18 @@ public class GeoDBConnectorTest
 		JPAUtil.session( GEODB ).subscribe( em ->
 		{
 			final AtomicInteger count = new AtomicInteger( 0 );
-			final String[] atts = { "registryCode", "type", "childCapacity",
-					"municipalityCode", "zip" };
+			final String[] atts = { LRKEntryDao_.registryCode.getName(),
+					LRKEntryDao_.type.getName(),
+					LRKEntryDao_.childCapacity.getName(),
+					LRKEntryDao_.municipalityCode.getName(),
+					LRKEntryDao_.zip.getName() };
 			final Map<LRKEntryDao.OrganizationType, Integer> totals = new EnumMap<>(
 					LRKEntryDao.OrganizationType.class );
-			em.createQuery( "SELECT e." + String.join( ", e.", atts )
-					+ ", asgeojson(Transform(e.shape,4326)) FROM "
-					+ LRKEntryDao.ENTITY_NAME + " AS e WHERE e.status=:status",
+			em.createQuery(
+					"SELECT e." + String.join( ", e.", atts )
+							+ ", asgeojson(Transform(e.shape,4326)) FROM "
+							+ LRKEntryDao.ENTITY_NAME + " AS e WHERE e."
+							+ LRKEntryDao_.status.getName() + "=:status",
 					Object[].class )
 					.setParameter( "status",
 							LRKEntryDao.RegistryStatus.Ingeschreven )

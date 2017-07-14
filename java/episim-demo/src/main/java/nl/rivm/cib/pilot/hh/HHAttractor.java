@@ -71,6 +71,15 @@ public interface HHAttractor extends HHScenarioConfigurable<HHAttractor>
 	HesitancyProfileJson.Category toHesitancyProfile();
 
 	/**
+	 * {@link Broker} assigns opinion attractors to e.g. households
+	 */
+	@FunctionalInterface
+	public interface Broker
+	{
+		int next( long hhIndex );
+	}
+
+	/**
 	 * {@link SignalSchedule} executes simple position updates configured as
 	 * {@link SignalSchedule.SignalYaml} entries
 	 */

@@ -17,42 +17,25 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.pilot.hh;
-
-import nl.rivm.cib.pilot.json.HHJsonifiable;
+package nl.rivm.cib.epidemes.geodb.infra;
 
 /**
- * {@link HHMemberStatus} are SEIR-like compartments differentiating between
- * removed and immunized
+ * {@link NWBTrainStationDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum HHMemberStatus implements HHJsonifiable
+public class NWBTrainStationDao
 {
-	SUSCEPTIBLE,
+//	 TABLE nl.infra_nwb_treinstations_2016_04
+//	 (
+//	   objectid integer NOT NULL,
+//	   svk_id integer,
+//	   id integer,
+//	   naam character varying(60),
+//	   shape geometry,
+//	   CONSTRAINT enforce_geotype_shape CHECK (geometrytype(shape) = 'POINT'::text OR shape IS NULL),
+//	   CONSTRAINT enforce_srid_shape CHECK (srid(shape) = 28992)
+//	 )
 
-	EXPOSED,
-	
-	INFECTIOUS,
-
-	ARTIFICIAL_IMMUNE,
-
-	NATURAL_IMMUNE,
-
-	PASSIVE_IMMUNE,
-
-	REMOVED, 
-
-	;
-
-	private String json = null;
-
-	@Override
-	public String jsonValue()
-	{
-		return this.json == null
-				? (this.json = name().toLowerCase().replace( '_', '-' ))
-				: this.json;
-	}
 }

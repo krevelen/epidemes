@@ -17,42 +17,15 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.pilot.hh;
-
-import nl.rivm.cib.pilot.json.HHJsonifiable;
+package nl.rivm.cib.epidemes.geodb.voorz;
 
 /**
- * {@link HHMemberStatus} are SEIR-like compartments differentiating between
- * removed and immunized
+ * {@link NursingHomeDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum HHMemberStatus implements HHJsonifiable
+public class NursingHomeDao
 {
-	SUSCEPTIBLE,
 
-	EXPOSED,
-	
-	INFECTIOUS,
-
-	ARTIFICIAL_IMMUNE,
-
-	NATURAL_IMMUNE,
-
-	PASSIVE_IMMUNE,
-
-	REMOVED, 
-
-	;
-
-	private String json = null;
-
-	@Override
-	public String jsonValue()
-	{
-		return this.json == null
-				? (this.json = name().toLowerCase().replace( '_', '-' ))
-				: this.json;
-	}
 }

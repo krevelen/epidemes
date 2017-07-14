@@ -41,6 +41,7 @@ import nl.rivm.cib.episim.geard.Participant;
 import nl.rivm.cib.episim.geard.Population;
 import nl.rivm.cib.episim.model.locate.Place;
 
+@SuppressWarnings( "deprecation" )
 @Singleton
 public class EcosystemScenario implements Proactive
 {

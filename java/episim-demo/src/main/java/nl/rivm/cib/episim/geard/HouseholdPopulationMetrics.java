@@ -36,6 +36,7 @@ import nl.rivm.cib.episim.geard.Population.Immigration;
  * @version $Id: c6080295706e65dec4fef8c59bdb099fff2b1f3a $
  * @author Rick van Krevelen
  */
+@SuppressWarnings( "deprecation" )
 public interface HouseholdPopulationMetrics extends PopulationMetrics
 {
 

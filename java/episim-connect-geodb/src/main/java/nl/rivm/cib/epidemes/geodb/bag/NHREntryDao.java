@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.geodb.adm;
+package nl.rivm.cib.epidemes.geodb.bag;
 
 import java.util.Date;
 

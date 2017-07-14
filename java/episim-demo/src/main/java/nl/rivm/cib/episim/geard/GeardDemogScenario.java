@@ -45,6 +45,7 @@ import nl.rivm.cib.episim.model.person.MotherPicker;
  * @version $Id: 5e3a1f243ab46e936f50b9c59a81bada60d8a5f4 $
  * @author Rick van Krevelen
  */
+@SuppressWarnings( "deprecation" )
 @Singleton
 public class GeardDemogScenario implements Scenario
 {

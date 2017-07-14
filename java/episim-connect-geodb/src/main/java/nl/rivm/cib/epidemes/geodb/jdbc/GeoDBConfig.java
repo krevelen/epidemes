@@ -17,42 +17,38 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.pilot.hh;
+package nl.rivm.cib.epidemes.geodb.jdbc;
 
-import nl.rivm.cib.pilot.json.HHJsonifiable;
+import java.net.URI;
+import java.sql.Driver;
+
+import org.aeonbits.owner.Config.Sources;
+
+import io.coala.persist.JDBCConfig;
 
 /**
- * {@link HHMemberStatus} are SEIR-like compartments differentiating between
- * removed and immunized
+ * {@link GeoDBConfig}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum HHMemberStatus implements HHJsonifiable
+@Sources( { "classpath:geodb.properties" } )
+public interface GeoDBConfig extends JDBCConfig
 {
-	SUSCEPTIBLE,
+	@Key( JDBC_DRIVER_KEY )
+	@DefaultValue( "org.postgresql.Driver" )
+	Class<? extends Driver> jdbcDriver();
 
-	EXPOSED,
-	
-	INFECTIOUS,
+	@Key( JDBC_URL_KEY )
+	@DefaultValue( "jdbc:postgresql://geodb.rivm.nl/sde_gdbrivm" )
+	URI jdbcUrl();
 
-	ARTIFICIAL_IMMUNE,
+	@DefaultValue( PASSWORD_PROMPT_VALUE )
+	@Key( JDBC_PASSWORD_KEY )
+	@ConverterClass( PasswordPromptConverter.class )
+	String jdbcPassword();
 
-	NATURAL_IMMUNE,
+//	@DefaultValue( "" + true )
+//	boolean ssl();
 
-	PASSIVE_IMMUNE,
-
-	REMOVED, 
-
-	;
-
-	private String json = null;
-
-	@Override
-	public String jsonValue()
-	{
-		return this.json == null
-				? (this.json = name().toLowerCase().replace( '_', '-' ))
-				: this.json;
-	}
 }

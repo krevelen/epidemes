@@ -49,8 +49,11 @@ public enum HHMemberAttribute implements HHJsonifiable
 	/** the ordinal of a {@link HHMemberStatus} constant */
 	STATUS,
 
-	/** the ordinal of a {@link HHMemberBehavior} constant */
-	BEHAVIOR_REF,
+	/** the mobility identifier (one per region/behavior combo) */
+	MOTOR_REF,
+
+	/** amount of exposure time remaining until invasion/infection occurs */
+	SUSCEPTIBLE_DAYS,
 
 	;
 

@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.util.Map;
 
 import org.aeonbits.owner.Config.Sources;
+import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,6 +36,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.persist.JDBCConfig;
+import io.coala.persist.JDBCUtil;
 import io.coala.util.FileUtil;
 import io.reactivex.Observable;
 
@@ -69,7 +71,7 @@ import io.reactivex.Observable;
 public class BagZipCoordinatesImport
 {
 
-	@Sources( { "file:conf/geodb.properties" } )
+	@Sources( { "file:${user.dir}/conf/geodb.properties" } )
 	public interface GeoDBConfig extends JDBCConfig
 	{
 		@Key( JDBC_DRIVER_KEY )
@@ -112,9 +114,81 @@ public class BagZipCoordinatesImport
 ////				+ " WHERE t.pc6won>0" //
 ////				+ " LIMIT 100" //
 //				, rs -> handle( JDBCUtil.toJSON( rs ), file ) );
-		handle( JsonUtil.readArrayAsync( () -> FileUtil.toInputStream( file ),
-				ObjectNode.class ), "bag-test2.json" );
+
+		// refactor imported json data: from array to object
+//		handle( JsonUtil.readArrayAsync( () -> FileUtil.toInputStream( file ),
+//				ObjectNode.class ), "bag-test2.json" );
+
+		final GeoDBConfig conf = ConfigCache.getOrCreate( GeoDBConfig.class );
+		LOG.trace( "Testing with JDBC config: {}", conf.export() );
+		conf.execute( "SELECT t.postcode, t.pc6won, t.pc6pers"
+				+ ", ST_AsGeoJSON( ST_Transform( t.geometrie, 4326 ) ) AS "
+				+ geo + " FROM nl.voorz_lrkp_20150115 As t" // 
+//				+ " WHERE t.pc6won>0" //
+//				+ " LIMIT 100" //
+				, rs -> handle( JDBCUtil.toJSON( rs ), file ) );
 	}
+
+	/**
+	 * <pre>
+	 * CREATE TABLE nl.voorz_duo_po_vestigingen_20170102
+	(
+	objectid integer NOT NULL,
+	bevoegd_gezag_nummer character varying(255),
+	brin_nummer character varying(255),
+	vestigingsnummer character varying(255),
+	vestigingsnaam character varying(255),
+	soort_primair_onderwijs character varying(255),
+	cluster character varying(255),
+	denominatie character varying(255),
+	straatnaam character varying(255),
+	huisnummer_toevoeging character varying(255),
+	pc6 character varying(255),
+	pc4 integer,
+	plaatsnaam character varying(255),
+	gem_nr_2016 integer,
+	gemeentenaam character varying(255),
+	provincie character varying(255),
+	ggd character varying(255),
+	internetadres character varying(255),
+	x_coord integer,
+	y_coord integer,
+	geocodering character varying(255),
+	leerlingen integer,
+	gewicht_vest integer,
+	impulsgebied integer,
+	afstand integer,
+	shape geometry,
+	CONSTRAINT enforce_geotype_shape CHECK (geometrytype(shape) = 'POINT'::text OR shape IS NULL),
+	CONSTRAINT enforce_srid_shape CHECK (srid(shape) = 28992)
+	)
+	
+	CREATE TABLE nl.voorz_lrkp_20150115
+	(
+	objectid integer NOT NULL,
+	uniek_nr integer,
+	lrk_id integer,
+	type_oko character varying(3),
+	actuele_naam_oko character varying(100),
+	aantal_kindplaatsen smallint,
+	status character varying(15),
+	inschrijfdatum timestamp without time zone,
+	uitschrijfdatum timestamp without time zone,
+	opvanglocatie_adres character varying(50),
+	opvanglocatie_postcode character varying(6),
+	opvanglocatie_woonplaats character varying(30),
+	pc4 smallint,
+	gem_code smallint,
+	verantwoordelijke_gemeente character varying(30),
+	x_coord integer,
+	y_coord integer,
+	geocod character varying(20),
+	shape geometry,
+	CONSTRAINT enforce_geotype_shape CHECK (geometrytype(shape) = 'POINT'::text OR shape IS NULL),
+	CONSTRAINT enforce_srid_shape CHECK (srid(shape) = 28992)
+	)
+	 * </pre>
+	 */
 
 	private static final String file = "bag-test.json";
 

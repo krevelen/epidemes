@@ -17,42 +17,33 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.pilot.hh;
-
-import nl.rivm.cib.pilot.json.HHJsonifiable;
+package nl.rivm.cib.epidemes.geodb.bag;
 
 /**
- * {@link HHMemberStatus} are SEIR-like compartments differentiating between
- * removed and immunized
+ * {@link BagAreaCodeDao}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum HHMemberStatus implements HHJsonifiable
+public class BagAreaCodeDao
 {
-	SUSCEPTIBLE,
-
-	EXPOSED,
-	
-	INFECTIOUS,
-
-	ARTIFICIAL_IMMUNE,
-
-	NATURAL_IMMUNE,
-
-	PASSIVE_IMMUNE,
-
-	REMOVED, 
-
-	;
-
-	private String json = null;
-
-	@Override
-	public String jsonValue()
-	{
-		return this.json == null
-				? (this.json = name().toLowerCase().replace( '_', '-' ))
-				: this.json;
-	}
+//	TABLE nl.bag_pc6_2015_01
+//	(
+//	  objectid integer NOT NULL DEFAULT nextval('nummertje'::regclass),
+//	  postcode character varying(6),
+//	  openbareruimtenaam character varying(80),
+//	  woonplaatsnaam character varying(80),
+//	  bagcnt integer,
+//	  pc6pers integer,
+//	  pc6won integer,
+//	  bedrcnt integer,
+//	  wptot integer,
+//	  wpfull integer,
+//	  gmpwont integer,
+//	  meandist integer,
+//	  avgx integer,
+//	  avgy integer,
+//	  geometrie geometry,
+//	  CONSTRAINT bag_pc6_2015_01_pkey PRIMARY KEY (objectid)
+//	)
 }

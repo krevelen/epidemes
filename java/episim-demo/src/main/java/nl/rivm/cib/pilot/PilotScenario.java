@@ -5,17 +5,22 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -31,12 +36,16 @@ import org.ujmp.core.SparseMatrix;
 import org.ujmp.core.calculation.Calculation.Ret;
 import org.ujmp.core.enums.ValueType;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.coala.bind.InjectConfig;
 import io.coala.bind.InjectConfig.Scope;
 import io.coala.bind.LocalBinder;
+import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.DecimalUtil;
+import io.coala.math.MatrixUtil;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
@@ -44,6 +53,7 @@ import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.random.QuantityDistribution;
+import io.coala.time.Duration;
 import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Scenario;
@@ -60,8 +70,10 @@ import nl.rivm.cib.pilot.dao.PilotConfigDao;
 import nl.rivm.cib.pilot.hh.HHAttitudeEvaluator;
 import nl.rivm.cib.pilot.hh.HHAttitudePropagator;
 import nl.rivm.cib.pilot.hh.HHAttractor;
+import nl.rivm.cib.pilot.hh.HHAttractor.Broker;
 import nl.rivm.cib.pilot.hh.HHAttribute;
 import nl.rivm.cib.pilot.hh.HHMemberAttribute;
+import nl.rivm.cib.pilot.hh.HHMemberMotor;
 import nl.rivm.cib.pilot.hh.HHMemberStatus;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.VaccineStatus;
@@ -69,8 +81,8 @@ import nl.rivm.cib.pilot.json.RelationFrequencyJson;
 import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link PilotScenario} is a simple example {@link Scenario} implementation, of which
- * only one {@link Singleton} instance exists per {@link LocalBinder}
+ * {@link PilotScenario} is a simple example {@link Scenario} implementation, of
+ * which only one {@link Singleton} instance exists per {@link LocalBinder}
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -78,6 +90,27 @@ import tec.uom.se.ComparableQuantity;
 @Singleton
 public class PilotScenario implements Scenario
 {
+
+	/**
+	 * {@link GenderAge} wraps a {@link Tuple} in: CBSGender x Instant (birth)
+	 */
+	public static class GenderAge extends Tuple
+	{
+		public GenderAge( final CBSGender gender, final BigDecimal ageYears )
+		{
+			super( Arrays.<Comparable<?>>asList( gender, ageYears ) );
+		}
+
+		public CBSGender gender()
+		{
+			return (CBSGender) values().get( 0 );
+		}
+
+		public BigDecimal ageYears()
+		{
+			return (BigDecimal) values().get( 1 );
+		}
+	}
 
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( PilotScenario.class );
@@ -112,52 +145,15 @@ public class PilotScenario implements Scenario
 	private transient LocalDate dtCache = null;
 	/** */
 	private final AtomicInteger statsIteration = new AtomicInteger();
+
 	/** */
 	private Matrix hhAttributes;
 	/** */
-	private Matrix ppAttributes;
-	/** */
-	private Matrix hhNetwork;
-	/** */
-	private Matrix hhNetworkActivity;
-	/** */
-	private final Map<Long, Expectation> hhNetworkExpectations = new HashMap<>();
-	/** */
 	private final AtomicLong hhCount = new AtomicLong();
-	/** */
-	private final AtomicLong persons = new AtomicLong();
-	/** number of top rows (0..n) in {@link #hhNetwork} reserved for oracles */
-//	private long attractorCount;
-	/** virtual time range of simulation */
-//	private transient Range<LocalDate> timeRange = null;
-	/** empirical household compositions and referent ages, see CBS 71486 */
-//	private transient ConditionalDistribution<Cbs71486json.Category, LocalDate> localHouseholdDist;
-	/** zip-codes per borough / ward / municipality / ... */
-//	private transient ConditionalDistribution<CbsNeighborhood, Region.ID> hoodDist;
-
-	private Map<String, HHAttractor> attractors = Collections.emptyMap();
-
-//	private Map<String, Integer> attractorIndex = new HashMap<>();
-	private String[] attractorNames;
-
-	/**
-	 * {@link AttractorBroker} assigns regions to households
-	 */
-	@FunctionalInterface
-	public interface AttractorBroker
-	{
-		int next( Long hhIndex );
-	}
-
-	/** */
-	private AttractorBroker attractorBroker;
 	/** */
 	private ProbabilityDistribution<CBSHousehold> hhTypeDist;
 	/** */
 	private QuantityDistribution<Time> hhRefAgeDist;
-	/** */
-	private Range<ComparableQuantity<Time>> vaccinationAge; 
-
 	/** */
 	private ProbabilityDistribution<Boolean> hhRefMaleDist;
 	/** */
@@ -167,6 +163,28 @@ public class PilotScenario implements Scenario
 	/** */
 	private Quantity<Time> hhLeaveHomeAge;
 
+	/** */
+	private Matrix ppAttributes;
+	/** */
+	private final AtomicLong persons = new AtomicLong();
+
+	/** */
+	private Range<ComparableQuantity<Time>> vaccinationAge;
+	/** */
+	private transient ProbabilityDistribution<VaxOccasion> vaxOccasionDist;
+
+	/** */
+	private Matrix hhNetwork;
+	/** */
+	private Matrix hhNetworkActivity;
+	/** scheduled opinion activity */
+	private final Map<Long, Expectation> hhNetworkExpectations = new HashMap<>();
+	/** */
+	private Map<String, HHAttractor> attractors = Collections.emptyMap();
+	/** */
+	private String[] attractorNames;
+	/** */
+	private HHAttractor.Broker attractorBroker;
 	/** */
 	private transient ConditionalDistribution<HesitancyProfileJson, HesitancyProfileJson.Category> hesitancyProfileDist;
 	/** */
@@ -179,35 +197,30 @@ public class PilotScenario implements Scenario
 	private transient HHAttitudePropagator attitudePropagator;
 	/** */
 	private transient ConditionalDistribution<Map<HHAttribute, BigDecimal>, HesitancyProfileJson> hesitancyDist;
+
+	/** number of top rows (0..n) in {@link #hhNetwork} reserved for oracles */
+//	private long attractorCount;
+	/** virtual time range of simulation */
+//	private transient Range<LocalDate> timeRange = null;
+	/** empirical household compositions and referent ages, see CBS 71486 */
+//	private transient ConditionalDistribution<Cbs71486json.Category, LocalDate> localHouseholdDist;
+	/** zip-codes per borough / ward / municipality / ... */
+//	private transient ConditionalDistribution<CbsNeighborhood, Region.ID> hoodDist;
+
 	/** */
-	private transient ProbabilityDistribution<VaxOccasion> vaxOccasionDist;
+	private HHMemberMotor.Broker motorBroker;
+	/** */
+	private HHMemberMotor[] motors;
+	/** */
+	private Matrix motorPresence;
+	/** */
+	private Expectation[] motorAdjourns;
 
 //	private transient ConditionalDistribution<Quantity<Time>, GenderAge> peerPressureIntervalDist;
 
-	/**
-	 * {@link GenderAge} wraps a {@link Tuple} in: CBSGender x Instant (birth)
-	 */
-	public static class GenderAge extends Tuple
-	{
-		public GenderAge( final CBSGender gender, final BigDecimal ageYears )
-		{
-			super( Arrays.<Comparable<?>>asList( gender, ageYears ) );
-		}
-
-		public CBSGender gender()
-		{
-			return (CBSGender) values().get( 0 );
-		}
-
-		public BigDecimal ageYears()
-		{
-			return (BigDecimal) values().get( 1 );
-		}
-	}
-
 	@Override
 	public void init() throws ParseException, InstantiationException,
-		IllegalAccessException, IOException
+		IllegalAccessException, IOException, ClassNotFoundException
 	{
 		final PseudoRandom rng = this.distFactory.getStream();
 		LOG.info( "seed: {}, offset: {}", rng.seed(), scheduler().offset() );
@@ -233,8 +246,25 @@ public class PilotScenario implements Scenario
 		this.hhNetwork = SparseMatrix.Factory.zeros( edges, edges );
 		this.hhNetworkActivity = SparseMatrix.Factory.zeros( edges, edges );
 
+		final JsonNode motorConfig = JsonUtil.getJOM().createObjectNode()
+				.set( "work", JsonUtil.getJOM().createObjectNode()
+						.put( HHMemberMotor.CONVENE_KEY, "0 0 9 ? * MON-FRI" )
+						.put( HHMemberMotor.DURATION_KEY, "const(8 h)" ) );
+		LOG.trace( "creating motors from: {}", motorConfig );
+		final NavigableMap<String, HHMemberMotor> motors = this.binder
+				.inject( HHMemberMotor.Factory.SimpleBinding.class )
+				.createAll( motorConfig );
+		this.motors = motors.values()
+				.toArray( new HHMemberMotor[motors.size()] );
+		this.motorAdjourns = new Expectation[motors.size()];
+		IntStream.range( 0, this.motors.length ).forEach( m -> this.motors[m]
+				.convene().subscribe( dt -> convene( dt, m ) ) );
+		this.motorPresence = SparseMatrix.Factory.zeros( ppTotal,
+				this.motors.length );
+		this.motorBroker = ppIndex -> 0; // TODO expand to local/personal motor
+
 		this.vaccinationAge = this.config.vaccinationAgeRange();
-		
+
 		this.attractors.forEach( ( name, attractor ) ->
 		{
 			final int index = (int) this.hhCount.getAndIncrement();
@@ -263,7 +293,7 @@ public class PilotScenario implements Scenario
 //		this.hoodDist = this.config.neighborhoodDist( this.distFactory,
 //				regRef -> fallbackRegRef );
 //		final Map<Long, Region.ID> regions = new HashMap<>();
-		final AttractorBroker broker = hhIndex -> (int) (hhIndex
+		final Broker broker = hhIndex -> (int) (hhIndex
 				% this.attractors.size());
 		this.attractorBroker = broker;
 		this.hhTypeDist = this.config.householdTypeDist( this.distParser );
@@ -544,6 +574,67 @@ public class PilotScenario implements Scenario
 	public Observable<PropertyChangeEvent> network()
 	{
 		return this.networkEvents;
+	}
+
+	private void convene( final Duration dt, final int m )
+	{
+		final int refCol = HHMemberAttribute.MOTOR_REF.ordinal();
+		if( this.motorAdjourns[m] != null )
+		{
+			this.motorAdjourns[m].remove();
+			this.motorAdjourns[m] = null;
+		}
+		final long[] adjourn = adjourn( m );
+		final Iterator<long[]> mem = this.ppAttributes
+				.selectColumns( Ret.LINK, refCol ).availableCoordinates()
+				.iterator();
+		if( mem.hasNext() )
+		{
+			final BigDecimal since = now().decimal();
+			for( long[] x = mem.next(); mem.hasNext(); x = mem.next() )
+				if( this.ppAttributes.getAsInt( x[0], refCol ) == m )
+					this.motorPresence.setAsBigDecimal( since, x[0], m );
+		}
+
+		LOG.trace( "t={}, convene motor {}, adjourn @t+{}, kicked {}",
+				prettyDate( now() ), m, dt, adjourn );
+	}
+
+	private long[] adjourn( final int m )
+	{
+		return MatrixUtil
+				.coordinateStream(
+						this.motorPresence.selectColumns( Ret.LINK, m ) )
+				.mapToLong( x -> x[0] ).filter( p ->
+				{
+					final long[] x = { p, m };
+					final BigDecimal since = this.motorPresence
+							.getAsBigDecimal( x );
+					this.motorPresence.setAsObject( null, x );
+					if( since.signum() <= 0 ) return false;
+
+					final long[] y = { p,
+					HHMemberAttribute.SUSCEPTIBLE_DAYS.ordinal() };
+					final BigDecimal days = this.ppAttributes
+							.getAsBigDecimal( y )
+							.subtract( now().to( TimeUnits.DAYS ).decimal()
+									.subtract( since ) );
+					this.ppAttributes.setAsBigDecimal( days, y );
+					if( days.signum() < 1 )
+					{
+						LOG.trace( "EXPOSE person: {} at convention: {}", p,
+								m );
+						// f convening
+						this.ppAttributes.setAsInt( -1, p,
+								HHMemberAttribute.MOTOR_REF.ordinal() );
+						// FIXME verify transition is: susceptible -> exposed
+						this.ppAttributes.setAsInt(
+								HHMemberStatus.EXPOSED.ordinal(), p,
+								HHMemberAttribute.STATUS.ordinal() );
+						// FIXME schedule infectious transition
+					}
+					return true;
+				} ).toArray();
 	}
 
 	public Observable<HHStatisticsDao> statistics()
@@ -926,8 +1017,11 @@ public class PilotScenario implements Scenario
 				HHMemberAttribute.MALE.ordinal() );
 		this.ppAttributes.setAsInt( status.ordinal(), index,
 				HHMemberAttribute.STATUS.ordinal() );
-		this.ppAttributes.setAsInt( 0, index,
-				HHMemberAttribute.BEHAVIOR_REF.ordinal() );
+		final int motor = this.motorBroker.next( index );
+		this.ppAttributes.setAsInt( motor, index,
+				HHMemberAttribute.MOTOR_REF.ordinal() );
+		this.ppAttributes.setAsBigDecimal( BigDecimal.TEN, index,
+				HHMemberAttribute.SUSCEPTIBLE_DAYS.ordinal() );
 		return index;
 	}
 
@@ -939,10 +1033,14 @@ public class PilotScenario implements Scenario
 
 	protected Pretty prettyDate( final Instant t )
 	{
-		return Pretty.of( () -> scheduler().offset()
-				.plus( t.to( TimeUnits.MINUTE ).value().longValue(),
-						ChronoUnit.MINUTES )
-				.toLocalDateTime() );
+		return Pretty.of( () ->
+		{
+			final ZonedDateTime zdt = scheduler().offset().plus(
+					t.to( TimeUnits.MINUTE ).value().longValue(),
+					ChronoUnit.MINUTES );
+			return zdt.toLocalDateTime() + "="
+					+ zdt.format( DateTimeFormatter.ISO_WEEK_DATE );
+		} );
 	}
 
 	protected LocalDate dt()

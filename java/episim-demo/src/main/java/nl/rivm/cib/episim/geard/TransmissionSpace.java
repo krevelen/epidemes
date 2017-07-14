@@ -34,13 +34,12 @@ import io.coala.time.Accumulator;
 import io.coala.time.Instant;
 import io.reactivex.Observable;
 import nl.rivm.cib.episim.model.disease.Afflicted;
-import nl.rivm.cib.episim.model.disease.infection.Contagion;
+import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
 import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
 import nl.rivm.cib.episim.model.disease.infection.Occupancy;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.disease.infection.Transmission;
 import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
-import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
 
 /**
  * {@link TransmissionSpace}

@@ -19,54 +19,83 @@
  */
 package nl.rivm.cib.pilot.hh;
 
-import java.math.BigDecimal;
 import java.text.ParseException;
-import java.util.Arrays;
-import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.measure.quantity.Time;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.coala.bind.LocalBinder;
 import io.coala.exception.Thrower;
+import io.coala.random.ProbabilityDistribution;
+import io.coala.random.QuantityDistribution;
+import io.coala.time.Duration;
+import io.coala.time.Expectation;
+import io.coala.time.Instant;
 import io.coala.time.Scheduler;
+import io.coala.time.Timing;
 import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import nl.rivm.cib.util.HHScenarioConfigurable;
 
 /**
- * {@link HHMemberBehavior} adds special proactive entities acting as special
- * households, representing the nationally or locally communicated (dynamic)
- * positions of e.g. public health, religious, alternative medicinal
- * authorities, or socially observed disease or adverse events, and determining
+ * {@link HHMemberMotor} or "Meeter" used to convene and adjourn members e.g. in
+ * transmission spaces
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface HHMemberBehavior
-	extends HHScenarioConfigurable<HHMemberBehavior>
+public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 {
 	String TYPE_KEY = "type";
+
+	String CONVENE_KEY = "convene-timing";
+
+	String DURATION_KEY = "duration-dist";
 
 	/**
 	 * @return an {@link Observable} stream of {@link HHAttribute} values
 	 *         {@link Map mapped} as {@link BigDecimal}
 	 */
-	Observable<Map<HHMemberAttribute, BigDecimal>> adjustments();
+//	Observable<Map<HHMemberAttribute, BigDecimal>> adjustments();
+
+	/**
+	 * @return an {@link Observable} stream of {@link Duration}s when and for
+	 *         how long people driven by this motor convene
+	 */
+	Observable<Duration> convene();
+
+	Duration occupancyChange( long delta );
+
+	/**
+	 * {@link Broker} assigns mobility/behavior brokers to persons
+	 */
+	@FunctionalInterface
+	public interface Broker
+	{
+		int next( long ppIndex );
+	}
 
 	/**
 	 * {@link SignalSchedule} executes simple position updates configured as
 	 * {@link SignalSchedule.SignalYaml} entries
 	 */
-	class SignalSchedule implements HHMemberBehavior
+	class SignalSchedule implements HHMemberMotor
 	{
 
 		private JsonNode config;
+
+		@Inject
+		private ProbabilityDistribution.Parser distParser;
 
 		@Inject
 		private Scheduler scheduler;
@@ -77,33 +106,48 @@ public interface HHMemberBehavior
 			return this.scheduler;
 		}
 
+		private final AtomicLong occupancy = new AtomicLong();
+
+		private Instant occupancySince = null;
+
+		private final Subject<Duration> convene = PublishSubject.create();
+
+		private Expectation nextConvene = null;
+
+		@SuppressWarnings( "unchecked" )
 		@Override
-		public Observable<Map<HHMemberAttribute, BigDecimal>> adjustments()
+		public Duration occupancyChange( final long delta )
 		{
-			if( this.config == null ) return Observable.empty();
-
-			final Map<HHMemberAttribute, BigDecimal> initial = Arrays
-					.stream( HHMemberAttribute.values() )
-					.filter( attr -> this.config.has( attr.jsonValue() ) )
-					.collect(
-							Collectors.toMap( attr -> attr, attr -> this.config
-									.get( attr.jsonValue() ).decimalValue() ) );
-
-			return Observable.create( sub ->
-			{
-				sub.onNext( initial );
-				if( this.config.has( SCHEDULE_KEY ) )
-					iterate( this.config.get( SCHEDULE_KEY ),
-							HHMemberAttribute.class, BigDecimal.class )
-									.subscribe( sub::onNext, sub::onError );
-			} );
+			final long n = this.occupancy.getAndAdd( delta );
+			final Instant t = now();
+			final Duration dt = Duration.of( this.occupancySince.unwrap()
+					.subtract( now().unwrap() ).multiply( n ) );
+			this.occupancySince = t;
+			if( n > delta ) return Thrower.throwNew( IllegalStateException::new,
+					() -> "Negative occupancy? (" + delta + " > " + n + ")" );
+			return dt;
 		}
 
+		@SuppressWarnings( "unchecked" )
 		@Override
-		public HHMemberBehavior reset( final JsonNode config )
+		public HHMemberMotor reset( final JsonNode config )
 			throws ParseException
 		{
+			this.occupancySince = now();
+			this.occupancy.set( 0L );
 			this.config = config;
+			if( this.nextConvene != null ) this.nextConvene.remove();
+			final String timing = Objects.requireNonNull(
+					config.get( CONVENE_KEY ).asText(), "no timing?" );
+			final String durationDist = Objects.requireNonNull(
+					config.get( DURATION_KEY ).asText(), "no duration?" );
+			final QuantityDistribution<Time> dist = this.distParser
+					.parseQuantity( durationDist ).asType( Time.class );
+			atEach( Timing.valueOf( timing )
+					.offset( now().toJava8( scheduler().offset() ) ).iterate(),
+					t -> this.convene.onNext( Duration.of( dist.draw() ) ) )
+							.subscribe( exp -> this.nextConvene = exp,
+									Throwable::printStackTrace );
 			return this;
 		}
 
@@ -112,13 +156,19 @@ public interface HHMemberBehavior
 		{
 			return getClass().getSimpleName() + this.config;
 		}
+
+		@Override
+		public Observable<Duration> convene()
+		{
+			return this.convene;
+		}
 	}
 
 	interface Factory
 	{
-		HHMemberBehavior create( JsonNode config ) throws Exception;
+		HHMemberMotor create( JsonNode config ) throws Exception;
 
-		default NavigableMap<String, HHMemberBehavior>
+		default NavigableMap<String, HHMemberMotor>
 			createAll( final JsonNode config )
 		{
 			// array: generate default numbered name
@@ -138,7 +188,7 @@ public interface HHMemberBehavior
 			// object: use field names to identify behavior
 			if( config.isObject() )
 			{
-				final NavigableMap<String, HHMemberBehavior> result = new TreeMap<>();
+				final NavigableMap<String, HHMemberMotor> result = new TreeMap<>();
 				config.fields().forEachRemaining( e ->
 				{
 					try
@@ -163,16 +213,16 @@ public interface HHMemberBehavior
 			private LocalBinder binder;
 
 			@Override
-			public HHMemberBehavior create( final JsonNode config )
+			public HHMemberMotor create( final JsonNode config )
 				throws ClassNotFoundException, ParseException
 			{
-				final Class<? extends HHMemberBehavior> type = config
+				final Class<? extends HHMemberMotor> type = config
 						.has( TYPE_KEY )
 								? Class
 										.forName( config.get( TYPE_KEY )
 												.textValue() )
-										.asSubclass( HHMemberBehavior.class )
-								: HHMemberBehavior.SignalSchedule.class;
+										.asSubclass( HHMemberMotor.class )
+								: HHMemberMotor.SignalSchedule.class;
 				return this.binder.inject( type ).reset( config );
 			}
 		}

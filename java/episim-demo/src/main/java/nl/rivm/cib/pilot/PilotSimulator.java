@@ -38,7 +38,6 @@ import org.hibernate.cfg.AvailableSettings;
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
-import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.DecimalUtil;
@@ -177,7 +176,7 @@ public class PilotSimulator
 								if( it.incrementAndGet() % jdbcBatchSize == 0 )
 								{
 									em.flush();
-									em.clear();
+//									em.clear();
 								}
 							} );
 						}, e -> LOG.error( "Problem persisting stats", e ),
