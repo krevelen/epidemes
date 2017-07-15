@@ -176,10 +176,6 @@ public class PilotScenario implements Scenario
 	/** */
 	private Matrix hhNetwork;
 	/** */
-	private Matrix hhNetworkActivity;
-	/** scheduled opinion activity */
-	private final Map<Long, Expectation> hhNetworkExpectations = new HashMap<>();
-	/** */
 	private Map<String, HHAttractor> attractors = Collections.emptyMap();
 	/** */
 	private String[] attractorNames;
@@ -244,7 +240,7 @@ public class PilotScenario implements Scenario
 		this.ppAttributes = Matrix.Factory.zeros( ValueType.BIGDECIMAL, ppTotal,
 				HHMemberAttribute.values().length );
 		this.hhNetwork = SparseMatrix.Factory.zeros( edges, edges );
-		this.hhNetworkActivity = SparseMatrix.Factory.zeros( edges, edges );
+//		this.hhNetworkActivity = SparseMatrix.Factory.zeros( edges, edges );
 
 		final JsonNode motorConfig = JsonUtil.getJOM().createObjectNode()
 				.set( "work", JsonUtil.getJOM().createObjectNode()
@@ -686,50 +682,41 @@ public class PilotScenario implements Scenario
 						HHAttribute.CONFIDENCE, HHAttribute.COMPLACENCY ) ) );
 	}
 
-	private void impressInitial( final long i, final Quantity<Time> dt )
-	{
-		this.hhNetworkExpectations.compute( i, ( k, v ) ->
-		{
-			if( v != null ) v.remove(); // cancel previous
-			final long[] J = contacts( i );
-			return after( dt )
-					.call( t1 -> impressNext( i, dt, J, J.length - 1 ) );
-		} );
-	}
-
-	private void impressNext( final long i, final Quantity<Time> dt,
-		final long[] J, final int n )
-	{
-		if( n > 0 ) // network not yet saturated
-		{
-			final int k = this.distFactory.getStream().nextInt( J.length );
-			if( k <= n ) // ignore pick if member already removed
-			{
-				final long j = J[k];
-				if( k != n )
-				{
-					J[k] = J[n];
-					J[n] = j;
-				}
-				final BigDecimal w = HHConnector.getSymmetric( this.hhNetwork,
-						i, j );
-				HHConnector.setSymmetric( this.hhNetworkActivity, w, i, j );
-			}
-//			LOG.trace( "hh #{} {}", i, n );
-			this.hhNetworkExpectations.put( i, after( dt )
-					.call( t -> impressNext( i, dt, J, k > n ? n : n - 1 ) ) );
-		} else
-		{
-//			LOG.trace( "hh #{} saturated", i );
-			this.hhNetworkExpectations.remove( i );
-		}
-	}
+	private BigDecimal lastPropagationInstantDays = null;
 
 	private void propagate( final Instant t )
 	{
 		LOG.debug( "t={}, propagating...", prettyDate( t ) );
+
+		final BigDecimal nowDays = t.to( TimeUnits.DAYS ).decimal(),
+				propagateDays = this.lastPropagationInstantDays == null
+						? nowDays
+						: nowDays.subtract( this.lastPropagationInstantDays );
+		this.lastPropagationInstantDays = nowDays;
+
+		final Matrix interactions = SparseMatrix.Factory
+				.zeros( this.hhNetwork.getSize() );
+		LongStream.range( this.attractors.size(), this.hhNetwork.getRowCount() )
+				.parallel().forEach( i ->
+				{
+					final long[] J = contacts( i );
+					if( J.length == 0 ) return;
+					final BigDecimal days = this.hhAttributes.getAsBigDecimal(
+							i, HHAttribute.IMPRESSION_PERIOD_DAYS.ordinal() );
+					final ProbabilityDistribution<Long> binom = this.distFactory
+							.createBinomial(
+									DecimalUtil.divide( propagateDays, days ),
+									DecimalUtil.inverse( J.length ) );
+					for( int j = J.length; j-- != 0; )
+						if( binom.draw() > 0 )
+						{
+							final long[] x = { i, J[j] };
+							HHConnector.setSymmetric( interactions, HHConnector
+									.getSymmetric( this.hhNetwork, x ), x );
+						}
+				} );
 		final Map<Long, Integer> changed = this.attitudePropagator
-				.propagate( this.hhNetworkActivity, this.hhAttributes );
+				.propagate( interactions, this.hhAttributes );
 		changed.forEach( ( i, n ) ->
 		{
 			pushChangedAttributes( i );
@@ -737,16 +724,15 @@ public class PilotScenario implements Scenario
 			this.hhAttributes.setAsInt( this.hhAttributes.getAsInt( y ) + n,
 					y );
 		} );
-		this.hhNetworkActivity.clear();
-		LongStream.range( this.attractors.size(),
-				this.hhNetworkActivity.getRowCount() ).forEach( i ->
+		LongStream.range( this.attractors.size(), this.hhNetwork.getRowCount() )
+				.forEach( i ->
 				{
-					impressInitial( i,
-							QuantityUtil.valueOf(
-									this.hhAttributes.getAsBigDecimal( i,
-											HHAttribute.IMPRESSION_PERIOD_DAYS
-													.ordinal() ),
-									TimeUnits.DAYS ) );
+//					impressInitial( i,
+//							QuantityUtil.valueOf(
+//									this.hhAttributes.getAsBigDecimal( i,
+//											HHAttribute.IMPRESSION_PERIOD_DAYS
+//													.ordinal() ),
+//									TimeUnits.DAYS ) );
 					final long[] x = { i,
 					HHAttribute.IMPRESSION_ROUNDS.ordinal() };
 					this.hhAttributes
@@ -876,7 +862,7 @@ public class PilotScenario implements Scenario
 				.reduce( ( f1, f2 ) -> f1.add( f2 ) ).get().inverse()
 				.asType( Time.class );
 
-		impressInitial( hhIndex, impressDelay );
+//		impressInitial( hhIndex, impressDelay );
 
 //		final long partnerRef = hhType.adultCount() < 2 ? NA
 //				: createPerson(
