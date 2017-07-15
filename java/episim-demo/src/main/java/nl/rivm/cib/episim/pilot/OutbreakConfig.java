@@ -52,6 +52,10 @@ import tec.uom.se.ComparableQuantity;
 
 public interface OutbreakConfig extends YamlConfig
 {
+
+	@DefaultValue( "0 0 * * * ?" )
+	String statisticsRecurrence();
+	
 	@DefaultValue( "" + 1000 )
 	int popSize();
 
@@ -60,9 +64,6 @@ public interface OutbreakConfig extends YamlConfig
 
 	@DefaultValue( "GM0363" )
 	Region.ID fallbackRegionRef();
-
-	@DefaultValue( "0 0 * * * ?" )
-	String statisticsRecurrence();
 
 	@DefaultValue( "MUNICIPAL" )
 	CBSRegionType cbsRegionLevel();

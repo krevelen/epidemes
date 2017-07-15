@@ -109,8 +109,8 @@ public class Cbs37201json
 	{
 		for( int i = 0; i < JSON_KEYS.size(); i++ )
 			if( JSON_KEYS.get( i ).equals( key ) ) return i;
-		return Thrower.throwNew( IllegalArgumentException.class,
-				"{} not in keys: {}", key, JSON_KEYS );
+		return Thrower.throwNew( IllegalArgumentException::new,
+				() -> key + " not in keys: " + JSON_KEYS );
 	}
 
 	@JsonIgnore
@@ -159,9 +159,9 @@ public class Cbs37201json
 		frequenciesFor( final CBSPopulationDynamic change )
 	{
 		if( !this.props.containsKey( change.jsonKey() ) )
-			return Thrower.throwNew( IllegalArgumentException.class,
-					"Key unavailable: {}, keys: {}", change.jsonKey(),
-					this.props.keySet() );
+			return Thrower.throwNew( IllegalArgumentException::new,
+					() -> "Key unavailable: " + change.jsonKey() + ", keys: "
+							+ this.props.keySet() );
 		return (List<T>) this.props.get( change.jsonKey() );
 	}
 

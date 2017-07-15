@@ -172,8 +172,8 @@ public class Cbs71486json
 			@SuppressWarnings( "rawtypes" )
 			final List<? extends Comparable> freq = frequencies();
 			if( freq.size() != HH_TYPES.size() )
-				Thrower.throwNew( IllegalStateException.class,
-						"Inconsistent value length: {}", freq );
+				Thrower.throwNew( IllegalStateException::new,
+						() -> "Inconsistent value length: " + freq );
 			return IntStream.range( 0, HH_TYPES.size() )
 					.mapToObj( i -> WeightedValue.of( HH_TYPES.get( i ),
 							(Number) freq.get( i ) ) )
@@ -211,11 +211,11 @@ public class Cbs71486json
 	public Integer frequenciesFor( final CBSHousehold comp, final int index )
 	{
 		final List<Integer> freq = frequenciesFor( comp );
-		if( freq == null ) return Thrower.throwNew( NullPointerException.class,
-				"null values for " + comp + " in " + this );
+		if( freq == null ) return Thrower.throwNew( NullPointerException::new,
+				() -> "null values for " + comp + " in " + this );
 		if( freq.size() != this.dayCounts.size() )
-			return Thrower.throwNew( IllegalStateException.class,
-					"Inconsistent values for " + comp + " in " + this );
+			return Thrower.throwNew( IllegalStateException::new,
+					() -> "Inconsistent values for " + comp + " in " + this );
 		return Objects.requireNonNull( freq.get( index ),
 				"Got null for " + this.region + ":" + this.ages + ":" + index );
 	}

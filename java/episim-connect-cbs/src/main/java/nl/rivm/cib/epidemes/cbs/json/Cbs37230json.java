@@ -160,9 +160,9 @@ public class Cbs37230json
 		frequenciesFor( final CBSPopulationDynamic change )
 	{
 		if( !this.props.containsKey( change.jsonKey() ) )
-			return Thrower.throwNew( IllegalArgumentException.class,
-					"Key unavailable: {}, keys: {}", change.jsonKey(),
-					this.props.keySet() );
+			return Thrower.throwNew( IllegalArgumentException::new,
+					() -> "Key unavailable: " + change.jsonKey() + ", keys: "
+							+ this.props.keySet() );
 		return (List<T>) this.props.get( change.jsonKey() );
 	}
 

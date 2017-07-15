@@ -108,8 +108,9 @@ public class CbsNeighborhood
 			return municipalRef();
 		case WARD:
 			return wardRef();
+		case NEIGHBOURHOOD:
 		default:
-			return ref();
+			return neighbourhoodRef();
 		}
 	}
 
@@ -123,9 +124,9 @@ public class CbsNeighborhood
 		return toRef( CBSRegionType.WARD, this.codes[0], this.codes[1] );
 	}
 
-	public Region.ID ref()
+	public Region.ID neighbourhoodRef()
 	{
-		return toRef( CBSRegionType.BOROUGH, (Object[]) this.codes );
+		return toRef( CBSRegionType.NEIGHBOURHOOD, (Object[]) this.codes );
 	}
 
 	@JsonIgnore

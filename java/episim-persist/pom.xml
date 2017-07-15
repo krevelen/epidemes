@@ -144,7 +144,6 @@
 			<plugin>
 				<groupId>org.bsc.maven</groupId>
 				<artifactId>maven-processor-plugin</artifactId>
-				<version>${maven-processor-plugin.version}</version>
 				<executions>
 					<execution>
 						<id>process</id>

@@ -2,6 +2,8 @@ package nl.rivm.cib.pilot;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.text.ParseException;
@@ -10,10 +12,13 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -25,6 +30,7 @@ import javax.measure.quantity.Time;
 import org.aeonbits.owner.Config.Sources;
 import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
+import org.aeonbits.owner.Converter;
 
 import io.coala.bind.LocalBinder;
 import io.coala.config.ConfigUtil;
@@ -36,6 +42,7 @@ import io.coala.math.DecimalUtil;
 import io.coala.math.QuantityConfigConverter;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
+import io.coala.math.WeightedValue;
 import io.coala.persist.JPAConfig;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
@@ -50,8 +57,14 @@ import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
+import io.reactivex.observables.GroupedObservable;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
+import nl.rivm.cib.epidemes.cbs.json.Cbs83287Json;
+import nl.rivm.cib.epidemes.cbs.json.CbsNeighborhood;
 import nl.rivm.cib.episim.cbs.TimeUtil;
+import nl.rivm.cib.episim.model.locate.Region;
+import nl.rivm.cib.episim.model.locate.Region.ID;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 import nl.rivm.cib.pilot.hh.HHAttitudeEvaluator;
 import nl.rivm.cib.pilot.hh.HHAttitudePropagator;
@@ -76,7 +89,29 @@ import tec.uom.se.ComparableQuantity;
 public interface PilotConfig extends GlobalConfig
 {
 
-	/** configuration file name */
+	/**
+	 * {@link ConfigBaseFileConverter} accepts absolute file paths and relative
+	 * to {@link #CONFIG_BASE_DIR}
+	 */
+	class ConfigBaseFileConverter implements Converter<InputStream>
+	{
+		@Override
+		public InputStream convert( final Method method, final String path )
+		{
+			final File file = new File( path );
+			try
+			{
+				return FileUtil.toInputStream(
+						file.isAbsolute() ? file.getAbsolutePath()
+								: CONFIG_BASE_DIR + file.getPath() );
+			} catch( final IOException e )
+			{
+				return Thrower.rethrowUnchecked( e );
+			}
+		}
+	}
+
+	/** configuration and data file base directory */
 	String CONFIG_BASE_DIR = "conf/pilot/";
 
 	String CONFIG_YAML_FILE = "sim.yaml";
@@ -100,6 +135,9 @@ public interface PilotConfig extends GlobalConfig
 
 	/** configuration key */
 	String POPULATION_PREFIX = SCENARIO_BASE + KEY_SEP + "population" + KEY_SEP;
+
+	/** configuration key */
+	String MOBILITY_PREFIX = POPULATION_PREFIX + "mobility" + KEY_SEP;
 
 	/** configuration key */
 	String HESITANCY_PREFIX = POPULATION_PREFIX + "hesitancy" + KEY_SEP;
@@ -326,6 +364,64 @@ public interface PilotConfig extends GlobalConfig
 //				map );
 //	}
 
+	@Key( MOBILITY_PREFIX + "region-fallback-ref" )
+	@DefaultValue( "GM0363" )
+	Region.ID regionFallbackRef();
+
+	@Key( MOBILITY_PREFIX + "regional-resolution" )
+	@DefaultValue( "MUNICIPAL" )
+	CBSRegionType regionalResolution();
+
+	@Key( MOBILITY_PREFIX + "region-mapping-data" )
+	@DefaultValue( "83287NED.json" )
+	@ConverterClass( ConfigBaseFileConverter.class )
+	InputStream regionMappingData();
+
+	default Map<String, Map<CBSRegionType, String>> municipalRegionTypeMapping()
+		throws IOException
+	{
+		return Cbs83287Json.parse( regionMappingData() ).toMap();
+	}
+
+	default Map<CBSRegionType, Map<String, Set<String>>>
+		regionTypeMunicipalityMapping() throws IOException
+	{
+		return Cbs83287Json.parse( regionMappingData() ).toReverseMap();
+	}
+
+	@Key( MOBILITY_PREFIX + "region-density-data" )
+	@DefaultValue( "pc6_buurt.json" )
+	@ConverterClass( ConfigBaseFileConverter.class )
+	InputStream regionDensityData();
+
+	default Map<ID, Collection<WeightedValue<CbsNeighborhood>>> regionDensity()
+	{
+		final CBSRegionType cbsRegionLevel = regionalResolution();
+		return CbsNeighborhood.readAsync( this::regionDensityData )
+				.toMultimap( bu -> bu.regionRef( cbsRegionLevel ),
+						CbsNeighborhood::toWeightedValue )
+				.blockingGet();
+	}
+
+	default ConditionalDistribution<CbsNeighborhood, Region.ID>
+		regionDensityDist( final Factory distFactory,
+			//final Map<String, Map<CBSRegionType, String>> regionTypes,
+			final Function<Region.ID, Region.ID> fallback )
+	{
+		final CBSRegionType cbsRegionLevel = regionalResolution();
+		final Map<Region.ID, ProbabilityDistribution<CbsNeighborhood>> async = CbsNeighborhood
+				.readAsync( this::regionDensityData )
+				.groupBy( bu -> bu.regionRef( cbsRegionLevel ) )
+				.toMap( GroupedObservable::getKey,
+						group -> distFactory.createCategorical( group
+								.map( CbsNeighborhood::toWeightedValue )
+								.toList( HashSet::new ).blockingGet() ) )
+				.blockingGet();
+
+		return ConditionalDistribution.of( id -> async.computeIfAbsent( id,
+				key -> async.get( fallback.apply( key ) ) ) );
+	}
+
 	@Key( VACCINATION_PREFIX + "invitation-age" )
 	@DefaultValue( "[.5 yr; 4 yr)" )
 	String vaccinationInvitationAge();
@@ -414,19 +510,18 @@ public interface PilotConfig extends GlobalConfig
 	/** @see RelationFrequencyJson */
 	@Key( HESITANCY_PREFIX + "relation-frequencies" )
 	@DefaultValue( "relation-frequency.json" )
-	File hesitancyRelationFrequencies();
+	@ConverterClass( ConfigBaseFileConverter.class )
+	InputStream hesitancyRelationFrequencies();
 
 	default
 		ConditionalDistribution<Quantity<Time>, RelationFrequencyJson.Category>
 		hesitancyRelationFrequencyDist(
 			final ProbabilityDistribution.Factory distFactory )
 	{
-		final File file = hesitancyRelationFrequencies();
-		final List<RelationFrequencyJson> map = JsonUtil.readArrayAsync(
-				() -> FileUtil.toInputStream(
-						file.isAbsolute() ? file.getAbsolutePath()
-								: CONFIG_BASE_DIR + file.getPath() ),
-				RelationFrequencyJson.class ).toList().blockingGet();
+		final List<RelationFrequencyJson> map = JsonUtil
+				.readArrayAsync( () -> hesitancyRelationFrequencies(),
+						RelationFrequencyJson.class )
+				.toList().blockingGet();
 		@SuppressWarnings( "unchecked" )
 		final Quantity<Time> defaultDelay = QuantityUtil.valueOf( "1 yr" );
 		return c ->
@@ -443,56 +538,38 @@ public interface PilotConfig extends GlobalConfig
 	/** @see HesitancyProfileJson */
 	@Key( HESITANCY_PREFIX + "profiles" )
 	@DefaultValue( "hesitancy-univariate.json" )
-	File hesitancyProfiles();
+	@ConverterClass( ConfigBaseFileConverter.class )
+	InputStream hesitancyProfiles();
 
 	default ProbabilityDistribution<HesitancyProfileJson>
 		hesitancyProfileDist( final Factory distFactory )
 	{
-		final File file = hesitancyProfiles();
-		return distFactory
-				.createCategorical(
-						HesitancyProfileJson
-								.parse( () -> FileUtil
-										.toInputStream( file.isAbsolute()
-												? file.getAbsolutePath()
-												: CONFIG_BASE_DIR
-														+ file.getPath() ) )
-								.toList().blockingGet() );
+		return distFactory.createCategorical( HesitancyProfileJson
+				.parse( () -> hesitancyProfiles() ).toList().blockingGet() );
 	}
 
 	default <T> ConditionalDistribution<HesitancyProfileJson, T>
 		hesitancyProfilesGrouped( final Factory distFactory,
 			final Function<HesitancyProfileJson, T> keyMapper )
 	{
-		final File file = hesitancyProfiles();
-		return ConditionalDistribution
-				.of( distFactory::createCategorical,
-						HesitancyProfileJson
-								.parse( () -> FileUtil
-										.toInputStream( file.isAbsolute()
-												? file.getAbsolutePath()
-												: CONFIG_BASE_DIR
-														+ file.getPath() ) )
-								.toMultimap(
-										wv -> keyMapper.apply( wv.getValue() ),
-										wv -> wv )
-								.blockingGet() );
+		return ConditionalDistribution.of( distFactory::createCategorical,
+				HesitancyProfileJson.parse( () -> hesitancyProfiles() )
+						.toMultimap( wv -> keyMapper.apply( wv.getValue() ),
+								wv -> wv )
+						.blockingGet() );
 	}
 
 	@Key( HESITANCY_PREFIX + "profile-sample" )
 	@DefaultValue( "hesitancy-initial.json" )
-	File hesitancyProfileSample();
+	@ConverterClass( ConfigBaseFileConverter.class )
+	InputStream hesitancyProfileSample();
 
 	default
 		ConditionalDistribution<Map<HHAttribute, BigDecimal>, HesitancyProfileJson>
 		hesitancyProfileSample( final PseudoRandom rng ) throws IOException
 	{
-		final File file = hesitancyProfileSample();
-		final BigDecimal[][] sample = JsonUtil.valueOf(
-				FileUtil.toInputStream(
-						file.isAbsolute() ? file.getAbsolutePath()
-								: CONFIG_BASE_DIR + file.getPath() ),
-				BigDecimal[][].class );
+		final BigDecimal[][] sample = JsonUtil
+				.valueOf( hesitancyProfileSample(), BigDecimal[][].class );
 		final Map<HesitancyProfileJson, ProbabilityDistribution<Map<HHAttribute, BigDecimal>>> distCache = new HashMap<>();
 		return ConditionalDistribution
 				.of( hes -> distCache.computeIfAbsent( hes, key -> () ->

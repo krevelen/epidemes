@@ -39,7 +39,7 @@ public enum CBSRegionType
 	CITY( "WP" ),
 
 	/** buurt, e.g. 'BU00030000' */
-	BOROUGH( "BU", "BU%04d%02d%02d" ),
+	NEIGHBOURHOOD( "BU", "BU%04d%02d%02d" ),
 
 	/** wijk, e.g. 'WK000300' */
 	WARD( "WK", "WK%04d%02d" ),
@@ -147,7 +147,7 @@ public enum CBSRegionType
 	{
 		for( CBSRegionType value : values() )
 			if( regionId.contains( value.prefix ) ) return value;
-		return Thrower.throwNew( IllegalArgumentException.class,
-				"Unknown region type for: {}", regionId );
+		return Thrower.throwNew( IllegalArgumentException::new,
+				() -> "Unknown region type for: " + regionId );
 	}
 }

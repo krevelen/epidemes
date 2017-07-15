@@ -686,7 +686,7 @@ public class PilotScenario implements Scenario
 						HHAttribute.CONFIDENCE, HHAttribute.COMPLACENCY ) ) );
 	}
 
-	private void impressFirst( final long i, final Quantity<Time> dt )
+	private void impressInitial( final long i, final Quantity<Time> dt )
 	{
 		this.hhNetworkExpectations.compute( i, ( k, v ) ->
 		{
@@ -700,7 +700,7 @@ public class PilotScenario implements Scenario
 	private void impressNext( final long i, final Quantity<Time> dt,
 		final long[] J, final int n )
 	{
-		if( n > 0 )
+		if( n > 0 ) // network not yet saturated
 		{
 			final int k = this.distFactory.getStream().nextInt( J.length );
 			if( k <= n ) // ignore pick if member already removed
@@ -741,7 +741,7 @@ public class PilotScenario implements Scenario
 		LongStream.range( this.attractors.size(),
 				this.hhNetworkActivity.getRowCount() ).forEach( i ->
 				{
-					impressFirst( i,
+					impressInitial( i,
 							QuantityUtil.valueOf(
 									this.hhAttributes.getAsBigDecimal( i,
 											HHAttribute.IMPRESSION_PERIOD_DAYS
@@ -849,21 +849,17 @@ public class PilotScenario implements Scenario
 					HHAttribute.IDENTIFIER.ordinal() ) );
 		}
 
+//		final Cbs71486json.Category hhCat = this.localHouseholdDist.draw( dt() );
 		final int attractorRef =
 //				Region.ID.of( hhCat.regionRef() );
 				this.attractorBroker.next( hhIndex );
 
 		final HHAttractor attractor = this.attractors
 				.get( this.attractorNames[attractorRef] );
-//		final boolean religious = this.hhAttributes.getAsBoolean(
-//				attractorIndex, HHAttribute.RELIGIOUS.ordinal() );
-//		final boolean alternative = this.hhAttributes.getAsBoolean(
-//				attractorIndex, HHAttribute.ALTERNATIVE.ordinal() );
 		final HesitancyProfileJson profile = this.hesitancyProfileDist
 				.draw( attractor.toHesitancyProfile() );
 
 		final boolean hhRefMale = this.hhRefMaleDist.draw();
-//		final Cbs71486json.Category hhCat = this.localHouseholdDist.draw( dt() );
 		final Quantity<Time> hhRefAge =
 //		hhCat.ageDist( this.distFactory::createUniformContinuous ).draw();
 				this.hhRefAgeDist.draw();
@@ -880,7 +876,7 @@ public class PilotScenario implements Scenario
 				.reduce( ( f1, f2 ) -> f1.add( f2 ) ).get().inverse()
 				.asType( Time.class );
 
-		impressFirst( hhIndex, impressDelay );
+		impressInitial( hhIndex, impressDelay );
 
 //		final long partnerRef = hhType.adultCount() < 2 ? NA
 //				: createPerson(
@@ -923,19 +919,6 @@ public class PilotScenario implements Scenario
 //								QuantityUtil.valueOf( 24, TimeUnits.ANNUM ) ),
 //						hhStatus );
 
-		// create non-NA household members pressure network, adults impress all
-//		final long[] impressedRefs = Arrays
-//				.stream( new long[]
-//		{ referentRef, partnerRef, child1Ref, child2Ref, child3Ref } )
-//				.filter( ref -> ref != NA ).toArray();
-//		final long[] expressingRefs = Arrays
-//				.stream( new long[]
-//		{ referentRef, partnerRef } ).filter( ref -> ref != NA ).toArray();
-//		for( long impressedRef : impressedRefs )
-//			for( long expressingRef : expressingRefs )
-//				this.hhNetwork.setAsBigDecimal( BigDecimal.ONE, impressedRef,
-//						expressingRef );
-
 		final BigDecimal initialCalculation = this.calculationDist.draw();
 		final Map<HHAttribute, BigDecimal> initialHesitancy = this.hesitancyDist
 				.draw( profile );
@@ -954,10 +937,6 @@ public class PilotScenario implements Scenario
 				hhIndex, HHAttribute.IMPRESSION_PERIOD_DAYS.ordinal() );
 		this.hhAttributes.setAsInt( 0, hhIndex,
 				HHAttribute.IMPRESSION_FEEDS.ordinal() );
-//		this.hhAttributes.setAsBoolean( religious, hhIndex,
-//				HHAttribute.RELIGIOUS.ordinal() );
-//		this.hhAttributes.setAsBoolean( alternative, hhIndex,
-//				HHAttribute.ALTERNATIVE.ordinal() );
 		this.hhAttributes.setAsBigDecimal( initialCalculation, hhIndex,
 				HHAttribute.CALCULATION.ordinal() );
 		this.hhAttributes.setAsBigDecimal(

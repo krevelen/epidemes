@@ -22,6 +22,7 @@ package nl.rivm.cib.epidemes.cbs.json;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -84,6 +85,7 @@ public class CbsImportTest
 	private static final String CBS_37230_FILE = "cbs/37230ned_TS_2012_2017.json";
 	private static final String CBS_37713_FILE = "cbs/37713_2012JJ00_AllOrigins.json";
 	private static final String CBS_37201_FILE = "cbs/37201_TS_2010_2015.json";
+	private static final String CBS_83287_FILE = "cbs/83287NED.json";
 
 	private static ProbabilityDistribution.Factory distFact = null;
 	private static Range<LocalDate> timeRange = null;
@@ -218,7 +220,7 @@ public class CbsImportTest
 			final ZipCode zip = buurt.zipDist( distFact::createCategorical )
 					.draw();
 			LOG.trace( "draw #{}: reg: {} of {}, codes: {}, ref: {}, zip: {}",
-					i, regRef, async.size(), buurt.codes, buurt.ref(), zip );
+					i, regRef, async.size(), buurt.codes, buurt.neighbourhoodRef(), zip );
 		}
 
 		LOG.info( "done BoroughPC6" );
@@ -331,5 +333,16 @@ public class CbsImportTest
 		}
 
 		LOG.info( "done 37201" );
+	}
+
+	@Test
+	public void read83287() throws IOException
+	{
+		LOG.info( "start 83287" );
+		final Cbs83287Json json = Cbs83287Json.parse( FileUtil.toInputStream( CBS_83287_FILE ) );
+		LOG.trace( "Parsed '{}' -> \nfrom-gm: {}\nto-gm: {}",
+				CBS_83287_FILE, json.toMap(), json.toReverseMap() );
+
+		LOG.info( "done 83287" );
 	}
 }
