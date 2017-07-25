@@ -19,7 +19,6 @@
  */
 package nl.rivm.cib.pilot;
 
-import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +27,6 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,11 +36,13 @@ import javax.inject.Singleton;
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.coala.bind.LocalBinder;
 import io.coala.exception.Thrower;
 import io.coala.math.DecimalUtil;
+import io.coala.math.QuantityUtil;
 import io.coala.math.Tuple;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
@@ -50,7 +50,9 @@ import io.coala.time.Expectation;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.reactivex.Observable;
-import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 import nl.rivm.cib.episim.model.disease.ClinicalPhase;
 import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
 import nl.rivm.cib.util.JsonConfigurable;
@@ -77,41 +79,32 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 {
 	String TYPE_KEY = "type";
 
-	String TYPE_DEFAULT = MSEIR.class.getName();
+	String TYPE_DEFAULT = MSEIRS.class.getName();
 
-	String PERIOD_DEFAULT = "const( 1.1 week )";
+	String PERIOD_DEFAULT = "const( 1 week )";
 
-	String PASSIVE_PERIOD_KEY = "passivePeriod";
+	<T> Observable<Condition> trajectory( Observable<T> pressure,
+		Resistor<T> resistor );
 
-	/**
-	 * invasion period (S->E or S->I), related to contact rate of new/secondary
-	 * infections, <em>&beta;</em>
-	 */
-	String RESISTANCE_PERIOD_KEY = "resistancePeriod";
+	default Observable<Condition>
+		binaryTrajectory( Observable<? extends Number> pressure )
+	{
+		return trajectory( pressure.map( DecimalUtil::valueOf ),
+				( dt, p ) -> p.signum() < 1 ? dt.subtract( dt ) : dt );
+	}
 
-	/** exposed/latent period (E->I), related to incubation rate <em>a</em> */
-	String LATENT_PERIOD_KEY = "latentPeriod"; // Pathogen
+	default Observable<Condition>
+		linearTrajectory( Observable<? extends Number> pressure )
+	{
+		return trajectory( pressure.map( DecimalUtil::valueOf ),
+				Quantity::multiply );
+	}
 
-	/**
-	 * infectious/recovery period (I->R) <em>D</em>, related to transition rate
-	 * <em>v</em>=1/<em>D</em>
-	 */
-	String RECOVER_PERIOD_KEY = "recoverPeriod";
-
-	/**
-	 * wane (temporary recovery) period (R->S) TODO conditional on e.g.
-	 * co-morbidity, genetic factors, ...
-	 */
-	String WANE_PERIOD_KEY = "wanePeriod";
-
-	/** incubation period (E->C, sub->clinical symptoms) */
-	String INCUBATE_PERIOD_KEY = "incubatePeriod";
-
-	/** symptom period (C->R, normal/asymptomatic) */
-	String CLINICAL_PERIOD_KEY = "clinicalPeriod";
-
-	Observable<? extends Condition>
-		illnessTrajectory( Observable<? extends Number> pressureSource );
+	@FunctionalInterface
+	interface Resistor<T>
+	{
+		Quantity<Time> apply( Quantity<Time> dt, T t );
+	}
 
 	@SuppressWarnings( "rawtypes" )
 	interface Condition extends Comparable
@@ -123,29 +116,6 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 //		Serostatus getSerostatus();
 
 		EpidemicCompartment getCompartment();
-
-		Simple PASSIVE = new Simple( EpidemicCompartment.Simple.PASSIVE_IMMUNE,
-				ClinicalPhase.Simple.ASYMPTOMATIC );
-
-		Simple SUSCEPTIBLE = new Simple( EpidemicCompartment.Simple.SUSCEPTIBLE,
-				ClinicalPhase.Simple.ASYMPTOMATIC );
-
-		Simple EXPOSED = new Simple( EpidemicCompartment.Simple.EXPOSED,
-				ClinicalPhase.Simple.ASYMPTOMATIC );
-
-		Simple EXPOSED_CLINICAL = new Simple(
-				EpidemicCompartment.Simple.EXPOSED,
-				ClinicalPhase.Simple.SYSTEMIC );
-
-		Simple INFECTIVE = new Simple( EpidemicCompartment.Simple.INFECTIVE,
-				ClinicalPhase.Simple.ASYMPTOMATIC );
-
-		Simple INFECTIVE_CLINICAL = new Simple(
-				EpidemicCompartment.Simple.INFECTIVE,
-				ClinicalPhase.Simple.SYSTEMIC );
-
-		Simple RECOVERED = new Simple( EpidemicCompartment.Simple.RECOVERED,
-				ClinicalPhase.Simple.ASYMPTOMATIC );
 
 		class Simple extends Tuple implements Condition
 		{
@@ -169,7 +139,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		}
 	}
 
-	class MSEIR implements Pathogen
+	class MSEIRS implements Pathogen
 	{
 		private final Map<String, QuantityDistribution<Time>> distCache = new HashMap<>();
 
@@ -182,178 +152,31 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		private JsonNode config;
 
 		@Override
+		public String toString()
+		{
+			return stringify();
+		}
+
+		@Override
 		public Scheduler scheduler()
 		{
 			return this.scheduler;
 		}
 
-		/**
-		 * {@link Status} maintains an individual's remaining infection
-		 * resistance
-		 */
-		public static class Status<T> implements Proactive
+		private Quantity<Time> dtMapper( final EpiPeriod configKey )
 		{
-			private final Scheduler scheduler;
-			private final Function<String, Quantity<Time>> dtMapper;
-			private final BehaviorSubject<Condition> emitter = BehaviorSubject
-					.create();
-			private final AtomicReference<Expectation> expose = new AtomicReference<>();
-			private final BiFunction<Quantity<Time>, T, Quantity<Time>> pressureChanger;
-			private final AtomicReference<T> pressure = new AtomicReference<>();
-			private final AtomicReference<Quantity<Time>> resistance = new AtomicReference<>();
-			private final AtomicReference<Quantity<Time>> since = new AtomicReference<>();
-
-			public Status( final Scheduler scheduler, final Condition initial,
-				final Function<String, Quantity<Time>> dtMapper,
-				final BiFunction<Quantity<Time>, T, Quantity<Time>> pressurizer,
-				final T initialPressure )
-			{
-				Objects.requireNonNull( initial,
-						"Condition is required, diseased?" );
-				Objects.requireNonNull( initial.getCompartment(),
-						"Compartment is required, diseased?" );
-				this.scheduler = scheduler;
-				this.dtMapper = dtMapper;
-				this.pressureChanger = pressurizer;
-				this.pressure.set( initialPressure );
-				atOnce( t ->
-				{
-					switch( (EpidemicCompartment.Simple) initial
-							.getCompartment() )
+			return this.distCache.computeIfAbsent(
+					fromConfig( configKey.jsonKey(), PERIOD_DEFAULT ), dist ->
 					{
-					case PASSIVE_IMMUNE:
-						this.emitter.onNext( initial );
-						after( this.dtMapper.apply( PASSIVE_PERIOD_KEY ) )
-								.call( this::wane );
-						break;
-					case SUSCEPTIBLE:
-						wane();
-						break;
-					case EXPOSED:
-						expose();
-						break;
-					case INFECTIVE:
-						shed();
-						break;
-					case RECOVERED:
-						recover();
-						break;
-					}
-				} );
-			}
-
-			@Override
-			public Scheduler scheduler()
-			{
-				return this.scheduler;
-			}
-
-			@SuppressWarnings( "unchecked" )
-			public void setPressure( final T pressure )
-			{
-				final T oldP = this.pressure.getAndSet( pressure );
-
-				if( oldP != null && oldP.equals( pressure ) ) return; // pressure unchanged
-
-				if( this.emitter.getValue() == null || !this.emitter.getValue()
-						.getCompartment().isSusceptible() )
-					return; // not susceptible: no exposure occurring
-
-				final Quantity<Time> t = now().toQuantity( Time.class ),
-						t0 = this.since.getAndSet( t );
-
-				// update remaining resistance, subtracting dp for dt > 0
-				if( t0 != null && !t0.equals( t ) )
-					this.resistance.getAndUpdate(
-							res -> res.subtract( this.pressureChanger.apply(
-									t.subtract( t0 ), this.pressure.get() ) ) );
-
-				// reschedule exposure
-				wane();
-			}
-
-			protected void wane()
-			{
-				// check resistance is initialized
-				this.resistance.getAndUpdate( dt -> dt != null ? dt
-						: this.dtMapper.apply( RESISTANCE_PERIOD_KEY ) );
-				// (re)schedule exposure
-				final Expectation exp = this.expose.getAndSet(
-						after( this.resistance.get() ).call( this::expose ) );
-				// cancel previous, if any
-				if( exp != null ) exp.remove();
-				// emit only if not already susceptible
-				if( !this.emitter.getValue().getCompartment().isSusceptible() )
-					this.emitter.onNext( Condition.SUSCEPTIBLE );
-			}
-
-			protected void expose()
-			{
-				this.emitter.onNext( Condition.EXPOSED );
-				after( this.dtMapper.apply( INCUBATE_PERIOD_KEY ) )
-						.call( this::clinical );
-				after( this.dtMapper.apply( LATENT_PERIOD_KEY ) )
-						.call( this::shed );
-			}
-
-			protected void shed()
-			{
-				this.emitter.onNext(
-						this.emitter.getValue().getSymptoms().isClinical()
-								? Condition.INFECTIVE_CLINICAL
-								: Condition.INFECTIVE );
-				after( this.dtMapper.apply( RECOVER_PERIOD_KEY ) )
-						.call( this::recover );
-			}
-
-			protected void clinical()
-			{
-				this.emitter.onNext(
-						this.emitter.getValue().getCompartment().isInfective()
-								? Condition.INFECTIVE_CLINICAL
-								: Condition.EXPOSED_CLINICAL );
-				after( this.dtMapper.apply( CLINICAL_PERIOD_KEY ) )
-						.call( this::subclinical );
-			}
-
-			protected void subclinical()
-			{
-				this.emitter.onNext(
-						this.emitter.getValue().getCompartment().isInfective()
-								? Condition.INFECTIVE : Condition.EXPOSED );
-			}
-
-			private void recover()
-			{
-				this.emitter.onNext( Condition.RECOVERED );
-				after( this.dtMapper.apply( WANE_PERIOD_KEY ) )
-						.call( this::wane );
-			}
-		}
-
-		@SuppressWarnings( "unchecked" )
-		@Override
-		public Observable<? extends Condition>
-			illnessTrajectory( final Observable<? extends Number> pressure )
-		{
-			final Status<BigDecimal> status = new Status<BigDecimal>(
-					scheduler(), Condition.PASSIVE,
-					configKey -> this.distCache.computeIfAbsent(
-							fromConfig( configKey, PERIOD_DEFAULT ), key ->
-							{
-								try
-								{
-									return this.distParser.parseQuantity( key,
-											Time.class );
-								} catch( final ParseException e )
-								{
-									return Thrower.rethrowUnchecked( e );
-								}
-							} ).draw(),
-					Quantity::divide, BigDecimal.ZERO );
-			pressure.map( DecimalUtil::valueOf ).subscribe( status::setPressure,
-					status.emitter::onError );
-			return status.emitter;
+						try
+						{
+							return this.distParser.parseQuantity( dist,
+									Time.class );
+						} catch( final ParseException e )
+						{
+							return Thrower.rethrowUnchecked( e );
+						}
+					} ).draw();
 		}
 
 		@Override
@@ -367,6 +190,320 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		public JsonNode config()
 		{
 			return this.config;
+		}
+
+		@SuppressWarnings( "unchecked" )
+		@Override
+		public <T> Observable<Condition> trajectory(
+			final Observable<T> pressures, final Resistor<T> resistor )
+		{
+			return Observable.create( sub ->
+			{
+//				final Independent s = new Independent( scheduler(),
+//						this::dtMapper, sub );
+				final Pressurized<T> s = new Pressurized<T>( scheduler(),
+						this::dtMapper, resistor, sub );
+				pressures.subscribe( s );
+				s.passive(); // initiate dynamics
+			} );
+		}
+
+		public enum EpiPeriod
+		{
+			PASSIVE,
+			/**
+			 * invasion period (S->E or S->I), related to contact rate of
+			 * new/secondary infections, <em>&beta;</em>
+			 */
+			RESISTANCE,
+
+			/**
+			 * exposed/latent period (E->I), related to incubation rate
+			 * <em>a</em>
+			 */
+			LATENT,
+
+			/**
+			 * infectious/recovery period (I->R) <em>D</em>, related to
+			 * transition rate <em>v</em>=1/<em>D</em>
+			 */
+			RECOVER,
+
+			/**
+			 * wane (temporary recovery) period (R->S) TODO conditional on e.g.
+			 * co-morbidity, genetic factors, ...
+			 */
+			WANE,
+
+			/** incubation period (E->C, sub->clinical symptoms) */
+			INCUBATE,
+
+			/** symptom period (C->R, normal/asymptomatic) */
+			CLINICAL,
+			//
+			;
+
+			private String jsonKey = null;
+
+			@JsonValue
+			public String jsonKey()
+			{
+				return this.jsonKey != null ? this.jsonKey
+						: (this.jsonKey = name().toLowerCase() + "-period");
+			}
+		}
+
+		/**
+		 * {@link Pressurized} maintains an individual's remaining infection
+		 * resistance
+		 */
+		public static class Independent implements Proactive
+		{
+			protected static final Condition PASSIVE = new Condition.Simple(
+					EpidemicCompartment.Simple.PASSIVE_IMMUNE,
+					ClinicalPhase.Simple.ASYMPTOMATIC );
+			protected static final Condition SUSCEPTIBLE = new Condition.Simple(
+					EpidemicCompartment.Simple.SUSCEPTIBLE,
+					ClinicalPhase.Simple.ASYMPTOMATIC );
+			protected static final Condition EXPOSED_SUBCLINICAL = new Condition.Simple(
+					EpidemicCompartment.Simple.EXPOSED,
+					ClinicalPhase.Simple.ASYMPTOMATIC );
+			protected static final Condition EXPOSED_CLINICAL = new Condition.Simple(
+					EpidemicCompartment.Simple.EXPOSED,
+					ClinicalPhase.Simple.SYSTEMIC );
+			protected static final Condition INFECTIVE_SUBCLINICAL = new Condition.Simple(
+					EpidemicCompartment.Simple.INFECTIVE,
+					ClinicalPhase.Simple.ASYMPTOMATIC );
+			protected static final Condition INFECTIVE_CLINICAL = new Condition.Simple(
+					EpidemicCompartment.Simple.INFECTIVE,
+					ClinicalPhase.Simple.SYSTEMIC );
+			protected static final Condition RECOVERED = new Condition.Simple(
+					EpidemicCompartment.Simple.RECOVERED,
+					ClinicalPhase.Simple.ASYMPTOMATIC );
+
+			protected final AtomicReference<Condition> condition = new AtomicReference<>();
+			protected final Function<EpiPeriod, Quantity<Time>> progressor;
+			protected final ObservableEmitter<Condition> emitter;
+			private final Scheduler scheduler;
+
+			public Independent( final Scheduler scheduler,
+				final Function<EpiPeriod, Quantity<Time>> progressor,
+				final ObservableEmitter<Condition> emitter )
+			{
+				this.scheduler = scheduler;
+				this.progressor = progressor;
+				this.emitter = emitter;
+			}
+
+			@Override
+			public Scheduler scheduler()
+			{
+				return this.scheduler;
+			}
+
+			/**
+			 * sets condition {@link #PASSIVE} and schedules {@link #wane} after
+			 * {@link EpiPeriod#PASSIVE}
+			 */
+			protected void passive()
+			{
+				this.emitter.onNext( PASSIVE );
+				after( this.progressor.apply( EpiPeriod.PASSIVE ) )
+						.call( this::wane );
+			}
+
+			/**
+			 * sets condition {@link #SUSCEPTIBLE} and schedules {@link #expose}
+			 * after {@link EpiPeriod#RESISTANCE}
+			 */
+			protected void wane()
+			{
+				this.emitter.onNext(
+						this.condition.updateAndGet( x -> SUSCEPTIBLE ) );
+				after( this.progressor.apply( EpiPeriod.RESISTANCE ) )
+						.call( this::expose );
+			}
+
+			/**
+			 * sets condition {@link #EXPOSED_SUBCLINICAL} and schedules both
+			 * {@link #shed} after {@link EpiPeriod#LATENT} and
+			 * {@link #clinical} after {@link EpiPeriod#INCUBATE}
+			 */
+			protected void expose()
+			{
+				this.emitter.onNext( this.condition
+						.updateAndGet( c -> EXPOSED_SUBCLINICAL ) );
+				after( this.progressor.apply( EpiPeriod.LATENT ) )
+						.call( this::shed );
+				after( this.progressor.apply( EpiPeriod.INCUBATE ) )
+						.call( this::clinical );
+			}
+
+			/**
+			 * sets condition {@link #INFECTIVE_SUBCLINICAL} or
+			 * {@link #INFECTIVE_CLINICAL} and schedules {@link #recover} after
+			 * {@link EpiPeriod#RECOVER}
+			 */
+			protected void shed()
+			{
+				this.emitter.onNext( this.condition.updateAndGet(
+						c -> c.getSymptoms().isClinical() ? INFECTIVE_CLINICAL
+								: INFECTIVE_SUBCLINICAL ) );
+				after( this.progressor.apply( EpiPeriod.RECOVER ) )
+						.call( this::recover );
+			}
+
+			/**
+			 * sets condition {@link #INFECTIVE_CLINICAL} or
+			 * {@link #EXPOSED_CLINICAL} and schedules {@link #subclinical}
+			 * after {@link EpiPeriod#CLINICAL}
+			 */
+			protected void clinical()
+			{
+				this.emitter.onNext( this.condition
+						.updateAndGet( c -> c.getCompartment().isInfective()
+								? INFECTIVE_CLINICAL : EXPOSED_CLINICAL ) );
+				after( this.progressor.apply( EpiPeriod.CLINICAL ) )
+						.call( this::subclinical );
+			}
+
+			/**
+			 * sets condition {@link #INFECTIVE_SUBCLINICAL} or
+			 * {@link #EXPOSED_SUBCLINICAL}
+			 */
+			protected void subclinical()
+			{
+				this.emitter.onNext( this.condition
+						.updateAndGet( c -> c.getCompartment().isInfective()
+								? INFECTIVE_SUBCLINICAL
+								: EXPOSED_SUBCLINICAL ) );
+			}
+
+			/**
+			 * sets condition {@link #EXPOSED_SUBCLINICAL} and schedules
+			 * {@link #wane} after {@link EpiPeriod#WANE}
+			 */
+			protected void recover()
+			{
+				this.emitter.onNext(
+						this.condition.updateAndGet( c -> RECOVERED ) );
+				after( this.progressor.apply( EpiPeriod.WANE ) )
+						.call( this::wane );
+			}
+		}
+
+		/**
+		 * {@link Pressurized} maintains an individual's remaining infection
+		 * resistance
+		 */
+		public static class Pressurized<T> extends Independent
+			implements Observer<T>
+		{
+			private final AtomicReference<T> pressure = new AtomicReference<>();
+			private final AtomicReference<Expectation> expose = new AtomicReference<>();
+			private final AtomicReference<Quantity<Time>> resistance = new AtomicReference<>();
+			private final AtomicReference<Quantity<Time>> since = new AtomicReference<>();
+
+			private final Resistor<T> resistor;
+
+			public Pressurized( final Scheduler scheduler,
+				final Function<EpiPeriod, Quantity<Time>> progressor,
+				final Resistor<T> resistor,
+				final ObservableEmitter<Condition> emitter )
+			{
+				super( scheduler, progressor, emitter );
+				this.resistor = resistor;
+			}
+
+			@Override
+			public void onSubscribe( final Disposable d )
+			{
+				// never cancel/dispose observers
+			}
+
+			@Override
+			public void onNext( final T pNew )
+			{
+				final T pOld = this.pressure.getAndSet( pNew );
+
+				// no pressure or unchanged
+				if( pOld == null || pOld.equals( pNew ) ) return;
+
+				if( this.condition.get() == null || !this.condition.get()
+						.getCompartment().isSusceptible() )
+					return; // not susceptible: no exposure occurring
+
+				final Quantity<Time> t = now().toQuantity( Time.class ),
+						t0 = this.since.getAndSet( t );
+
+				// update remaining resistance, subtracting dp for dt > 0
+				if( t0 != null && !t0.equals( t ) )
+				{
+					final Quantity<Time> dt = t.subtract( t0 ),
+							dp = this.resistor.apply( dt, pOld ),
+							res0 = this.resistance
+									.getAndUpdate( res -> res.subtract( dp ) );
+					System.err.println( "t=" + t + " dt=" + dt + " dp=" + dp
+							+ " res0=" + res0 + " res_t=" + this.resistance );
+				}
+
+				// reschedule exposure
+				wane();
+			}
+
+			@Override
+			public void onError( final Throwable e )
+			{
+				this.emitter.onError( e );
+			}
+
+			@Override
+			public void onComplete()
+			{
+				this.emitter.onComplete();
+			}
+
+			/**
+			 * sets/maintains condition {@link #SUSCEPTIBLE} and (re)schedules
+			 * {@link #expose} after (pressured) {@link EpiPeriod#RESISTANCE}
+			 */
+			@Override
+			protected void wane()
+			{
+				final Condition c = this.condition.get();
+				if( c == null || !c.getCompartment().isSusceptible() )
+					this.emitter.onNext(
+							this.condition.updateAndGet( x -> SUSCEPTIBLE ) );
+
+				final Quantity<Time> resistance = this.resistance
+						.updateAndGet( dt -> dt != null ? dt
+								: this.progressor
+										.apply( EpiPeriod.RESISTANCE ) );
+
+				if( QuantityUtil.signum( resistance ) < 1 )
+				{
+					System.err.println( "expose immediately: " + resistance );
+					expose();
+					return;
+				}
+				System.err.println( "scheduling expose after: " + resistance );
+				// (re)schedule exposure
+				final Expectation exp1 = after( resistance )
+						.call( this::expose ),
+						exp = this.expose.getAndSet( exp1 );
+
+				// cancel previous, if any
+				if( exp != null ) exp.remove();
+			}
+
+			@Override
+			protected void expose()
+			{
+				this.expose.set( null );
+				this.resistance.set( null );
+				this.since.set( null );
+				super.expose();
+			}
 		}
 	}
 
@@ -409,7 +546,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 			}
 			// unexpected
 			return Thrower.throwNew( IllegalArgumentException::new,
-					() -> "Invalid attractor config: " + config );
+					() -> "Invalid pathogen config: " + config );
 		}
 
 		@Singleton
@@ -428,7 +565,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 						? TYPE_DEFAULT : typeNode.asText( TYPE_DEFAULT );
 				final Class<? extends Pathogen> type = Class.forName( typeName )
 						.asSubclass( Pathogen.class );
-				return this.binder.inject( type, config ).reset( config );
+				return this.binder.inject( type ).reset( config );
 			}
 		}
 	}

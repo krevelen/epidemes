@@ -75,13 +75,21 @@ public class PathogenTest
 		@Override
 		public void init() throws Exception
 		{
-			final Pathogen pathogen = this.pathogens.create(
-					JsonUtil.getJOM().createObjectNode().put( "asd", "dsa" ) );
+			final Pathogen pathogen = this.pathogens.create( JsonUtil.getJOM()
+					.createObjectNode().put( "incubate-period", "const(.5 week)" )
+//					.put( "wane-period", "const(.5 year)" )
+					);
 			LOG.trace( "Init pathogen: {}", pathogen );
 
-			pathogen.illnessTrajectory( this.pressure ).subscribe(
-					c -> LOG.trace( "t={}, compartment now: {}", now(), c ),
-					Exceptions::propagate );
+			pathogen.linearTrajectory( this.pressure )
+					.subscribe(
+							c -> LOG.trace( "t={}, compartment now: {}",
+//									QuantityUtil.toScale(
+//											now().toQuantity( TimeUnits.DAYS ),
+//											2 ),
+									now(),
+									c ),
+							Exceptions::propagate );
 
 			// add infectious scenario
 			final AtomicLong infectious = new AtomicLong();
