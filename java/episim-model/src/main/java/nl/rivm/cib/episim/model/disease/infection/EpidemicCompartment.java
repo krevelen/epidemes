@@ -122,7 +122,7 @@ public interface EpidemicCompartment extends Identified<String>
 
 		/**
 		 * a {@link Condition} where a {@link Afflicted} remains non-recovered
-		 * CARRIER of some {@link Pathogen}
+		 * dormant/exposed CARRIER of some {@link Pathogen}
 		 */
 //		CARRIER,
 

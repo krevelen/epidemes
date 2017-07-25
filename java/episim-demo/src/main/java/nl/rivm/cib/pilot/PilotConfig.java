@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -70,6 +71,7 @@ import nl.rivm.cib.pilot.hh.HHAttitudeEvaluator;
 import nl.rivm.cib.pilot.hh.HHAttitudePropagator;
 import nl.rivm.cib.pilot.hh.HHAttractor;
 import nl.rivm.cib.pilot.hh.HHAttribute;
+import nl.rivm.cib.pilot.hh.HHMemberMotor;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.HesitancyDimension;
 import nl.rivm.cib.pilot.json.RelationFrequencyJson;
@@ -143,10 +145,13 @@ public interface PilotConfig extends GlobalConfig
 	String HESITANCY_PREFIX = POPULATION_PREFIX + "hesitancy" + KEY_SEP;
 
 	/** configuration key */
-	String EPIDEMIC_PREFIX = POPULATION_PREFIX + "epidemic" + KEY_SEP;
+	String GEOGRAPHY_PREFIX = POPULATION_PREFIX + "geography" + KEY_SEP;
 
 	/** configuration key */
 	String VACCINATION_PREFIX = POPULATION_PREFIX + "vaccination" + KEY_SEP;
+
+	/** configuration key */
+	String PATHOLOGY_PREFIX = POPULATION_PREFIX + "pathology" + KEY_SEP;
 
 	/**
 	 * provide a universal approach for loading the {@link PilotConfig}
@@ -364,32 +369,32 @@ public interface PilotConfig extends GlobalConfig
 //				map );
 //	}
 
-	@Key( MOBILITY_PREFIX + "region-fallback-ref" )
+	@Key( GEOGRAPHY_PREFIX + "region-fallback-ref" )
 	@DefaultValue( "GM0363" )
 	Region.ID regionFallbackRef();
 
-	@Key( MOBILITY_PREFIX + "regional-resolution" )
+	@Key( GEOGRAPHY_PREFIX + "regional-resolution" )
 	@DefaultValue( "MUNICIPAL" )
 	CBSRegionType regionalResolution();
 
-	@Key( MOBILITY_PREFIX + "region-mapping-data" )
+	@Key( GEOGRAPHY_PREFIX + "region-mapping-data" )
 	@DefaultValue( "83287NED.json" )
 	@ConverterClass( ConfigBaseFileConverter.class )
 	InputStream regionMappingData();
 
-	default Map<String, Map<CBSRegionType, String>> municipalRegionTypeMapping()
-		throws IOException
+	default Map<String, Map<CBSRegionType, String>>
+		regionsPerMunicipalityMapping() throws IOException
 	{
 		return Cbs83287Json.parse( regionMappingData() ).toMap();
 	}
 
-	default Map<CBSRegionType, Map<String, Set<String>>>
-		regionTypeMunicipalityMapping() throws IOException
+	default Map<CBSRegionType, Map<String, Set<String>>> regionsPerTypeMapping()
+		throws IOException
 	{
 		return Cbs83287Json.parse( regionMappingData() ).toReverseMap();
 	}
 
-	@Key( MOBILITY_PREFIX + "region-density-data" )
+	@Key( GEOGRAPHY_PREFIX + "region-density-data" )
 	@DefaultValue( "pc6_buurt.json" )
 	@ConverterClass( ConfigBaseFileConverter.class )
 	InputStream regionDensityData();
@@ -420,6 +425,18 @@ public interface PilotConfig extends GlobalConfig
 
 		return ConditionalDistribution.of( id -> async.computeIfAbsent( id,
 				key -> async.get( fallback.apply( key ) ) ) );
+	}
+
+	@Key( MOBILITY_PREFIX + "motor-factory" )
+	@DefaultValue( "nl.rivm.cib.pilot.hh.HHMemberMotor$Factory$SimpleBinding" )
+	Class<? extends HHMemberMotor.Factory> regionalMotorFactory();
+
+	default NavigableMap<String, HHMemberMotor>
+		regionalMotors( final LocalBinder binder )
+	{
+		return Collections.unmodifiableNavigableMap( binder
+				.inject( regionalMotorFactory() )
+				.createAll( toJSON( MOBILITY_PREFIX + "motors" ) ) );
 	}
 
 	@Key( VACCINATION_PREFIX + "invitation-age" )
@@ -493,12 +510,12 @@ public interface PilotConfig extends GlobalConfig
 	@DefaultValue( "nl.rivm.cib.pilot.hh.HHAttractor$Factory$SimpleBinding" )
 	Class<? extends HHAttractor.Factory> hesitancyAttractorFactory();
 
-	default Map<String, HHAttractor>
+	default NavigableMap<String, HHAttractor>
 		hesitancyAttractors( final LocalBinder binder )
 	{
 		try
 		{
-			return Collections.unmodifiableMap(
+			return Collections.unmodifiableNavigableMap(
 					binder.inject( hesitancyAttractorFactory() ).createAll(
 							toJSON( HESITANCY_PREFIX + "attractors" ) ) );
 		} catch( final Exception e )
@@ -534,6 +551,10 @@ public interface PilotConfig extends GlobalConfig
 					.findFirst().orElse( defaultDelay );
 		};
 	}
+	
+	@Key( HESITANCY_PREFIX + "relation-impact-rate" )
+	@DefaultValue( "1" )
+	BigDecimal hesitancyRelationImpactRate();
 
 	/** @see HesitancyProfileJson */
 	@Key( HESITANCY_PREFIX + "profiles" )

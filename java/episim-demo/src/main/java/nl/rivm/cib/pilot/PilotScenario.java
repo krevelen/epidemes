@@ -9,7 +9,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -36,12 +35,9 @@ import org.ujmp.core.SparseMatrix;
 import org.ujmp.core.calculation.Calculation.Ret;
 import org.ujmp.core.enums.ValueType;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.coala.bind.InjectConfig;
 import io.coala.bind.InjectConfig.Scope;
 import io.coala.bind.LocalBinder;
-import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.DecimalUtil;
@@ -53,7 +49,6 @@ import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.random.QuantityDistribution;
-import io.coala.time.Duration;
 import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Scenario;
@@ -176,7 +171,7 @@ public class PilotScenario implements Scenario
 	/** */
 	private Matrix hhNetwork;
 	/** */
-	private Map<String, HHAttractor> attractors = Collections.emptyMap();
+	private NavigableMap<String, HHAttractor> attractors;
 	/** */
 	private String[] attractorNames;
 	/** */
@@ -204,13 +199,13 @@ public class PilotScenario implements Scenario
 //	private transient ConditionalDistribution<CbsNeighborhood, Region.ID> hoodDist;
 
 	/** */
-	private HHMemberMotor.Broker motorBroker;
-	/** */
-	private HHMemberMotor[] motors;
-	/** */
-	private Matrix motorPresence;
+	private NavigableMap<String, HHMemberMotor> motors;
 	/** */
 	private Expectation[] motorAdjourns;
+	/** */
+	private String[] motorNames;
+	/** */
+	private Matrix motorPresence;
 
 //	private transient ConditionalDistribution<Quantity<Time>, GenderAge> peerPressureIntervalDist;
 
@@ -240,24 +235,17 @@ public class PilotScenario implements Scenario
 		this.ppAttributes = Matrix.Factory.zeros( ValueType.BIGDECIMAL, ppTotal,
 				HHMemberAttribute.values().length );
 		this.hhNetwork = SparseMatrix.Factory.zeros( edges, edges );
-//		this.hhNetworkActivity = SparseMatrix.Factory.zeros( edges, edges );
 
-		final JsonNode motorConfig = JsonUtil.getJOM().createObjectNode()
-				.set( "work", JsonUtil.getJOM().createObjectNode()
-						.put( HHMemberMotor.CONVENE_KEY, "0 0 9 ? * MON-FRI" )
-						.put( HHMemberMotor.DURATION_KEY, "const(8 h)" ) );
-		LOG.trace( "creating motors from: {}", motorConfig );
-		final NavigableMap<String, HHMemberMotor> motors = this.binder
-				.inject( HHMemberMotor.Factory.SimpleBinding.class )
-				.createAll( motorConfig );
-		this.motors = motors.values()
-				.toArray( new HHMemberMotor[motors.size()] );
-		this.motorAdjourns = new Expectation[motors.size()];
-		IntStream.range( 0, this.motors.length ).forEach( m -> this.motors[m]
-				.convene().subscribe( dt -> convene( dt, m ) ) );
+		this.motors = this.config.regionalMotors( this.binder );
+		this.motorNames = this.motors.keySet()
+				.toArray( new String[this.motors.size()] );
+		this.motorAdjourns = new Expectation[this.motors.size()];
+		IntStream.range( 0, this.motors.size() )
+				.forEach( m -> this.motors.get( this.motorNames[m] ).convene()
+						.subscribe( dt -> convene( dt, m ) ) );
 		this.motorPresence = SparseMatrix.Factory.zeros( ppTotal,
-				this.motors.length );
-		this.motorBroker = ppIndex -> 0; // TODO expand to local/personal motor
+				this.motors.size() );
+//		this.motorBroker = ppIndex -> (int) (ppIndex % this.motors.size()); // TODO expand to local/personal motor
 
 		this.vaccinationAge = this.config.vaccinationAgeRange();
 
@@ -572,15 +560,14 @@ public class PilotScenario implements Scenario
 		return this.networkEvents;
 	}
 
-	private void convene( final Duration dt, final int m )
+	private void convene( final Quantity<Time> dt, final int motorIndex )
 	{
 		final int refCol = HHMemberAttribute.MOTOR_REF.ordinal();
-		if( this.motorAdjourns[m] != null )
-		{
-			this.motorAdjourns[m].remove();
-			this.motorAdjourns[m] = null;
-		}
-		final long[] adjourn = adjourn( m );
+		if( this.motorAdjourns[motorIndex] != null )
+			this.motorAdjourns[motorIndex].remove();
+
+		final long[] adjourn = adjourn( motorIndex );
+		// TODO parallelize
 		final Iterator<long[]> mem = this.ppAttributes
 				.selectColumns( Ret.LINK, refCol ).availableCoordinates()
 				.iterator();
@@ -588,22 +575,25 @@ public class PilotScenario implements Scenario
 		{
 			final BigDecimal since = now().decimal();
 			for( long[] x = mem.next(); mem.hasNext(); x = mem.next() )
-				if( this.ppAttributes.getAsInt( x[0], refCol ) == m )
-					this.motorPresence.setAsBigDecimal( since, x[0], m );
+				if( this.ppAttributes.getAsInt( x[0], refCol ) == motorIndex )
+				{
+					this.motorPresence.setAsBigDecimal( since, x[0],
+							motorIndex );
+					// TODO enter(count infectious and total) and map pressures to EXPOSE events based on DAYS_LEFT
+				}
 		}
 
-		LOG.trace( "t={}, convene motor {}, adjourn @t+{}, kicked {}",
-				prettyDate( now() ), m, dt, adjourn );
+		LOG.trace( "t={}, convene @{}, adjourn @t+{}, kicked {}",
+				prettyDate( now() ), this.motorNames[motorIndex], dt, adjourn );
 	}
 
-	private long[] adjourn( final int m )
+	private long[] adjourn( final int motorIndex )
 	{
-		return MatrixUtil
-				.coordinateStream(
-						this.motorPresence.selectColumns( Ret.LINK, m ) )
+		return MatrixUtil.coordinateStream(
+				this.motorPresence.selectColumns( Ret.LINK, motorIndex ) )
 				.mapToLong( x -> x[0] ).filter( p ->
 				{
-					final long[] x = { p, m };
+					final long[] x = { p, motorIndex };
 					final BigDecimal since = this.motorPresence
 							.getAsBigDecimal( x );
 					this.motorPresence.setAsObject( null, x );
@@ -618,8 +608,8 @@ public class PilotScenario implements Scenario
 					this.ppAttributes.setAsBigDecimal( days, y );
 					if( days.signum() < 1 )
 					{
-						LOG.trace( "EXPOSE person: {} at convention: {}", p,
-								m );
+						LOG.trace( "EXPOSED person: {} @ {}", p,
+								this.motorNames[motorIndex] );
 						// f convening
 						this.ppAttributes.setAsInt( -1, p,
 								HHMemberAttribute.MOTOR_REF.ordinal() );
@@ -822,7 +812,7 @@ public class PilotScenario implements Scenario
 
 	private int createHousehold( final long oldIndex )
 	{
-		final long id = this.hhCount.incrementAndGet();
+		final long id = this.hhCount.getAndIncrement();
 		final long hhIndex;
 		if( oldIndex == NA )
 		{
@@ -982,8 +972,13 @@ public class PilotScenario implements Scenario
 				HHMemberAttribute.MALE.ordinal() );
 		this.ppAttributes.setAsInt( status.ordinal(), index,
 				HHMemberAttribute.STATUS.ordinal() );
-		final int motor = this.motorBroker.next( index );
-		this.ppAttributes.setAsInt( motor, index,
+		long all = 0L;
+		for(int m=this.motors.size()-1;--m!=0;)
+		{
+			System.err.println( all+" -> "+(all&m));
+			all=all&m;
+		}
+		this.ppAttributes.setAsLong( all, index,
 				HHMemberAttribute.MOTOR_REF.ordinal() );
 		this.ppAttributes.setAsBigDecimal( BigDecimal.TEN, index,
 				HHMemberAttribute.SUSCEPTIBLE_DAYS.ordinal() );

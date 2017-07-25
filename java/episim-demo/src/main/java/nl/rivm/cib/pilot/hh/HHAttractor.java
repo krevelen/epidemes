@@ -39,7 +39,7 @@ import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.Category;
-import nl.rivm.cib.util.HHScenarioConfigurable;
+import nl.rivm.cib.util.JsonSchedulable;
 
 /**
  * {@link HHAttractor} adds special proactive entities acting as special
@@ -50,7 +50,7 @@ import nl.rivm.cib.util.HHScenarioConfigurable;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface HHAttractor extends HHScenarioConfigurable<HHAttractor>
+public interface HHAttractor extends JsonSchedulable<HHAttractor>
 {
 	String TYPE_KEY = "type";
 
@@ -129,17 +129,21 @@ public interface HHAttractor extends HHScenarioConfigurable<HHAttractor>
 		@Override
 		public String toString()
 		{
-			return getClass().getSimpleName() + this.config;
+			return getClass().getSimpleName() + config();
 		}
 
 		@Override
 		public Category toHesitancyProfile()
 		{
 			return new HesitancyProfileJson.Category(
-					this.config.get( RELIGIOUS_KEY )
-							.asBoolean( RELIGIOUS_DEFAULT ),
-					this.config.get( ALTERNATIVE_KEY )
-							.asBoolean( ALTERNATIVE_DEFAULT ) );
+					fromConfig( RELIGIOUS_KEY, RELIGIOUS_DEFAULT ),
+					fromConfig( ALTERNATIVE_KEY, ALTERNATIVE_DEFAULT ) );
+		}
+
+		@Override
+		public JsonNode config()
+		{
+			return this.config;
 		}
 	}
 
@@ -147,7 +151,8 @@ public interface HHAttractor extends HHScenarioConfigurable<HHAttractor>
 	{
 		HHAttractor create( JsonNode config ) throws Exception;
 
-		default NavigableMap<String, HHAttractor> createAll( final JsonNode config )
+		default NavigableMap<String, HHAttractor>
+			createAll( final JsonNode config )
 		{
 			// array: generate default numbered name
 			if( config.isArray() ) return IntStream.range( 0, config.size() )
@@ -162,19 +167,19 @@ public interface HHAttractor extends HHScenarioConfigurable<HHAttractor>
 									return Thrower.rethrowUnchecked( e );
 								}
 							}, ( k1, k2 ) -> k1, TreeMap::new ) );
-			
+
 			// object: use field names to identify behavior
 			if( config.isObject() )
 			{
 				final NavigableMap<String, HHAttractor> result = new TreeMap<>();
-				config.fields().forEachRemaining( e ->
+				config.fields().forEachRemaining( prop ->
 				{
 					try
 					{
-						result.put( e.getKey(), create( e.getValue() ) );
-					} catch( final Exception e1 )
+						result.put( prop.getKey(), create( prop.getValue() ) );
+					} catch( final Exception e )
 					{
-						Thrower.rethrowUnchecked( e1 );
+						Thrower.rethrowUnchecked( e );
 					}
 				} );
 				return result;

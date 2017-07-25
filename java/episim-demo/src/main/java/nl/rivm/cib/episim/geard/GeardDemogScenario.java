@@ -439,8 +439,7 @@ public class GeardDemogScenario implements Scenario
 			}
 		}
 
-		at( scheduler.now() ).call( this::updateAll,
-				io.coala.time.Duration.of( this.dt ) );
+		at( scheduler.now() ).call( this::updateAll );
 		LOG.trace( "{} households initialized, total={}",
 				this.pop.households().size(), this.pop.members().size() );
 
@@ -508,6 +507,8 @@ public class GeardDemogScenario implements Scenario
 				&& this.dtDivorceDist.draw();
 	}
 
+	private io.coala.time.Duration stepSize;
+
 	/**
 	 * Geard (simulation.py, pop_hh.py):
 	 * <p>
@@ -532,8 +533,9 @@ public class GeardDemogScenario implements Scenario
 	 * </li>
 	 * </ul>
 	 */
-	protected void updateAll( final io.coala.time.Duration stepSize )
+	protected void updateAll()
 	{
+		this.stepSize = io.coala.time.Duration.of( this.dt );
 		// generate events per dt
 		int emptyHhs = 0, death = 0, coupled = 0, left = 0, divorced = 0;
 		for( Iterator<GeardIndividual> i = this.pop.members().iterator(); i
@@ -601,7 +603,7 @@ public class GeardDemogScenario implements Scenario
 				emptyHhs, left, divorced, coupled );
 
 		// repeat indefinitely
-		after( stepSize ).call( this::updateAll, stepSize );
+		after( this.stepSize ).call( this::updateAll );
 	}
 
 	protected void growPop( final Set<Range<Integer>> momUnavailableAges )

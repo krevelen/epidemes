@@ -21,6 +21,7 @@ package nl.rivm.cib.episim.model.disease;
 
 import io.coala.json.Attributed;
 import io.coala.name.Id;
+import io.coala.name.Identified;
 import io.reactivex.Observable;
 
 /**
@@ -29,37 +30,55 @@ import io.reactivex.Observable;
  * @version $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
  * @author Rick van Krevelen
  */
-public class ClinicalPhase extends Id.Ordinal<String>
+public interface ClinicalPhase extends Identified<String>
 {
-	/**
-	 * subclinical: no signs or symptoms (not occult if not exposed or immune)
-	 */
-	public static final ClinicalPhase ASYMPTOMATIC = of( "asymptomatic" );
 
-	/**
-	 * signs or symptoms of early onset, e.g. lack of appetite,
-	 * fever/hyperthermia (measles), rhinorrhea (measles, flu, cold),
-	 * conjuctivitis (measles, flu, cold).
-	 */
-	public static final ClinicalPhase PRODROMAL = of( "prodromal" );
+	boolean isClinical();
 
-	/**
-	 * signs or symptoms throughout body, e.g. sepsis, cold, flu, mononucleosis
-	 * (Pfeiffer due to the Epstein-Barr herpes virus), Streptococcal
-	 * pharyngitis
-	 */
-	public static final ClinicalPhase SYSTEMIC = of( "systemic" );
-
-	/**
-	 * signs or symptoms near recovery, e.g.
-	 * <a href="https://en.wikipedia.org/wiki/Reye_syndrome">Reye's syndrome</a>
-	 * following influenza recovery
-	 */
-	public static final ClinicalPhase POSTDROMAL = of( "postdromal" );
-
-	public static ClinicalPhase of( final String value )
+	enum Simple implements ClinicalPhase
 	{
-		return of( value );
+		/**
+		 * subclinical: no signs or symptoms (not occult if not exposed or
+		 * immune)
+		 */
+		ASYMPTOMATIC,
+
+		/**
+		 * signs or symptoms of early onset, e.g. lack of appetite,
+		 * fever/hyperthermia (measles), rhinorrhea (measles, flu, cold),
+		 * conjuctivitis (measles, flu, cold).
+		 */
+		PRODROMAL,
+
+		/**
+		 * signs or symptoms throughout body, e.g. sepsis, cold, flu,
+		 * mononucleosis (Pfeiffer due to the Epstein-Barr herpes virus),
+		 * Streptococcal pharyngitis
+		 */
+		SYSTEMIC,
+
+		/**
+		 * signs or symptoms near recovery, e.g.
+		 * <a href="https://en.wikipedia.org/wiki/Reye_syndrome">Reye's
+		 * syndrome</a> following influenza recovery
+		 */
+		POSTDROMAL,
+
+		//
+		;
+
+		@Override
+		public String id()
+		{
+			return name();
+		}
+
+		@Override
+		public boolean isClinical()
+		{
+			return this != ASYMPTOMATIC;
+		}
+
 	}
 
 	public interface Attributable<THIS extends Attributable<?>>

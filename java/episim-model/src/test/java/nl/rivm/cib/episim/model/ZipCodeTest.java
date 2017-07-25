@@ -15,6 +15,19 @@ import nl.rivm.cib.episim.model.locate.ZipCode;
  */
 public class ZipCodeTest
 {
+//	@Test
+//	public void dummy()
+//	{
+//		BigInteger all = BigInteger.ZERO;
+//		for( long m = -1; m++ != 40; )
+//		{
+//			System.err.println(
+//					m + ": \t" + all + "\t|" + ((long) Math.pow( 2, m ))
+//							+ " \t-> " + all.flipBit( (int) m ) );
+//			all = all.flipBit( (int) m );
+//		}
+//
+//	}
 
 	@Test
 	public void testPostCode6()

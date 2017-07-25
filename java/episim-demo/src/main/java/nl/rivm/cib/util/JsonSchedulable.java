@@ -19,7 +19,6 @@
  */
 package nl.rivm.cib.util;
 
-import java.text.ParseException;
 import java.time.Duration;
 import java.time.Period;
 import java.time.ZonedDateTime;
@@ -40,22 +39,16 @@ import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
-import nl.rivm.cib.pilot.hh.HHAttractor;
 
 /**
- * {@link HHScenarioConfigurable}
+ * {@link JsonSchedulable}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface HHScenarioConfigurable<THIS extends HHScenarioConfigurable<?>> extends Proactive
+public interface JsonSchedulable<THIS extends JsonSchedulable<?>>
+	extends Proactive, JsonConfigurable<THIS>
 {
-
-	/**
-	 * @param config a {@link JsonNode} configuration
-	 * @return this {@link HHAttractor} for chaining
-	 */
-	THIS reset( JsonNode config ) throws ParseException;
 
 	String SCHEDULE_KEY = "schedule";
 

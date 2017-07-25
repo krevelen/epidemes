@@ -182,8 +182,8 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 						if( Compare.lt( now().add( recoveryPeriod ),
 								this.candidateRemovals.get( result )
 										.unwrap() ) )
-							after( recoveryPeriod ).call( this::register,
-									result );
+							after( recoveryPeriod ).call( t->register(
+									result ));
 					}
 
 					// publish
@@ -200,16 +200,16 @@ public interface MotherPicker<T extends MotherPicker.Mother>
 					return;
 				if( fertilityInterval.gt( now() ) )
 				{
-					at( fertilityInterval.lowerValue() ).call( this::register,
-							candidate );
+					at( fertilityInterval.lowerValue() )
+							.call( t -> register( candidate ) );
 					return;
 				}
 				final Instant end = fertilityInterval.upperValue();
-				this.candidateRemovals.compute( candidate,
-						( k, exp ) -> exp != null ? exp
-								: end == null ? null
-										: at( end ).call( this::unregister,
-												candidate ) );
+				this.candidateRemovals.compute( candidate, ( k,
+					exp ) -> exp != null ? exp
+							: end == null ? null
+									: at( end ).call(
+											t -> unregister( candidate ) ) );
 			}
 
 			@Override

@@ -221,7 +221,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		final DateTime until = new DateTime(
 				currentTimeMillis() + this.myPace.actualMS.longValue() );
 //		LOG.trace( "{} - Scheduled block at {} until {}", getId(), dt, until );
-		this.scheduler.after( dt ).call( this::blockUntil, until );
+		this.scheduler.after( dt ).call( t -> blockUntil( until ) );
 	}
 
 	private void blockUntil( final DateTime untilMS )

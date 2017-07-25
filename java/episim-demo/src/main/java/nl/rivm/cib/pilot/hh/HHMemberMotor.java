@@ -23,12 +23,12 @@ import java.text.ParseException;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,7 +45,8 @@ import io.coala.time.Timing;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.util.HHScenarioConfigurable;
+import nl.rivm.cib.episim.pilot.EcosystemScenario.Contagium;
+import nl.rivm.cib.util.JsonSchedulable;
 
 /**
  * {@link HHMemberMotor} or "Meeter" used to convene and adjourn members e.g. in
@@ -54,7 +55,7 @@ import nl.rivm.cib.util.HHScenarioConfigurable;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
+public interface HHMemberMotor extends JsonSchedulable<HHMemberMotor>
 {
 	String TYPE_KEY = "type";
 
@@ -63,42 +64,36 @@ public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 	String DURATION_KEY = "duration-dist";
 
 	/**
-	 * @return an {@link Observable} stream of {@link HHAttribute} values
-	 *         {@link Map mapped} as {@link BigDecimal}
-	 */
-//	Observable<Map<HHMemberAttribute, BigDecimal>> adjustments();
-
-	/**
 	 * @return an {@link Observable} stream of {@link Duration}s when and for
 	 *         how long people driven by this motor convene
 	 */
-	Observable<Duration> convene();
-
-	Duration occupancyChange( long delta );
+	Observable<Quantity<Time>> convene();
 
 	/**
-	 * {@link Broker} assigns mobility/behavior brokers to persons
+	 * {@link Contagium}
 	 */
-	@FunctionalInterface
-	public interface Broker
+	class SimpleGatherer implements HHMemberMotor
 	{
-		int next( long ppIndex );
-	}
 
-	/**
-	 * {@link SignalSchedule} executes simple position updates configured as
-	 * {@link SignalSchedule.SignalYaml} entries
-	 */
-	class SignalSchedule implements HHMemberMotor
-	{
+		private final ProbabilityDistribution.Parser distParser;
+
+		private final Scheduler scheduler;
+
+		private final Subject<Quantity<Time>> convene = PublishSubject.create();
 
 		private JsonNode config;
 
-		@Inject
-		private ProbabilityDistribution.Parser distParser;
+		/** the nextConvene {@link Expectation} to cancel on {@link #reset} */
+		private Expectation nextConvene = null;
 
 		@Inject
-		private Scheduler scheduler;
+		protected SimpleGatherer(
+			final ProbabilityDistribution.Parser distParser,
+			final Scheduler scheduler )
+		{
+			this.distParser = distParser;
+			this.scheduler = scheduler;
+		}
 
 		@Override
 		public Scheduler scheduler()
@@ -106,35 +101,13 @@ public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 			return this.scheduler;
 		}
 
-		private final AtomicLong occupancy = new AtomicLong();
-
-		private Instant occupancySince = null;
-
-		private final Subject<Duration> convene = PublishSubject.create();
-
-		private Expectation nextConvene = null;
-
-		@SuppressWarnings( "unchecked" )
-		@Override
-		public Duration occupancyChange( final long delta )
-		{
-			final long n = this.occupancy.getAndAdd( delta );
-			final Instant t = now();
-			final Duration dt = Duration.of( this.occupancySince.unwrap()
-					.subtract( now().unwrap() ).multiply( n ) );
-			this.occupancySince = t;
-			if( n > delta ) return Thrower.throwNew( IllegalStateException::new,
-					() -> "Negative occupancy? (" + delta + " > " + n + ")" );
-			return dt;
-		}
-
 		@SuppressWarnings( "unchecked" )
 		@Override
 		public HHMemberMotor reset( final JsonNode config )
 			throws ParseException
 		{
-			this.occupancySince = now();
-			this.occupancy.set( 0L );
+//			this.occupancySince = now();
+//			this.occupancy.set( 0L );
 			this.config = config;
 			if( this.nextConvene != null ) this.nextConvene.remove();
 			final String timing = Objects.requireNonNull(
@@ -143,24 +116,29 @@ public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 					config.get( DURATION_KEY ).asText(), "no duration?" );
 			final QuantityDistribution<Time> dist = this.distParser
 					.parseQuantity( durationDist ).asType( Time.class );
-			atEach( Timing.valueOf( timing )
-					.offset( now().toJava8( scheduler().offset() ) ).iterate(),
-					t -> this.convene.onNext( Duration.of( dist.draw() ) ) )
-							.subscribe( exp -> this.nextConvene = exp,
-									Throwable::printStackTrace );
+			final Iterable<Instant> T = Timing.valueOf( timing )
+					.offset( now().toJava8( scheduler().offset() ) ).iterate();
+			atEach( T, t -> this.convene.onNext( dist.draw() ) ).subscribe(
+					exp -> this.nextConvene = exp, Throwable::printStackTrace );
 			return this;
 		}
 
 		@Override
 		public String toString()
 		{
-			return getClass().getSimpleName() + this.config;
+			return stringify();
 		}
 
 		@Override
-		public Observable<Duration> convene()
+		public Observable<Quantity<Time>> convene()
 		{
 			return this.convene;
+		}
+
+		@Override
+		public JsonNode config()
+		{
+			return this.config;
 		}
 	}
 
@@ -173,8 +151,8 @@ public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 		{
 			// array: generate default numbered name
 			if( config.isArray() ) return IntStream.range( 0, config.size() )
-					.mapToObj( i -> i ).collect( Collectors.toMap(
-							i -> String.format( "behavior%02d", i ), i ->
+					.mapToObj( i -> i ).collect( Collectors
+							.toMap( i -> String.format( "motor%02d", i ), i ->
 							{
 								try
 								{
@@ -189,21 +167,21 @@ public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 			if( config.isObject() )
 			{
 				final NavigableMap<String, HHMemberMotor> result = new TreeMap<>();
-				config.fields().forEachRemaining( e ->
+				config.fields().forEachRemaining( prop ->
 				{
 					try
 					{
-						result.put( e.getKey(), create( e.getValue() ) );
-					} catch( final Exception e1 )
+						result.put( prop.getKey(), create( prop.getValue() ) );
+					} catch( final Exception e )
 					{
-						Thrower.rethrowUnchecked( e1 );
+						Thrower.rethrowUnchecked( e );
 					}
 				} );
 				return result;
 			}
 			// unexpected
 			return Thrower.throwNew( IllegalArgumentException::new,
-					() -> "Invalid behavior config: " + config );
+					() -> "Invalid motor config: " + config );
 		}
 
 		@Singleton
@@ -222,7 +200,7 @@ public interface HHMemberMotor extends HHScenarioConfigurable<HHMemberMotor>
 										.forName( config.get( TYPE_KEY )
 												.textValue() )
 										.asSubclass( HHMemberMotor.class )
-								: HHMemberMotor.SignalSchedule.class;
+								: HHMemberMotor.SimpleGatherer.class;
 				return this.binder.inject( type ).reset( config );
 			}
 		}
