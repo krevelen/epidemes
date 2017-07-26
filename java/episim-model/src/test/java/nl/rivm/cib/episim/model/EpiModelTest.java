@@ -39,7 +39,7 @@ import nl.rivm.cib.episim.model.disease.Afflict;
  * 
  * TODO specialized logging, adding e.g. Timed#now() and Identified#id()
  * 
- * @version $Id$
+ * @version $Id: 1ac307fe7e8ade4ab45965a02345603557b2e723 $
  * @author Rick van Krevelen
  */
 public class EpiModelTest
@@ -60,7 +60,7 @@ public class EpiModelTest
 		URI jdbcUrl();
 	}
 
-	@SuppressWarnings( "serial" )
+//	@SuppressWarnings( "serial" )
 	@Singleton
 	public static class World implements Scenario
 	{
@@ -150,7 +150,7 @@ public class EpiModelTest
 				() -> LOG.trace( "JUnit test completed" ) );
 	}
 
-	@SuppressWarnings( { "unchecked", "unchecked" } )
+	@SuppressWarnings( { "unchecked" } )
 	@Test
 	public void testModel()
 		throws TimeoutException, IOException, InterruptedException

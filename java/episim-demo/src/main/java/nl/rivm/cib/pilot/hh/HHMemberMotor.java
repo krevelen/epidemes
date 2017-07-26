@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 6a6ef9b07ee21a4e4aee7b41427000aff8573c57 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -52,7 +52,7 @@ import nl.rivm.cib.util.JsonSchedulable;
  * {@link HHMemberMotor} or "Meeter" used to convene and adjourn members e.g. in
  * transmission spaces
  * 
- * @version $Id$
+ * @version $Id: 6a6ef9b07ee21a4e4aee7b41427000aff8573c57 $
  * @author Rick van Krevelen
  */
 public interface HHMemberMotor extends JsonSchedulable<HHMemberMotor>
@@ -101,7 +101,7 @@ public interface HHMemberMotor extends JsonSchedulable<HHMemberMotor>
 			return this.scheduler;
 		}
 
-		@SuppressWarnings( "unchecked" )
+//		@SuppressWarnings( "unchecked" )
 		@Override
 		public HHMemberMotor reset( final JsonNode config )
 			throws ParseException

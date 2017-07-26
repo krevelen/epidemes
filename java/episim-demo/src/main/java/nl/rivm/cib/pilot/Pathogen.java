@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 56fd02a58683cba8b42e6f737daded152764093f $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -72,7 +72,7 @@ import nl.rivm.cib.util.JsonConfigurable;
  * <li>&mu;: mortality/death rate (R&rarr;&empty;);
  * </ul>
  * 
- * @version $Id$
+ * @version $Id: 56fd02a58683cba8b42e6f737daded152764093f $
  * @author Rick van Krevelen
  */
 public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
@@ -192,7 +192,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 			return this.config;
 		}
 
-		@SuppressWarnings( "unchecked" )
+//		@SuppressWarnings( "unchecked" )
 		@Override
 		public <T> Observable<Condition> trajectory(
 			final Observable<T> pressures, final Resistor<T> resistor )

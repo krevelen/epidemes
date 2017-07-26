@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 05b6ce8b9d1475149fa8866f8e92318183a552b1 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -92,7 +92,7 @@ CBS.37201 (see http://statline.cbs.nl/Statweb/publication/?PA=37201)
 [[26]]	: *  Moeder niet-gehuwd ("MoederNietGehuwd_23":Double), e.g. CBS.37201[1,26]="   18951"
  * </pre>
  * 
- * @version $Id$
+ * @version $Id: 05b6ce8b9d1475149fa8866f8e92318183a552b1 $
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = false )
@@ -250,7 +250,7 @@ public class Cbs37201json
 		@JsonIgnore
 		private ProbabilityDistribution<CBSMotherAgeRange> ageDistCache = null;
 
-		@SuppressWarnings( "unchecked" )
+//		@SuppressWarnings( "unchecked" )
 		public ProbabilityDistribution<CBSMotherAgeRange> ageDist(
 			final Function<List<WeightedValue<CBSMotherAgeRange>>, ProbabilityDistribution<CBSMotherAgeRange>> distFact )
 		{
@@ -263,7 +263,7 @@ public class Cbs37201json
 		@JsonIgnore
 		private ProbabilityDistribution<CBSBirthRank> rankDistCache = null;
 
-		@SuppressWarnings( "unchecked" )
+//		@SuppressWarnings( "unchecked" )
 		public ProbabilityDistribution<CBSBirthRank> rankDist(
 			final Function<List<WeightedValue<CBSBirthRank>>, ProbabilityDistribution<CBSBirthRank>> distFact )
 		{
