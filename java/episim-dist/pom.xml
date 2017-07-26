@@ -15,7 +15,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Distribution assembler/packager for the Epidemicron Simulator
-		$Id: eb7beeac9e532aae063aa84ea30ff176faf1acf0 $
+		$Id$
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

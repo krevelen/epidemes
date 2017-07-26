@@ -39,7 +39,7 @@ import nl.rivm.cib.episim.model.disease.Afflict;
  * 
  * TODO specialized logging, adding e.g. Timed#now() and Identified#id()
  * 
- * @version $Id: 44fed16f2368cf0e2f826585d7b9e1902919166d $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class EpiModelTest
