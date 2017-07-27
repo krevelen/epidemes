@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
+import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.json.JsonUtil;
@@ -43,61 +44,29 @@ import io.reactivex.Observable;
 import io.reactivex.exceptions.Exceptions;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.pilot.Pathogen;
+import nl.rivm.cib.pilot.IllnessTrajectory;
 
 /**
- * {@link PathogenTest}
+ * {@link IllnessTrajectoryTest}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class PathogenTest
+public class IllnessTrajectoryTest
 {
 	/** */
-	private static final Logger LOG = LogUtil.getLogger( PathogenTest.class );
+	private static final Logger LOG = LogUtil
+			.getLogger( IllnessTrajectoryTest.class );
 
 	static class TestScenario implements Scenario
 	{
 		@Inject
 		private Scheduler scheduler;
 
-		@Inject
-		private Pathogen.Factory pathogens;
-
 		@Override
 		public Scheduler scheduler()
 		{
 			return this.scheduler;
-		}
-
-		private Subject<Long> pressure = PublishSubject.create();
-
-		@Override
-		public void init() throws Exception
-		{
-			final Pathogen pathogen = this.pathogens.create( JsonUtil.getJOM()
-					.createObjectNode().put( "incubate-period", "const(.5 week)" )
-//					.put( "wane-period", "const(.5 year)" )
-					);
-			LOG.trace( "Init pathogen: {}", pathogen );
-
-			pathogen.linearTrajectory( this.pressure )
-					.subscribe(
-							c -> LOG.trace( "t={}, compartment now: {}",
-//									QuantityUtil.toScale(
-//											now().toQuantity( TimeUnits.DAYS ),
-//											2 ),
-									now(),
-									c ),
-							Exceptions::propagate );
-
-			// add infectious scenario
-			final AtomicLong infectious = new AtomicLong();
-			atEach( Observable.fromArray( 1, 2, 3, 4, 5, 6, 7 )
-					.map( t -> Instant.of( t, TimeUnits.WEEK ) ),
-					t -> this.pressure.onNext( infectious.incrementAndGet() ) );
-
-			LOG.trace( "t={}, initialized", now() );
 		}
 	}
 
@@ -113,13 +82,46 @@ public class PathogenTest
 						Math3ProbabilityDistribution.Factory.class )
 				.withProvider( ProbabilityDistribution.Parser.class,
 						DistributionParser.class )
-				.withProvider( Pathogen.Factory.class,
-						Pathogen.Factory.SimpleBinding.class )
 				.build();
 		LOG.info( "start {} with binder config: {}", getClass().getSimpleName(),
 				config );
 
-		config.createBinder().inject( TestScenario.class ).run();
+		final LocalBinder binder = config.createBinder();
+		final Scheduler scheduler = binder.inject( Scheduler.class );
+		final Subject<Long> pressure = PublishSubject.create();
+		final Observable<Instant> T_p = Observable
+				.fromArray( 1, 2, 3, 4, 5, 6, 7 )
+				.map( t -> Instant.of( t, TimeUnits.WEEK ) );
+
+		scheduler.onReset( s ->
+		{
+			final IllnessTrajectory.Factory pathogens = binder
+					.inject( IllnessTrajectory.Factory.SimpleBinding.class );
+			final IllnessTrajectory pathogen = pathogens
+					.create( JsonUtil.getJOM().createObjectNode()
+							.put( "incubate-period", "const(.5 week)" )
+//					.put( "wane-period", "const(.5 year)" )
+			);
+			LOG.trace( "t={}, init pathogen: {}", s.now(), pathogen );
+
+			// have pathogen subscribe to an individual's infection pressure
+			pathogen.linear( pressure ).subscribe( c -> LOG
+					.trace( "t={}, linear trajectory @ {}", s.now(), c ),
+					Exceptions::propagate );
+
+			// add infectious scenario
+			final AtomicLong p = new AtomicLong();
+			s.atEach( T_p, t -> pressure.onNext( p.incrementAndGet() ) );
+
+			LOG.trace( "t={}, initialized", s.now() );
+		} );
+
+		pressure.subscribe( p ->
+		{
+
+		} );
+
+		scheduler.run();
 
 		LOG.info( "completed {}", getClass().getSimpleName() );
 	}

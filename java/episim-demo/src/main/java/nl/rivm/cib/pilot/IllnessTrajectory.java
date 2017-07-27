@@ -19,6 +19,7 @@
  */
 package nl.rivm.cib.pilot;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,18 +48,17 @@ import io.coala.math.Tuple;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.Expectation;
+import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
-import io.reactivex.Observer;
-import io.reactivex.disposables.Disposable;
 import nl.rivm.cib.episim.model.disease.ClinicalPhase;
 import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
 import nl.rivm.cib.util.JsonConfigurable;
 
 /**
- * {@link Pathogen}
+ * {@link IllnessTrajectory}
  * <ul>
  * <li>&Gamma;: growth/birth rate (&empty;&rarr;N or &empty;&rarr;M or
  * &empty;&rarr;S);
@@ -75,7 +75,8 @@ import nl.rivm.cib.util.JsonConfigurable;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
+public interface IllnessTrajectory
+	extends Proactive, JsonConfigurable<IllnessTrajectory>
 {
 	String TYPE_KEY = "type";
 
@@ -83,27 +84,114 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 
 	String PERIOD_DEFAULT = "const( 1 week )";
 
-	<T> Observable<Condition> trajectory( Observable<T> pressure,
-		Resistor<T> resistor );
+	/**
+	 * @param pressure the stream of pressure signal constants
+	 * @param decay defines relations between resistance, pressure and time
+	 * @return a trajectory possibly affected by the observed pressure signal
+	 *         and resistance decay function
+	 */
+	Observable<Condition> integrator( Observable<? extends Number> pressure,
+		ResistanceDecay decay );
 
-	default Observable<Condition>
-		binaryTrajectory( Observable<? extends Number> pressure )
+	/** @return a trajectory that disregards any pressure signal constants */
+	default Observable<Condition> invariant()
 	{
-		return trajectory( pressure.map( DecimalUtil::valueOf ),
-				( dt, p ) -> p.signum() < 1 ? dt.subtract( dt ) : dt );
+		return integrator( Observable.empty(),
+				new ResistanceDecay.ConstantDecay() );
 	}
 
+	/**
+	 * @param pressure a numeric pressure signal k
+	 * @return a trajectory with resistance change dr=-1*dt (k > 0); else dr=NA
+	 */
 	default Observable<Condition>
-		linearTrajectory( Observable<? extends Number> pressure )
+		binary( Observable<? extends Number> pressure )
 	{
-		return trajectory( pressure.map( DecimalUtil::valueOf ),
-				Quantity::multiply );
+		return integrator( pressure, new ResistanceDecay.BinaryDecay() );
 	}
 
-	@FunctionalInterface
-	interface Resistor<T>
+	/**
+	 * @param pressure a numeric pressure signal k
+	 * @return a trajectory with resistance change dr=-k*dt (k > 0); else dr=NA
+	 */
+	default Observable<Condition>
+		linear( Observable<? extends Number> pressure )
 	{
-		Quantity<Time> apply( Quantity<Time> dt, T t );
+		return integrator( pressure, new ResistanceDecay.LinearDecay() );
+	}
+
+	/**
+	 * {@link ResistanceDecay} defines relations between resistance, pressure
+	 * and time in two functions: {@link #differentiator} for the difference
+	 * given a {@link BigDecimal} pressure state over some time period, and
+	 * {@link #interceptor} for the period until some resistance level is
+	 * reached.
+	 */
+	interface ResistanceDecay
+		extends SignalQuantifier<Quantity<Time>, BigDecimal>
+	{
+		/**
+		 * {@link ConstantDecay} resistance: dr=-1*dt, regardless of k
+		 */
+		class ConstantDecay implements ResistanceDecay
+		{
+			@Override
+			public Differentiator<Quantity<Time>, BigDecimal> differentiator()
+			{
+				return ( t_0, dt, r_0, k ) -> QuantityUtil.min( dt, r_0 )
+						.multiply( -1 );
+			}
+
+			@Override
+			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			{
+				return ( t_0, r_0, r_t, k ) -> r_t == null ? null
+						: r_t.subtract( r_0 ).divide( -1 );
+			}
+		}
+
+		/**
+		 * {@link BinaryDecay} resistance; dr=-1*dt iff k>0, else NA
+		 */
+		class BinaryDecay implements ResistanceDecay
+		{
+			@Override
+			public Differentiator<Quantity<Time>, BigDecimal> differentiator()
+			{
+				return ( t_0, dt, r_0, k ) -> k == null || k.signum() < 1 ? null
+						: QuantityUtil.min( dt, r_0 ).multiply( -1 );
+			}
+
+			@Override
+			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			{
+				return ( t_0, r_0, r_t, k ) -> k == null || k.signum() < 1
+						? null : r_t.subtract( r_0 ).divide( -1 );
+			}
+		}
+
+		/**
+		 * {@link LinearDecay} resistance: dr=-k*dt iff k>0, else NA
+		 */
+		class LinearDecay implements ResistanceDecay
+		{
+			@SuppressWarnings( "unchecked" )
+			@Override
+			public Differentiator<Quantity<Time>, BigDecimal> differentiator()
+			{
+				return ( t_0, dt, r_0, k ) -> k == null || k.signum() < 1 ? null
+						: QuantityUtil.min( dt, r_0 ).multiply( -1 );
+			}
+
+			@SuppressWarnings( "unchecked" )
+			@Override
+			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			{
+				return ( t_0, r_0, r_t,
+					k ) -> k == null || k.signum() < 1 || r_t == null ? null
+							: r_t.subtract( r_0 ).divide( k.negate() );
+			}
+		}
 	}
 
 	@SuppressWarnings( "rawtypes" )
@@ -139,7 +227,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		}
 	}
 
-	class MSEIRS implements Pathogen
+	class MSEIRS implements IllnessTrajectory
 	{
 		private final Map<String, QuantityDistribution<Time>> distCache = new HashMap<>();
 
@@ -180,7 +268,8 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		}
 
 		@Override
-		public Pathogen reset( final JsonNode config ) throws ParseException
+		public IllnessTrajectory reset( final JsonNode config )
+			throws ParseException
 		{
 			this.config = config;
 			return this;
@@ -194,16 +283,18 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 
 		@SuppressWarnings( "unchecked" )
 		@Override
-		public <T> Observable<Condition> trajectory(
-			final Observable<T> pressures, final Resistor<T> resistor )
+		public Observable<Condition> integrator(
+			final Observable<? extends Number> pressure,
+			final ResistanceDecay resistance )
 		{
 			return Observable.create( sub ->
 			{
 //				final Independent s = new Independent( scheduler(),
 //						this::dtMapper, sub );
-				final Pressurized<T> s = new Pressurized<T>( scheduler(),
-						this::dtMapper, resistor, sub );
-				pressures.subscribe( s );
+				final Pressured<BigDecimal> s = new Pressured<BigDecimal>(
+						scheduler(), this::dtMapper, resistance, sub );
+				pressure.map( DecimalUtil::valueOf )
+						.subscribe( s::setPressure );
 				s.passive(); // initiate dynamics
 			} );
 		}
@@ -254,7 +345,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		}
 
 		/**
-		 * {@link Pressurized} maintains an individual's remaining infection
+		 * {@link Pressured} maintains an individual's remaining infection
 		 * resistance
 		 */
 		public static class Independent implements Proactive
@@ -393,38 +484,32 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 		}
 
 		/**
-		 * {@link Pressurized} maintains an individual's remaining infection
+		 * {@link Pressured} maintains an individual's remaining infection
 		 * resistance
 		 */
-		public static class Pressurized<T> extends Independent
-			implements Observer<T>
+		public static class Pressured<K> extends Independent
 		{
-			private final AtomicReference<T> pressure = new AtomicReference<>();
+			private final AtomicReference<K> pressure = new AtomicReference<>();
 			private final AtomicReference<Expectation> expose = new AtomicReference<>();
 			private final AtomicReference<Quantity<Time>> resistance = new AtomicReference<>();
-			private final AtomicReference<Quantity<Time>> since = new AtomicReference<>();
+			private final AtomicReference<Instant> since = new AtomicReference<>();
 
-			private final Resistor<T> resistor;
+			private final SignalQuantifier.Differentiator<Quantity<Time>, K> differentiator;
+			private final SignalQuantifier.Interceptor<Quantity<Time>, K> interceptor;
 
-			public Pressurized( final Scheduler scheduler,
+			public Pressured( final Scheduler scheduler,
 				final Function<EpiPeriod, Quantity<Time>> progressor,
-				final Resistor<T> resistor,
+				final SignalQuantifier<Quantity<Time>, K> resistance,
 				final ObservableEmitter<Condition> emitter )
 			{
 				super( scheduler, progressor, emitter );
-				this.resistor = resistor;
+				this.differentiator = resistance.differentiator();
+				this.interceptor = resistance.interceptor();
 			}
 
-			@Override
-			public void onSubscribe( final Disposable d )
+			public void setPressure( final K pNew )
 			{
-				// never cancel/dispose observers
-			}
-
-			@Override
-			public void onNext( final T pNew )
-			{
-				final T pOld = this.pressure.getAndSet( pNew );
+				final K pOld = this.pressure.getAndSet( pNew );
 
 				// no pressure or unchanged
 				if( pOld == null || pOld.equals( pNew ) ) return;
@@ -433,34 +518,23 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 						.getCompartment().isSusceptible() )
 					return; // not susceptible: no exposure occurring
 
-				final Quantity<Time> t = now().toQuantity( Time.class ),
-						t0 = this.since.getAndSet( t );
+				final Instant t = now(), t0 = this.since.getAndSet( t );
 
 				// update remaining resistance, subtracting dp for dt > 0
 				if( t0 != null && !t0.equals( t ) )
 				{
-					final Quantity<Time> dt = t.subtract( t0 ),
-							dp = this.resistor.apply( dt, pOld ),
-							res0 = this.resistance
-									.getAndUpdate( res -> res.subtract( dp ) );
+					final Quantity<Time> dt = t.toQuantity( Time.class )
+							.subtract( t0.toQuantity( Time.class ) ),
+							dp = this.differentiator.dq( t0, dt,
+									this.resistance.get(), pOld ),
+							res0 = this.resistance.getAndUpdate(
+									res -> dp == null ? res : res.add( dp ) );
 					System.err.println( "t=" + t + " dt=" + dt + " dp=" + dp
 							+ " res0=" + res0 + " res_t=" + this.resistance );
 				}
 
 				// reschedule exposure
 				wane();
-			}
-
-			@Override
-			public void onError( final Throwable e )
-			{
-				this.emitter.onError( e );
-			}
-
-			@Override
-			public void onComplete()
-			{
-				this.emitter.onComplete();
 			}
 
 			/**
@@ -482,14 +556,17 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 
 				if( QuantityUtil.signum( resistance ) < 1 )
 				{
-					System.err.println( "expose immediately: " + resistance );
 					expose();
 					return;
 				}
-				System.err.println( "scheduling expose after: " + resistance );
+
 				// (re)schedule exposure
-				final Expectation exp1 = after( resistance )
-						.call( this::expose ),
+				final Quantity<Time> dt = this.interceptor.dt( now(),
+						resistance, QuantityUtil.zero( Time.class ),
+						this.pressure.get() );
+
+				final Expectation exp1 = dt == null ? null
+						: after( dt ).call( this::expose ),
 						exp = this.expose.getAndSet( exp1 );
 
 				// cancel previous, if any
@@ -509,9 +586,9 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 
 	interface Factory
 	{
-		Pathogen create( JsonNode config ) throws Exception;
+		IllnessTrajectory create( JsonNode config ) throws Exception;
 
-		default NavigableMap<String, Pathogen>
+		default NavigableMap<String, IllnessTrajectory>
 			createAll( final JsonNode config )
 		{
 			// array: generate default numbered name
@@ -531,7 +608,7 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 			// object: use field names to identify behavior
 			if( config.isObject() )
 			{
-				final NavigableMap<String, Pathogen> result = new TreeMap<>();
+				final NavigableMap<String, IllnessTrajectory> result = new TreeMap<>();
 				config.fields().forEachRemaining( prop ->
 				{
 					try
@@ -556,15 +633,16 @@ public interface Pathogen extends Proactive, JsonConfigurable<Pathogen>
 			private LocalBinder binder;
 
 			@Override
-			public Pathogen create( final JsonNode config )
+			public IllnessTrajectory create( final JsonNode config )
 				throws ClassNotFoundException, ParseException
 			{
 				final JsonNode typeNode = Objects
 						.requireNonNull( config, "No config?" ).get( TYPE_KEY );
 				final String typeName = typeNode == null || typeNode.isNull()
 						? TYPE_DEFAULT : typeNode.asText( TYPE_DEFAULT );
-				final Class<? extends Pathogen> type = Class.forName( typeName )
-						.asSubclass( Pathogen.class );
+				final Class<? extends IllnessTrajectory> type = Class
+						.forName( typeName )
+						.asSubclass( IllnessTrajectory.class );
 				return this.binder.inject( type ).reset( config );
 			}
 		}
