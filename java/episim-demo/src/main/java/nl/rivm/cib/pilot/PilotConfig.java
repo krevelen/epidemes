@@ -36,6 +36,8 @@ import org.aeonbits.owner.Converter;
 import io.coala.bind.LocalBinder;
 import io.coala.config.ConfigUtil;
 import io.coala.config.GlobalConfig;
+import io.coala.config.LocalDateConverter;
+import io.coala.config.PeriodConverter;
 import io.coala.config.YamlUtil;
 import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
@@ -75,8 +77,6 @@ import nl.rivm.cib.pilot.hh.HHMemberMotor;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.HesitancyDimension;
 import nl.rivm.cib.pilot.json.RelationFrequencyJson;
-import nl.rivm.cib.util.LocalDateConverter;
-import nl.rivm.cib.util.PeriodConverter;
 import tec.uom.se.ComparableQuantity;
 
 /**

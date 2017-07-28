@@ -104,10 +104,10 @@ public interface HHAttractor extends JsonSchedulable<HHAttractor>
 
 			final Map<HHAttribute, BigDecimal> initial = Arrays
 					.stream( HHAttribute.values() )
-					.filter( attr -> this.config.has( attr.jsonValue() ) )
+					.filter( attr -> this.config.has( attr.stringify() ) )
 					.collect(
 							Collectors.toMap( attr -> attr, attr -> this.config
-									.get( attr.jsonValue() ).decimalValue() ) );
+									.get( attr.stringify() ).decimalValue() ) );
 
 			return Observable.create( sub ->
 			{

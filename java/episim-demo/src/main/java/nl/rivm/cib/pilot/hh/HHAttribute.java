@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 import org.ujmp.core.Matrix;
 
-import nl.rivm.cib.pilot.json.HHJsonifiable;
+import io.coala.config.Jsonifiable;
 import nl.rivm.cib.pilot.json.RelationFrequencyJson;
 
 /**
@@ -37,7 +37,7 @@ import nl.rivm.cib.pilot.json.RelationFrequencyJson;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum HHAttribute implements HHJsonifiable
+public enum HHAttribute implements Jsonifiable
 {
 	/** population-unique identifier (may be replaced upon death/emigration) */
 	IDENTIFIER,
@@ -137,7 +137,7 @@ public enum HHAttribute implements HHJsonifiable
 	private String json = null;
 
 	@Override
-	public String jsonValue()
+	public String stringify()
 	{
 		return this.json == null
 				? (this.json = name().toLowerCase().replace( '_', '-' ))

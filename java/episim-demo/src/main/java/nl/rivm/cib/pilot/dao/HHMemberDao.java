@@ -55,7 +55,7 @@ public class HHMemberDao implements Persistable.Dao
 		result.male = data.getAsBoolean( rowIndex,
 				HHMemberAttribute.MALE.ordinal() );
 		result.status = HHMemberStatus.values()[data.getAsInt( rowIndex,
-				HHMemberAttribute.STATUS.ordinal() )].jsonValue();
+				HHMemberAttribute.STATUS.ordinal() )].stringify();
 //			result.behavior = data.getAsInt( rowIndex,
 //					HHMemberAttribute.BEHAVIOR.ordinal() );
 		return result;

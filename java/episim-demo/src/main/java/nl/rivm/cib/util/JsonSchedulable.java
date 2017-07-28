@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.coala.config.JsonConfigurable;
 import io.coala.json.JsonUtil;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;

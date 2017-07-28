@@ -21,8 +21,6 @@ package nl.rivm.cib.epidemes.pilot;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.inject.Inject;
-
 import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
@@ -37,14 +35,13 @@ import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.time.Instant;
-import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.reactivex.Observable;
 import io.reactivex.exceptions.Exceptions;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.pilot.IllnessTrajectory;
+import nl.rivm.cib.episim.model.disease.IllnessTrajectory;
 
 /**
  * {@link IllnessTrajectoryTest}
@@ -58,22 +55,9 @@ public class IllnessTrajectoryTest
 	private static final Logger LOG = LogUtil
 			.getLogger( IllnessTrajectoryTest.class );
 
-	static class TestScenario implements Scenario
-	{
-		@Inject
-		private Scheduler scheduler;
-
-		@Override
-		public Scheduler scheduler()
-		{
-			return this.scheduler;
-		}
-	}
-
 	@Test
 	public void testPathogen() throws Exception
 	{
-
 		final LocalConfig config = new LocalConfig.JsonBuilder().withId( "v1" )
 				.withProvider( Scheduler.class, Dsol3Scheduler.class )
 				.withProvider( PseudoRandom.Factory.class,

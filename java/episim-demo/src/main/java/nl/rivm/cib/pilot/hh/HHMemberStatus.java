@@ -19,7 +19,7 @@
  */
 package nl.rivm.cib.pilot.hh;
 
-import nl.rivm.cib.pilot.json.HHJsonifiable;
+import io.coala.config.Jsonifiable;
 
 /**
  * {@link HHMemberStatus} are SEIR-like compartments differentiating between
@@ -28,7 +28,7 @@ import nl.rivm.cib.pilot.json.HHJsonifiable;
  * @version $Id$
  * @author Rick van Krevelen
  */
-public enum HHMemberStatus implements HHJsonifiable
+public enum HHMemberStatus implements Jsonifiable
 {
 	SUSCEPTIBLE,
 
@@ -49,7 +49,7 @@ public enum HHMemberStatus implements HHJsonifiable
 	private String json = null;
 
 	@Override
-	public String jsonValue()
+	public String stringify()
 	{
 		return this.json == null
 				? (this.json = name().toLowerCase().replace( '_', '-' ))

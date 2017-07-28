@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.pilot;
+package nl.rivm.cib.episim.model.disease;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -41,21 +41,21 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.coala.bind.LocalBinder;
+import io.coala.config.JsonConfigurable;
 import io.coala.exception.Thrower;
 import io.coala.math.DecimalUtil;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Tuple;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
+import io.coala.time.ConditionalSignalQuantifier;
 import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
-import nl.rivm.cib.episim.model.disease.ClinicalPhase;
 import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
-import nl.rivm.cib.util.JsonConfigurable;
 
 /**
  * {@link IllnessTrajectory}
@@ -128,7 +128,7 @@ public interface IllnessTrajectory
 	 * reached.
 	 */
 	interface ResistanceDecay
-		extends SignalQuantifier<Quantity<Time>, BigDecimal>
+		extends ConditionalSignalQuantifier<Quantity<Time>, BigDecimal>
 	{
 		/**
 		 * {@link ConstantDecay} resistance: dr=-1*dt, regardless of k
@@ -136,14 +136,14 @@ public interface IllnessTrajectory
 		class ConstantDecay implements ResistanceDecay
 		{
 			@Override
-			public Differentiator<Quantity<Time>, BigDecimal> differentiator()
+			public Differentiater<Quantity<Time>, BigDecimal> differentiater()
 			{
 				return ( t_0, dt, r_0, k ) -> QuantityUtil.min( dt, r_0 )
 						.multiply( -1 );
 			}
 
 			@Override
-			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			public Intercepter<Quantity<Time>, BigDecimal> intercepter()
 			{
 				return ( t_0, r_0, r_t, k ) -> r_t == null ? null
 						: r_t.subtract( r_0 ).divide( -1 );
@@ -156,14 +156,14 @@ public interface IllnessTrajectory
 		class BinaryDecay implements ResistanceDecay
 		{
 			@Override
-			public Differentiator<Quantity<Time>, BigDecimal> differentiator()
+			public Differentiater<Quantity<Time>, BigDecimal> differentiater()
 			{
 				return ( t_0, dt, r_0, k ) -> k == null || k.signum() < 1 ? null
 						: QuantityUtil.min( dt, r_0 ).multiply( -1 );
 			}
 
 			@Override
-			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			public Intercepter<Quantity<Time>, BigDecimal> intercepter()
 			{
 				return ( t_0, r_0, r_t, k ) -> k == null || k.signum() < 1
 						? null : r_t.subtract( r_0 ).divide( -1 );
@@ -177,7 +177,7 @@ public interface IllnessTrajectory
 		{
 			@SuppressWarnings( "unchecked" )
 			@Override
-			public Differentiator<Quantity<Time>, BigDecimal> differentiator()
+			public Differentiater<Quantity<Time>, BigDecimal> differentiater()
 			{
 				return ( t_0, dt, r_0, k ) -> k == null || k.signum() < 1 ? null
 						: QuantityUtil.min( dt, r_0 ).multiply( -1 );
@@ -185,7 +185,7 @@ public interface IllnessTrajectory
 
 			@SuppressWarnings( "unchecked" )
 			@Override
-			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			public Intercepter<Quantity<Time>, BigDecimal> intercepter()
 			{
 				return ( t_0, r_0, r_t,
 					k ) -> k == null || k.signum() < 1 || r_t == null ? null
@@ -494,17 +494,17 @@ public interface IllnessTrajectory
 			private final AtomicReference<Quantity<Time>> resistance = new AtomicReference<>();
 			private final AtomicReference<Instant> since = new AtomicReference<>();
 
-			private final SignalQuantifier.Differentiator<Quantity<Time>, K> differentiator;
-			private final SignalQuantifier.Interceptor<Quantity<Time>, K> interceptor;
+			private final ConditionalSignalQuantifier.Differentiater<Quantity<Time>, K> differentiator;
+			private final ConditionalSignalQuantifier.Intercepter<Quantity<Time>, K> interceptor;
 
 			public Pressured( final Scheduler scheduler,
 				final Function<EpiPeriod, Quantity<Time>> progressor,
-				final SignalQuantifier<Quantity<Time>, K> resistance,
+				final ConditionalSignalQuantifier<Quantity<Time>, K> resistance,
 				final ObservableEmitter<Condition> emitter )
 			{
 				super( scheduler, progressor, emitter );
-				this.differentiator = resistance.differentiator();
-				this.interceptor = resistance.interceptor();
+				this.differentiator = resistance.differentiater();
+				this.interceptor = resistance.intercepter();
 			}
 
 			public void setPressure( final K pNew )
