@@ -1,4 +1,4 @@
-/* $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -45,7 +45,7 @@ import nl.rivm.cib.episim.model.disease.infection.TransmissionRoute;
  * {@link TransmissionSpace}
  * 
  * @deprecated see {@link Contagium}
- * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Deprecated
@@ -210,7 +210,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 	/**
 	 * {@link InfectionDynamics}
 	 * 
-	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	interface InfectionDynamics
@@ -237,7 +237,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 		/**
 		 * {@link Simple} default implementation of {@link InfectionDynamics}
 		 * 
-		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+		 * @version $Id$
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements InfectionDynamics
@@ -290,7 +290,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 	/**
 	 * {@link CompartmentDynamics}
 	 * 
-	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	interface CompartmentDynamics
@@ -360,7 +360,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 		/**
 		 * {@link Simple} implementation of {@link CompartmentDynamics}
 		 * 
-		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+		 * @version $Id$
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements CompartmentDynamics
@@ -432,7 +432,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 	/**
 	 * {@link VisitorDynamics}
 	 * 
-	 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	interface VisitorDynamics
@@ -455,7 +455,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 		/**
 		 * {@link Simple} implementation of {@link VisitorDynamics}
 		 * 
-		 * @version $Id: 7fdd24bb4c0e75e36d0a85c343e8ff6fa341cad4 $
+		 * @version $Id$
 		 * @author Rick van Krevelen
 		 */
 		class Simple implements VisitorDynamics

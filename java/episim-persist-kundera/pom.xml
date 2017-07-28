@@ -14,7 +14,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Import support for the RIVM Vaccination Acceptance Simulator
-		$Id: fb9fb274b344281f5f73475b69783c166101e9d3 $
+		$Id$
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

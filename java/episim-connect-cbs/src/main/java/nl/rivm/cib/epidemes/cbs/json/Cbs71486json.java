@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 32f3379f81cf22f2539db49b33e6cbeef8aa74e0 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -60,7 +60,7 @@ import nl.rivm.cib.episim.cbs.TimeUtil;
  * (find a tutorial on OpenData operators etc. at
  * http://www.odata.org/getting-started/basic-tutorial/)
  * 
- * @version $Id$
+ * @version $Id: 32f3379f81cf22f2539db49b33e6cbeef8aa74e0 $
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = true )
@@ -195,7 +195,7 @@ public class Cbs71486json
 		@JsonIgnore
 		private QuantityDistribution<Time> ageDistCache = null;
 
-		@SuppressWarnings( "unchecked" )
+//		@SuppressWarnings( "unchecked" )
 		public QuantityDistribution<Time> ageDist(
 			final Function<Range<Integer>, ProbabilityDistribution<? extends Number>> distFact )
 		{
@@ -207,7 +207,7 @@ public class Cbs71486json
 		}
 	}
 
-	@SuppressWarnings( "unchecked" )
+//	@SuppressWarnings( "unchecked" )
 	public Integer frequenciesFor( final CBSHousehold comp, final int index )
 	{
 		final List<Integer> freq = frequenciesFor( comp );

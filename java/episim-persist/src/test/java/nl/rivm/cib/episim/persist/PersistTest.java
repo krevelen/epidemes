@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 92e4d555d6552345f6f63dc1262d87bbed2e4669 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -44,7 +44,7 @@ import tec.uom.se.unit.Units;
 /**
  * {@link PersistTest}
  * 
- * @version $Id$
+ * @version $Id: 92e4d555d6552345f6f63dc1262d87bbed2e4669 $
  * @author Rick van Krevelen
  */
 public class PersistTest
@@ -106,7 +106,7 @@ public class PersistTest
 
 //	private static GraphDatabaseService GRAPH_DB;
 
-	@SuppressWarnings( "unchecked" )
+//	@SuppressWarnings( "unchecked" )
 	@BeforeClass
 	public static void createEMF()
 	{

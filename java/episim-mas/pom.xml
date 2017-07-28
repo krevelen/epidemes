@@ -14,7 +14,7 @@
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
-		$Id: 0614cade0ad2c9d423a61135045a9e58aaf3706f $
+		$Id$
 	</description>
 	<url>http://www.rivm.nl/en/Topics/M/Modelling_infectious_diseases</url>
 

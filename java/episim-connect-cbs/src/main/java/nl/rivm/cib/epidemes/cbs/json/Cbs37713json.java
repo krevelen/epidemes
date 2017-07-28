@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 719d0ecb2376e53b47d9c55c590aca84c79ad0f0 $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -76,7 +76,7 @@ import io.reactivex.Observable;
 [[14]]	: *  Vrouwen (Topic:Double)
  * </pre>
  * 
- * @version $Id$
+ * @version $Id: 719d0ecb2376e53b47d9c55c590aca84c79ad0f0 $
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = true )
@@ -122,7 +122,7 @@ public class Cbs37713json
 	 * drawing individual ages)
 	 * </ol>
 	 * 
-	 * @version $Id$
+	 * @version $Id: 719d0ecb2376e53b47d9c55c590aca84c79ad0f0 $
 	 * @author Rick van Krevelen
 	 */
 	public static class Category extends Tuple
@@ -181,7 +181,7 @@ public class Cbs37713json
 		@JsonIgnore
 		private QuantityDistribution<Time> ageDistCache = null;
 
-		@SuppressWarnings( "unchecked" )
+//		@SuppressWarnings( "unchecked" )
 		public QuantityDistribution<Time> ageDist(
 			final Function<Range<Integer>, ProbabilityDistribution<? extends Number>> distFact )
 		{
@@ -193,14 +193,14 @@ public class Cbs37713json
 
 	}
 
-	@SuppressWarnings( "unchecked" )
+//	@SuppressWarnings( "unchecked" )
 	public Number frequencyOf( final CBSGender gender )
 	{
 		return (Number) this.props.computeIfAbsent( gender.jsonKey(),
 				key -> 0 );
 	}
 
-	@SuppressWarnings( "unchecked" )
+//	@SuppressWarnings( "unchecked" )
 	public List<Number> frequencies()
 	{
 		return Arrays.stream( CBSGender.values() ).map( this::frequencyOf )

@@ -20,17 +20,15 @@ import io.coala.log.LogUtil;
 import io.coala.persist.HikariHibernateJPAConfig;
 import io.coala.persist.JDBCUtil;
 import io.coala.persist.JPAUtil;
-import nl.rivm.cib.epidemes.geodb.adm.LRKEntryDao_;
-import nl.rivm.cib.epidemes.geodb.adm.NHREntryDao_;
 import nl.rivm.cib.epidemes.geodb.bag.NHREntryDao;
-import nl.rivm.cib.epidemes.geodb.jdbc.GeoDBConfig;
-import nl.rivm.cib.epidemes.geodb.jdbc.GeoJPAConfig;
+import nl.rivm.cib.epidemes.geodb.bag.NHREntryDao_;
 import nl.rivm.cib.epidemes.geodb.voorz.LRKEntryDao;
+import nl.rivm.cib.epidemes.geodb.voorz.LRKEntryDao_;
 
 /**
  * {@link GeoDBConnectorTest}
  * 
- * @version $Id: dfc7497317afea3de9d16ed8045f7436b2e3e8f5 $
+ * @version $Id: dcf9db7e0a7189e6816afdd8169e0a38f7f0a740 $
  * @author Rick van Krevelen
  */
 public class GeoDBConnectorTest
@@ -63,7 +61,7 @@ public class GeoDBConnectorTest
 
 //	@Ignore
 	@Test
-	@SuppressWarnings( "unchecked" )
+//	@SuppressWarnings( "unchecked" )
 	public void jpaGeodbTest() throws Exception
 	{
 		final EntityManagerFactory GEODB = ConfigCache
@@ -164,7 +162,7 @@ public class GeoDBConnectorTest
 		URI jdbcUrl();
 	}
 
-	@SuppressWarnings( "unchecked" )
+//	@SuppressWarnings( "unchecked" )
 	@Ignore // FIXME some dialect problem
 	@Test
 	public void jpaHsqldbTest() throws Exception

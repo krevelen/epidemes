@@ -1,4 +1,4 @@
-/* $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,7 +27,7 @@ import io.reactivex.Observable;
 /**
  * {@link ClinicalPhase} is an {@link Id} for clinical/symptomatic phases
  * 
- * @version $Id: d5df9621f94e0ecc21038f25d41d1bbde2a398dd $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface ClinicalPhase extends Identified<String>

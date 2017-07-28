@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 19aeaa679d64e98c30f6e10b8f2c0377dba4f35e $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -44,7 +44,7 @@ import io.reactivex.schedulers.Schedulers;
  * (find a tutorial on OpenData operators etc. at
  * http://www.odata.org/getting-started/basic-tutorial/)
  * 
- * @version $Id$
+ * @version $Id: 19aeaa679d64e98c30f6e10b8f2c0377dba4f35e $
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = true )
@@ -89,7 +89,7 @@ public class Cbs37975json
 				.filter( c -> !c.aggregate() ).map( this::toWeightedValue );
 	}
 
-	@SuppressWarnings( "deprecation" )
+//	@SuppressWarnings( "deprecation" )
 	@Deprecated
 	public static Stream<WeightedValue<Tuple>>
 		readSync( final Callable<InputStream> json ) throws Exception

@@ -1,4 +1,4 @@
-/* $Id$
+/* $Id: 3050d23e9fb7b87735fe68325328cd09edfdbfad $
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import nl.rivm.cib.episim.geard.GeardHousehold.MoveHouse;
 /**
  * {@link HouseholdParticipant} TODO make recursive (Social) Participant
  * 
- * @version $Id$
+ * @version $Id: 3050d23e9fb7b87735fe68325328cd09edfdbfad $
  * @author Rick van Krevelen
  */
 @Deprecated
@@ -50,7 +50,7 @@ public interface HouseholdParticipant extends Participant
 		household().members().remove( this );
 		if( household().members().isEmpty() )
 		{
-			household().population().households().remove( this );
+//			household().population().households().remove( this );
 			household().onAbandoned();
 		}
 	}
