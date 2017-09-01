@@ -22,11 +22,14 @@ import io.coala.persist.JDBCUtil;
 import io.coala.persist.JPAUtil;
 import nl.rivm.cib.epidemes.geodb.bag.NHREntryDao;
 import nl.rivm.cib.epidemes.geodb.bag.NHREntryDao_;
+import nl.rivm.cib.epidemes.geodb.voorz.DUOPrimarySchool2017Dao;
 import nl.rivm.cib.epidemes.geodb.voorz.LRKEntryDao;
 import nl.rivm.cib.epidemes.geodb.voorz.LRKEntryDao_;
 
 /**
  * {@link GeoDBConnectorTest}
+ * <p>
+ * TODO run tests only from within Campus network domain
  * 
  * @version $Id: dcf9db7e0a7189e6816afdd8169e0a38f7f0a740 $
  * @author Rick van Krevelen
@@ -48,15 +51,17 @@ public class GeoDBConnectorTest
 	{
 		final GeoDBConfig conf = ConfigCache.getOrCreate( GeoDBConfig.class );
 		LOG.trace( "Testing with JDBC config: {}", conf.export() );
-		final String tblName = "nl." + LRKEntryDao.TABLE_NAME,
-				colName = "shape";
-		final int epsg = 4326, limit = 100;
 		conf.execute(
 				String.format(
-						"SELECT ST_AsGeoJSON(ST_Transform(lg.%s,%d)) "
-								+ "FROM %s As lg LIMIT %d",
-						colName, epsg, tblName, limit ),
-				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) ) );
+						"SELECT denominatie,plaatsnaam,vestigingsnaam,"
+								+ " ST_AsGeoJSON(ST_Transform(lg.shape,4326)) AS geo"
+								+ " FROM nl.%s AS lg"
+								+ " ORDER BY denominatie ASC,plaatsnaam ASC,vestigingsnaam ASC"
+								+ " LIMIT 1000",
+						DUOPrimarySchool2017Dao.TABLE_NAME ),
+				rs -> LOG.trace( "result: {}", JDBCUtil.toString( rs ) )
+//				JDBCUtil.toJSON( rs ).subscribe( json -> LOG.trace( "result: {}", json ) )
+		);
 	}
 
 //	@Ignore

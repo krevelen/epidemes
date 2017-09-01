@@ -286,9 +286,9 @@ public class OutbreakScenario implements Scenario
 					}, this::error );
 			// trigger deaths
 			atEach( timing( CBSPopulationDynamic.DEATHS, () -> 1 ) )
-					.subscribe( t -> at( t )
-							.call( deme.initiate( DomesticChange.Death.class,
-									selectDiseased() )::commit ) );
+					.subscribe( t -> at( t ).call(
+							t1 -> deme.initiate( DomesticChange.Death.class,
+									selectDiseased() ).commit() ) );
 			// trigger immigrations
 			atEach( timing( CBSPopulationDynamic.IMMIGRATION,
 					() -> createCBSHousehold( false ) ) ).subscribe( t ->

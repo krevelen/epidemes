@@ -151,10 +151,10 @@ public interface Pathogen extends Actor<Transmission>
 
 	/**
 	 * {@link SimpleSEIR} implements an {@link Pathogen} drawing probabilities
-	 * for transition and duration of {@link EpidemicCompartment}s from some
-	 * {link RandomDistribution}, independent of relation type between infective
-	 * and susceptible {@link Afflicted}s, their current {@link Condition}s, or
-	 * the contact {@link Place},{@link Duration}, or {@link TransmissionRoute}
+	 * for transition and duration of {@link EpiCompartment}s from some {link
+	 * RandomDistribution}, independent of relation type between infective and
+	 * susceptible {@link Afflicted}s, their current {@link Condition}s, or the
+	 * contact {@link Place},{@link Duration}, or {@link TransmissionRoute}
 	 */
 	interface SimpleSEIR extends Pathogen
 	{
@@ -254,9 +254,8 @@ public interface Pathogen extends Actor<Transmission>
 
 			/**
 			 * distribution for time of latency until infectiousness, between
-			 * {@link EpidemicCompartment.Simple#EXPOSED E} and
-			 * {@link EpidemicCompartment.Simple#INFECTIVE I} (i.e. 1 /
-			 * &epsilon;).
+			 * {@link EpiCompartment.SimpleMSEIRS#EXPOSED E} and
+			 * {@link EpiCompartment.SimpleMSEIRS#INFECTIVE I} (i.e. 1 / &epsilon;).
 			 */
 			@Key( LATENT_PERIOD_KEY )
 			@DefaultValue( "exp(0.09)" ) // 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
@@ -264,9 +263,9 @@ public interface Pathogen extends Actor<Transmission>
 
 			/**
 			 * distribution for time of infectiousness (viral shedding) until
-			 * recovery: between {@link EpidemicCompartment.Simple#INFECTIVE}
-			 * and {@link EpidemicCompartment.Simple#RECOVERED} conditions (i.e.
-			 * 1 / &gamma;)
+			 * recovery: between {@link EpiCompartment.SimpleMSEIRS#INFECTIVE} and
+			 * {@link EpiCompartment.SimpleMSEIRS#RECOVERED} conditions (i.e. 1 /
+			 * &gamma;)
 			 */
 			@Key( RECOVER_PERIOD_KEY )
 			@DefaultValue( "exp(.16)" ) // 1/10d (6-14d) = prodromal fever 3-7 days + rash 4-7days
@@ -274,8 +273,8 @@ public interface Pathogen extends Actor<Transmission>
 
 			/**
 			 * distribution for duration of immunity: between
-			 * {@link EpidemicCompartment.Simple#RECOVERED} and
-			 * {@link EpidemicCompartment.Simple#SUSCEPTIBLE} (i.e. &delta;), or
+			 * {@link EpiCompartment.SimpleMSEIRS#RECOVERED} and
+			 * {@link EpiCompartment.SimpleMSEIRS#SUSCEPTIBLE} (i.e. &delta;), or
 			 * {@code null} for infinite (there is no loss of immunity)
 			 */
 			@Key( WANE_PERIOD_KEY )
@@ -311,7 +310,8 @@ public interface Pathogen extends Actor<Transmission>
 		class Factory implements Pathogen.Factory
 		{
 			/** */
-			private static final Logger LOG = LogUtil.getLogger( Simple.class );
+			private static final Logger LOG = LogUtil
+					.getLogger( Factory.class );
 
 			@InjectConfig( Scope.BINDER )
 			private Config config;
@@ -361,7 +361,8 @@ public interface Pathogen extends Actor<Transmission>
 				final SimpleSEIR seir = this.actors.create( name )
 						.proxyAs( SimpleSEIR.class )
 						.with( INFECTION_RESISTANCE_KEY,
-								getOrCreate( INFECTION_RESISTANCE_KEY ) );
+								getOrCreate( INFECTION_RESISTANCE_KEY ) )
+						.specialist();
 //				seir.emit( Transmission.class, FactKind.REQUESTED )
 //						.subscribe( rq -> seir.onRequest( rq ) );
 				return seir;

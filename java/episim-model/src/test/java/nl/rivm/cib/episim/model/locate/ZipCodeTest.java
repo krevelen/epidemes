@@ -1,4 +1,4 @@
-package nl.rivm.cib.episim.model;
+package nl.rivm.cib.episim.model.locate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;

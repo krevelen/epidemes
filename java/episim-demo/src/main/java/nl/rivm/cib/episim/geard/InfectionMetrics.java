@@ -11,7 +11,7 @@ import io.coala.time.Indicator;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Signal;
-import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+import nl.rivm.cib.episim.model.disease.infection.EpiCompartment;
 import nl.rivm.cib.episim.model.disease.infection.OutbreakScale;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.disease.infection.Transmission;
@@ -80,7 +80,7 @@ public interface InfectionMetrics extends Proactive
 	 */
 	Indicator<Dimensionless> getEffectiveContactsNumber();
 
-	Map<EpidemicCompartment, Indicator<Dimensionless>> getCompartmentAmounts();
+	Map<EpiCompartment, Indicator<Dimensionless>> getCompartmentAmounts();
 
 	/**
 	 * @param unit the {@link Frequency} to calculate

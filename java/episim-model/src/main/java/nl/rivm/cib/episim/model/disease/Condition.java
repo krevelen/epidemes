@@ -20,7 +20,7 @@
 package nl.rivm.cib.episim.model.disease;
 
 import io.coala.enterprise.Actor;
-import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+import nl.rivm.cib.episim.model.disease.infection.EpiCompartment;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.disease.infection.Serostatus;
 
@@ -31,7 +31,7 @@ import nl.rivm.cib.episim.model.disease.infection.Serostatus;
  * {@link Pathogen} microbes, or many other (bio)hazards known in the etiology
  * of disease. {@link Condition} may include attributes such as:
  * <li>epidemic compartment:
- * {@link EpidemicCompartment.Attributable#getCompartment()}
+ * {@link EpiCompartment.Attributable#getCompartment()}
  * <li>medical stage: {@link MedicalStage.Attributable#getStage()}
  * <li>clinical phase: {@link ClinicalPhase.Attributable#getPhase()}
  * <li>serologic state: {@link Serostatus.Attributable#getState()}
@@ -47,7 +47,7 @@ public interface Condition extends Actor<Afflict>
 	 * {@link Condition} actor/role for dynamics related to contagion
 	 */
 	interface Epidemic
-		extends Condition, EpidemicCompartment.Attributable<Epidemic>
+		extends Condition, EpiCompartment.Attributable<Epidemic>
 	{
 
 	}

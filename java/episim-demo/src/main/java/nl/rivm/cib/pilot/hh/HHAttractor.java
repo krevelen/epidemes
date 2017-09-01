@@ -33,13 +33,14 @@ import javax.inject.Singleton;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
 import io.coala.exception.Thrower;
 import io.coala.time.Scheduler;
 import io.reactivex.Observable;
+import nl.rivm.cib.episim.model.JsonSchedulable;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.Category;
-import nl.rivm.cib.util.JsonSchedulable;
 
 /**
  * {@link HHAttractor} adds special proactive entities acting as special
@@ -62,6 +63,10 @@ public interface HHAttractor extends JsonSchedulable<HHAttractor>
 
 	boolean ALTERNATIVE_DEFAULT = false;
 
+	String SCHEDULE_KEY = "schedule";
+
+//	String SERIES_SEP = Pattern.quote( ";" );
+
 	/**
 	 * @return an {@link Observable} stream of {@link HHAttribute} values
 	 *         {@link Map mapped} as {@link BigDecimal}
@@ -81,11 +86,11 @@ public interface HHAttractor extends JsonSchedulable<HHAttractor>
 
 	/**
 	 * {@link SignalSchedule} executes simple position updates configured as
-	 * {@link SignalSchedule.SignalYaml} entries
+	 * {@link SignalSchedule.SeriesTiming} entries
 	 */
 	class SignalSchedule implements HHAttractor
 	{
-
+		@InjectConfig
 		private JsonNode config;
 
 		@Inject
@@ -117,13 +122,6 @@ public interface HHAttractor extends JsonSchedulable<HHAttractor>
 							BigDecimal.class ).subscribe( sub::onNext,
 									sub::onError );
 			} );
-		}
-
-		@Override
-		public HHAttractor reset( final JsonNode config ) throws ParseException
-		{
-			this.config = config;
-			return this;
 		}
 
 		@Override
@@ -203,7 +201,7 @@ public interface HHAttractor extends JsonSchedulable<HHAttractor>
 						? Class.forName( config.get( TYPE_KEY ).textValue() )
 								.asSubclass( HHAttractor.class )
 						: HHAttractor.SignalSchedule.class;
-				return this.binder.inject( type ).reset( config );
+				return this.binder.inject( type, config );
 			}
 		}
 	}

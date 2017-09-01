@@ -67,6 +67,7 @@ public interface Place extends Identified.Ordinal<Place.ID>
 	static Geo of( final ID id, final LatLong position, final Region.ID region,
 		final Geography geography )
 	{
+		// FIXME use concrete implementation in stead. e.g. Attributed.Simple
 		return DynaBean.proxyOf( Geo.class ).with( id ).with( position )
 				.with( geography ).with( region );
 	}
@@ -83,7 +84,8 @@ public interface Place extends Identified.Ordinal<Place.ID>
 	{
 		default Geo with( final ID id )
 		{
-			return with( Identified.ID_JSON_PROPERTY, id, Geo.class );
+			set( Identified.ID_JSON_PROPERTY, id );
+			return this;
 		}
 	}
 }

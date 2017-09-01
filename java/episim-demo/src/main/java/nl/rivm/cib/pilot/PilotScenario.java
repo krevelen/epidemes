@@ -1,7 +1,6 @@
 package nl.rivm.cib.pilot;
 
 import java.beans.PropertyChangeEvent;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDate;
@@ -59,6 +58,8 @@ import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 import nl.rivm.cib.epidemes.cbs.json.CBSGender;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
+import nl.rivm.cib.episim.model.SocialConnector;
+import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 import nl.rivm.cib.pilot.dao.HHStatisticsDao;
 import nl.rivm.cib.pilot.dao.PilotConfigDao;
@@ -68,7 +69,6 @@ import nl.rivm.cib.pilot.hh.HHAttractor;
 import nl.rivm.cib.pilot.hh.HHAttractor.Broker;
 import nl.rivm.cib.pilot.hh.HHAttribute;
 import nl.rivm.cib.pilot.hh.HHMemberAttribute;
-import nl.rivm.cib.pilot.hh.HHMemberMotor;
 import nl.rivm.cib.pilot.hh.HHMemberStatus;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.VaccineStatus;
@@ -199,7 +199,7 @@ public class PilotScenario implements Scenario
 //	private transient ConditionalDistribution<CbsNeighborhood, Region.ID> hoodDist;
 
 	/** */
-	private NavigableMap<String, HHMemberMotor> motors;
+	private NavigableMap<String, SocialGatherer> motors;
 	/** */
 	private Expectation[] motorAdjourns;
 	/** */
@@ -210,8 +210,7 @@ public class PilotScenario implements Scenario
 //	private transient ConditionalDistribution<Quantity<Time>, GenderAge> peerPressureIntervalDist;
 
 	@Override
-	public void init() throws ParseException, InstantiationException,
-		IllegalAccessException, IOException, ClassNotFoundException
+	public void init() throws Exception
 	{
 		final PseudoRandom rng = this.distFactory.getStream();
 		LOG.info( "seed: {}, offset: {}", rng.seed(), scheduler().offset() );
@@ -236,12 +235,12 @@ public class PilotScenario implements Scenario
 				HHMemberAttribute.values().length );
 		this.hhNetwork = SparseMatrix.Factory.zeros( edges, edges );
 
-		this.motors = this.config.regionalMotors( this.binder );
+		this.motors = this.config.mobilityGatherers( this.binder );
 		this.motorNames = this.motors.keySet()
 				.toArray( new String[this.motors.size()] );
 		this.motorAdjourns = new Expectation[this.motors.size()];
 		IntStream.range( 0, this.motors.size() )
-				.forEach( m -> this.motors.get( this.motorNames[m] ).convene()
+				.forEach( m -> this.motors.get( this.motorNames[m] ).summon()
 						.subscribe( dt -> convene( dt, m ) ) );
 		this.motorPresence = SparseMatrix.Factory.zeros( ppTotal,
 				this.motors.size() );
@@ -336,7 +335,7 @@ public class PilotScenario implements Scenario
 				this.attractors.size() );
 
 		final double beta = this.config.hesitancySocialNetworkBeta();
-		final HHConnector conn = new HHConnector.WattsStrogatz( rng, beta );
+		final SocialConnector conn = new SocialConnector.WattsStrogatz( rng, beta );
 		final long A = attractors.size(), N = this.hhCount.get() - A,
 				Na = N / A + 1, // add 1 extra for partition rounding errors
 				K = Math.min( Na - 1,
@@ -364,16 +363,16 @@ public class PilotScenario implements Scenario
 			final BigDecimal inpeerW = this.hhAttributes.getAsBigDecimal( a,
 					HHAttribute.IMPRESSION_INPEER_WEIGHT.ordinal() );
 			if( inpeerW.signum() < 1 ) LOG.warn( "no weight: {}", inpeerW );
-			final Matrix m = conn.connect( Na, assortK, x -> inpeerW,
-					x -> true );
+			final Matrix m = conn.connect( Na, assortK, x -> true,
+					x -> inpeerW );
 			return m;
 		} ).toArray( Matrix[]::new );
 
 		final Matrix dissorting = conn.connect( N, dissortK,
-				x -> this.hhAttributes.getAsBigDecimal( x[0] % A,
-						HHAttribute.IMPRESSION_OUTPEER_WEIGHT.ordinal() ),
 				x -> this.attractorBroker.next( x[0] ) != this.attractorBroker
-						.next( x[1] ) );
+						.next( x[1] ),
+				x -> this.hhAttributes.getAsBigDecimal( x[0] % A,
+						HHAttribute.IMPRESSION_OUTPEER_WEIGHT.ordinal() ) );
 
 		// create the social network (between households/parents)
 		LongStream.range( A, this.hhAttributes.getRowCount() ).forEach( i ->
@@ -389,14 +388,14 @@ public class PilotScenario implements Scenario
 			{
 				final AtomicReference<BigDecimal> totalW = new AtomicReference<>(
 						BigDecimal.ZERO );
-				final long[] inpeers = HHConnector
+				final long[] inpeers = SocialConnector
 						.availablePeers( assorting[aOwn], ia ).map( ja ->
 						{
-							final BigDecimal w = HHConnector
+							final BigDecimal w = SocialConnector
 									.getSymmetric( assorting[aOwn], ia, ja );
 							totalW.getAndUpdate( bd -> bd.add( w ) );
 							final long j = A + A * ja + aOwn;
-							HHConnector.setSymmetric( this.hhNetwork, w, i, j );
+							SocialConnector.setSymmetric( this.hhNetwork, w, i, j );
 							return j;
 						} ).toArray();
 				if( log )
@@ -435,26 +434,26 @@ public class PilotScenario implements Scenario
 						BigDecimal.ZERO ),
 						totalDissortW = new AtomicReference<>(
 								BigDecimal.ZERO );
-				final long[] inpeers = HHConnector
+				final long[] inpeers = SocialConnector
 						.availablePeers( assorting[aOwn], ia )
 						.filter( ja -> ja * A + aOwn < N ) // skip if >N
 						.map( ja ->
 						{
-							final BigDecimal w = HHConnector
+							final BigDecimal w = SocialConnector
 									.getSymmetric( assorting[aOwn], ia, ja );
 							totalAssortW.getAndUpdate( bd -> bd.add( w ) );
 							final long j = A + A * ja + aOwn;
-							HHConnector.setSymmetric( this.hhNetwork, w, i, j );
+							SocialConnector.setSymmetric( this.hhNetwork, w, i, j );
 							return j;
 						} ).toArray();
 				// TODO don't copy, but initialize with outpeers already
-				final long[] outpeers = HHConnector
+				final long[] outpeers = SocialConnector
 						.availablePeers( dissorting, i ).map( j ->
 						{
-							final BigDecimal w = HHConnector
+							final BigDecimal w = SocialConnector
 									.getSymmetric( dissorting, i, j );
 							totalDissortW.getAndUpdate( bd -> bd.add( w ) );
-							HHConnector.setSymmetric( this.hhNetwork, w, i, j );
+							SocialConnector.setSymmetric( this.hhNetwork, w, i, j );
 							return j;
 						} ).toArray();
 				final int peerTotal = inpeers.length + outpeers.length;
@@ -465,7 +464,7 @@ public class PilotScenario implements Scenario
 				final String[] diff = Arrays.stream( stored )
 						.filter( l -> !peers.contains( l ) )
 						.mapToObj( l -> "" + l + "\\" + (l % A)
-								+ "\\" + HHConnector
+								+ "\\" + SocialConnector
 										.getSymmetric( this.hhNetwork, i, l ) )
 						.toArray( String[]::new );
 				if( peerTotal == 0 || peerTotal != stored.length ) LOG.warn(
@@ -508,7 +507,7 @@ public class PilotScenario implements Scenario
 		} );
 
 		LOG.info( "Networked, model: {}, degree: {}, beta: {}, assort: {}",
-				HHConnector.WattsStrogatz.class.getSimpleName(), K, beta,
+				SocialConnector.WattsStrogatz.class.getSimpleName(), K, beta,
 				assortativity );
 
 		// show final links sample
@@ -589,8 +588,9 @@ public class PilotScenario implements Scenario
 
 	private long[] adjourn( final int motorIndex )
 	{
-		return MatrixUtil.coordinateStream(
-				this.motorPresence.selectColumns( Ret.LINK, motorIndex ) )
+		return MatrixUtil
+				.streamAvailableCoordinates( this.motorPresence
+						.selectColumns( Ret.LINK, motorIndex ) )
 				.mapToLong( x -> x[0] ).filter( p ->
 				{
 					final long[] x = { p, motorIndex };
@@ -701,7 +701,7 @@ public class PilotScenario implements Scenario
 						if( binom.draw() > 0 )
 						{
 							final long[] x = { i, J[j] };
-							HHConnector.setSymmetric( interactions, HHConnector
+							SocialConnector.setSymmetric( interactions, SocialConnector
 									.getSymmetric( this.hhNetwork, x ), x );
 						}
 				} );
@@ -944,7 +944,7 @@ public class PilotScenario implements Scenario
 
 	private long[] contacts( final long i )
 	{
-		return HHConnector.availablePeers( this.hhNetwork, i )//.parallel()
+		return SocialConnector.availablePeers( this.hhNetwork, i )//.parallel()
 				.toArray();
 	}
 
@@ -973,10 +973,10 @@ public class PilotScenario implements Scenario
 		this.ppAttributes.setAsInt( status.ordinal(), index,
 				HHMemberAttribute.STATUS.ordinal() );
 		long all = 0L;
-		for(int m=this.motors.size()-1;--m!=0;)
+		for( int m = this.motors.size() - 1; --m != 0; )
 		{
-			System.err.println( all+" -> "+(all&m));
-			all=all&m;
+			System.err.println( all + " -> " + (all & m) );
+			all = all & m;
 		}
 		this.ppAttributes.setAsLong( all, index,
 				HHMemberAttribute.MOTOR_REF.ordinal() );

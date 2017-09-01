@@ -35,7 +35,7 @@ import io.coala.time.Instant;
 import io.reactivex.Observable;
 import nl.rivm.cib.episim.model.disease.Afflicted;
 import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
-import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+import nl.rivm.cib.episim.model.disease.infection.EpiCompartment;
 import nl.rivm.cib.episim.model.disease.infection.Occupancy;
 import nl.rivm.cib.episim.model.disease.infection.Pathogen;
 import nl.rivm.cib.episim.model.disease.infection.Transmission;
@@ -221,7 +221,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 
 		//Indicator getPressure();
 
-		CompartmentDynamics dynamicsOf( EpidemicCompartment compartment );
+		CompartmentDynamics dynamicsOf( EpiCompartment compartment );
 
 		/**
 		 * @param location the {@link TransmissionSpace}
@@ -246,7 +246,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 
 			private Pathogen infection;
 
-			private final Map<EpidemicCompartment, CompartmentDynamics> compartments = new ConcurrentSkipListMap<>();
+			private final Map<EpiCompartment, CompartmentDynamics> compartments = new ConcurrentSkipListMap<>();
 
 			public Simple( final TransmissionSpace location,
 				final Pathogen infection )
@@ -269,7 +269,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 
 			@Override
 			public CompartmentDynamics
-				dynamicsOf( final EpidemicCompartment compartment )
+				dynamicsOf( final EpiCompartment compartment )
 			{
 				synchronized( this.compartments )
 				{
@@ -299,7 +299,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 
 		Pathogen getInfection();
 
-		EpidemicCompartment getCompartment();
+		EpiCompartment getCompartment();
 
 		Map<Afflicted, Instant> getArrivals();
 
@@ -352,7 +352,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 		}
 
 		static CompartmentDynamics of( final TransmissionSpace space,
-			final Pathogen infection, final EpidemicCompartment compartment )
+			final Pathogen infection, final EpiCompartment compartment )
 		{
 			return new Simple( space, infection, compartment );
 		}
@@ -369,7 +369,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 
 			private final Pathogen infection;
 
-			private final EpidemicCompartment compartment;
+			private final EpiCompartment compartment;
 
 			private final Map<Afflicted, Instant> visitorArrivals = new ConcurrentSkipListMap<>();
 
@@ -377,7 +377,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 
 			public Simple( final TransmissionSpace space,
 				final Pathogen infection,
-				final EpidemicCompartment compartment )
+				final EpiCompartment compartment )
 			{
 				this.space = space;
 				this.infection = infection;
@@ -397,7 +397,7 @@ public interface TransmissionSpace extends Actor<Transmission>
 			}
 
 			@Override
-			public EpidemicCompartment getCompartment()
+			public EpiCompartment getCompartment()
 			{
 				return this.compartment;
 			}

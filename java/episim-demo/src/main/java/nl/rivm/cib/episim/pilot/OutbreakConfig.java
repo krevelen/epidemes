@@ -55,7 +55,7 @@ public interface OutbreakConfig extends YamlConfig
 
 	@DefaultValue( "0 0 * * * ?" )
 	String statisticsRecurrence();
-	
+
 	@DefaultValue( "" + 1000 )
 	int popSize();
 
@@ -68,7 +68,7 @@ public interface OutbreakConfig extends YamlConfig
 	@DefaultValue( "MUNICIPAL" )
 	CBSRegionType cbsRegionLevel();
 
-	@DefaultValue( "cbs/pc6_buurt.json" )
+	@DefaultValue( "dist/pc6_buurt.json" )
 	@ConverterClass( InputStreamConverter.class )
 	InputStream cbsNeighborhoodsData();
 
@@ -81,7 +81,7 @@ public interface OutbreakConfig extends YamlConfig
 						CbsNeighborhood::toWeightedValue )
 				.blockingGet();
 	}
-	
+
 //	default ConditionalDistribution<CbsNeighborhood, Region.ID>
 //	neighborhoodDist( final Factory distFactory,
 //		//final Map<String, Map<CBSRegionType, String>> regionTypes,
@@ -115,7 +115,7 @@ public interface OutbreakConfig extends YamlConfig
 //			key -> async.get( fallback.apply( key ) ) ) );
 //}
 
-	@DefaultValue( "cbs/37201_TS_2010_2015.json" )
+	@DefaultValue( "dist/37201_TS_2010_2015.json" )
 	@ConverterClass( InputStreamConverter.class )
 	InputStream cbs37201Data();
 
@@ -124,15 +124,16 @@ public interface OutbreakConfig extends YamlConfig
 	{
 		final CBSRegionType cbsRegionLevel = this.cbsRegionLevel();
 		return Cbs37201json.readAsync( this::cbs37201Data, timeFilter )
-				.filter( wv -> wv.getValue().regionType() == cbsRegionLevel )
-				.toMultimap( wv -> wv.getValue().regionPeriod(),
-						Functions.identity(),
-						// Navigable Map for resolving out-of-bounds conditions
-						TreeMap::new )
+				.filter( wv -> wv.getValue().regionType() == cbsRegionLevel ).
+				// FIXME: maven install requires explicit types ?
+				<RegionPeriod, WeightedValue<Cbs37201json.Category>>toMultimap(
+						// Navigable TreeMap to resolve out-of-bounds conditions
+						wv -> wv.getValue().regionPeriod(),
+						Functions.identity(), TreeMap::new )
 				.blockingGet();
 	}
 
-	@DefaultValue( "cbs/71486ned-TS-2010-2016.json" )
+	@DefaultValue( "dist/71486ned-TS-2010-2016.json" )
 	@ConverterClass( InputStreamConverter.class )
 	InputStream cbs71486Data();
 
@@ -141,13 +142,16 @@ public interface OutbreakConfig extends YamlConfig
 	{
 		final CBSRegionType cbsRegionLevel = this.cbsRegionLevel();
 		return Cbs71486json.readAsync( this::cbs71486Data, timeFilter )
-				.filter( wv -> wv.getValue().regionType() == cbsRegionLevel )
-				.toMultimap( wv -> wv.getValue().regionPeriod(),
+				.filter( wv -> wv.getValue().regionType() == cbsRegionLevel ).
+				// FIXME: maven install requires explicit types ?
+				<RegionPeriod, WeightedValue<Cbs71486json.Category>>toMultimap(
+						// Navigable TreeMap to resolve out-of-bounds conditions
+						wv -> wv.getValue().regionPeriod(),
 						Functions.identity(), TreeMap::new )
 				.blockingGet();
 	}
 
-	@DefaultValue( "cbs/37230ned_TS_2012_2017.json" )
+	@DefaultValue( "dist/37230ned_TS_2012_2017.json" )
 	@ConverterClass( InputStreamConverter.class )
 	InputStream cbs37230Data();
 
@@ -160,19 +164,15 @@ public interface OutbreakConfig extends YamlConfig
 				.filter( metric -> metric != CBSPopulationDynamic.POP )
 				.forEach( metric ->
 		// FIXME parse and group by all metrics in a single parsing run
-
 		Cbs37230json.readAsync( this::cbs37230Data, timeFilter, metric )
-				.groupBy(
-						wv -> wv.getValue().regionType() )
-				.blockingForEach(
+				.groupBy( wv -> wv.getValue().regionType() ).blockingForEach(
 						( GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g ) -> timeseriesConsumer
-								.apply( metric,
-										g.getKey() )
-								.accept( g
-										.toMultimap(
-												wv -> wv.getValue().offset(),
-												wv -> wv, TreeMap::new )
-										.blockingGet() ) ) );
+								.apply( metric, g.getKey() ).accept( g.
+						// FIXME: maven install requires explicit types ?
+						<LocalDate, WeightedValue<Cbs37230json.Category>>toMultimap(
+								// Navigable TreeMap to resolve out-of-bounds conditions
+								wv -> wv.getValue().offset(), wv -> wv,
+								TreeMap::new ).blockingGet() ) ) );
 	}
 
 	default Range<ComparableQuantity<Time>> momAgeRange() throws ParseException
@@ -181,7 +181,7 @@ public interface OutbreakConfig extends YamlConfig
 				.map( yr -> QuantityUtil.valueOf( yr, TimeUnits.ANNUM ) );
 	}
 
-	@DefaultValue( "cbs/37713_2016JJ00_AllOrigins.json" )
+	@DefaultValue( "dist/37713_2016JJ00_AllOrigins.json" )
 	@ConverterClass( InputStreamConverter.class )
 	InputStream cbs37713();
 
@@ -198,7 +198,7 @@ public interface OutbreakConfig extends YamlConfig
 //			.readAsync( this.config::cbs37975 )
 //			.toList().blockingGet();
 
-//		@DefaultValue( "cbs/37975_2016JJ00.json" )
+//		@DefaultValue( "dist/37975_2016JJ00.json" )
 //		@ConverterClass( InputStreamConverter.class )
 //		InputStream cbs37975();
 }

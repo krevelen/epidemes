@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import nl.rivm.cib.episim.model.disease.infection.EpidemicCompartment;
+import nl.rivm.cib.episim.model.disease.infection.EpiCompartment;
 
 /**
  * {@link EpidemicCompartmentTest}
@@ -36,16 +36,16 @@ public class EpidemicCompartmentTest
 {
 
 	/**
-	 * Test method for {@link EpidemicCompartment#isInfective()}.
+	 * Test method for {@link EpiCompartment#isInfective()}.
 	 */
 	@Test
 	public void testIsInfective()
 	{
-		assertTrue( EpidemicCompartment.Simple.INFECTIVE.isInfective() );
-		assertFalse( EpidemicCompartment.Simple.SUSCEPTIBLE.isInfective() );
-		assertFalse( EpidemicCompartment.Simple.EXPOSED.isInfective() );
-		assertFalse( EpidemicCompartment.Simple.RECOVERED.isInfective() );
-		assertFalse( EpidemicCompartment.Simple.PASSIVE_IMMUNE.isInfective() );
+		assertTrue( EpiCompartment.SimpleMSEIRS.INFECTIVE.isInfective() );
+		assertFalse( EpiCompartment.SimpleMSEIRS.SUSCEPTIBLE.isInfective() );
+		assertFalse( EpiCompartment.SimpleMSEIRS.EXPOSED.isInfective() );
+		assertFalse( EpiCompartment.SimpleMSEIRS.RECOVERED.isInfective() );
+		assertFalse( EpiCompartment.SimpleMSEIRS.PASSIVE_IMMUNE.isInfective() );
 	}
 
 }

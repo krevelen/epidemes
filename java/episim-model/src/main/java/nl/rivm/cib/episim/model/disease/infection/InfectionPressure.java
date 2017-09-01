@@ -20,15 +20,28 @@
 package nl.rivm.cib.episim.model.disease.infection;
 
 import java.math.BigDecimal;
-import java.util.Map;
+import java.text.ParseException;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import javax.measure.Quantity;
+import javax.measure.quantity.Time;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.coala.bind.InjectConfig;
+import io.coala.bind.LocalBinder;
 import io.coala.exception.Thrower;
 import io.coala.math.DecimalUtil;
-import io.reactivex.Observable;
+import io.coala.math.QuantityUtil;
+import io.coala.time.ConditionalSignalQuantifier;
+import io.coala.time.Expectation;
+import io.coala.time.Instant;
 import io.reactivex.Observer;
-import io.reactivex.functions.Consumer;
-import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.disposables.Disposable;
+import nl.rivm.cib.episim.model.disease.infection.EpiTrajectory.EpiCondition.SimpleEpiClinical;
 
 /**
  * {@link InfectionPressure} calculates the infection speed or pressure for a
@@ -37,112 +50,271 @@ import io.reactivex.subjects.BehaviorSubject;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@FunctionalInterface
-public interface InfectionPressure
+//@FunctionalInterface
+public interface InfectionPressure extends EpiTrajectory, Observer<Number>
 {
-	/**
-	 * @param infectives the number of infective occupants
-	 * @param others the number of non-infective occupants
-	 * @return the infection pressure (speed factor)
-	 */
-	BigDecimal calculate( long infectives, long others );
+	String DECAY_TYPE_KEY = "decay";
 
-	/** @see Binary */
-	InfectionPressure BINARY = new Binary();
-
-	/** @see Proportional */
-	InfectionPressure PROPORTIONAL = new Proportional();
-
-	default Observable<BigDecimal> map( final Observable<long[]> args )
-	{
-		return args.map( v -> calculate( v[0], v[1] ) ).distinctUntilChanged();
-	}
-
-	default Contagium map( final Consumer<BigDecimal> consumer )
-	{
-		final Contagium result = new Contagium();
-		result.emit( this ).subscribe( consumer, Throwable::printStackTrace );
-		return result;
-	}
-
-	default Contagium map( final Observer<BigDecimal> observer )
-	{
-		final Contagium result = new Contagium();
-		result.emit( this ).subscribe( observer );
-		return result;
-	}
+	/** @return {@link Decay} : pressure(t) &harr; resistance(t) */
+	Decay decay();
 
 	/**
-	 * @param counts the number of occupants per epidemic compartment
-	 * @return the infection pressure (speed factor)
+	 * {@link Decay} defines relations between resistance, pressure and time in
+	 * two (inverse) functions:
+	 * <ul>
+	 * <li>{@link #integrator} for the resistance change given a pressure amount
+	 * over some duration; and
+	 * <li>{@link #interceptor} for the duration until some resistance level is
+	 * first reached given some pressure amount.
+	 * </ul>
 	 */
-	default BigDecimal calculate( final Map<EpidemicCompartment, Long> counts )
+	interface Decay
+		extends ConditionalSignalQuantifier<Quantity<Time>, BigDecimal>
 	{
-		long infectives = 0L, others = 0L;
-		for( Map.Entry<EpidemicCompartment, Long> entry : Objects
-				.requireNonNull( counts, "No counts" ).entrySet() )
-			if( entry.getValue() < 0L )
-				return Thrower.throwNew( IllegalArgumentException::new,
-						() -> "Negative amount: " + entry );
-			else if( entry.getKey().isInfective() )
-				infectives += entry.getValue();
+
+		/** decay that disregards any pressure signal constants */
+		Decay CONSTANT = new ConstantDecay();
+
+		/** resistance decay/change dr=-1*dt (k > 0); else dr=NA */
+		Decay CONDITIONAL = new ConditionalDecay();
+
+		/** resistance decay/change dr=-k*dt (k > 0); else dr=NA */
+		Decay PROPORTIONAL = new ProportionalDecay();
+
+		/**
+		 * {@link ConstantDecay} resistance change: dr=-1*dt, regardless of k
+		 */
+		class ConstantDecay implements Decay
+		{
+			@Override
+			public Integrator<Quantity<Time>, BigDecimal> integrator()
+			{
+				return ( t_0, dt, r_0, k ) -> QuantityUtil.min( dt, r_0 )
+						.multiply( -1 );
+			}
+
+			@Override
+			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			{
+				return ( t_0, r_0, r_t, k ) -> r_t == null ? null
+						: r_t.subtract( r_0 ).divide( -1 );
+			}
+		}
+
+		/**
+		 * {@link ConditionalDecay} resistance change; dr=-1*dt iff k>0, else NA
+		 */
+		class ConditionalDecay implements Decay
+		{
+			@Override
+			public Integrator<Quantity<Time>, BigDecimal> integrator()
+			{
+				return ( t_0, dt, r_0, k ) -> k == null || k.signum() < 1 ? null
+						: QuantityUtil.min( dt, r_0 ).multiply( -1 );
+			}
+
+			@Override
+			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			{
+				return ( t_0, r_0, r_t, k ) -> k == null || k.signum() < 1
+						? null : r_t.subtract( r_0 ).divide( -1 );
+			}
+		}
+
+		/**
+		 * {@link ProportionalDecay} resistance change: dr=-k*dt iff k>0, else
+		 * NA
+		 */
+		class ProportionalDecay implements Decay
+		{
+			@SuppressWarnings( "unchecked" )
+			@Override
+			public Integrator<Quantity<Time>, BigDecimal> integrator()
+			{
+				return ( t_0, dt, r_0, k ) -> k == null || k.signum() < 1 ? null
+						: QuantityUtil.min( dt, r_0 ).multiply( -1 );
+			}
+
+			@SuppressWarnings( "unchecked" )
+			@Override
+			public Interceptor<Quantity<Time>, BigDecimal> interceptor()
+			{
+				return ( t_0, r_0, r_t,
+					k ) -> k == null || k.signum() < 1 || r_t == null ? null
+							: r_t.subtract( r_0 ).divide( k.negate() );
+			}
+		}
+	}
+
+	/**
+	 * {@link Simple} resists infection pressure based on {@link #decay}
+	 */
+	public static class Simple extends EpiTrajectory.SimpleClinical
+		implements InfectionPressure
+	{
+
+		@InjectConfig
+		private JsonNode config;
+
+		@Override
+		public JsonNode config()
+		{
+			return this.config;
+		}
+
+		@Override
+		public void onSubscribe( final Disposable undead )
+		{
+			if( this.condition.get() == null ) passive(); // initialize
+		}
+
+		@Override
+		public void onNext( final Number t )
+		{
+			setPressure( DecimalUtil.valueOf( t ) );
+		}
+
+		private transient Decay decayCache = null;
+
+		private final AtomicReference<BigDecimal> pressure = new AtomicReference<>();
+		private final AtomicReference<Expectation> expose = new AtomicReference<>();
+		private final AtomicReference<Quantity<Time>> resistance = new AtomicReference<>();
+		private final AtomicReference<Instant> since = new AtomicReference<>();
+
+		public void setPressure( final BigDecimal pNew )
+		{
+			final BigDecimal pOld = this.pressure.getAndSet( pNew );
+
+			// no pressure or unchanged
+			if( pOld == null || pOld.equals( pNew ) ) return;
+
+			if( this.condition.get() == null
+					|| !this.condition.get().getCompartment().isSusceptible() )
+				return; // not susceptible: no exposure occurring
+
+			final Instant t = now(), t0 = this.since.getAndSet( t );
+
+			// update remaining resistance, subtracting dp for dt > 0
+			if( t0 != null && !t0.equals( t ) )
+			{
+				final Quantity<Time> dt = t.toQuantity( Time.class )
+						.subtract( t0.toQuantity( Time.class ) ),
+						dp = decay().integrator().dq( t0, dt,
+								this.resistance.get(), pOld );
+//							res0 = 
+				this.resistance.getAndUpdate(
+						res -> dp == null ? res : res.add( dp ) );
+//					System.err.println( "t=" + t + " dt=" + dt + " dp=" + dp
+//							+ " res0=" + res0 + " res_t=" + this.resistance );
+			}
+
+			// reschedule exposure
+			wane();
+		}
+
+		@Override
+		public void onError( final Throwable e )
+		{
+			this.emitter.onError( e );
+		}
+
+		@Override
+		public void onComplete()
+		{
+			this.emitter.onComplete(); // sim/pressure completed
+		}
+
+		@Override
+		public Decay decay()
+		{
+			if( this.decayCache == null ) try
+			{
+				this.decayCache = fromConfig( DECAY_TYPE_KEY, Decay.class,
+						Decay.CONSTANT );
+			} catch( final ClassNotFoundException e )
+			{
+				this.emitter.onError( e );
+			}
+			return this.decayCache;
+		}
+
+		/**
+		 * sets/maintains condition {@link #SUSCEPTIBLE} and (re)schedules
+		 * {@link #expose} after (pressured)
+		 * {@link EpiTransition#SUSCEPTIBILITY}
+		 */
+		@Override
+		protected void wane()
+		{
+			final SimpleEpiClinical c = this.condition.get();
+			if( c == null || !c.getCompartment().isSusceptible() )
+				this.emitter.onNext( this.condition
+						.updateAndGet( x -> x == SimpleEpiClinical.MATERNAL
+								? SimpleEpiClinical.SUSCEPTIBLE
+								: SimpleEpiClinical.DORMANT ) );
+
+			final Quantity<Time> resistance = this.resistance
+					.updateAndGet( dt -> dt != null ? dt
+							: dtMapper( EpiTransition.SUSCEPTIBILITY ) );
+
+			final int signum = QuantityUtil.signum( resistance );
+			if( signum < 0 )
+				Thrower.throwNew( IllegalStateException::new,
+						() -> "Exposed overdue: " + resistance );
+			else if( signum == 0 )
+				expose();
 			else
-				others += entry.getValue();
-		return calculate( infectives, others );
+				// (re)schedule exposure (if pressure exists)
+				this.expose.updateAndGet( exp ->
+				{
+					// cancel previous, if any
+					if( exp != null ) exp.remove();
+					final Quantity<Time> dt = decay().interceptor().dtMin(
+							now(), resistance, QuantityUtil.zero( Time.class ),
+							this.pressure.get() );
+					return dt == null ? null : after( dt ).call( this::expose );
+				} );
+		}
+
+		@Override
+		protected void expose()
+		{
+			this.expose.set( null );
+			this.resistance.set( null );
+			this.since.set( null );
+			super.expose();
+		}
 	}
 
 	/**
-	 * {@link Binary} is defined as {@code 1} (normal speed/pressure) for any
-	 * {@code infectives > 0 AND non-infectives > 0}; {@code 0} otherwise
+	 * {@link Factory} used for {@link PressuredEpiTrajectory}
 	 */
-	class Binary implements InfectionPressure
+	interface Factory extends EpiTrajectory.Factory
 	{
 		@Override
-		public BigDecimal calculate( final long infectives, final long others )
-		{
-			return infectives < 1L || others < 1L ? BigDecimal.ZERO
-					: BigDecimal.ONE;
-		}
-	}
+		InfectionPressure create( JsonNode config ) throws Exception;
 
-	/**
-	 * {@link Proportional} is defined as {@code |N=I|/|N\I|} (speed/pressure
-	 * proportional to number of infectives per non-infective) for
-	 * {@code infectives > 0 AND non-infectives > 0}; {@code 0} otherwise
-	 */
-	class Proportional implements InfectionPressure
-	{
-		@Override
-		public BigDecimal calculate( final long infectives, final long others )
-		{
-			return infectives < 1L || others < 1L ? BigDecimal.ZERO
-					: DecimalUtil.divide( infectives, others );
-		}
-	}
+		String TYPE_DEFAULT = Simple.class.getName();
 
-	/**
-	 * {@link Contagium}
-	 */
-	class Contagium
-	{
-		private final BehaviorSubject<long[]> occupancy = BehaviorSubject
-				.createDefault( new long[]
-		{ 0L, 0L } );
-
-		public Contagium change( final long deltaInfectives,
-			final long deltaOther )
+		@Singleton
+		class SimpleBinding implements Factory
 		{
-			if( deltaInfectives == 0 && deltaOther == 0 ) return this;
-			final long[] v = this.occupancy.getValue();
-			this.occupancy.onNext(
-					new long[]
-			{ v[0] + deltaInfectives, v[1] + deltaOther } );
-			return this;
-		}
+			@Inject
+			private LocalBinder binder;
 
-		public Observable<BigDecimal> emit( final InfectionPressure pressure )
-		{
-			return pressure.map( this.occupancy );
+			@Override
+			public InfectionPressure create( final JsonNode config )
+				throws ClassNotFoundException, ParseException
+			{
+				final JsonNode typeNode = Objects
+						.requireNonNull( config, "No config?" ).get( TYPE_KEY );
+				final String typeName = typeNode == null ? TYPE_DEFAULT
+						: typeNode.asText( TYPE_DEFAULT );
+				final Class<? extends InfectionPressure> type = Class
+						.forName( typeName )
+						.asSubclass( InfectionPressure.class );
+				return this.binder.inject( type, config );
+			}
 		}
 	}
 }

@@ -40,8 +40,8 @@ import org.ujmp.core.calculation.Calculation.Ret;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
 import io.coala.math.MatrixUtil;
+import nl.rivm.cib.episim.model.SocialConnector;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
-import nl.rivm.cib.pilot.HHConnector;
 
 /**
  * {@link HHAttitudePropagator} : [{@link HHAttribute}] &rarr; [0,1]
@@ -131,10 +131,10 @@ public interface HHAttitudePropagator
 					final AtomicReference<BigDecimal> sumW = new AtomicReference<>(
 							BigDecimal.ZERO );
 					final AtomicInteger sumJ = new AtomicInteger( 0 );
-					HHConnector.availablePeers( hhPressure, i ).forEach( j ->
+					SocialConnector.availablePeers( hhPressure, i ).forEach( j ->
 					{
 						sumJ.incrementAndGet();
-						final BigDecimal w = HHConnector
+						final BigDecimal w = SocialConnector
 								.getSymmetric( hhPressure, i, j );
 						// apply calculation threshold function to peers
 						sumW.getAndUpdate(

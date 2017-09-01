@@ -63,10 +63,10 @@ public interface Transmission extends Afflict
 	Number getForce();
 
 	/**
-	 * @return the {@link TimingMap} of {@link EpidemicCompartment} executed
+	 * @return the {@link TimingMap} of {@link EpiCompartment} executed
 	 *         upon invasion
 	 */
-	TimingMap<EpidemicCompartment> getEpidemiology();
+	TimingMap<EpiCompartment> getEpidemiology();
 
 	/**
 	 * @return the {@link TimingMap} of {@link ClinicalPhase} executed upon

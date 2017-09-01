@@ -29,7 +29,7 @@ import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.coala.dsol3.Dsol3Config;
+import io.coala.dsol3.legacy.Dsol3Config;
 import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;

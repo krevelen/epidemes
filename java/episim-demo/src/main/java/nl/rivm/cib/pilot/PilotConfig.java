@@ -66,6 +66,7 @@ import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.Cbs83287Json;
 import nl.rivm.cib.epidemes.cbs.json.CbsNeighborhood;
 import nl.rivm.cib.episim.cbs.TimeUtil;
+import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.model.locate.Region.ID;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
@@ -73,7 +74,6 @@ import nl.rivm.cib.pilot.hh.HHAttitudeEvaluator;
 import nl.rivm.cib.pilot.hh.HHAttitudePropagator;
 import nl.rivm.cib.pilot.hh.HHAttractor;
 import nl.rivm.cib.pilot.hh.HHAttribute;
-import nl.rivm.cib.pilot.hh.HHMemberMotor;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson;
 import nl.rivm.cib.pilot.json.HesitancyProfileJson.HesitancyDimension;
 import nl.rivm.cib.pilot.json.RelationFrequencyJson;
@@ -136,22 +136,23 @@ public interface PilotConfig extends GlobalConfig
 	String STATISTICS_PREFIX = REPLICATION_PREFIX + "statistics" + KEY_SEP;
 
 	/** configuration key */
-	String POPULATION_PREFIX = SCENARIO_BASE + KEY_SEP + "population" + KEY_SEP;
+	String POPULATION_PREFIX = SCENARIO_BASE + KEY_SEP + "demography" + KEY_SEP;
 
 	/** configuration key */
-	String MOBILITY_PREFIX = POPULATION_PREFIX + "mobility" + KEY_SEP;
+	String MOBILITY_PREFIX = SCENARIO_BASE + KEY_SEP + "mobility" + KEY_SEP;
 
 	/** configuration key */
-	String HESITANCY_PREFIX = POPULATION_PREFIX + "hesitancy" + KEY_SEP;
+	String HESITANCY_PREFIX = SCENARIO_BASE + KEY_SEP + "hesitancy" + KEY_SEP;
 
 	/** configuration key */
-	String GEOGRAPHY_PREFIX = POPULATION_PREFIX + "geography" + KEY_SEP;
+	String GEOGRAPHY_PREFIX = SCENARIO_BASE + KEY_SEP + "geography" + KEY_SEP;
 
 	/** configuration key */
-	String VACCINATION_PREFIX = POPULATION_PREFIX + "vaccination" + KEY_SEP;
+	String VACCINATION_PREFIX = SCENARIO_BASE + KEY_SEP + "vaccination"
+			+ KEY_SEP;
 
 	/** configuration key */
-	String PATHOLOGY_PREFIX = POPULATION_PREFIX + "pathology" + KEY_SEP;
+	String PATHOLOGY_PREFIX = SCENARIO_BASE + KEY_SEP + "pathology" + KEY_SEP;
 
 	/**
 	 * provide a universal approach for loading the {@link PilotConfig}
@@ -168,13 +169,12 @@ public interface PilotConfig extends GlobalConfig
 				.filter( arg -> arg.contains( "=" ) )
 				.map( arg -> arg.split( "=" ) ).filter( arr -> arr.length == 2 )
 				.collect( Collectors.toMap( arr -> arr[0], arr -> arr[1] ) );
-		argMap.computeIfAbsent( CONFIG_FILE_ARG,
-				key -> CONFIG_BASE_DIR + CONFIG_YAML_FILE );
 
 		// merge arguments into configuration imported from YAML file
-		return ConfigCache.getOrCreate( PilotConfig.class, argMap,
-				YamlUtil.flattenYaml( FileUtil
-						.toInputStream( argMap.get( CONFIG_FILE_ARG ) ) ) );
+		return ConfigCache.getOrCreate( PilotConfig.class, argMap, YamlUtil
+				.flattenYaml( FileUtil.toInputStream( argMap.computeIfAbsent(
+						CONFIG_FILE_ARG, key -> CONFIG_BASE_DIR
+								+ CONFIG_YAML_FILE ) ) ) );
 	}
 
 	// match unit name from persistence.xml
@@ -188,8 +188,8 @@ public interface PilotConfig extends GlobalConfig
 	@Separator( JPAConfig.NAME_DELIMITER )
 	String[] jpaPersistenceUnitNames();
 
-	//	"jdbc:neo4j:bolt://192.168.99.100:7687/db/data" 
-	//	"jdbc:mysql://localhost/hhdb" 
+	// jdbc:neo4j:bolt://192.168.99.100:7687/db/data
+	// jdbc:mysql://localhost/hhdb
 	// jdbc:h2:~/morphdat/h2_hhdb
 	// jdbc:h2:tcp://localhost/~/morphdat/h2_hhdb
 	@DefaultValue( "jdbc:h2:tcp://localhost/~/epidemes/pilot_h2" )
@@ -428,15 +428,15 @@ public interface PilotConfig extends GlobalConfig
 	}
 
 	@Key( MOBILITY_PREFIX + "motor-factory" )
-	@DefaultValue( "nl.rivm.cib.pilot.hh.HHMemberMotor$Factory$SimpleBinding" )
-	Class<? extends HHMemberMotor.Factory> regionalMotorFactory();
+	@DefaultValue( "nl.rivm.cib.episim.model.SocialGatherer$Factory$SimpleBinding" )
+	Class<? extends SocialGatherer.Factory> mobilityGathererFactory();
 
-	default NavigableMap<String, HHMemberMotor>
-		regionalMotors( final LocalBinder binder )
+	default NavigableMap<String, SocialGatherer>
+		mobilityGatherers( final LocalBinder binder ) throws Exception
 	{
-		return Collections.unmodifiableNavigableMap( binder
-				.inject( regionalMotorFactory() )
-				.createAll( toJSON( MOBILITY_PREFIX + "motors" ) ) );
+		return Collections.unmodifiableNavigableMap(
+				binder.inject( mobilityGathererFactory() )
+						.createAll( toJSON( MOBILITY_PREFIX + "motors" ) ) );
 	}
 
 	@Key( VACCINATION_PREFIX + "invitation-age" )
@@ -551,7 +551,7 @@ public interface PilotConfig extends GlobalConfig
 					.findFirst().orElse( defaultDelay );
 		};
 	}
-	
+
 	@Key( HESITANCY_PREFIX + "relation-impact-rate" )
 	@DefaultValue( "1" )
 	BigDecimal hesitancyRelationImpactRate();

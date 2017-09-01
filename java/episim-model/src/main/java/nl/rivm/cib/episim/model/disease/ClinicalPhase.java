@@ -33,39 +33,74 @@ import io.reactivex.Observable;
 public interface ClinicalPhase extends Identified<String>
 {
 
+	/**
+	 * @return symptoms can be observed, by self and/or others, laymen and/or
+	 *         specialists
+	 */
+	boolean isApparent();
+
+	/**
+	 * @return clinical attention or treatment may be appropriate
+	 */
 	boolean isClinical();
 
 	enum Simple implements ClinicalPhase
 	{
 		/**
-		 * subclinical: no signs or symptoms (not occult if not exposed or
-		 * immune)
+		 * no disease, pathogen, signs or symptoms (not if never
+		 * exposed/invaded)
 		 */
-		ASYMPTOMATIC,
+		ABSENT( false, false ),
 
 		/**
-		 * signs or symptoms of early onset, e.g. lack of appetite,
+		 * affected/exposed but non-apparent, possibly 1. dormant (inactive, non
+		 * growing); 2. asymptomatic/subclinical (not clinically observable); or
+		 * 3. latent/occult (no visual signs or symptoms)
+		 */
+		LATENT( false, false ),
+
+		/**
+		 * (sub)clinical signs or symptoms, possibly still obscure/non-apparent
+		 */
+		SYMPTOMATIC( true, false ),
+
+		/**
+		 * visually apparent signs or symptoms, possibly still subclinical
+		 */
+		SYMPTOMATIC_APPARENT( true, false ),
+
+		/**
+		 * apparent signs or symptoms of early onset, e.g. lack of appetite,
 		 * fever/hyperthermia (measles), rhinorrhea (measles, flu, cold),
 		 * conjuctivitis (measles, flu, cold).
 		 */
-		PRODROMAL,
+		SYMTPOMATIC_PRODROMAL( true, true ),
 
 		/**
-		 * signs or symptoms throughout body, e.g. sepsis, cold, flu,
+		 * apparent signs or symptoms throughout body, e.g. sepsis, cold, flu,
 		 * mononucleosis (Pfeiffer due to the Epstein-Barr herpes virus),
 		 * Streptococcal pharyngitis
 		 */
-		SYSTEMIC,
+		SYMTPOMATIC_SYSTEMIC( true, true ),
 
 		/**
-		 * signs or symptoms near recovery, e.g.
+		 * apparent signs or symptoms near recovery, e.g.
 		 * <a href="https://en.wikipedia.org/wiki/Reye_syndrome">Reye's
 		 * syndrome</a> following influenza recovery
 		 */
-		POSTDROMAL,
+		SYMPTOMATIC_POSTDROMAL( true, true ),
 
 		//
 		;
+
+		private final boolean apparent;
+		private final boolean clinical;
+
+		private Simple( final boolean apparent, final boolean clinical )
+		{
+			this.apparent = apparent;
+			this.clinical = clinical;
+		}
 
 		@Override
 		public String id()
@@ -74,9 +109,15 @@ public interface ClinicalPhase extends Identified<String>
 		}
 
 		@Override
+		public boolean isApparent()
+		{
+			return this.apparent;
+		}
+
+		@Override
 		public boolean isClinical()
 		{
-			return this != ASYMPTOMATIC;
+			return this.clinical;
 		}
 
 	}
@@ -85,11 +126,17 @@ public interface ClinicalPhase extends Identified<String>
 		extends Attributed.Publisher
 	{
 		/** propertyName matching bean's getter/setter names */
-		String CLINICAL_PHASE_PROPERTY = "phase";
+		String CLINICAL_PHASE_PROPERTY = "clinical-phase";
 
-		ClinicalPhase getPhase();
+		default ClinicalPhase getPhase()
+		{
+			return (ClinicalPhase) properties().get( CLINICAL_PHASE_PROPERTY );
+		}
 
-		void setPhase( ClinicalPhase phase );
+		default void setPhase( final ClinicalPhase phase )
+		{
+			set( CLINICAL_PHASE_PROPERTY, phase );
+		}
 
 		@SuppressWarnings( "unchecked" )
 		default THIS with( final ClinicalPhase phase )

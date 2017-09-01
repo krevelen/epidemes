@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.util;
+package nl.rivm.cib.episim.model;
 
 import java.time.Duration;
 import java.time.Period;
@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.coala.config.JsonConfigurable;
 import io.coala.json.JsonUtil;
@@ -51,35 +51,47 @@ public interface JsonSchedulable<THIS extends JsonSchedulable<?>>
 	extends Proactive, JsonConfigurable<THIS>
 {
 
-	String SCHEDULE_KEY = "schedule";
+	String OCCURRENCE_KEY = "occurrence";
 
-	String SERIES_SEP = Pattern.quote( ";" );
+	String PERIOD_KEY = "period";
 
-	/** {@link SignalYaml} specifies position update rule configurations */
-	class SignalYaml
+	/** {@link SeriesTiming} bean specifies (K,V) update rule configurations */
+	class SeriesTiming
 	{
-		@JsonProperty( "occurrence" )
+		@JsonProperty( OCCURRENCE_KEY )
 		public String occurrence;
 
-		@JsonProperty( "period" )
+		@JsonProperty( PERIOD_KEY )
 		public Period period;
 
 		/** an integer-to-value mapping due to array flattening in YamlUtil */
 		public Map<String, SortedMap<Integer, JsonNode>> series;
 	}
 
+	default <K, V> Observable<Map<K, V>> iterate( final ArrayNode array,
+		final Class<K> keyType, final Class<V> valueType )
+	{
+		return Observable.fromIterable( array )
+				.flatMap( node -> iterate( node, keyType, valueType ) );
+	}
+
 	default <K, V> Observable<Map<K, V>> iterate( final JsonNode node,
 		final Class<K> keyType, final Class<V> valueType )
 	{
-		if( node.isArray() ) return Observable.fromIterable( node )
-				.flatMap( schedule -> iterate( schedule, keyType, valueType ) );
+		return node.isArray()
+				? Observable.fromIterable( node )
+						.flatMap( item -> iterate( item, keyType, valueType ) )
+				: iterate( JsonUtil.valueOf( node, SeriesTiming.class ),
+						keyType, valueType );
+	}
 
+	default <K, V> Observable<Map<K, V>> iterate( final SeriesTiming item,
+		final Class<K> keyType, final Class<V> valueType )
+	{
 		return Observable.create( sub ->
 		{
 			try
 			{
-				final SignalYaml item = JsonUtil.valueOf( node,
-						SignalYaml.class );
 				final Iterable<Instant> timing = Timing.of( item.occurrence )
 						.offset( now().toJava8( scheduler().offset() ) )
 						.iterate();
@@ -102,10 +114,9 @@ public interface JsonSchedulable<THIS extends JsonSchedulable<?>>
 				sub.onError( e );
 			}
 		} );
-
 	}
 
-	/** this method repeatedly schedules itself until the series are complete */
+	/** helper-method repeatedly (re)schedules until the series are complete */
 	default <K, V> void scheduleSeries( final ObservableEmitter<Map<K, V>> sub,
 		final Period period, final Map<K, List<V>> series, final int index )
 	{
@@ -115,15 +126,13 @@ public interface JsonSchedulable<THIS extends JsonSchedulable<?>>
 				.collect( Collectors.toMap( Entry::getKey,
 						e -> e.getValue().get( index ) ) );
 
-		// continue this series incidence for next index only if non-empty
-		if( !values.isEmpty() )
-		{
-			sub.onNext( values );
-			final ZonedDateTime now = now().toJava8( scheduler().offset() );
-			after( Duration.between( now, now.plus( period ) ).toMillis(),
-					TimeUnits.MILLIS )
-							.call( t -> scheduleSeries( sub, period, series,
-									index + 1 ) );
-		}
+		// continue this series incidence for current index only if non-empty
+		if( values.isEmpty() ) return;
+
+		sub.onNext( values );
+		final ZonedDateTime now = now().toJava8( scheduler().offset() );
+		after( Duration.between( now, now.plus( period ) ).toMillis(),
+				TimeUnits.MILLIS ).call(
+						t -> scheduleSeries( sub, period, series, index + 1 ) );
 	}
 }
