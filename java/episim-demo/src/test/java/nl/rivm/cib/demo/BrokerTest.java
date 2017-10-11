@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.epidemes.pilot;
+package nl.rivm.cib.demo;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -51,10 +51,10 @@ import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.SchedulerConfig;
 import io.coala.util.MapBuilder;
-import nl.rivm.cib.epidemes.pilot.DemoModel.Demical.DemicalEvent;
-import nl.rivm.cib.epidemes.pilot.DemoModel.Demical.SimpleDeme;
-import nl.rivm.cib.epidemes.pilot.DemoModel.Households.HouseholdTuple;
-import nl.rivm.cib.epidemes.pilot.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoModel.Demical.DemicalEvent;
+import nl.rivm.cib.demo.DemoModel.Demical.SimpleDeme;
+import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
+import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 
 /**
