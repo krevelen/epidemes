@@ -67,6 +67,12 @@
 			<artifactId>coala-api-enterprise</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- Java Enterprise eXtension APIs, including JPA 2.1 and Servlet 3 -->
 		<dependency>
 			<groupId>javax</groupId>
@@ -122,6 +128,11 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>net.jodah</groupId>
+			<artifactId>concurrentunit</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<!-- <dependency> <groupId>net.jodah</groupId> <artifactId>concurrentunit</artifactId> 

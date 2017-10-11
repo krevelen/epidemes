@@ -52,8 +52,8 @@ public enum HHMemberAttribute implements Jsonifiable
 	/** the mobility identifier (one per region/behavior combo) */
 	MOTOR_REF,
 
-	/** amount of exposure time remaining until invasion/infection occurs */
-	SUSCEPTIBLE_DAYS,
+	/** amount of resistance remaining until invasion/infection occurs */
+	RESISTANCE,
 
 	;
 

@@ -45,14 +45,8 @@ public enum HHAttribute implements Jsonifiable
 	/** simulation time of household creation */
 	SINCE_DAYS,
 
-	/** in-group identifier determines oracle/authority/attractor */
+	/** in-group identifier determines group/attractor/authority */
 	ATTRACTOR_REF,
-
-	/** {@link Boolean} determines hesitancy profile */
-//	RELIGIOUS,
-
-	/** {@link Boolean} determines hesitancy profile */
-//	ALTERNATIVE,
 
 	/** {@link Matrix} hh indices {@link Matrix#getAsLong} */
 	SOCIAL_NETWORK_SIZE,
@@ -103,22 +97,20 @@ public enum HHAttribute implements Jsonifiable
 	/** {@link BigDecimal} &isin; [0,1] */
 	COMPLACENCY,
 
-//	BARRIER,
-
 	/** {@link Long} member row-index */
 	REFERENT_REF,
 
-//	/** {@link Long} member row-index, or -1 for N/A */
-//	PARTNER_REF,
+	/** {@link Long} member row-index, or -1 for N/A */
+	PARTNER_REF,
 
 	/** {@link Long} member row-index, or -1 for N/A */
 	CHILD1_REF,
 
-//	/** {@link Long} member row-index, or -1 for N/A */
-//	CHILD2_REF,
-//
-//	/** {@link Long} member row-index, or -1 for N/A */
-//	CHILD3_REF,
+	/** {@link Long} member row-index, or -1 for N/A */
+	CHILD2_REF,
+
+	/** {@link Long} member row-index, or -1 for N/A */
+	CHILD3_REF,
 
 	;
 

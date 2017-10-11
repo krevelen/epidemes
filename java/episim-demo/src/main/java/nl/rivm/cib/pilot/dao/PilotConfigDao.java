@@ -19,6 +19,9 @@
  */
 package nl.rivm.cib.pilot.dao;
 
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Objects;
 
@@ -41,11 +44,14 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import org.apache.logging.log4j.Logger;
+
 import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.coala.bind.LocalId;
 import io.coala.json.JsonUtil;
+import io.coala.log.LogUtil;
 import io.coala.persist.Persistable;
 import io.coala.persist.UUIDToByteConverter;
 import io.coala.time.Instant;
@@ -64,6 +70,8 @@ public class PilotConfigDao implements Persistable.Dao
 {
 	public static final String CFG_SEQ = "CFG_SEQ";
 
+	private static final Logger LOG = LogUtil.getLogger( PilotConfigDao.class );
+
 	public static PilotConfigDao find( final EntityManager em, final LocalId id )
 	{
 		final UUID contextRef = Objects.requireNonNull( id.contextRef() );
@@ -74,35 +82,50 @@ public class PilotConfigDao implements Persistable.Dao
 					.createQuery( PilotConfigDao.class );
 			final Root<PilotConfigDao> root = qry.from( PilotConfigDao.class );
 			final Predicate filter = cb.and();
-			filter.getExpressions().add( cb.equal( root.get( //HHConfigDao_.context 
+			filter.getExpressions().add( cb.equal( root.get( 
+					// FIXME PilotConfigDao_.context missing due to custom type? 
 					"context" ), contextRef ) );
 			return em.createQuery( qry.select( root ).where( filter ) )
 					.getSingleResult();
 		} catch( final NoResultException ignore )
 		{
-			return null;
+			return null; // ok, not found
 		}
 	}
 
 	/**
 	 * @param now current virtual time {@link Instant} for calculating age
-	 * @param config the {@link PilotConfig}
+	 * @param config the {@link HHConfig}
 	 * @return a {@link HHMemberDao}
 	 */
-	public static PilotConfigDao create( final LocalId id, final PilotConfig config )
+	public static PilotConfigDao create( final LocalId id, final PilotConfig config,
+		final Number seed )
 	{
 		final PilotConfigDao result = new PilotConfigDao();
 		result.context = Objects.requireNonNull( id.contextRef() );
-		result.name = Objects.requireNonNull( id.unwrap() ).toString();
+		result.setup = Objects.requireNonNull( id.unwrap() ).toString();
+		result.seed = seed.longValue();
 		result.json = JsonUtil
 				.stringify( config.toJSON( PilotConfig.SCENARIO_BASE ) );
+		try
+		{
+			result.hash = MessageDigest.getInstance( "MD5" )
+					.digest( result.json.getBytes( "UTF-8" ) );
+		} catch( final NoSuchAlgorithmException
+				| UnsupportedEncodingException e )
+		{
+			result.hash = Integer.toHexString( result.json.hashCode() )
+					.getBytes();
+			LOG.error( "Problem", e );
+		}
 		result.yaml = config.toYAML( PilotConfig.class.getSimpleName()
 				+ " for replication: " + id.toJSON(), PilotConfig.SCENARIO_BASE );
 		return result;
 	}
 
 	@Id
-	@GeneratedValue( generator = CFG_SEQ )
+	@GeneratedValue//( generator = CFG_SEQ )
+//	@SequenceGenerator( name = CFG_SEQ, sequenceName = CFG_SEQ )
 	@Column( name = "PK", nullable = false, updatable = false )
 	protected Integer pk = null;
 
@@ -118,8 +141,16 @@ public class PilotConfigDao implements Persistable.Dao
 	@Convert( converter = UUIDToByteConverter.class )
 	protected UUID context;
 
-	@Column( name = "NAME", nullable = false, updatable = false )
-	protected String name;
+	@Column( name = "SETUP", nullable = false, updatable = false )
+	protected String setup;
+
+	@Column( name = "SEED", nullable = false, updatable = false )
+	protected long seed;
+
+	@Lob
+	@Basic( fetch = FetchType.LAZY )
+	@Column( name = "HASH", nullable = false, updatable = false )
+	protected byte[] hash;
 
 	@Lob
 	@Basic( fetch = FetchType.LAZY )
@@ -131,9 +162,4 @@ public class PilotConfigDao implements Persistable.Dao
 	@Column( name = "YAML", nullable = false, updatable = false )
 	protected String yaml;
 
-	@Override
-	public String toString()
-	{
-		return stringify();
-	}
 }

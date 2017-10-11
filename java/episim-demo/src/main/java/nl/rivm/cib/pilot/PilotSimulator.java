@@ -19,24 +19,32 @@
  */
 package nl.rivm.cib.pilot;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.persistence.EntityManagerFactory;
 
+import org.aeonbits.owner.ConfigCache;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.yaml.YamlConfiguration;
 import org.hibernate.cfg.AvailableSettings;
 
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
+import io.coala.config.YamlUtil;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
@@ -49,9 +57,14 @@ import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
 import io.coala.time.Scheduler;
+import io.coala.time.SchedulerConfig;
+import io.coala.time.TimeUnits;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
+import io.reactivex.Observable;
+import io.reactivex.exceptions.Exceptions;
 import io.reactivex.schedulers.Schedulers;
+import nl.rivm.cib.episim.cbs.TimeUtil;
 
 /**
  * {@link PilotSimulator}
@@ -62,41 +75,7 @@ import io.reactivex.schedulers.Schedulers;
 public class PilotSimulator
 {
 
-	static
-	{
-		String logConf = PilotConfig.CONFIG_BASE_DIR + "log4j2.yaml";
-		try( final InputStream is = FileUtil.toInputStream( logConf ) )
-		{
-			// see https://stackoverflow.com/a/42524443
-			final LoggerContext ctx = LoggerContext.getContext( false );
-			ctx.start( new YamlConfiguration( ctx,
-					new ConfigurationSource( is ) ) );
-
-			// see https://stackoverflow.com/a/25881592
-//			System.setProperty(
-//					ConfigurationFactory.CONFIGURATION_FILE_PROPERTY,
-//					new File( logConf ).getAbsolutePath() );
-		} catch( final IOException ignore )
-		{
-		}
-	}
-
-	/** */
-	private static final Logger LOG = LogUtil.getLogger( PilotSimulator.class );
-
-	// FIXME remove once fixed in coala
-	@Singleton
-	public static class DistributionFactory
-		extends Math3ProbabilityDistribution.Factory
-	{
-		@Inject
-		public DistributionFactory( final LocalBinder binder,
-			final PseudoRandom.Factory rngFactory )
-		{
-			super( rngFactory.create( PseudoRandom.Config.NAME_DEFAULT,
-					binder.id().unwrap().hashCode() ) ); // workaround for 'bug'
-		}
-	}
+	private static final String CONF_ARG = "conf";
 
 	/**
 	 * @param args arguments from the command line
@@ -106,30 +85,116 @@ public class PilotSimulator
 	public static void main( final String[] args )
 		throws IOException, InterruptedException
 	{
-		final PilotConfig hhConfig = PilotConfig.getOrCreate( args );
-		LOG.info( "Starting {}, args: {} -> config: {}",
-				PilotSimulator.class.getSimpleName(), args, hhConfig );
+		// convert command-line arguments to map
+		final Map<String, String> argMap = Arrays.stream( args )
+				.filter( arg -> arg.contains( "=" ) )
+				.map( arg -> arg.split( "=" ) ).filter( arr -> arr.length > 1 )
+				.collect( Collectors.toMap( arr -> arr[0], arr ->
+				{
+					final String[] value = new String[arr.length - 1];
+					System.arraycopy( arr, 1, value, 0, value.length );
+					return String.join( "=", value );
+				} ) );
 
-		// configure tooling FIXME move to sim.yaml
+		// merge arguments into configuration imported from YAML file
+		final PilotConfig hhConfig = ConfigCache.getOrCreate( PilotConfig.class,
+				// CLI args added first: override config resource and defaults 
+				argMap,
+				YamlUtil.flattenYaml( FileUtil
+						.toInputStream( argMap.computeIfAbsent( CONF_ARG,
+								confArg -> System.getProperty( CONF_ARG,
+										// set default configuration data file base directory/url
+										argMap.computeIfAbsent(
+												PilotConfig.CONFIG_BASE_KEY,
+												baseKey -> System.getProperty(
+														PilotConfig.CONFIG_BASE_KEY, PilotConfig.CONFIG_BASE_DIR ) )
+												+ PilotConfig.CONFIG_YAML_FILE ) ) ) ) );
+
+		if( System.getProperty(
+				ConfigurationFactory.CONFIGURATION_FILE_PROPERTY ) == null )
+			try( final InputStream is = FileUtil
+					.toInputStream( hhConfig.configBase() + "log4j2.yaml" ) )
+			{
+			// see https://stackoverflow.com/a/42524443
+			final LoggerContext ctx = LoggerContext.getContext( false );
+			ctx.start( new YamlConfiguration( ctx, new ConfigurationSource( is ) ) );
+			} catch( final IOException ignore )
+			{
+			}
+
+		final Logger LOG = LogUtil.getLogger( PilotSimulator.class );
+		LOG.info( "Starting {}, args: {} -> config: {}",
+				PilotSimulator.class.getSimpleName(), args,
+				hhConfig.toJSON( PilotConfig.SCENARIO_BASE ) );
+
+		// FIXME move binder configuration to sim.yaml
 		final LocalConfig binderConfig = LocalConfig.builder()
-				.withId( hhConfig.runName() ) // replication name, sets random seeds
+				.withId( hhConfig.setupName() ) // replication name, sets random seeds
 
 				// configure event scheduler
-				.withProvider( Scheduler.class, Dsol3Scheduler.class,
-						hhConfig.schedulerConfig() )
+				.withProvider( Scheduler.class, Dsol3Scheduler.class )
 
 				// configure randomness
-				.withProvider( PseudoRandom.Factory.class,
-						Math3PseudoRandom.MersenneTwisterFactory.class )
-				.withProvider( ProbabilityDistribution.Factory.class,
-						DistributionFactory.class )
 				.withProvider( ProbabilityDistribution.Parser.class,
 						DistributionParser.class )
 
+				// FIXME skip until work-around is no longer needed
+//				.withProvider( ProbabilityDistribution.Factory.class,
+//						Math3ProbabilityDistribution.class )
+//				.withProvider( PseudoRandom.Factory.class,
+//						Math3PseudoRandom.MersenneTwisterFactory.class )
+
 				.build();
 
-		final LocalBinder binder = binderConfig.createBinder();
+		// FIXME workaround until scheduler becomes configurable in coala binder
+		final ZonedDateTime offset = hhConfig.offset()
+				.atStartOfDay( TimeUtil.NL_TZ );
+		final long durationDays = Duration
+				.between( offset, offset.plus( hhConfig.duration() ) ).toDays();
+		ConfigCache.getOrCreate( SchedulerConfig.class, MapBuilder.unordered()
+				.put( SchedulerConfig.ID_KEY, "" + binderConfig.rawId() )
+				.put( SchedulerConfig.OFFSET_KEY, "" + offset )
+				.put( SchedulerConfig.DURATION_KEY, "" + durationDays )
+				.build() );
+
+		// FIXME workaround until seed becomes configurable in coala
+		final LocalBinder binder = binderConfig
+				.createBinder( MapBuilder.<Class<?>, Object>unordered()
+						.put( ProbabilityDistribution.Factory.class,
+								new Math3ProbabilityDistribution.Factory(
+										new Math3PseudoRandom.MersenneTwisterFactory()
+												.create( PseudoRandom.Config.NAME_DEFAULT,
+														hhConfig.randomSeed() ) ) )
+						.build() );
+
 		final PilotScenario model = binder.inject( PilotScenario.class );
+
+		final File file = //null;
+				new File( "pilot-sir-" + model.seed() + ".txt" );
+		final CountDownLatch outFile = new CountDownLatch(
+				file != null && file.createNewFile() ? 1 : 0 );
+
+		final String sep = "\t";
+		if( outFile.getCount() > 0 ) Observable.using(
+				() -> new PrintWriter( FileUtil.toOutputStream( file, false ) ),
+				pw ->
+				{
+					return model.sirTransitions().map( sir ->
+					{
+						final String line = DecimalUtil.toScale( model.now()
+								.toQuantity( TimeUnits.DAYS ).getValue(), 4 )
+								+ sep + sir[0] + sep + sir[1] + sep + sir[2]
+								+ sep + sir[3];
+						pw.println( line );
+						return line;
+					} );
+				}, out ->
+				{
+					out.close();
+					outFile.countDown();
+				} ).subscribe( line ->
+				{
+				}, Exceptions::propagate );
 
 		// persist statistics
 		final boolean jpa = hhConfig.dbEnabled();
@@ -209,12 +274,19 @@ public class PilotSimulator
 
 		// run injected (Singleton) model; start generating the statistics
 		model.run();
-		LOG.info( "{} completed...",
+		LOG.info( "{} ready, finalizing...",
 				model.scheduler().getClass().getSimpleName() );
 
 		// wait until all statistics persisted
 		dbLatch.await();
 
-		LOG.info( "Completed {}", model.getClass().getSimpleName() );
+		if( outFile.getCount() > 0 )
+		{
+			LOG.trace( "Waiting for output to: {}", file );
+			outFile.await();
+			LOG.trace( "Output written to: {}", file );
+		}
+
+		LOG.info( "Completed {}!", model.getClass().getSimpleName() );
 	}
 }

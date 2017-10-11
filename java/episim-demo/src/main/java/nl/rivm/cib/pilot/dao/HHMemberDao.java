@@ -76,19 +76,19 @@ public class HHMemberDao implements Persistable.Dao
 	@Column
 	protected BigDecimal age;
 
-	@Column
-	protected String status;
-
-	@Column
+	@Column( columnDefinition = "INT(1)" )
 	protected boolean male;
 
 	@Column
-	protected int behaviorRef;
+	protected String status;
 
-	@Column
-	protected String officeZip;
-
-	@Column
-	protected String leisureZip;
+//	@Column
+//	protected int behaviorRef;
+//
+//	@Column
+//	protected String officeZip;
+//
+//	@Column
+//	protected String leisureZip;
 
 }

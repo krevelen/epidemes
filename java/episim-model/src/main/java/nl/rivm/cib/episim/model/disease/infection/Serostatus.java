@@ -57,7 +57,7 @@ public class Serostatus extends Id.Ordinal<String>
 	 * @param <THIS> the final discrete type to return for builder patterns
 	 */
 	public interface Attributable<THIS extends Attributable<?>>
-		extends Attributed.Publisher
+		extends Attributed.Reactive
 	{
 		/** propertyName matching bean's getter/setter names */
 		String SEROLOGIC_STATE_PROPERTY = "serostatus";
@@ -75,7 +75,7 @@ public class Serostatus extends Id.Ordinal<String>
 
 		default Observable<Serostatus> emitSerostatus()
 		{
-			return emitChanges( SEROLOGIC_STATE_PROPERTY, Serostatus.class );
+			return valueEmitter( SEROLOGIC_STATE_PROPERTY, Serostatus.class );
 		}
 	}
 

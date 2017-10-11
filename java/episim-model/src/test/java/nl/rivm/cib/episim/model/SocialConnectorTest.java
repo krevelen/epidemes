@@ -1,4 +1,4 @@
-/* $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -17,30 +17,15 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.disease.infection;
-
-import org.junit.Test;
+package nl.rivm.cib.episim.model;
 
 /**
- * {@link EpidemicCompartmentTest}
+ * {@link SocialConnectorTest} tests {@link SocialConnector}
  * 
- * @version $Id: c9d52251bdef7fc0d03cb53098fce3c300e50566 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
-public class EpidemicCompartmentTest
+public class SocialConnectorTest
 {
-
-	/**
-	 * Test method for {@link EpiCompartment#isInfective()}.
-	 */
-	@Test
-	public void testIsInfective()
-	{
-//		assertTrue( EpiCompartment.SimpleMSEIRS.INFECTIVE.isInfective() );
-//		assertFalse( EpiCompartment.SimpleMSEIRS.SUSCEPTIBLE.isInfective() );
-//		assertFalse( EpiCompartment.SimpleMSEIRS.EXPOSED.isInfective() );
-//		assertFalse( EpiCompartment.SimpleMSEIRS.RECOVERED.isInfective() );
-//		assertFalse( EpiCompartment.SimpleMSEIRS.PASSIVE_IMMUNE.isInfective() );
-	}
 
 }

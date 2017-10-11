@@ -38,7 +38,6 @@ import io.coala.random.PseudoRandom;
  * @version $Id$
  * @author Rick van Krevelen
  */
-@FunctionalInterface
 public interface SocialConnector
 {
 
@@ -47,7 +46,7 @@ public interface SocialConnector
 	 * @param k the average connection degree
 	 * @return the connected graph; if symmetric then for for each W(i,j): i>=j
 	 */
-	default Matrix connect( long size, long k )
+	default Matrix connect( final long size, final long k )
 	{
 		return connect( size, () -> k );
 	}
@@ -57,7 +56,7 @@ public interface SocialConnector
 	 * @param initialK the initial degree supplier, e.g. a constant
 	 * @return the connected graph; if symmetric then for for each W(i,j): i>=j
 	 */
-	default Matrix connect( long size, Supplier<Long> initialK )
+	default Matrix connect( final long size, final Supplier<Long> initialK )
 	{
 		return connect( size, initialK, x -> true );
 	}
@@ -78,12 +77,14 @@ public interface SocialConnector
 	 * @param initialW the initial weight distribution, e.g. a constant
 	 * @return the connected graph; if symmetric then for for each W(i,j): i>=j
 	 */
-	default Matrix connect( long size, Supplier<Long> initialK,
-		Predicate<long[]> legalJ, Function<long[], BigDecimal> initialW )
+	default Matrix connect( final long size, final Supplier<Long> initialK,
+		final Predicate<long[]> legalJ,
+		final Function<long[], BigDecimal> initialW )
 	{
 		final Matrix result = connect( size, initialK, legalJ );
-		MatrixUtil.streamAvailableCoordinates( result )
-				.filter( x -> result.getAsDouble( x ) != 0.0 ).forEach(
+		// NOTE don't use #availableCoordinates() as it misses half the coords
+		MatrixUtil.streamAvailableCoordinates( result, true )
+				.filter( x -> result.getAsDouble( x ) != 0d ).forEach(
 						x -> result.setAsBigDecimal( initialW.apply( x ), x ) );
 		return result;
 	}
@@ -92,7 +93,7 @@ public interface SocialConnector
 	 * utility method
 	 * 
 	 * @param x
-	 * @return (min_x,max_x) (top right)
+	 * @return (min_x,max_x)
 	 */
 	static long[] rowSmallest( final long... x )
 	{
@@ -103,7 +104,7 @@ public interface SocialConnector
 	 * utility method
 	 * 
 	 * @param x
-	 * @return (max_x,min_x) (bottom left)
+	 * @return (max_x,min_x)
 	 */
 	static long[] rowLargest( final long... x )
 	{
@@ -113,7 +114,7 @@ public interface SocialConnector
 	static BigDecimal putSymmetric( final Matrix W, final BigDecimal wNew,
 		final long... x )
 	{
-		final long[] x_top = rowSmallest( x );
+		final long[] x_top = SocialConnector.rowSmallest( x );
 		final BigDecimal wOld = getSymmetric( W, x_top );
 		setSymmetric( W, wNew, x_top );
 		return wOld;
@@ -126,16 +127,16 @@ public interface SocialConnector
 
 	static void setSymmetric( final Matrix W, final Object w, final long... x )
 	{
-		final long[] x_top = rowSmallest( x );
+		final long[] y = rowSmallest( x );
 		if( w != null && w instanceof BigDecimal )
-			W.setAsBigDecimal( (BigDecimal) w, x_top );
+			W.setAsBigDecimal( (BigDecimal) w, y );
 		else
-			W.setAsObject( w, x_top );
+			W.setAsObject( w, y );
 	}
 
 	static BigDecimal getSymmetric( final Matrix W, final long... x )
 	{
-		return W.getAsBigDecimal( rowSmallest( x ) );
+		return W.getAsBigDecimal( SocialConnector.rowSmallest( x ) );
 	}
 
 	/**
@@ -145,9 +146,9 @@ public interface SocialConnector
 	 */
 	static boolean isPeer( final Matrix W, final long... x )
 	{
-		final long[] x_top = rowSmallest( x );
-		return W.containsCoordinates( x_top )
-				&& W.getAsBigDecimal( x_top ).signum() > 0;
+		final long[] y = rowSmallest( x );
+		return //W.containsCoordinates( y ) && 
+		W.getAsDouble( y ) != 0d;
 	}
 
 	/**
@@ -173,7 +174,7 @@ public interface SocialConnector
 	 * the <a href=
 	 * "https://www.wikiwand.com/en/Erd%C5%91s%E2%80%93R%C3%A9nyi_model">Erdős-Rényi
 	 * (ER) model</a> but lack preferential attachment and respective power-law
-	 * distributions as in random scale-free networks from the <a href=
+	 * distributions as in the random scale-free networks from the <a href=
 	 * "https://www.wikiwand.com/en/Barab%C3%A1si%E2%80%93Albert_model">Barabási-Albert
 	 * (BA) model</a>.
 	 */
@@ -219,6 +220,7 @@ public interface SocialConnector
 			// step 2: perturb lattice
 			// FIXME parallelized row selection causes NPE, not Thread safe?
 			LongStream.range( 0, size - 1 )// last row in triangle is empty
+				.parallel()
 					.forEach( i -> LongStream.range( i + 1, size - 1 )
 							.filter( j -> SocialConnector.isPeer( result, i, j )
 									&& this.rng.nextDouble() < this.beta )
@@ -235,7 +237,7 @@ public interface SocialConnector
 								// weight to move from i,j to i,k
 								final double w = result.getAsDouble( x );
 								// reset old position
-								result.setAsDouble( 0, x ); // 0.0 -> remove
+								result.setAsDouble( 0, x );
 								// set new position
 								result.setAsDouble( w, y );
 							} ) );

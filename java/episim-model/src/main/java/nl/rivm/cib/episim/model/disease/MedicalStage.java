@@ -53,7 +53,7 @@ public class MedicalStage extends Id.Ordinal<String>
 	}
 
 	public interface Attributable<THIS extends Attributable<?>>
-		extends Attributed.Publisher
+		extends Attributed.Reactive
 	{
 		/** propertyName matching bean's getter/setter names */
 		String MEDICAL_STAGE_PROPERTY = "stage";
@@ -71,7 +71,7 @@ public class MedicalStage extends Id.Ordinal<String>
 
 		default Observable<MedicalStage> emitStage()
 		{
-			return emitChanges( MEDICAL_STAGE_PROPERTY, MedicalStage.class );
+			return valueEmitter( MEDICAL_STAGE_PROPERTY, MedicalStage.class );
 		}
 	}
 

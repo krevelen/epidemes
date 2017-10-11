@@ -254,8 +254,8 @@ public interface Pathogen extends Actor<Transmission>
 
 			/**
 			 * distribution for time of latency until infectiousness, between
-			 * {@link EpiCompartment.SimpleMSEIRS#EXPOSED E} and
-			 * {@link EpiCompartment.SimpleMSEIRS#INFECTIVE I} (i.e. 1 / &epsilon;).
+			 * {@link EpiCompartment.Compartment#EXPOSED E} and
+			 * {@link EpiCompartment.Compartment#INFECTIVE I} (i.e. 1 / &epsilon;).
 			 */
 			@Key( LATENT_PERIOD_KEY )
 			@DefaultValue( "exp(0.09)" ) // 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
@@ -263,8 +263,8 @@ public interface Pathogen extends Actor<Transmission>
 
 			/**
 			 * distribution for time of infectiousness (viral shedding) until
-			 * recovery: between {@link EpiCompartment.SimpleMSEIRS#INFECTIVE} and
-			 * {@link EpiCompartment.SimpleMSEIRS#RECOVERED} conditions (i.e. 1 /
+			 * recovery: between {@link EpiCompartment.Compartment#INFECTIVE} and
+			 * {@link EpiCompartment.Compartment#RECOVERED} conditions (i.e. 1 /
 			 * &gamma;)
 			 */
 			@Key( RECOVER_PERIOD_KEY )
@@ -273,8 +273,8 @@ public interface Pathogen extends Actor<Transmission>
 
 			/**
 			 * distribution for duration of immunity: between
-			 * {@link EpiCompartment.SimpleMSEIRS#RECOVERED} and
-			 * {@link EpiCompartment.SimpleMSEIRS#SUSCEPTIBLE} (i.e. &delta;), or
+			 * {@link EpiCompartment.Compartment#RECOVERED} and
+			 * {@link EpiCompartment.Compartment#SUSCEPTIBLE} (i.e. &delta;), or
 			 * {@code null} for infinite (there is no loss of immunity)
 			 */
 			@Key( WANE_PERIOD_KEY )

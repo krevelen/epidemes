@@ -138,7 +138,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 				.<String, Object>unordered().put( Dsol3Config.ID_KEY, getId() )
 				.put( Dsol3Config.START_TIME_KEY, "0 " + timeUnit )
 				.put( Dsol3Config.RUN_LENGTH_KEY, QuantityUtil
-						.toBigDecimal( this.myDuration, timeUnit ).toString() )
+						.decimalValue( this.myDuration, timeUnit ).toString() )
 				.build() );
 		LOG.info( "Starting replication, config: {}", config.toYAML() );
 		this.scheduler = config.create( s ->
@@ -276,7 +276,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 		final StepRatio pace = this.myPace;
 		publish( subKey, listener, TIME_TOPIC, JsonUtil.getJOM()
 				.createObjectNode()
-				.put( "time", QuantityUtil.toBigDecimal( t.unwrap() ) )
+				.put( "time", QuantityUtil.decimalValue( t.unwrap() ) )
 				.put( "fraction",
 						QuantityUtil.floatValue( fraction( t ),
 								QuantityUtil.PURE ) )

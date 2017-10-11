@@ -56,7 +56,7 @@ public interface EpiCompartment extends Identified<String>
 	 * {@link Attributable}
 	 */
 	interface Attributable<THIS extends Attributable<?>>
-		extends Attributed.Publisher
+		extends Attributed.Reactive
 	{
 		/** propertyName matching bean's getter/setter names */
 		String EPIDEMIC_COMPARTMENT_PROPERTY = "compartment";
@@ -79,99 +79,10 @@ public interface EpiCompartment extends Identified<String>
 			return (THIS) this;
 		}
 
-		default Observable<EpiCompartment> emitCompartment()
+		default Observable<EpiCompartment> compartmentEmitter()
 		{
-			return emitChanges( EPIDEMIC_COMPARTMENT_PROPERTY,
+			return valueEmitter( EPIDEMIC_COMPARTMENT_PROPERTY,
 					EpiCompartment.class );
-		}
-	}
-
-	/**
-	 * {@link SimpleMSEIRS} implementation of {@link EpiCompartment}
-	 */
-	enum SimpleMSEIRS implements EpiCompartment
-	{
-		/**
-		 * {@link EpidemicCompartment} for MATERNALLY DERIVED or PASSIVELY
-		 * IMMUNE infants, e.g. naturally (due to maternal antibodies in
-		 * placenta and colostrum) or artificially (induced via
-		 * antibody-transfer). See https://www.wikiwand.com/en/Passive_immunity
-		 */
-		PASSIVE_IMMUNE( false, false ),
-
-		/**
-		 * {@link EpidemicCompartment} for SUSCEPTIBLE individuals
-		 * (post-vaccination)
-		 */
-		SUSCEPTIBLE( false, true ),
-
-		/**
-		 * {@link EpidemicCompartment} for EXPOSED individuals, i.e. LATENT
-		 * INFECTED or PRE-INFECTIVE carriers
-		 */
-		EXPOSED( false, false ),
-
-		/**
-		 * {@link EpidemicCompartment} for primary INFECTIVE individuals,
-		 * currently able to transmit disease by causing secondary infections
-		 */
-		INFECTIVE( true, false ),
-
-		/**
-		 * {@link EpidemicCompartment} for individuals RECOVERED from the
-		 * disease, and naturally IMMUNE (vis-a-vis {@link #VACCINATED} or
-		 * acquired immune), possibly waning again into {@link #SUSCEPTIBLE}
-		 */
-		RECOVERED( false, false ),
-
-		/**
-		 * {@link EpidemicCompartment} for susceptible NEWBORN individuals after
-		 * maternal immunity waned and before a (parental) vaccination decision
-		 * is made
-		 */
-		NEWBORN( false, true ),
-
-		/**
-		 * {@link EpidemicCompartment} for VACCINATED individuals having
-		 * acquired immunity, possibly waning again into {@link #SUSCEPTIBLE}
-		 */
-		VACCINATED( false, false ),
-
-		/**
-		 * {@link EpidemicCompartment} for susceptible but DORMANT individuals
-		 * having recovered from prior exposure, but who will not become
-		 * {@link #INFECTIVE} before being re-{@link #EXPOSED}
-		 */
-		DORMANT( false, true ),
-
-		;
-
-		private final boolean infective;
-
-		private final boolean susceptible;
-
-		private SimpleMSEIRS( final boolean infective, final boolean susceptible )
-		{
-			this.infective = infective;
-			this.susceptible = susceptible;
-		}
-
-		@Override
-		public String id()
-		{
-			return name();
-		}
-
-		@Override
-		public boolean isInfective()
-		{
-			return this.infective;
-		}
-
-		@Override
-		public boolean isSusceptible()
-		{
-			return this.susceptible;
 		}
 	}
 }

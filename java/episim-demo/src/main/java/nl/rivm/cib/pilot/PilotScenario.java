@@ -4,18 +4,22 @@ import java.beans.PropertyChangeEvent;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,10 +41,10 @@ import org.ujmp.core.enums.ValueType;
 import io.coala.bind.InjectConfig;
 import io.coala.bind.InjectConfig.Scope;
 import io.coala.bind.LocalBinder;
+import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.DecimalUtil;
-import io.coala.math.MatrixUtil;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
@@ -54,6 +58,7 @@ import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.reactivex.Observable;
+import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 import nl.rivm.cib.epidemes.cbs.json.CBSGender;
@@ -78,6 +83,32 @@ import tec.uom.se.ComparableQuantity;
 /**
  * {@link PilotScenario} is a simple example {@link Scenario} implementation, of
  * which only one {@link Singleton} instance exists per {@link LocalBinder}
+ * 
+ * <pre>
+      # force of infection (S->E): t=?, viral shedding -> respiratory/surface contact 
+      # infection pressure function of #infectious vs. #non-infectious
+      pathogen-type: nl.rivm.cib.pilot.Pathogen$MSEIR
+      pressure-type: nl.rivm.cib.episim.model.disease.infection.InfectionPressure$Proportional
+      # invasion period (S->E) the duration of 'exposure resistance' per individual
+      passive-period-dist: tria( 10 day; 20 day; 30 day )
+      # latent period (E->I)
+      #  - t+0, onset around t+14 but infectious already 4 days before
+      #  - exp(0.09) : 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
+      latent-period-dist: tria( 1 day; 10 day; 17 day )
+      # recovery/infectious period (I->R) = viral shedding until recovery
+      #  - exp(.16) : 1/10d (6-14d) = prodromal fever 3-7 days + rash 4-7days
+      #  - t+14-4, [onset-4,onset+4] 
+      shedding-period-dist: tria( 0 day; 8 day; 10 day )
+      # wane period (R->S) = duration of immunity, e.g. forever immune
+      wane-period-dist: const( 1000 yr )
+      # incubation period (E->C, sub->clinical symptoms)
+      #  - exp(0.07) : 1/14 (7-21 days, says CDC)
+      #  - e.g. t+7-21 days (CDC) rash, fever, Koplik spots, ... 
+      #  - e.g. t+9-12 days (https://www.wikiwand.com/en/Incubation_period)
+      incubation-period-dist: tria( 7 day; 11 day; 21 day )
+      # symptom/clinical period (C->R, normal/asymptomatic)
+      symptom-period-dist: tria( 4 day; 5 day; 7 day )
+ * </pre>
  * 
  * @version $Id$
  * @author Rick van Krevelen
@@ -109,6 +140,8 @@ public class PilotScenario implements Scenario
 
 	/** */
 	private static final Logger LOG = LogUtil.getLogger( PilotScenario.class );
+
+	private static final long NA = -1L;
 
 	/** */
 	private static final HHAttribute[] CHILD_REF_COLUMN_INDICES = {
@@ -156,17 +189,23 @@ public class PilotScenario implements Scenario
 	/** */
 	private QuantityDistribution<Time> hhMigrateDist;
 	/** */
-	private Quantity<Time> hhLeaveHomeAge;
+//	private Quantity<Time> hhLeaveHomeAge;
 
 	/** */
 	private Matrix ppAttributes;
 	/** */
 	private final AtomicLong persons = new AtomicLong();
 
+	private final Map<Long, LocalPressure> ppHome = new TreeMap<>();
+
 	/** */
 	private Range<ComparableQuantity<Time>> vaccinationAge;
 	/** */
 	private transient ProbabilityDistribution<VaxOccasion> vaxOccasionDist;
+
+	private final Map<Long, Long> hhIndex = new HashMap<>();
+
+	private final Map<Long, Long> ppIndex = new HashMap<>();
 
 	/** */
 	private Matrix hhNetwork;
@@ -189,8 +228,15 @@ public class PilotScenario implements Scenario
 	/** */
 	private transient ConditionalDistribution<Map<HHAttribute, BigDecimal>, HesitancyProfileJson> hesitancyDist;
 
-	/** number of top rows (0..n) in {@link #hhNetwork} reserved for oracles */
-//	private long attractorCount;
+	private transient ProbabilityDistribution<Double> resistanceDist;
+
+	/** TODO from config */
+	private double reproductionDays = 12d, recoveryDays = 14d,
+			gamma_inv = recoveryDays, beta = reproductionDays / gamma_inv * 100;
+	// apply subpop(i) scaling: Prod_i(N/size_i)^(time_i)/T = (1000/1000)^(.25) * (1000/2)^(.75)
+
+	private ProbabilityDistribution<Double> recoveryDaysDist;
+
 	/** virtual time range of simulation */
 //	private transient Range<LocalDate> timeRange = null;
 	/** empirical household compositions and referent ages, see CBS 71486 */
@@ -201,11 +247,7 @@ public class PilotScenario implements Scenario
 	/** */
 	private NavigableMap<String, SocialGatherer> motors;
 	/** */
-	private Expectation[] motorAdjourns;
-	/** */
-	private String[] motorNames;
-	/** */
-	private Matrix motorPresence;
+	private LocalPressure[] motorPressure;
 
 //	private transient ConditionalDistribution<Quantity<Time>, GenderAge> peerPressureIntervalDist;
 
@@ -215,6 +257,8 @@ public class PilotScenario implements Scenario
 		final PseudoRandom rng = this.distFactory.getStream();
 		LOG.info( "seed: {}, offset: {}", rng.seed(), scheduler().offset() );
 
+		scheduler().onEnd( t -> this.sirTransitions.onComplete(),
+				this.sirTransitions::onError );
 		this.attractors = this.config.hesitancyAttractors( this.binder );
 		this.attractorNames = this.attractors.keySet().stream()
 				.toArray( String[]::new );
@@ -236,16 +280,16 @@ public class PilotScenario implements Scenario
 		this.hhNetwork = SparseMatrix.Factory.zeros( edges, edges );
 
 		this.motors = this.config.mobilityGatherers( this.binder );
-		this.motorNames = this.motors.keySet()
-				.toArray( new String[this.motors.size()] );
-		this.motorAdjourns = new Expectation[this.motors.size()];
-		IntStream.range( 0, this.motors.size() )
-				.forEach( m -> this.motors.get( this.motorNames[m] ).summon()
-						.subscribe( dt -> convene( dt, m ) ) );
-		this.motorPresence = SparseMatrix.Factory.zeros( ppTotal,
-				this.motors.size() );
-//		this.motorBroker = ppIndex -> (int) (ppIndex % this.motors.size()); // TODO expand to local/personal motor
+		this.motorPressure = this.motors.entrySet().stream()
+				.map( e -> new LocalPressure( e.getKey() ).conveneOn(
+						e.getValue().summon(),
+						i -> this.ppHome.get( i ).depart( i ),
+						i -> this.ppHome.get( i ).arrive( i ) ) )
+				.toArray( LocalPressure[]::new );
+		// TODO expand to local/personal motor
 
+		this.recoveryDaysDist = this.distFactory
+				.createExponential( this.gamma_inv );
 		this.vaccinationAge = this.config.vaccinationAgeRange();
 
 		this.attractors.forEach( ( name, attractor ) ->
@@ -292,7 +336,7 @@ public class PilotScenario implements Scenario
 		this.calculationDist = this.config
 				.hesitancyCalculationDist( this.distParser );
 
-		this.hhLeaveHomeAge = this.config.householdLeaveHomeAge();
+//		this.hhLeaveHomeAge = this.config.householdLeaveHomeAge();
 		this.hhMigrateDist = this.config
 				.householdReplacementDist( this.distFactory, hhTotal );
 		after( this.hhMigrateDist.draw() ).call( this::migrateHousehold );
@@ -313,6 +357,8 @@ public class PilotScenario implements Scenario
 		this.hesitancyDist = this.config
 				.hesitancyProfileSample( this.distFactory.getStream() );
 
+		this.resistanceDist = this.distFactory.createExponential( 1 );
+
 		// populate households
 		for( long time = System.currentTimeMillis(), agPrev = 0; this.persons
 				.get() < ppTotal; )
@@ -329,14 +375,30 @@ public class PilotScenario implements Scenario
 			}
 		}
 
+		publishSIR( ppTotal, 0, 0, 0 );
+
+		// schedule disease import
+		final long firstCase = //this.distFactory.getStream().nextLong( ppTotal );
+				this.ppAttributes
+						.selectColumns( Ret.LINK,
+								HHMemberAttribute.RESISTANCE.ordinal() )
+						.getCoordinatesOfMinimum()[0];
+		at( LocalDateTime.of( 2013, 1, 2, 3, 4, 5, 6 ) ) // t=123.1 since 2012-09-01
+				.call( t ->
+				{
+					LOG.trace( "IMPORTED DISEASE at index: {}", firstCase );
+					setInfected( firstCase, getResistance( firstCase ) );
+				} );
+
 		LOG.info( "Populated: {} pp ({}%) across {} hh in {} attractor/regions",
 				this.persons.get(), this.persons.get() * 100 / ppTotal,
 				this.hhCount.get() - this.attractors.size(),
 				this.attractors.size() );
 
-		final double beta = this.config.hesitancySocialNetworkBeta();
-		final SocialConnector conn = new SocialConnector.WattsStrogatz( rng, beta );
-		final long A = attractors.size(), N = this.hhCount.get() - A,
+		final double socialBeta = this.config.hesitancySocialNetworkBeta();
+		final SocialConnector conn = new SocialConnector.WattsStrogatz( rng,
+				socialBeta );
+		final long A = this.attractors.size(), N = this.hhCount.get() - A,
 				Na = N / A + 1, // add 1 extra for partition rounding errors
 				K = Math.min( Na - 1,
 						this.config.hesitancySocialNetworkDegree() );
@@ -395,7 +457,8 @@ public class PilotScenario implements Scenario
 									.getSymmetric( assorting[aOwn], ia, ja );
 							totalW.getAndUpdate( bd -> bd.add( w ) );
 							final long j = A + A * ja + aOwn;
-							SocialConnector.setSymmetric( this.hhNetwork, w, i, j );
+							SocialConnector.setSymmetric( this.hhNetwork, w, i,
+									j );
 							return j;
 						} ).toArray();
 				if( log )
@@ -443,7 +506,8 @@ public class PilotScenario implements Scenario
 									.getSymmetric( assorting[aOwn], ia, ja );
 							totalAssortW.getAndUpdate( bd -> bd.add( w ) );
 							final long j = A + A * ja + aOwn;
-							SocialConnector.setSymmetric( this.hhNetwork, w, i, j );
+							SocialConnector.setSymmetric( this.hhNetwork, w, i,
+									j );
 							return j;
 						} ).toArray();
 				// TODO don't copy, but initialize with outpeers already
@@ -453,7 +517,8 @@ public class PilotScenario implements Scenario
 							final BigDecimal w = SocialConnector
 									.getSymmetric( dissorting, i, j );
 							totalDissortW.getAndUpdate( bd -> bd.add( w ) );
-							SocialConnector.setSymmetric( this.hhNetwork, w, i, j );
+							SocialConnector.setSymmetric( this.hhNetwork, w, i,
+									j );
 							return j;
 						} ).toArray();
 				final int peerTotal = inpeers.length + outpeers.length;
@@ -507,8 +572,8 @@ public class PilotScenario implements Scenario
 		} );
 
 		LOG.info( "Networked, model: {}, degree: {}, beta: {}, assort: {}",
-				SocialConnector.WattsStrogatz.class.getSimpleName(), K, beta,
-				assortativity );
+				SocialConnector.WattsStrogatz.class.getSimpleName(), K,
+				socialBeta, assortativity );
 
 		// show final links sample
 //		LongStream.range( 0, 10 ).map( i -> i * N / 10 ).forEach( i ->
@@ -559,68 +624,312 @@ public class PilotScenario implements Scenario
 		return this.networkEvents;
 	}
 
-	private void convene( final Quantity<Time> dt, final int motorIndex )
+	private final BehaviorSubject<long[]> sirTransitions = BehaviorSubject
+			.create();
+
+	public Observable<long[]> sirTransitions()
 	{
-		final int refCol = HHMemberAttribute.MOTOR_REF.ordinal();
-		if( this.motorAdjourns[motorIndex] != null )
-			this.motorAdjourns[motorIndex].remove();
-
-		final long[] adjourn = adjourn( motorIndex );
-		// TODO parallelize
-		final Iterator<long[]> mem = this.ppAttributes
-				.selectColumns( Ret.LINK, refCol ).availableCoordinates()
-				.iterator();
-		if( mem.hasNext() )
-		{
-			final BigDecimal since = now().decimal();
-			for( long[] x = mem.next(); mem.hasNext(); x = mem.next() )
-				if( this.ppAttributes.getAsInt( x[0], refCol ) == motorIndex )
-				{
-					this.motorPresence.setAsBigDecimal( since, x[0],
-							motorIndex );
-					// TODO enter(count infectious and total) and map pressures to EXPOSE events based on DAYS_LEFT
-				}
-		}
-
-		LOG.trace( "t={}, convene @{}, adjourn @t+{}, kicked {}",
-				prettyDate( now() ), this.motorNames[motorIndex], dt, adjourn );
+		return this.sirTransitions;
 	}
 
-	private long[] adjourn( final int motorIndex )
+	class LocalPressure
 	{
-		return MatrixUtil
-				.streamAvailableCoordinates( this.motorPresence
-						.selectColumns( Ret.LINK, motorIndex ) )
-				.mapToLong( x -> x[0] ).filter( p ->
-				{
-					final long[] x = { p, motorIndex };
-					final BigDecimal since = this.motorPresence
-							.getAsBigDecimal( x );
-					this.motorPresence.setAsObject( null, x );
-					if( since.signum() <= 0 ) return false;
+		final NavigableMap<Double, Long> susceptibles = new TreeMap<>();
+		final List<Long> infectious = new ArrayList<>();
+		final List<Long> recovered = new ArrayList<>();
+		final String name;
+		int populationSize = 0;
+		double pressure = 0d;
+		Expectation next = null, pendingAdjourn = null;
 
-					final long[] y = { p,
-					HHMemberAttribute.SUSCEPTIBLE_DAYS.ordinal() };
-					final BigDecimal days = this.ppAttributes
-							.getAsBigDecimal( y )
-							.subtract( now().to( TimeUnits.DAYS ).decimal()
-									.subtract( since ) );
-					this.ppAttributes.setAsBigDecimal( days, y );
-					if( days.signum() < 1 )
-					{
-						LOG.trace( "EXPOSED person: {} @ {}", p,
-								this.motorNames[motorIndex] );
-						// f convening
-						this.ppAttributes.setAsInt( -1, p,
-								HHMemberAttribute.MOTOR_REF.ordinal() );
-						// FIXME verify transition is: susceptible -> exposed
-						this.ppAttributes.setAsInt(
-								HHMemberStatus.EXPOSED.ordinal(), p,
-								HHMemberAttribute.STATUS.ordinal() );
-						// FIXME schedule infectious transition
-					}
-					return true;
-				} ).toArray();
+		LocalPressure( final String name )
+		{
+			this.name = name;
+		}
+
+		@Override
+		public String toString()
+		{
+			return getClass().getSimpleName() + JsonUtil.stringify( this );
+		}
+
+		boolean noPressure()
+		{
+			return this.infectious.isEmpty() || this.susceptibles.isEmpty();
+		}
+
+		double pressure()
+		{
+			return ((double) this.infectious.size()) / this.populationSize;
+		}
+
+		double infectionDelayDays( final double resistanceGap )
+		{
+			return noPressure() ? Double.NaN
+					: resistanceGap / pressure() / beta;
+		}
+
+		LocalPressure arrive( final Long i )
+		{
+			this.populationSize++;
+			switch( getStatus( i ) )
+			{
+			case SUSCEPTIBLE:
+				this.susceptibles.put( getResistance( i ), i );
+				break;
+			case INFECTIOUS:
+				this.infectious.add( i );
+				break;
+			default:
+				this.recovered.add( i );
+				break;
+			}
+			rescheduleInfect();
+			return this;
+		}
+
+		LocalPressure depart( final Long i )
+		{
+			if( this.susceptibles.remove( getResistance( i ), i )
+					|| this.infectious.remove( i )
+					|| this.recovered.remove( i ) )
+			{
+				this.populationSize--;
+				rescheduleInfect();
+			} else
+				LOG.warn( "t={} @{} Could not remove #{}, SIR: {}+{}+{}={}",
+						prettyDate( now() ), this.name, i,
+						this.susceptibles.size(), this.infectious.size(),
+						this.recovered.size(), this.populationSize );
+			return this;
+		}
+
+		boolean isAdjourned()
+		{
+			return this.pendingAdjourn == null;
+		}
+
+		void unscheduleInfect()
+		{
+			if( this.next == null ) return;
+
+			if( this.next.unwrap() != now() ) this.next.remove();
+			this.next = null;
+		}
+
+		void rescheduleInfect()
+		{
+			// cancel anything pending
+			unscheduleInfect();
+
+			if( isAdjourned() || noPressure() ) return;
+
+			final double r0 = this.susceptibles.firstKey(),
+					dr = r0 - this.pressure, dt = infectionDelayDays( dr );
+			if( dt > 3 ) return; // skip beyond weekend for now, to avoid re-rescheduling
+			this.next = after( dt, TimeUnits.DAYS ).call( tI ->
+			{
+				if( noPressure() ) return;
+
+				infectNext( r0 );
+				rescheduleInfect();
+			} );
+		}
+
+		void infectNext( final double r0 )
+		{
+			// TODO push transmission event?
+			final Map.Entry<Double, Long> first = this.susceptibles
+					.firstEntry();
+			this.pressure = r0;
+			final Long i = first.getValue();
+			final Map<String, int[]> localSIR = setInfected( i,
+					first.getKey() );
+			LOG.trace(
+					"t={} INFECTED #{} @{}, resistance={}, pressure={}; SIR={}",
+					prettyDate( now() ), i, this.name, first.getKey(),
+					this.pressure, localSIR );
+
+			final double recoverDays = recoveryDaysDist.draw();
+			after( recoverDays, TimeUnits.DAYS ).call( t ->
+			{
+				LOG.trace( "t={} RECOVERED #{} @{}", prettyDate( now() ), i,
+						this.name );
+				setRecovered( i );
+			} );
+		}
+
+		private int[] getSIR()
+		{
+			return new int[] { this.susceptibles.size(), this.infectious.size(),
+					this.recovered.size() };
+		}
+
+		LocalPressure conveneOn( final Observable<Quantity<Time>> summonings,
+			final Consumer<Long> summoner, final Consumer<Long> adjourner )
+		{
+			summonings.subscribe( dt -> convene( dt, summoner, adjourner ),
+					PilotScenario.this::logError );
+			return this;
+		}
+
+		Stream<Long> streamAll()
+		{
+			return Arrays
+					.asList( this.susceptibles.values().stream(),
+							this.infectious.stream(), this.recovered.stream() )
+					.stream().flatMap( s -> s );
+		}
+
+		LocalPressure convene( final Quantity<Time> dt,
+			final Consumer<Long> summoner, final Consumer<Long> adjourner )
+		{
+			if( summoner != null ) streamAll().forEach( summoner );
+
+			// schedule adjourn
+			this.pendingAdjourn = after( dt ).call( t -> adjourn( adjourner ) );
+
+			// schedule infection events
+			if( noPressure() )
+			{
+//				if( this.cumPressure > 0 )
+//					LOG.trace( "t={} @{} convened for {}, SIR: {}+{}+{}",
+//							prettyDate( now() ), this.name, dt,
+//							this.susceptibles.size(), this.infectious.size(),
+//							this.recovered.size() );
+			} else
+			{
+//				LOG.trace( "t={} @{} pressured for {}, SIR: {}+{}+{}",
+//						prettyDate( now() ), this.name, dt,
+//						this.susceptibles.size(), this.infectious.size(),
+//						this.recovered.size() );
+
+				resist( QuantityUtil.decimalValue( dt, TimeUnits.DAYS )
+						.doubleValue() );
+			}
+			return this;
+		}
+
+		void adjourn( final Consumer<Long> adjourner )
+		{
+//			LOG.trace( "t={} @{} adjourned, SIR: {}+{}+{}", prettyDate( now() ),
+//					this.name, this.susceptibles.size(), this.infectious.size(),
+//					this.recovered.size() );
+			unscheduleInfect();
+			if( this.pendingAdjourn != null
+					&& this.pendingAdjourn.unwrap().compareTo( now() ) > 0 )
+				this.pendingAdjourn.remove();
+			this.pendingAdjourn = null;
+			if( adjourner != null ) streamAll().forEach( adjourner );
+		}
+
+		void resist( final double daysUnderPressure )
+		{
+			if( noPressure() ) return;
+			final double dr = this.susceptibles.firstKey() - this.pressure,
+					infectionDelayDays = infectionDelayDays( dr );
+			if( daysUnderPressure < infectionDelayDays )
+			{
+				// infection skips this meeting, update local pressure anyway
+				this.pendingAdjourn = after( daysUnderPressure, TimeUnits.DAYS )
+						.call( t ->
+						{
+							this.pressure += daysUnderPressure * beta
+									* pressure();
+//					LOG.trace( "t={} @{} adjourn: {}", prettyDate( now() ),
+//							this.motorNames[motorIndex], adjourned );
+						} );
+			} else
+			{
+//				LOG.trace( "t={} @{} pressure: {}, S->I", prettyDate( now() ),
+//						this.motorNames[motorIndex], local.pressure() );
+				this.next = after( infectionDelayDays, TimeUnits.DAYS )
+						.call( tI ->
+						{
+							infectNext( dr );
+							resist( daysUnderPressure - infectionDelayDays );
+						} );
+			}
+		}
+	}
+
+//	private double globalPressure = 0d;
+
+	// S -> I
+	private Map<String, int[]> setInfected( final Long i,
+		final Double resistance )
+	{
+		setStatus( i, HHMemberStatus.INFECTIOUS );
+		final Map<String, int[]> localSIR = new HashMap<>();
+		motorsFor( i ).forEach( local ->
+		{
+			localSIR.put(
+					local.name + (local.isAdjourned() ? "-"
+							: "+pres:"
+									+ DecimalUtil.toScale( local.pressure, 3 )),
+					local.getSIR() );
+			local.susceptibles.remove( resistance );
+			local.infectious.add( i );
+		} );
+		publishSIR( -1, 1 );
+		return localSIR;
+	}
+
+	// S -> R
+	private void setVaccinated( final Long i )
+	{
+		final Double resistance = getResistance( i );
+		setStatus( i, HHMemberStatus.ARTIFICIAL_IMMUNE );
+		motorsFor( i ).forEach( local ->
+		{
+			local.susceptibles.remove( resistance );
+			local.recovered.add( i );
+		} );
+		publishSIR( -1, 0, 0, 1 );
+	}
+
+	// I -> R
+	private void setRecovered( final Long i )
+	{
+		setStatus( i, HHMemberStatus.NATURAL_IMMUNE );
+		motorsFor( i ).forEach( local ->
+		{
+			local.infectious.remove( i );
+			local.recovered.add( i );
+		} );
+		publishSIR( 0, -1, 1 );
+	}
+
+	private void publishSIR( final long... delta )
+	{
+		final long[] old = this.sirTransitions.getValue(), sir = Arrays
+				.copyOf( delta, old == null ? delta.length : old.length );
+		if( old != null ) for( int i = old.length; --i != -1; )
+			sir[i] += old[i];
+		this.sirTransitions.onNext( sir );
+	}
+
+	private Double getResistance( final long i )
+	{
+		return this.ppAttributes.getAsDouble( i,
+				HHMemberAttribute.RESISTANCE.ordinal() );
+	}
+
+	private HHMemberStatus getStatus( final long i )
+	{
+		return HHMemberStatus.values()[this.ppAttributes.getAsInt( i,
+				HHMemberAttribute.STATUS.ordinal() )];
+	}
+
+	private void setStatus( final long i, final HHMemberStatus status )
+	{
+		this.ppAttributes.setAsInt( status.ordinal(), i,
+				HHMemberAttribute.STATUS.ordinal() );
+	}
+
+	public Number seed()
+	{
+		return this.distFactory.getStream().seed();
 	}
 
 	public Observable<HHStatisticsDao> statistics()
@@ -629,12 +938,10 @@ public class PilotScenario implements Scenario
 		return Observable.create( sub ->
 		{
 			final PilotConfigDao cfg = PilotConfigDao.create( this.binder.id(),
-					this.config );
+					this.config, seed() );
 			scheduler().onReset( scheduler ->
 			{
-				// TODO copy/move completion trigger to Scheduler
-				scheduler.time().lastOrError().subscribe( t -> sub.onComplete(),
-						sub::onError );
+				scheduler.onEnd( t -> sub.onComplete(), sub::onError );
 				final Iterable<Instant> when;
 				try
 				{
@@ -651,14 +958,37 @@ public class PilotScenario implements Scenario
 							prettyDate( t ), s );
 					final Matrix hhAttributes = this.hhAttributes.clone();
 					final Matrix ppAttributes = this.ppAttributes.clone();
+
 					LongStream.range( 0, this.hhAttributes.getRowCount() )
-							.mapToObj(
-									i -> HHStatisticsDao.create( cfg, t, s,
-											this.attractorNames,
-											hhAttributes.selectRows( Ret.LINK,
-													i ),
-											ppAttributes ) )
-							.forEach( sub::onNext );
+							.mapToObj( i ->
+							{
+								final Map<Long, Integer> activity;
+								if( i < this.attractorNames.length )
+									activity = Collections.emptyMap();
+								else
+								{
+									activity = SocialConnector
+											.availablePeers( this.hhNetwork, i )
+											.mapToObj( j -> j )
+											.collect( Collectors.toMap( j -> j,
+													j -> this.hhNetwork//Activity
+															.getAsInt(
+																	SocialConnector
+																			.rowLargest(
+																					i,
+																					j ) ) ) );
+									final int size = this.hhAttributes.getAsInt(
+											i, HHAttribute.SOCIAL_NETWORK_SIZE
+													.ordinal() );
+									if( activity.size() != size ) LOG.warn(
+											"Unexpected network size {}, expected {} for hh: {}",
+											activity.size(), size, i );
+								}
+								return HHStatisticsDao.create( cfg, i, t, s,
+										this.attractorNames, hhAttributes,
+										ppAttributes, activity,
+										this.attitudeEvaluator );
+							} ).forEach( sub::onNext );
 				}, sub::onError, sub::onComplete );
 			} );
 		} );
@@ -687,7 +1017,9 @@ public class PilotScenario implements Scenario
 		final Matrix interactions = SparseMatrix.Factory
 				.zeros( this.hhNetwork.getSize() );
 		LongStream.range( this.attractors.size(), this.hhNetwork.getRowCount() )
-				.parallel().forEach( i ->
+				//.parallel() 
+				// NOTE DefaultSparseGenericMatrix (HashMap) not concurrent
+				.forEach( i ->
 				{
 					final long[] J = contacts( i );
 					if( J.length == 0 ) return;
@@ -701,8 +1033,10 @@ public class PilotScenario implements Scenario
 						if( binom.draw() > 0 )
 						{
 							final long[] x = { i, J[j] };
-							SocialConnector.setSymmetric( interactions, SocialConnector
-									.getSymmetric( this.hhNetwork, x ), x );
+							SocialConnector.setSymmetric( interactions,
+									SocialConnector.getSymmetric(
+											this.hhNetwork, x ),
+									x );
 						}
 				} );
 		final Map<Long, Integer> changed = this.attitudePropagator
@@ -733,7 +1067,6 @@ public class PilotScenario implements Scenario
 	private void vaccinate( final Instant t )
 	{
 		final VaxOccasion occ = this.vaxOccasionDist.draw();
-		// TODO from config: vaccination call age
 		final Range<BigDecimal> birthRange = this.vaccinationAge.map(
 				age -> t.subtract( age ).to( TimeUnits.ANNUM ).decimal() );
 		LOG.debug( "t={}, vaccination occasion: {} for susceptibles born {}",
@@ -742,59 +1075,43 @@ public class PilotScenario implements Scenario
 						age -> prettyDate( Instant.of( age, TimeUnits.ANNUM ) )
 								.toString() ) );
 
-//		this.hhNetwork.setAsBigDecimal( BigDecimal.ONE, 0, 0 );
-//		this.hhNetwork.zeros( Ret.ORIG );
-//		if( this.hhNetwork.getAsBigDecimal( 0, 0 ).signum() != 0 ) Thrower
-//				.throwNew( IllegalStateException::new, () -> "reset failed" );
-
 		// for each households evaluated with a positive attitude
-		this.attitudeEvaluator.isPositive( occ, this.hhAttributes )
+		final List<Long> vax =
 
-				// for each child position in the positive household
-				.forEach( hh ->
-				{
-					Arrays.stream( CHILD_REF_COLUMN_INDICES )
-							.mapToLong( hhAtt -> this.hhAttributes
-									.getAsLong( hh, hhAtt.ordinal() ) )
+//				this.attitudeEvaluator.isPositive( occ, this.hhAttributes )
+//				// for each child in the (positive) household, update child if:
+//				.flatMap( hh -> Arrays.stream( CHILD_REF_COLUMN_INDICES )
+//						.mapToLong( hhAtt -> this.hhAttributes.getAsLong( hh,
+//								hhAtt.ordinal() ) ) )
+//				// 1. exists
+//				.filter( i -> i != NA )
+//				// 2. is susceptible
+//				.filter( i -> getStatus( i ) == HHMemberStatus.SUSCEPTIBLE )
+//				// 3. is of vaccination age
+//				.filter( i -> birthRange
+//						.contains( this.ppAttributes.getAsBigDecimal( i,
+//								HHMemberAttribute.BIRTH.ordinal() ) ) )
 
-							// if child member: 1. exists
-							.filter( ppRef -> ppRef != NA
+				LongStream.range( 0, this.ppAttributes.getRowCount() ).filter(
+						i -> getStatus( i ) == HHMemberStatus.SUSCEPTIBLE )
+						.filter( i -> this.distFactory.getStream()
+								.nextFloat() < .96f )
 
-									// 2. is susceptible
-									&& this.ppAttributes.getAsInt( ppRef,
-											HHMemberAttribute.STATUS
-													.ordinal() ) == HHMemberStatus.SUSCEPTIBLE
-															.ordinal()
+						// vaccinate!
+						.mapToObj( i -> i ).collect( Collectors.toList() );
+		vax.stream().forEach( this::setVaccinated );
+		LOG.trace( "t={} VACCINATED {} ppl.", prettyDate( now() ), vax.size() );
 
-					// 3. is of vaccination age
-									&& birthRange.contains( this.ppAttributes
-											.getAsBigDecimal( ppRef,
-													HHMemberAttribute.BIRTH
-															.ordinal() ) )
-					//
-					)
-							// then vaccinate
-							.forEach( ppRef ->
-							{
-								this.ppAttributes.setAsInt(
-										HHMemberStatus.ARTIFICIAL_IMMUNE
-												.ordinal(),
-										ppRef,
-										HHMemberAttribute.STATUS.ordinal() );
-								LOG.debug(
-										"t={}, Vax! (pos) hh #{} (sus) pp #{} born {}",
-										prettyDate( t ), hh, ppRef,
-										prettyDate( Instant.of(
-												this.ppAttributes
-														.getAsBigDecimal( ppRef,
-																HHMemberAttribute.BIRTH
-																		.ordinal() ),
-												TimeUnits.ANNUM ) ) );
-							} );
-				} );
+//		LOG.debug(
+//		"t={}, Vax! (pos) hh #{} (sus) pp #{} born {}",
+//		prettyDate( t ), hh, ppRef,
+//		prettyDate( Instant.of(
+//				this.ppAttributes
+//						.getAsBigDecimal( ppRef,
+//								HHMemberAttribute.BIRTH
+//										.ordinal() ),
+//				TimeUnits.ANNUM ) ) );
 	}
-
-	private static final long NA = -1L;
 
 	private void migrateHousehold( final Instant t )
 	{
@@ -835,69 +1152,47 @@ public class PilotScenario implements Scenario
 		final HesitancyProfileJson profile = this.hesitancyProfileDist
 				.draw( attractor.toHesitancyProfile() );
 
-		final boolean hhRefMale = this.hhRefMaleDist.draw();
-		final Quantity<Time> hhRefAge =
-//		hhCat.ageDist( this.distFactory::createUniformContinuous ).draw();
-				this.hhRefAgeDist.draw();
 		final CBSHousehold hhType =
 //		hhCat.hhTypeDist( this.distFactory::createCategorical ).draw();
 				this.hhTypeDist.draw();
 
-		final Quantity<Time> impressDelay = Arrays
-				.stream( RelationFrequencyJson.Relation.values() )
-				.map( r -> this.hhImpressIntervalDist
-						.draw( new RelationFrequencyJson.Category( hhRefMale, r,
-								hhRefAge ) )
-						.inverse().asType( Frequency.class ) )
-				.reduce( ( f1, f2 ) -> f1.add( f2 ) ).get().inverse()
-				.asType( Time.class );
+		final Quantity<Time> duration = this.scheduler.config().duration()
+				.toQuantity().add( QuantityUtil.valueOf( 1, TimeUnits.DAYS ) );
+		final LocalPressure home = new LocalPressure( "hh" + hhIndex ).convene(
+				duration, i -> LOG.trace( "{} moves to hh {}", i, hhIndex ),
+				i -> LOG.trace( "{} leaves hh {}", i, hhIndex ) );
+		final long referentRef = createPerson( oldIndex, hhIndex,
+				HHAttribute.REFERENT_REF, profile.status, home );
 
-//		impressInitial( hhIndex, impressDelay );
-
-//		final long partnerRef = hhType.adultCount() < 2 ? NA
-//				: createPerson(
-//						hhRefAge.subtract(
-//								QuantityUtil.valueOf( 3, TimeUnits.ANNUM ) ),
-//						hhStatus );
-
-		final Quantity<Time> child1Age = hhRefAge.subtract(
-				// TODO from distribution, e.g. 60036ned, 37201
-				QuantityUtil.valueOf( 20, TimeUnits.ANNUM ) );
-		final HHMemberStatus hhStatus = oldIndex == NA // newborn
-				|| profile.status == VaccineStatus.none
-				|| this.vaccinationAge.lowerValue()
-						.isGreaterThanOrEqualTo( child1Age )
-								? HHMemberStatus.SUSCEPTIBLE
-								: HHMemberStatus.ARTIFICIAL_IMMUNE;
-		final long referentRef = createPerson(
-				oldIndex == NA ? NA
-						: this.hhAttributes.getAsLong( hhIndex,
-								HHAttribute.REFERENT_REF.ordinal() ),
-				hhRefMale, hhRefAge, hhStatus );
-		final boolean child1Male = true;
-		final long child1Ref = hhType
-				.childCount() < 1
-						? NA
-						: createPerson(
-								oldIndex == NA ? NA
-										: this.hhAttributes.getAsLong( hhIndex,
-												HHAttribute.CHILD1_REF
-														.ordinal() ),
-								child1Male, child1Age, hhStatus );
-//		final long child2Ref = hhType.childCount() < 2 ? NA
-//				: createPerson(
-//						hhRefAge.subtract(
-//								QuantityUtil.valueOf( 22, TimeUnits.ANNUM ) ),
-//						hhStatus );
-//		final long child3Ref = hhType.childCount() < 3 ? NA
-//				: createPerson(
-//						hhRefAge.subtract(
-//								QuantityUtil.valueOf( 24, TimeUnits.ANNUM ) ),
-//						hhStatus );
+		createPerson( oldIndex, hhIndex, HHAttribute.PARTNER_REF,
+				hhType.adultCount() < 2 ? null : profile.status, home );
+		createPerson( oldIndex, hhIndex, HHAttribute.CHILD1_REF,
+				hhType.childCount() < 1 ? null : profile.status, home );
+		createPerson( oldIndex, hhIndex, HHAttribute.CHILD2_REF,
+				hhType.childCount() < 2 ? null : profile.status, home );
+		createPerson( oldIndex, hhIndex, HHAttribute.CHILD3_REF,
+				hhType.childCount() < 3 ? null : profile.status, home );
 
 		final BigDecimal initialCalculation = this.calculationDist.draw();
 		final Map<HHAttribute, BigDecimal> initialHesitancy = this.hesitancyDist
 				.draw( profile );
+
+		final Quantity<Time> impressDelay = Arrays
+				.stream( RelationFrequencyJson.Relation.values() )
+				.map( r -> this.hhImpressIntervalDist
+						.draw( new RelationFrequencyJson.Category(
+								this.ppAttributes.getAsBoolean( referentRef,
+										HHMemberAttribute.MALE.ordinal() ),
+								r,
+								now().to( TimeUnits.ANNUM )
+										.subtract( this.ppAttributes
+												.getAsBigDecimal( referentRef,
+														HHMemberAttribute.BIRTH
+																.ordinal() ) )
+										.toQuantity( TimeUnits.ANNUM ) ) )
+						.inverse().asType( Frequency.class ) )
+				.reduce( ( f1, f2 ) -> f1.add( f2 ) ).get().inverse()
+				.asType( Time.class );
 
 		// set household attribute values
 		this.hhAttributes.setAsLong( id, hhIndex,
@@ -909,7 +1204,7 @@ public class PilotScenario implements Scenario
 		this.hhAttributes.setAsInt( attractorRef, hhIndex,
 				HHAttribute.ATTRACTOR_REF.ordinal() );
 		this.hhAttributes.setAsBigDecimal(
-				QuantityUtil.toBigDecimal( impressDelay, TimeUnits.DAYS ),
+				QuantityUtil.decimalValue( impressDelay, TimeUnits.DAYS ),
 				hhIndex, HHAttribute.IMPRESSION_PERIOD_DAYS.ordinal() );
 		this.hhAttributes.setAsInt( 0, hhIndex,
 				HHAttribute.IMPRESSION_FEEDS.ordinal() );
@@ -921,67 +1216,129 @@ public class PilotScenario implements Scenario
 		this.hhAttributes.setAsBigDecimal(
 				initialHesitancy.get( HHAttribute.COMPLACENCY ), hhIndex,
 				HHAttribute.COMPLACENCY.ordinal() );
-		this.hhAttributes.setAsLong( referentRef, hhIndex,
-				HHAttribute.REFERENT_REF.ordinal() );
-//		this.hhAttributes.setAsLong( partnerRef, hhIndex,
-//				HHAttribute.PARTNER_REF.ordinal() );
-		this.hhAttributes.setAsLong( child1Ref, hhIndex,
-				HHAttribute.CHILD1_REF.ordinal() );
-//		this.hhAttributes.setAsLong( child2Ref, hhIndex,
-//				HHAttribute.CHILD2_REF.ordinal() );
-//		this.hhAttributes.setAsLong( child3Ref, hhIndex,
-//				HHAttribute.CHILD3_REF.ordinal() );
 
-		after( this.hhLeaveHomeAge.subtract( child1Age ) ).call( t ->
-		{
-			LOG.debug( "t={}, replace home leaver #{}", prettyDate( t ),
-					hhIndex );
-			createHousehold( hhIndex );
-		} );
+		// FIXME put each home leaver in a new household
+//		after( this.hhLeaveHomeAge.subtract( child1Age ) ).call( t ->
+//		{
+//			LOG.debug( "t={}, replace home leaver #{}", prettyDate( t ),
+//					hhIndex );
+//			createHousehold( hhIndex );
+//		} );
 
 		return hhType.size();
 	}
 
 	private long[] contacts( final long i )
 	{
-		return SocialConnector.availablePeers( this.hhNetwork, i )//.parallel()
+		return SocialConnector.availablePeers( this.hhNetwork, i ).parallel()
 				.toArray();
 	}
 
-	private long createPerson( final long oldIndex, final boolean male,
-		final Quantity<Time> initialAge, final HHMemberStatus status )
+	private Stream<LocalPressure> motorsFor( final long i )
 	{
+		final long flags = this.ppAttributes.getAsLong( i,
+				HHMemberAttribute.MOTOR_REF.ordinal() );
+		return Arrays
+				.asList( Stream.of( this.ppHome.get( i ) ),
+						IntStream.range( 0, this.motorPressure.length )
+								.filter( m -> (flags & (1 << m)) != 0 )
+								.mapToObj( m -> this.motorPressure[m] ) )
+				.stream().flatMap( s -> s );
+	}
+
+	private long createPerson( final long oldIndex, final long hhIndex,
+		final HHAttribute hhPositionRef, final VaccineStatus vaxStatus,
+		final LocalPressure home )
+	{
+		if( vaxStatus == null )
+		{
+			this.hhAttributes.setAsLong( NA, hhIndex, hhPositionRef.ordinal() );
+			return NA;
+		}
 		final long id = this.persons.incrementAndGet();
 		final long index;
 		if( oldIndex == NA )
 		{
 			index = this.ppIndex.computeIfAbsent( id,
 					key -> (long) this.ppIndex.size() );
+			this.hhAttributes.setAsLong( index, hhIndex,
+					hhPositionRef.ordinal() );
 		} else
 		{
-			index = oldIndex;
+			index = this.hhAttributes.getAsLong( hhIndex,
+					hhPositionRef.ordinal() );
 			this.ppIndex.remove( this.ppAttributes.getAsLong( index,
 					HHMemberAttribute.IDENTIFIER.ordinal() ) );
+
+			// unregister hh-members from local pressure motors 
+			motorsFor( index ).forEach( local -> local.depart( index ) );
 		}
+
+		final boolean male = this.hhRefMaleDist.draw();
+		final Quantity<Time> nowYear = now().toQuantity( TimeUnits.ANNUM ), age;
+		if( hhPositionRef == HHAttribute.REFERENT_REF )
+		{
+			age = this.hhRefAgeDist.draw();
+			// FIXME hhCat.ageDist( this.distFactory::createUniformContinuous ).draw();
+		} else
+		{
+			final int ageDiff;
+			switch( hhPositionRef )
+			{
+			// TODO from distribution, e.g. 60036ned, 37201
+			case PARTNER_REF:
+				ageDiff = 3;
+				break;
+			case CHILD1_REF:
+				ageDiff = 20;
+				break;
+			case CHILD2_REF:
+				ageDiff = 22;
+				break;
+			case CHILD3_REF:
+			default:
+				ageDiff = 24;
+				break;
+			}
+			final long referentRef = this.hhAttributes.getAsLong( hhIndex,
+					HHAttribute.REFERENT_REF.ordinal() );
+			final BigDecimal referentBirth = this.ppAttributes.getAsBigDecimal(
+					referentRef, HHMemberAttribute.BIRTH.ordinal() );
+			age = nowYear.subtract( QuantityUtil.valueOf(
+					referentBirth.add( BigDecimal.valueOf( ageDiff ) ),
+					TimeUnits.ANNUM ) );
+		}
+
+		final HHMemberStatus status = oldIndex == NA // newborn
+				|| vaxStatus == VaccineStatus.none
+				|| this.vaccinationAge.lowerValue()
+						.isGreaterThanOrEqualTo( age )
+								? HHMemberStatus.SUSCEPTIBLE
+								: HHMemberStatus.ARTIFICIAL_IMMUNE;
+
 		this.ppAttributes.setAsLong( id, index,
 				HHMemberAttribute.IDENTIFIER.ordinal() );
-		this.ppAttributes.setAsBigDecimal(
-				now().to( TimeUnits.ANNUM ).subtract( initialAge ).decimal(),
-				index, HHMemberAttribute.BIRTH.ordinal() );
+		this.ppAttributes.setAsDouble(
+				nowYear.subtract( age ).getValue().doubleValue(), index,
+				HHMemberAttribute.BIRTH.ordinal() );
 		this.ppAttributes.setAsBoolean( male, index,
 				HHMemberAttribute.MALE.ordinal() );
 		this.ppAttributes.setAsInt( status.ordinal(), index,
 				HHMemberAttribute.STATUS.ordinal() );
-		long all = 0L;
-		for( int m = this.motors.size() - 1; --m != 0; )
-		{
-			System.err.println( all + " -> " + (all & m) );
-			all = all & m;
-		}
-		this.ppAttributes.setAsLong( all, index,
+
+		this.ppAttributes.setAsDouble( this.resistanceDist.draw(), index,
+				HHMemberAttribute.RESISTANCE.ordinal() );
+
+		// TODO individual localization values from config/dists
+		final int flags = (1 << this.motors.size() + 1) - 1;
+		this.ppAttributes.setAsLong( flags, index,
 				HHMemberAttribute.MOTOR_REF.ordinal() );
-		this.ppAttributes.setAsBigDecimal( BigDecimal.TEN, index,
-				HHMemberAttribute.SUSCEPTIBLE_DAYS.ordinal() );
+
+		this.ppHome.put( index, home );
+
+		// register at all pressure locations/motors 
+		motorsFor( index ).forEach( local -> local.arrive( index ) );
+
 		return index;
 	}
 
@@ -998,7 +1355,8 @@ public class PilotScenario implements Scenario
 			final ZonedDateTime zdt = scheduler().offset().plus(
 					t.to( TimeUnits.MINUTE ).value().longValue(),
 					ChronoUnit.MINUTES );
-			return zdt.toLocalDateTime() + "="
+			return QuantityUtil.toScale( t.toQuantity( TimeUnits.DAYS ), 1 )
+					+ ";" + zdt.toLocalDateTime() + ";"
 					+ zdt.format( DateTimeFormatter.ISO_WEEK_DATE );
 		} );
 	}
@@ -1010,10 +1368,6 @@ public class PilotScenario implements Scenario
 				: (this.dtCache = (this.dtInstant = now())
 						.toJava8( scheduler().offset().toLocalDate() ));
 	}
-
-	private final Map<Long, Long> hhIndex = new HashMap<>();
-
-	private final Map<Long, Long> ppIndex = new HashMap<>();
 
 	private void logError( final Throwable e )
 	{

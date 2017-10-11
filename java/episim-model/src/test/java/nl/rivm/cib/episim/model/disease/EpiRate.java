@@ -19,23 +19,29 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
-import io.coala.json.Attributed;
-
 /**
- * {@link IllnessTrajectory} tags individual illness trajectories as state
- * machines (dyna bean) that transition between (discrete) medical conditions
- * 
- * @version $Id$
- * @author Rick van Krevelen
+ * {@link EpiRate}
  */
-public interface IllnessTrajectory extends Attributed.Reactive
+public enum EpiRate
 {
-	
-	class SimpleClinical
-		extends Attributed.Reactive.SimpleOrdinal<SimpleClinical>
-		implements IllnessTrajectory, ClinicalPhase.Attributable<SimpleClinical>
-	{
-
-	}
-
+	/** natural waning */
+	alpha,
+	/** contact/infection */
+	beta,
+	/** recovery */
+	gamma,
+	/** maternal waning */
+	delta,
+	/** birth/immigration among susceptibles */
+	im_S,
+	/** birth/immigration among infectives */
+	im_I,
+	/** birth/immigration among recovered/immune */
+	im_R,
+	/** mortality/emigration among susceptibles */
+	ex_S,
+	/** mortality/emigration among infectives */
+	ex_I,
+	/** mortality/emigration among recovered */
+	ex_R;
 }

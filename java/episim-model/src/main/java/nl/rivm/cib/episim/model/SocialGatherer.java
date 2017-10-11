@@ -55,7 +55,7 @@ import io.reactivex.disposables.Disposable;
  */
 public interface SocialGatherer extends JsonSchedulable<SocialGatherer>
 {
-	String TIMING_KEY = "timing";
+	String TIMING_KEY = "convene-timing";
 
 	String DURATION_KEY = "duration-dist";
 

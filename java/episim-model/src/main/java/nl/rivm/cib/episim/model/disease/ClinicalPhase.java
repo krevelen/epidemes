@@ -123,7 +123,7 @@ public interface ClinicalPhase extends Identified<String>
 	}
 
 	public interface Attributable<THIS extends Attributable<?>>
-		extends Attributed.Publisher
+		extends Attributed.Reactive
 	{
 		/** propertyName matching bean's getter/setter names */
 		String CLINICAL_PHASE_PROPERTY = "clinical-phase";
@@ -147,7 +147,7 @@ public interface ClinicalPhase extends Identified<String>
 
 		default Observable<ClinicalPhase> emitPhase()
 		{
-			return emitChanges( CLINICAL_PHASE_PROPERTY, ClinicalPhase.class );
+			return valueEmitter( CLINICAL_PHASE_PROPERTY, ClinicalPhase.class );
 		}
 	}
 

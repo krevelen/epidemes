@@ -19,23 +19,16 @@
  */
 package nl.rivm.cib.episim.model.disease;
 
-import io.coala.json.Attributed;
-
-/**
- * {@link IllnessTrajectory} tags individual illness trajectories as state
- * machines (dyna bean) that transition between (discrete) medical conditions
- * 
- * @version $Id$
- * @author Rick van Krevelen
- */
-public interface IllnessTrajectory extends Attributed.Reactive
+public enum EpiPop
 {
-	
-	class SimpleClinical
-		extends Attributed.Reactive.SimpleOrdinal<SimpleClinical>
-		implements IllnessTrajectory, ClinicalPhase.Attributable<SimpleClinical>
-	{
-
-	}
-
+	/** maternal/passive immune */
+	M,
+	/** susceptibles */
+	S,
+	/** exposed */
+	E,
+	/** infectives */
+	I,
+	/** recovered */
+	R;
 }

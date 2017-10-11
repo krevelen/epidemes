@@ -1,17 +1,13 @@
 package nl.rivm.cib.pilot;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.text.ParseException;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,14 +18,12 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Frequency;
 import javax.measure.quantity.Time;
 
 import org.aeonbits.owner.Config.Sources;
-import org.aeonbits.owner.ConfigCache;
 import org.aeonbits.owner.ConfigFactory;
 import org.aeonbits.owner.Converter;
 
@@ -38,7 +32,6 @@ import io.coala.config.ConfigUtil;
 import io.coala.config.GlobalConfig;
 import io.coala.config.LocalDateConverter;
 import io.coala.config.PeriodConverter;
-import io.coala.config.YamlUtil;
 import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
@@ -55,17 +48,15 @@ import io.coala.random.PseudoRandom;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
-import io.coala.time.SchedulerConfig;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
-import io.coala.util.FileUtil;
+import io.coala.util.InputStreamConverter;
 import io.coala.util.MapBuilder;
 import io.reactivex.observables.GroupedObservable;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.Cbs83287Json;
 import nl.rivm.cib.epidemes.cbs.json.CbsNeighborhood;
-import nl.rivm.cib.episim.cbs.TimeUtil;
 import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.model.locate.Region.ID;
@@ -86,41 +77,22 @@ import tec.uom.se.ComparableQuantity;
  * @author Rick van Krevelen
  */
 @Sources( {
+		"file:${" + PilotConfig.CONFIG_BASE_KEY + "}"
+				+ PilotConfig.CONFIG_YAML_FILE,
 		"file:" + PilotConfig.CONFIG_BASE_DIR + PilotConfig.CONFIG_YAML_FILE,
 		"classpath:" + PilotConfig.CONFIG_YAML_FILE } )
 public interface PilotConfig extends GlobalConfig
 {
 
-	/**
-	 * {@link ConfigBaseFileConverter} accepts absolute file paths and relative
-	 * to {@link #CONFIG_BASE_DIR}
-	 */
-	class ConfigBaseFileConverter implements Converter<InputStream>
-	{
-		@Override
-		public InputStream convert( final Method method, final String path )
-		{
-			final File file = new File( path );
-			try
-			{
-				return FileUtil.toInputStream(
-						file.isAbsolute() ? file.getAbsolutePath()
-								: CONFIG_BASE_DIR + file.getPath() );
-			} catch( final IOException e )
-			{
-				return Thrower.rethrowUnchecked( e );
-			}
-		}
-	}
+	/** configuration file name system property */
+	String CONFIG_BASE_KEY = "config.base";
 
 	/** configuration and data file base directory */
-	String CONFIG_BASE_DIR = "conf/pilot/";
+	String CONFIG_BASE_DIR = "dist/";
 
 	String CONFIG_YAML_FILE = "sim.yaml";
 
 	String DATASOURCE_JNDI = "jdbc/pilotDB";
-
-	String CONFIG_FILE_ARG = "conf";
 
 	/** configuration key separator */
 	String KEY_SEP = ConfigUtil.CONFIG_KEY_SEP;
@@ -154,28 +126,9 @@ public interface PilotConfig extends GlobalConfig
 	/** configuration key */
 	String PATHOLOGY_PREFIX = SCENARIO_BASE + KEY_SEP + "pathology" + KEY_SEP;
 
-	/**
-	 * provide a universal approach for loading the {@link PilotConfig}
-	 * 
-	 * @param args the command-line arguments, any "..=.." will be imported
-	 *            overriding any configuration file contents
-	 * @return a (cached) {@link PilotConfig} instance
-	 * @throws IOException
-	 */
-	static PilotConfig getOrCreate( final String... args ) throws IOException
-	{
-		// convert command-line arguments to map
-		final Map<String, String> argMap = Arrays.stream( args )
-				.filter( arg -> arg.contains( "=" ) )
-				.map( arg -> arg.split( "=" ) ).filter( arr -> arr.length == 2 )
-				.collect( Collectors.toMap( arr -> arr[0], arr -> arr[1] ) );
-
-		// merge arguments into configuration imported from YAML file
-		return ConfigCache.getOrCreate( PilotConfig.class, argMap, YamlUtil
-				.flattenYaml( FileUtil.toInputStream( argMap.computeIfAbsent(
-						CONFIG_FILE_ARG, key -> CONFIG_BASE_DIR
-								+ CONFIG_YAML_FILE ) ) ) );
-	}
+	@DefaultValue( CONFIG_BASE_DIR )
+	@Key( CONFIG_BASE_KEY )
+	String configBase();
 
 	// match unit name from persistence.xml
 	@DefaultValue( "" + false )
@@ -226,9 +179,33 @@ public interface PilotConfig extends GlobalConfig
 
 	/////////////////////////////////////////////////////////////////////////
 
-	@Key( REPLICATION_PREFIX + "run-name" )
-	@DefaultValue( "morphine" )
-	String runName();
+	/**
+	 * {@link RandomSeedConverter} defaults to
+	 * {@link System#currentTimeMillis()} + {@link System#nanoTime()}
+	 */
+	class RandomSeedConverter implements Converter<Long>
+	{
+		@Override
+		public Long convert( final Method method, final String input )
+		{
+			try
+			{
+				return Long.valueOf( input );
+			} catch( final NumberFormatException e )
+			{
+				return System.currentTimeMillis() & System.nanoTime();
+			}
+		}
+	}
+
+	@Key( REPLICATION_PREFIX + "setup-name" )
+	@DefaultValue( "pilot" )
+	String setupName();
+
+	@Key( REPLICATION_PREFIX + "random-seed" )
+	@DefaultValue( "NAN" )
+	@ConverterClass( RandomSeedConverter.class )
+	Long randomSeed();
 
 	@Key( REPLICATION_PREFIX + "duration-period" )
 	@DefaultValue( "P1Y" )
@@ -239,25 +216,6 @@ public interface PilotConfig extends GlobalConfig
 	@DefaultValue( "2012-01-01" )
 	@ConverterClass( LocalDateConverter.class )
 	LocalDate offset();
-
-	/** globally (re)configure replication run length etc. */
-	default Map<?, ?> schedulerConfig()
-	{
-		final ZonedDateTime offset = offset().atStartOfDay( TimeUtil.NL_TZ );
-		final long durationDays = Duration
-				.between( offset, offset.plus( duration() ) ).toDays();
-		return MapBuilder.unordered()
-				.put( SchedulerConfig.ID_KEY, "" + runName() )
-				.put( SchedulerConfig.OFFSET_KEY, "" + offset )
-				.put( SchedulerConfig.DURATION_KEY, "" + durationDays ).build();
-	}
-
-	/** globally (re)configure replication run length etc. */
-	default SchedulerConfig toSchedulerConfig()
-	{
-		return ConfigCache.getOrCreate( SchedulerConfig.class,
-				schedulerConfig() );
-	}
 
 	/**
 	 * <a
@@ -280,8 +238,8 @@ public interface PilotConfig extends GlobalConfig
 				.iterate();
 	}
 
-	@Key( POPULATION_PREFIX + "size" )
-	@DefaultValue( "" + 100000 )
+	@Key( POPULATION_PREFIX + "population-size" )
+	@DefaultValue( "" + 1000 )
 	long populationSize();
 
 	@Key( POPULATION_PREFIX + "hh-type-dist" )
@@ -378,8 +336,8 @@ public interface PilotConfig extends GlobalConfig
 	CBSRegionType regionalResolution();
 
 	@Key( GEOGRAPHY_PREFIX + "region-mapping-data" )
-	@DefaultValue( "83287NED.json" )
-	@ConverterClass( ConfigBaseFileConverter.class )
+	@DefaultValue( "${" + CONFIG_BASE_KEY + "}83287NED.json" )
+	@ConverterClass( InputStreamConverter.class )
 	InputStream regionMappingData();
 
 	default Map<String, Map<CBSRegionType, String>>
@@ -395,8 +353,8 @@ public interface PilotConfig extends GlobalConfig
 	}
 
 	@Key( GEOGRAPHY_PREFIX + "region-density-data" )
-	@DefaultValue( "pc6_buurt.json" )
-	@ConverterClass( ConfigBaseFileConverter.class )
+	@DefaultValue( "${" + CONFIG_BASE_KEY + "}pc6_buurt.json" )
+	@ConverterClass( InputStreamConverter.class )
 	InputStream regionDensityData();
 
 	default Map<ID, Collection<WeightedValue<CbsNeighborhood>>> regionDensity()
@@ -445,9 +403,10 @@ public interface PilotConfig extends GlobalConfig
 
 	@SuppressWarnings( "unchecked" )
 	default Range<ComparableQuantity<Time>> vaccinationAgeRange()
+		throws ParseException
 	{
-		return Range.parse( vaccinationInvitationAge(),
-				v -> QuantityUtil.valueOf( v ).asType( Time.class ) );
+		return Range.parse( vaccinationInvitationAge(), QuantityUtil::valueOf )
+				.map( v -> v.asType( Time.class ) );
 	}
 
 	@Key( VACCINATION_PREFIX + "occasion-recurrence" )
@@ -526,8 +485,8 @@ public interface PilotConfig extends GlobalConfig
 
 	/** @see RelationFrequencyJson */
 	@Key( HESITANCY_PREFIX + "relation-frequencies" )
-	@DefaultValue( "relation-frequency.json" )
-	@ConverterClass( ConfigBaseFileConverter.class )
+	@DefaultValue( "${" + CONFIG_BASE_KEY + "}relation-frequency.json" )
+	@ConverterClass( InputStreamConverter.class )
 	InputStream hesitancyRelationFrequencies();
 
 	default
@@ -558,8 +517,8 @@ public interface PilotConfig extends GlobalConfig
 
 	/** @see HesitancyProfileJson */
 	@Key( HESITANCY_PREFIX + "profiles" )
-	@DefaultValue( "hesitancy-univariate.json" )
-	@ConverterClass( ConfigBaseFileConverter.class )
+	@DefaultValue( "${" + CONFIG_BASE_KEY + "}hesitancy-univariate.json" )
+	@ConverterClass( InputStreamConverter.class )
 	InputStream hesitancyProfiles();
 
 	default ProbabilityDistribution<HesitancyProfileJson>
@@ -581,8 +540,8 @@ public interface PilotConfig extends GlobalConfig
 	}
 
 	@Key( HESITANCY_PREFIX + "profile-sample" )
-	@DefaultValue( "hesitancy-initial.json" )
-	@ConverterClass( ConfigBaseFileConverter.class )
+	@DefaultValue( "${" + CONFIG_BASE_KEY + "}hesitancy-initial.json" )
+	@ConverterClass( InputStreamConverter.class )
 	InputStream hesitancyProfileSample();
 
 	default

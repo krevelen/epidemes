@@ -19,6 +19,8 @@
  */
 package nl.rivm.cib.episim.model.person;
 
+import java.text.ParseException;
+
 import io.coala.math.Range;
 import io.coala.name.Id;
 import io.coala.time.Duration;
@@ -42,7 +44,7 @@ public interface MeetingTemplate
 	Range<Duration> duration();
 
 	static MeetingTemplate of( final String purpose,
-		final String recurrence, final String duration )
+		final String recurrence, final String duration ) throws ParseException
 	{
 		return of( Purpose.of( purpose ), Timing.of( recurrence ),
 				Range.parse( duration, Duration.class ) );

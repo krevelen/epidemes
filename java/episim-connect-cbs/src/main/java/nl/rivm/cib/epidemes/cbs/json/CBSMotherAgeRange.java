@@ -19,6 +19,8 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
+import java.text.ParseException;
+
 import javax.measure.quantity.Time;
 
 import io.coala.math.QuantityUtil;
@@ -54,11 +56,20 @@ public enum CBSMotherAgeRange implements CBSJsonProperty
 
 	private final Range<ComparableQuantity<Time>> cutoff;
 
-	private CBSMotherAgeRange( final String jsonKey, final String cutoff )
+	private CBSMotherAgeRange( final String jsonKey, final String value )
 	{
 		this.jsonKey = jsonKey;
-		this.cutoff = Range.parse( cutoff, Integer.class )
-				.map( v -> QuantityUtil.valueOf( v, TimeUnits.ANNUM ) );
+		Range<ComparableQuantity<Time>> cutoff;
+		try
+		{
+			cutoff = Range.parse( value, Integer.class )
+					.map( v -> QuantityUtil.valueOf( v, TimeUnits.ANNUM ) );
+		} catch( final ParseException e )
+		{
+			e.printStackTrace();
+			cutoff = Range.infinite();
+		}
+		this.cutoff = cutoff;
 	}
 
 	@Override
