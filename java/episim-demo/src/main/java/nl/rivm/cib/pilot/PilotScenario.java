@@ -257,7 +257,7 @@ public class PilotScenario implements Scenario
 		final PseudoRandom rng = this.distFactory.getStream();
 		LOG.info( "seed: {}, offset: {}", rng.seed(), scheduler().offset() );
 
-		scheduler().onEnd( t -> this.sirTransitions.onComplete(),
+		scheduler().atEnd( t -> this.sirTransitions.onComplete(),
 				this.sirTransitions::onError );
 		this.attractors = this.config.hesitancyAttractors( this.binder );
 		this.attractorNames = this.attractors.keySet().stream()
@@ -941,7 +941,7 @@ public class PilotScenario implements Scenario
 					this.config, seed() );
 			scheduler().onReset( scheduler ->
 			{
-				scheduler.onEnd( t -> sub.onComplete(), sub::onError );
+				scheduler.atEnd( t -> sub.onComplete(), sub::onError );
 				final Iterable<Instant> when;
 				try
 				{

@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.episim.model.disease;
+package nl.rivm.cib.episim.model.disease.infection;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -53,12 +53,19 @@ import javafx.scene.shape.PathElement;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRSTest.SIRConfig;
 
-public class CartesianPlot extends Application
+/**
+ * {@link MSEIRSPlot} applies JavaFX to plot results from {@link MSEIRSTest}
+ * 
+ * @version $Id$
+ * @author Rick van Krevelen
+ */
+public class MSEIRSPlot extends Application
 {
 
 	/** */
-	private static final Logger LOG = LogUtil.getLogger( CartesianPlot.class );
+	private static final Logger LOG = LogUtil.getLogger( MSEIRSPlot.class );
 
 	@Override
 	public void start( final Stage stage )
@@ -120,8 +127,10 @@ public class CartesianPlot extends Application
 				sy = yh / (yAxis.getUpperBound() - yAxis.getLowerBound());
 		final TreeMap<Double, Integer> iDeterministic = new TreeMap<>();
 
-		conf.deterministic( () -> new DormandPrince853Integrator( 1.0E-8, 10,
-				1.0E-20, 1.0E-20 ) ).subscribe( yt ->
+		MSEIRSTest.deterministic( conf,
+				() -> new DormandPrince853Integrator( 1.0E-8, 10, 1.0E-20,
+						1.0E-20 ) )
+				.subscribe( yt ->
 				{
 					iDeterministic.put( yt.getKey(),
 							deterministic[0].getElements().size() );
@@ -150,7 +159,7 @@ public class CartesianPlot extends Application
 		} );
 
 		final TreeMap<Double, Integer> iStochasticTau = new TreeMap<>();
-		conf.stochasticGillespie().subscribe( yt ->
+		MSEIRSTest.stochasticGillespie( conf ).subscribe( yt ->
 		{
 			final double x = (yt.getKey() - xl) * sx;
 			iStochasticTau.put( yt.getKey(),
@@ -188,35 +197,31 @@ public class CartesianPlot extends Application
 		} );
 
 		final TreeMap<Double, Integer> iStochasticRes = new TreeMap<>();
-		ConfigFactory.create( SIRConfig.class )
-				.stochasticSellke( /* config.createBinder() */ )
-				.subscribe( yt ->
+		MSEIRSTest.stochasticSellke( conf ).subscribe( yt ->
+		{
+			final double x = (yt.getKey() - xl) * sx;
+			iStochasticRes.put( yt.getKey(),
+					stochasticRes[0].getElements().size() );
+			final long[] y = yt.getValue();
+			for( int i = 0; i < y.length; i++ )
+			{
+				final double yi = yh - y[i] * sy;
+				final ObservableList<PathElement> path = stochasticRes[i]
+						.getElements();
+				if( path.isEmpty() )
 				{
-					final double x = (yt.getKey() - xl) * sx;
-					iStochasticRes.put( yt.getKey(),
-							stochasticRes[0].getElements().size() );
-					final long[] y = yt.getValue();
-					for( int i = 0; i < y.length; i++ )
-					{
-						final double yi = yh - y[i] * sy;
-						final ObservableList<PathElement> path = stochasticRes[i]
-								.getElements();
-						if( path.isEmpty() )
-						{
-							path.add( new MoveTo( x, yi ) ); // first
-						} else
-						{
-							final PathElement last = path
-									.get( path.size() - 1 );
-							final double y_prev = last instanceof MoveTo
-									? ((MoveTo) last).getY()
-									: ((LineTo) last).getY();
-							path.add( new LineTo( x, y_prev ) );
-							path.add( new LineTo( x, yi ) );
-						}
-					}
-				}, e -> LOG.error( "Problem", e ),
-						() -> plot.getChildren().addAll( stochasticRes ) );
+					path.add( new MoveTo( x, yi ) ); // first
+				} else
+				{
+					final PathElement last = path.get( path.size() - 1 );
+					final double y_prev = last instanceof MoveTo
+							? ((MoveTo) last).getY() : ((LineTo) last).getY();
+					path.add( new LineTo( x, y_prev ) );
+					path.add( new LineTo( x, yi ) );
+				}
+			}
+		}, e -> LOG.error( "Problem", e ),
+				() -> plot.getChildren().addAll( stochasticRes ) );
 
 		// auto-scale on stage/plot resize 
 		// FIXME scaling around wrong origin, use ScatterChart?
