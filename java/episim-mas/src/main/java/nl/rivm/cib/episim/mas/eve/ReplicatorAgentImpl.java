@@ -80,8 +80,7 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 	@Override
 	public String getType()
 	{
-		return getClass().getSimpleName()
-				+ " $Id$";
+		return getClass().getSimpleName() + " $Id$";
 	}
 
 	// FIXME FEATURE_REQ add #put(TypedKey<T>,T)

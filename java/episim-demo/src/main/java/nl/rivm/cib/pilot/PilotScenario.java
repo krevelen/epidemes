@@ -604,11 +604,11 @@ public class PilotScenario implements Scenario
 		this.attitudePropagator = this.config.attitudePropagatorType()
 				.newInstance();
 
-		atEach( this.config.attitudePropagatorRecurrence( scheduler() ) )
-				.subscribe( this::propagate, this::logError );
+		atEach( this.config.attitudePropagatorRecurrence( scheduler() ),
+				this::propagate );
 
-		atEach( this.config.vaccinationRecurrence( scheduler() ) )
-				.subscribe( this::vaccinate, this::logError );
+		atEach( this.config.vaccinationRecurrence( scheduler() ),
+				this::vaccinate );
 
 		// TODO add expressingRefs from own / neighboring / global placeRef dist
 
@@ -951,7 +951,7 @@ public class PilotScenario implements Scenario
 					sub.onError( e );
 					return;
 				}
-				scheduler.atEach( when ).subscribe( t ->
+				scheduler.atEach( when, t ->
 				{
 					final int s = this.statsIteration.getAndIncrement();
 					LOG.debug( "t={}, exporting statistics #{}",
@@ -989,7 +989,7 @@ public class PilotScenario implements Scenario
 										ppAttributes, activity,
 										this.attitudeEvaluator );
 							} ).forEach( sub::onNext );
-				}, sub::onError, sub::onComplete );
+				} );
 			} );
 		} );
 	}

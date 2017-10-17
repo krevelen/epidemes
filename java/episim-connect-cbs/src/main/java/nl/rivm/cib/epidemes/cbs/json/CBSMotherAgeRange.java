@@ -21,6 +21,7 @@ package nl.rivm.cib.epidemes.cbs.json;
 
 import java.text.ParseException;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import io.coala.math.QuantityUtil;
@@ -50,25 +51,31 @@ public enum CBSMotherAgeRange implements CBSJsonProperty
 	/** */
 	Y40_45( "age_40_45", "[40;45)" ),
 	/** */
-	Y40_PLUS( "age_45plus", "[45;60]" );
+	Y45_PLUS( "age_45plus", "[45;50]" );// FIXME allow older with same likelihood?
 
 	private final String jsonKey;
+
+	private final Range<Double> cutoffYears;
 
 	private final Range<ComparableQuantity<Time>> cutoff;
 
 	private CBSMotherAgeRange( final String jsonKey, final String value )
 	{
 		this.jsonKey = jsonKey;
+		Range<Double> cutoffYears;
 		Range<ComparableQuantity<Time>> cutoff;
 		try
 		{
-			cutoff = Range.parse( value, Integer.class )
+			cutoffYears = Range.parse( value, Double.class );
+			cutoff = cutoffYears
 					.map( v -> QuantityUtil.valueOf( v, TimeUnits.ANNUM ) );
 		} catch( final ParseException e )
 		{
 			e.printStackTrace();
+			cutoffYears = Range.infinite();
 			cutoff = Range.infinite();
 		}
+		this.cutoffYears = cutoffYears;
 		this.cutoff = cutoff;
 	}
 
@@ -81,5 +88,37 @@ public enum CBSMotherAgeRange implements CBSJsonProperty
 	public Range<ComparableQuantity<Time>> range()
 	{
 		return this.cutoff;
+	}
+
+	/**
+	 * @param age
+	 * @return
+	 */
+	public static CBSMotherAgeRange forAge( final Number age )
+	{
+		return forAge( age.doubleValue() );
+	}
+
+	/**
+	 * @param age
+	 * @return
+	 */
+	public static CBSMotherAgeRange forAge( final double age )
+	{
+		// try shortcut
+		final int ordinal = (int) Math.floor( age / 5 );
+		if( ordinal >= 0 && ordinal - 3 < values().length )
+			return values()[Math.max( 0, ordinal - 3 )];
+		if( Y45_PLUS.cutoffYears.contains( age ) ) return Y45_PLUS;
+		return null;
+	}
+
+	/**
+	 * @param age
+	 * @return
+	 */
+	public static CBSMotherAgeRange forAge( final Quantity<Time> age )
+	{
+		return forAge( age.to( TimeUnits.ANNUM ).getValue().doubleValue() );
 	}
 }

@@ -59,6 +59,7 @@ import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.Duration;
+import io.coala.time.Infiniterator;
 import io.coala.time.Instant;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
@@ -285,8 +286,8 @@ public class OutbreakScenario implements Scenario
 						// empty
 					}, this::error );
 			// trigger deaths
-			atEach( timing( CBSPopulationDynamic.DEATHS, () -> 1 ) )
-					.subscribe( t -> at( t ).call(
+			atEach( timing( CBSPopulationDynamic.DEATHS, () -> 1 ),
+					t -> at( t ).call(
 							t1 -> deme.initiate( DomesticChange.Death.class,
 									selectDiseased() ).commit() ) );
 			// trigger immigrations
@@ -480,7 +481,7 @@ public class OutbreakScenario implements Scenario
 	protected Iterable<Instant> timing( final CBSPopulationDynamic metric,
 		final IntSupplier hhSize )
 	{
-		return () -> (Infiniterator) () ->
+		return () -> (Infiniterator<Instant>) () ->
 		{
 			final QuantityDistribution<Time> timeDist = this.demogDelayDist
 					.get( metric ).draw( dt() )

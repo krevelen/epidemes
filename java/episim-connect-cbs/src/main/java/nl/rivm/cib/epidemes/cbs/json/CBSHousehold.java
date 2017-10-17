@@ -194,4 +194,142 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 						+ ", adults: " + adultCount + ", children: "
 						+ childCount + ", registered: " + registered );
 	}
+
+	@Override
+	public HouseholdComposition addAdult()
+	{
+		switch( this )
+		{
+		case SOLO_NOKIDS:
+			return DUO_NOKIDS;
+		case SOLO_1KID:
+			return DUO_1KID;
+		case SOLO_2KIDS:
+			return DUO_2KIDS;
+		case SOLO_3PLUSKIDS:
+			return DUO_3PLUSKIDS;
+
+//		case SOLO_1PLUSKIDS:
+//		case POLY_1PLUSKIDS:
+//		case POLY_NOKIDS:
+//		case OTHER:
+		default:
+		}
+		throw new IllegalStateException( "Can't add adult to " + name() );
+	}
+
+	@Override
+	public HouseholdComposition removeAdult()
+	{
+		switch( this )
+		{
+		case REGDUO_NOKIDS:
+		case DUO_NOKIDS:
+			return SOLO_NOKIDS;
+		case REGDUO_1KID:
+		case DUO_1KID:
+			return SOLO_1KID;
+		case REGDUO_2KIDS:
+		case DUO_2KIDS:
+			return SOLO_2KIDS;
+		case REGDUO_3PLUSKIDS:
+		case DUO_3PLUSKIDS:
+			return SOLO_3PLUSKIDS;
+
+//		case REGDUO_0PLUS: how many kids remain?
+//		case DUO_0PLUSKIDS: how many kids remain?
+//		case POLY_1PLUSKIDS: how many adults/kids remain?
+//		case POLY_NOKIDS: how many adults remain?
+//		case OTHER:
+		default:
+		}
+		throw new IllegalStateException( "Can't remove adult from " + name() );
+	}
+
+	@Override
+	public CBSHousehold addChild()
+	{
+		switch( this )
+		{
+		case SOLO_NOKIDS:
+			return SOLO_1KID;
+		case SOLO_1KID:
+			return SOLO_2KIDS;
+		case SOLO_2KIDS:
+			return SOLO_3PLUSKIDS;
+//		case SOLO_1PLUSKIDS:
+//		case SOLO_3PLUSKIDS:
+
+		case DUO_NOKIDS:
+			return DUO_1KID;
+		case DUO_1KID:
+			return DUO_2KIDS;
+		case DUO_2KIDS:
+			return DUO_3PLUSKIDS;
+//		case DUO_0PLUSKIDS:
+//		case DUO_3PLUSKIDS:
+
+		case REGDUO_NOKIDS:
+			return REGDUO_1KID;
+		case REGDUO_1KID:
+			return REGDUO_2KIDS;
+		case REGDUO_2KIDS:
+			return REGDUO_3PLUSKIDS;
+//		case REGDUO_0PLUS:
+//		case REGDUO_3PLUSKIDS:
+
+		case POLY_NOKIDS:
+			return POLY_1PLUSKIDS;
+
+//		case POLY_1PLUSKIDS:
+//		case OTHER:
+		default:
+		}
+		throw new IllegalStateException( "Can't add child to " + name() );
+	}
+
+	@Override
+	public HouseholdComposition removeChild()
+	{
+		switch( this )
+		{
+		case SOLO_1KID:
+			return SOLO_NOKIDS;
+		case SOLO_2KIDS:
+			return SOLO_1KID;
+		case SOLO_3PLUSKIDS:
+			return SOLO_2KIDS;
+
+		case DUO_1KID:
+			return DUO_NOKIDS;
+		case DUO_2KIDS:
+			return DUO_1KID;
+		case DUO_3PLUSKIDS:
+			return DUO_2KIDS;
+
+		case REGDUO_1KID:
+			return REGDUO_NOKIDS;
+		case REGDUO_2KIDS:
+			return REGDUO_1KID;
+		case REGDUO_3PLUSKIDS:
+			return REGDUO_2KIDS;
+
+		case SOLO_NOKIDS:
+		case DUO_NOKIDS:
+		case REGDUO_NOKIDS:
+		case POLY_NOKIDS:
+			throw new IllegalStateException(
+					"No child to remove from " + name() );
+
+//		case SOLO_1PLUSKIDS: not symmetric
+//		case POLY_1PLUSKIDS: SOLO or POLY?
+//		case DUO_0PLUSKIDS:
+//		case REGDUO_0PLUS:
+//		case TOTAL:
+//		case OTHER:
+		default:
+			throw new IllegalStateException(
+					"Undefined composition in " + name() );
+		}
+	}
 }

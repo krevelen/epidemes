@@ -22,10 +22,13 @@ package nl.rivm.cib.demo;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import javax.inject.Inject;
 
@@ -39,6 +42,7 @@ import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
 import io.coala.data.DataLayer;
+import io.coala.data.MatrixLayer;
 import io.coala.data.Table;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
@@ -55,6 +59,8 @@ import nl.rivm.cib.demo.DemoModel.Demical.DemicalEvent;
 import nl.rivm.cib.demo.DemoModel.Demical.SimpleDeme;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoModel.Regions.RegionTuple;
+import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 
 /**
@@ -141,23 +147,24 @@ public class BrokerTest
 
 			// register data sources
 			this.data
-					.withSource( this.persons,
-							MapBuilder.<Class<?>, List<Class<?>>>unordered()
-									.put( PersonTuple.class,
-											Persons.PROPERTIES )
-									.build() )
-					.withSource( this.households, MapBuilder
-							.<Class<?>, List<Class<?>>>unordered()
-							.put( HouseholdTuple.class, Households.PROPERTIES )
-							.build() );
+					.withSource( map -> map.put( PersonTuple.class,
+							Persons.PROPERTIES ), this.persons )
+					.withSource( map -> map.put( HouseholdTuple.class,
+							Households.PROPERTIES ), this.households )
+					.withSource( map -> map.put( RegionTuple.class,
+							Regions.PROPERTIES ), HashMap::new )
+					.withSource(
+							map -> map.put( SiteTuple.class, Sites.PROPERTIES ),
+							HashMap::new );
 
 			// maintain data event statistics
-			this.data.changes().filter( chg -> chg.crud() != Table.CRUD.UPDATE )
+			this.data.changes()
+					.filter( chg -> chg.crud() != Table.Operation.UPDATE )
 					.subscribe( chg -> this.dataEventStats
 							.computeIfAbsent( chg.changedType(),
 									k -> new AtomicLong() )
-							.addAndGet(
-									chg.crud() == Table.CRUD.CREATE ? 1 : -1 ),
+							.addAndGet( chg.crud() == Table.Operation.CREATE ? 1
+									: -1 ),
 							scheduler()::fail );
 
 			// populate and run deme
@@ -202,12 +209,64 @@ public class BrokerTest
 		}
 	}
 
+	class Prop1 extends AtomicReference<Double>
+		implements Table.Property<Double>
+	{
+		private static final long serialVersionUID = 1L;
+	}
+
+	class Prop2 extends AtomicReference<Double>
+		implements Table.Property<Double>
+	{
+		private static final long serialVersionUID = 1L;
+	}
+
+	class Prop3 extends AtomicReference<Double>
+		implements Table.Property<Double>
+	{
+		private static final long serialVersionUID = 1L;
+	}
+
+	@Test
+	public void testPartitions()
+	{
+		LOG.info( "Test partitions" );
+
+		final int n = 10;
+		@SuppressWarnings( "rawtypes" )
+		final List<Class<? extends Table.Property>> props = Arrays
+				.asList( Prop1.class, Prop2.class, Prop3.class );
+		final Matrix m = Matrix.Factory.rand( 2 * n, props.size() );
+		final Table<Table.Tuple> t = new MatrixLayer( m, props )
+				.createTable( Table.Tuple.class );
+		IntStream.range( 0, n ).forEach( i -> t.insert() );
+		LOG.trace( "table before: \n{}", m );
+		final Table.Partition p = new Table.Partition( t );
+		LOG.trace( "partition all: {}", p );
+		p.split( Prop1.class, Arrays.asList( .8 ) );
+		LOG.trace( "partition col1-1: {}", p );
+		p.split( Prop2.class, Arrays.asList( .8 ) );
+		LOG.trace( "partition col1-2: {}", p );
+		p.split( Prop3.class, Arrays.asList( .8 ) );
+		LOG.trace( "partition col1-3: {}", p );
+		final Table.Tuple n1 = t.insert();
+		LOG.trace( "insert #{}: {} -> {}", n1.key(), n1, p );
+		@SuppressWarnings( "deprecation" )
+		final Table.Tuple n2 = t.remove( Long.valueOf( 1 ) );
+		LOG.trace( "remove #{}: {} -> {}", n2.key(), n2, p );
+		final long[] keys = p.keys().stream().mapToLong( i -> (Long) i )
+				.toArray();
+		LOG.trace( "matrix after: {}\n{}", keys, m );
+	}
+
 	@Test
 	public void doTest() throws InterruptedException
 	{
 		LOG.info( "Test started" );
 
-		final DemoConfig config = ConfigFactory.create( DemoConfig.class );
+		final DemoConfig config = ConfigFactory.create( DemoConfig.class,
+				MapBuilder.unordered().put( DemoConfig.CONFIG_BASE_KEY,
+						DemoConfig.CONFIG_BASE_DIR ).build() );
 		final ZonedDateTime offset = config.offset()
 				.atStartOfDay( TimeUtil.NL_TZ );
 		final long durationDays = Duration
@@ -219,7 +278,7 @@ public class BrokerTest
 						.put( SchedulerConfig.OFFSET_KEY, "" + offset )
 						.put( SchedulerConfig.DURATION_KEY, "" + durationDays )
 						.build() )
-				.withProvider( DataLayer.class, DataLayer.Simple.class )
+				.withProvider( DataLayer.class, DataLayer.Default.class )
 				.withProvider( Scenario.class, DemoScenario.class )
 				.withProvider( ProbabilityDistribution.Parser.class,
 						DistributionParser.class )

@@ -49,4 +49,16 @@ public interface HouseholdComposition
 	/** @return {@code true} if more than {@link #kids} are allowed */
 	boolean more();
 
+	/** @return the new {@link HouseholdComposition} */
+	HouseholdComposition addAdult();
+
+	/** @return the new {@link HouseholdComposition} */
+	HouseholdComposition removeAdult();
+
+	/** @return the new {@link HouseholdComposition} */
+	HouseholdComposition addChild();
+
+	/** @return the new {@link HouseholdComposition} */
+	HouseholdComposition removeChild();
+
 }

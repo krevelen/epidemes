@@ -19,25 +19,29 @@
  */
 package nl.rivm.cib.demo;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
-import java.text.ParseException;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.LongStream;
 
 import javax.inject.Inject;
+import javax.measure.Quantity;
+import javax.measure.quantity.Time;
 
 import org.apache.logging.log4j.Logger;
 
@@ -49,27 +53,38 @@ import io.coala.data.Table.Property;
 import io.coala.data.Table.Tuple;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
-import io.coala.math.QuantityConfigConverter;
-import io.coala.math.QuantityRangeConfigConverter;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
+import io.coala.math.WeightedValue;
+import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
+import io.coala.util.InputStreamConverter;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
+import io.reactivex.internal.functions.Functions;
+import io.reactivex.observables.GroupedObservable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.demo.DemoModel.Demical.SimpleDeme.SimpleConfig.DemeEventType;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoModel.Regions.RegionTuple;
+import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
+import nl.rivm.cib.epidemes.cbs.json.CBSGender;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
+import nl.rivm.cib.epidemes.cbs.json.CBSMotherAgeRange;
+import nl.rivm.cib.epidemes.cbs.json.CBSPopulationDynamic;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37201json;
+import nl.rivm.cib.epidemes.cbs.json.Cbs37230json;
+import nl.rivm.cib.epidemes.cbs.json.Cbs71486json;
+import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
-import tec.uom.se.ComparableQuantity;
 
 /**
  * {@link DemoModel}
@@ -81,27 +96,40 @@ public interface DemoModel
 {
 	Long NA = -1L;
 
-	enum FamilyRank
+	enum CBSFamilyRank
 	{
 		REFERENT, PARTNER, CHILD1, CHILD2, CHILD3;
+
+		public boolean isAdult()
+		{
+			return ordinal() < 2;
+		}
+
+		public static CBSFamilyRank ofChildIndex( final int rank )
+		{
+			if( rank < 3 ) return values()[2 + rank];
+			throw new IllegalStateException( CBSFamilyRank.class.getSimpleName()
+					+ " undefined for child rank " + rank );
+		}
 	}
 
 	interface Cultures
 	{
 		@SuppressWarnings( "serial" )
-		class CultureRef extends AtomicReference<Object>
+		class CultureSeq extends AtomicReference<Object>
 			implements Property<Object>
 		{
+			// track cultures through time (index key is data source dependent)
 		}
 
 		@SuppressWarnings( "serial" )
-		class AttractorAttitude extends AtomicReference<BigDecimal>
+		class NormativeAttitude extends AtomicReference<BigDecimal>
 			implements Property<BigDecimal>
 		{
 		}
 
-		List<Class<?>> PROPERTIES = Arrays.asList( Cultures.CultureRef.class,
-				Cultures.AttractorAttitude.class );
+		List<Class<?>> PROPERTIES = Arrays.asList( Cultures.CultureSeq.class,
+				Cultures.NormativeAttitude.class );
 	}
 
 	interface Households
@@ -110,6 +138,7 @@ public interface DemoModel
 		class HouseholdSeq extends AtomicReference<Long>
 			implements Property<Long>
 		{
+			// track households through time (index key is data source dependent)
 		}
 
 		@SuppressWarnings( "serial" )
@@ -118,8 +147,14 @@ public interface DemoModel
 		{
 		}
 
+		@SuppressWarnings( { "serial", "rawtypes" } )
+		class HomeRegionRef extends AtomicReference<Comparable>
+			implements Property<Comparable>
+		{
+		}
+
 		@SuppressWarnings( "serial" )
-		class HomeLocationRef extends AtomicReference<Object>
+		class HomeSiteRef extends AtomicReference<Object>
 			implements Property<Object>
 		{
 		}
@@ -130,10 +165,18 @@ public interface DemoModel
 		{
 		}
 
-		List<Class<?>> PROPERTIES = Arrays.asList( Cultures.CultureRef.class,
-				Households.HouseholdSeq.class, Households.Attitude.class,
-				Households.Composition.class,
-				Households.HomeLocationRef.class );
+		@SuppressWarnings( "serial" )
+		class MotherAgeRange extends AtomicReference<CBSMotherAgeRange>
+			implements Property<CBSMotherAgeRange>
+		{
+
+		}
+
+		@SuppressWarnings( "rawtypes" )
+		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
+				HomeRegionRef.class, HomeSiteRef.class, Composition.class,
+				MotherAgeRange.class, Attitude.class, Cultures.CultureSeq.class,
+				HouseholdSeq.class );
 
 		/**
 		 * {@link PersonTuple} binds concretely
@@ -150,6 +193,7 @@ public interface DemoModel
 		@SuppressWarnings( "serial" )
 		class PersonSeq extends AtomicReference<Long> implements Property<Long>
 		{
+			// increases monotone at every new initiation/birth/immigration/...
 		}
 
 		@SuppressWarnings( "serial" )
@@ -159,8 +203,8 @@ public interface DemoModel
 		}
 
 		@SuppressWarnings( "serial" )
-		class MemberRank extends AtomicReference<FamilyRank>
-			implements Property<FamilyRank>
+		class MemberRank extends AtomicReference<CBSFamilyRank>
+			implements Property<CBSFamilyRank>
 		{
 		}
 
@@ -181,10 +225,10 @@ public interface DemoModel
 		{
 		}
 
-		List<Class<?>> PROPERTIES = Arrays.asList( Persons.PersonSeq.class,
-				Persons.HouseholdRef.class, Persons.MemberRank.class,
-				Persons.Male.class, Persons.BirthTime.class,
-				Persons.SiteRef.class );
+		@SuppressWarnings( "rawtypes" )
+		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
+				PersonSeq.class, HouseholdRef.class, MemberRank.class,
+				Male.class, BirthTime.class, SiteRef.class );
 
 		class PersonTuple extends Tuple
 		{
@@ -195,12 +239,15 @@ public interface DemoModel
 	interface Regions
 	{
 		@SuppressWarnings( "serial" )
-		class RegionRef extends AtomicReference<Long> implements Property<Long>
+		class RegionName extends AtomicReference<String>
+			implements Property<String>
 		{
+
 		}
 
 		@SuppressWarnings( "serial" )
-		class ParentRef extends AtomicReference<Long> implements Property<Long>
+		class ParentRef extends AtomicReference<Object>
+			implements Property<Object>
 		{
 		}
 
@@ -208,12 +255,29 @@ public interface DemoModel
 		class Population extends AtomicReference<Long> implements Property<Long>
 		{
 		}
+
+		@SuppressWarnings( "rawtypes" )
+		List<Class<? extends Property>> PROPERTIES = Arrays
+				.asList( RegionName.class, ParentRef.class, Population.class );
+
+		class RegionTuple extends Tuple
+		{
+
+		}
 	}
 
 	interface Sites
 	{
 		@SuppressWarnings( "serial" )
-		class SiteSeq extends AtomicReference<Long> implements Property<Long>
+		class SiteName extends AtomicReference<String>
+			implements Property<String>
+		{
+
+		}
+
+		@SuppressWarnings( "serial" )
+		class RegionRef extends AtomicReference<Object>
+			implements Property<Object>
 		{
 		}
 
@@ -227,6 +291,28 @@ public interface DemoModel
 		class Longitude extends AtomicReference<BigDecimal>
 			implements Property<BigDecimal>
 		{
+		}
+
+		@SuppressWarnings( "serial" )
+		class Capacity extends AtomicReference<Integer>
+			implements Property<Integer>
+		{
+		}
+
+		@SuppressWarnings( "serial" )
+		class Occupancy extends AtomicReference<Integer>
+			implements Property<Integer>
+		{
+		}
+
+		@SuppressWarnings( "rawtypes" )
+		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
+				SiteName.class, RegionRef.class, Latitude.class,
+				Longitude.class, Capacity.class, Occupancy.class );
+
+		class SiteTuple extends Tuple
+		{
+
 		}
 	}
 
@@ -275,7 +361,7 @@ public interface DemoModel
 		{
 			public Map<? extends HouseholdComposition, Integer> hhDelta = Collections
 					.emptyMap();
-			public Map<FamilyRank, Integer> memberDelta = Collections
+			public Map<CBSFamilyRank, Integer> memberDelta = Collections
 					.emptyMap();
 			public Object siteRef = NA;
 
@@ -288,10 +374,10 @@ public interface DemoModel
 			}
 
 			public DemicalEvent withMemberDelta(
-				final Function<MapBuilder<FamilyRank, Integer, ?>, Map<FamilyRank, Integer>> mapBuilder )
+				final Function<MapBuilder<CBSFamilyRank, Integer, ?>, Map<CBSFamilyRank, Integer>> mapBuilder )
 			{
-				this.memberDelta = mapBuilder.apply(
-						MapBuilder.ordered( FamilyRank.class, Integer.class ) );
+				this.memberDelta = mapBuilder.apply( MapBuilder
+						.ordered( CBSFamilyRank.class, Integer.class ) );
 				return this;
 			}
 		}
@@ -350,6 +436,39 @@ public interface DemoModel
 //				HouseholdRef emigratedHHRef;
 		}
 
+		enum DemeEventType
+		{
+			/** */
+			EXPANSION( Expansion.class ),
+			/** */
+			ELIMINATION( Elimination.class ),
+			/** */
+			UNION( Union.class ),
+			/** */
+			SEPARATION( Separation.class ),
+			/** */
+			DIVISION( Division.class ),
+			/** */
+			RELOCATION( Relocation.class ),
+			/** */
+			IMMIGRATION( Immigration.class ),
+			/** */
+			EMIGRATION( Emigration.class );
+
+			private final Class<? extends DemicalEvent> type;
+
+			private DemeEventType( final Class<? extends DemicalEvent> type )
+			{
+				this.type = type;
+			}
+
+			public DemicalEvent create()
+				throws InstantiationException, IllegalAccessException
+			{
+				return this.type.newInstance();
+			}
+		}
+
 		/** organizes survival and reproduction (across households) */
 		class SimpleDeme implements EpiActor, Proactive
 		{
@@ -361,68 +480,102 @@ public interface DemoModel
 			public interface SimpleConfig extends YamlConfig
 			{
 
-				enum DemeEventType
-				{
-					/** */
-					EXPANSION( Expansion.class ),
-					/** */
-					ELIMINATION( Elimination.class ),
-					/** */
-					UNION( Union.class ),
-					/** */
-					SEPARATION( Separation.class ),
-					/** */
-					DIVISION( Division.class ),
-					/** */
-					RELOCATION( Relocation.class ),
-					/** */
-					IMMIGRATION( Immigration.class ),
-					/** */
-					EMIGRATION( Emigration.class );
-
-					private final Class<? extends DemicalEvent> type;
-
-					private DemeEventType(
-						final Class<? extends DemicalEvent> type )
-					{
-						this.type = type;
-					}
-
-					public DemicalEvent create()
-						throws InstantiationException, IllegalAccessException
-					{
-						return this.type.newInstance();
-					}
-				}
+				@DefaultValue( DemoConfig.CONFIG_BASE_DIR )
+				@Key( DemoConfig.CONFIG_BASE_KEY )
+				String configBase();
 
 				@Key( "population-size" )
-				@DefaultValue( "" + 3_000_000 )
+				@DefaultValue( "" + 50_000 )
 				int populationSize();
 
+				@DefaultValue( "MUNICIPAL" )
+				CBSRegionType cbsRegionLevel();
+
+				@Key( "hh-type-birth-dist" )
+				@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
+						+ "37201_TS_2010_2015.json" )
+				@ConverterClass( InputStreamConverter.class )
+				InputStream cbs37201Data();
+
 				@Key( "hh-type-dist" )
-				@DefaultValue( "const(DUO_1KID)" )
-				String householdTypeDist();
+				@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
+						+ "37230ned_TS_2012_2017.json" )
+				@ConverterClass( InputStreamConverter.class )
+				InputStream cbs37230Data();
 
-				/**
-				 * mean event interval per household = inverse event rate
-				 */
-				@SuppressWarnings( "rawtypes" )
-				@Key( "hh-event-duration" )
-				@DefaultValue( "1 year" )
-				@ConverterClass( QuantityConfigConverter.class )
-				ComparableQuantity householdEventDuration();
+				@Key( "hh-type-geo-dist" )
+				@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
+						+ "71486ned-TS-2010-2016.json" )
+				@ConverterClass( InputStreamConverter.class )
+				InputStream cbs71486Data();
+			}
 
-				@Key( "hh-event-dist" )
-				@DefaultValue( "enum(EXPANSION:1; ELIMINATION:1; "
-						+ "UNION:1; SEPARATION:1; DIVISION:1;"
-						+ " RELOCATION:1; IMMIGRATION:1; EMIGRATION:1)" )
-				String householdEventTypeDist();
+			/**
+			 * historic an local demography event rates (births, deaths,
+			 * migrations, ...)
+			 */
+			public static class DemogEvents
+			{
+				final BigDecimal scalingFactor;
+				final ProbabilityDistribution.Factory distFact;
+				ConditionalDistribution<Cbs37230json.Category, LocalDate> periodDist;
+				ConditionalDistribution<Cbs37230json.Category, LocalDate> siteDist;
 
-				@SuppressWarnings( "rawtypes" )
-				@Key( "fertility-age-range" )
-				@DefaultValue( "[15 yr; 50 yr]" )
-				@ConverterClass( QuantityRangeConfigConverter.class )
-				Range<ComparableQuantity> fertilityAgeRange();
+				// <LocalDate, WeightedValue<Cbs37230json.Category>>
+				public DemogEvents( final CBSPopulationDynamic metric,
+					final ProbabilityDistribution.Factory distFact,
+					final Callable<InputStream> data,
+					final CBSRegionType cbsRegionLevel,
+					final Range<LocalDate> dtRange,
+					final BigDecimal scalingFactor )
+				{
+					this.scalingFactor = scalingFactor;
+					this.distFact = distFact;
+					Cbs37230json.readAsync( data, dtRange, metric )
+							.groupBy( wv -> wv.getValue().regionType() )
+							.filter( g -> g.getKey() == cbsRegionLevel
+									|| g.getKey() == CBSRegionType.COUNTRY )
+							// GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>>
+							.blockingForEach( g ->
+							{
+								// event locations at configured regional level
+								if( g.getKey() == cbsRegionLevel )
+									this.siteDist = create( g );
+
+								// event rates at national level, scaled to synth.pop.size?
+								if( g.getKey() == CBSRegionType.COUNTRY )
+									this.periodDist = create( g );
+							} );
+				}
+
+				private
+					ConditionalDistribution<Cbs37230json.Category, LocalDate>
+					create(
+						final GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g )
+				{
+					// Navigable TreeMap to resolve out-of-bounds conditions
+					return ConditionalDistribution
+							.of( this.distFact::createCategorical,
+									g.toMultimap( wv -> wv.getValue().offset(),
+											wv -> wv, TreeMap::new )
+											.blockingGet() );
+				}
+
+				public Quantity<Time> nextDelay( final LocalDate dt,
+					final Function<String, Integer> eventSitePersonCounter )
+				{
+					final String regRef = this.siteDist.draw( dt )
+							.regionPeriod().regionRef();
+					final int n = eventSitePersonCounter.apply( regRef );
+					final QuantityDistribution<Time> timeDist = this.periodDist
+							.draw( dt )
+							.timeDist( freq -> this.distFact.createExponential(
+									freq.divide( this.scalingFactor ) ) );
+					Quantity<Time> dur = QuantityUtil.zero( Time.class );
+					for( int i = 0; i < n; i++ )
+						dur = dur.add( timeDist.draw() );
+					return dur;
+				}
 			}
 
 			@InjectConfig
@@ -437,10 +590,10 @@ public interface DemoModel
 			@Inject
 			private ProbabilityDistribution.Parser distParser;
 
-			private Subject<DemoModel.EpiFact> events = PublishSubject.create();
+			@Inject
+			private ProbabilityDistribution.Factory distFactory;
 
-			private final AtomicLong indSeq = new AtomicLong(),
-					hhSeq = new AtomicLong();//, regSeq = new AtomicLong();
+			private Subject<DemoModel.EpiFact> events = PublishSubject.create();
 
 			@Override
 			public Scheduler scheduler()
@@ -454,201 +607,162 @@ public interface DemoModel
 				return this.events;
 			}
 
+			private Table<PersonTuple> persons;
+			private final AtomicLong indSeq = new AtomicLong();
+			private Table<HouseholdTuple> households;
+			private Table.Partition hhRegTypeIndex;
+			private final AtomicLong hhSeq = new AtomicLong();
+			private Table<RegionTuple> regions;
+			private final Map<String, Object> regionKeys = new HashMap<>();
+//			private Table<SiteTuple> sites;
+
+			private ConditionalDistribution<Cbs71486json.Category, RegionPeriod> hhTypeDist;
+
+			private transient CBSRegionType cbsRegionLevel = null;
+			private transient Range<LocalDate> dtRange = null;
+			private transient Instant dtInstant = null;
+			private transient LocalDate dtCache = null;
+			private transient BigDecimal dtScalingFactor = BigDecimal.ONE;
+
+			protected LocalDate dt()
+			{
+				return now().equals( this.dtInstant ) ? this.dtCache
+						: (this.dtCache = (this.dtInstant = now())
+								.toJava8( this.dtRange.lowerValue() ));
+			}
+
 			@SuppressWarnings( { "unchecked", "rawtypes" } )
 			@Override
-			public SimpleDeme reset()
+			public SimpleDeme reset() throws Exception
 			{
 				this.events.onComplete();
 
 				this.events = PublishSubject.create();
 				LOG.trace( "Setting up {} with config: {}", this.config );
 
-				final Table<PersonTuple> persons = this.data
-						.createTable( PersonTuple.class );
-				final Table<HouseholdTuple> households = this.data
-						.createTable( HouseholdTuple.class );
-				final Range<BigDecimal> fertilityAgeRange = this.config
-						.fertilityAgeRange()
-						.<ComparableQuantity>map(
-								v -> v.to( scheduler().timeUnit() ) )
-						.map( QuantityUtil::decimalValue );
+				// initialize tables
+				this.households = this.data.createTable( HouseholdTuple.class );
+				this.persons = this.data.createTable( PersonTuple.class );
+				this.regions = this.data.createTable( RegionTuple.class );
+//				this.sites = this.data.createTable( SiteTuple.class );
 
-				final int n = this.config.populationSize();
-				final List<Object> householdKeys = Collections
-						.synchronizedList( new ArrayList<>( n ) );
-				indSeq.set( persons.stream()
-						.mapToLong( pp -> pp.get( Persons.PersonSeq.class ) )
-						.max().orElse( -1 ) );
-				indSeq.incrementAndGet(); // advance to new sequence value
-				hhSeq.set( households.keys()
-						// store current hh keys for random picking
-						.filter( householdKeys::add ).map( households::select )
-						.mapToLong(
-								hh -> hh.get( Households.HouseholdSeq.class ) )
-						.max().orElse( -1 ) );
-				hhSeq.incrementAndGet(); // advance to new sequence value
+				// initialize indices (used for random picking)
+				this.hhRegTypeIndex = new Table.Partition( this.households );
+				this.hhRegTypeIndex.split( Households.HomeRegionRef.class );
+				this.hhRegTypeIndex.split( Households.Composition.class );
 
+				// initialize context
+				this.hhSeq.set(
+						this.households.values( Households.HouseholdSeq.class )
+								.mapToLong( seq -> seq ).max().orElse( 0 ) );
+				this.indSeq.set( this.persons.values( Persons.PersonSeq.class )
+						.mapToLong( seq -> seq ).max().orElse( 0 ) );
+				this.dtRange = Range.upFromAndIncluding(
+						scheduler().offset().toLocalDate() );
+				this.cbsRegionLevel = this.config.cbsRegionLevel();
+				this.dtScalingFactor = DecimalUtil // TODO read cbs pop size from cbs data
+						.divide( this.config.populationSize(), 16_000_000 );
+
+				final Map<RegionPeriod, Collection<WeightedValue<Cbs71486json.Category>>> values = Cbs71486json
+						.readAsync( ( /* no :: on OWNER */ ) -> this.config
+								.cbs71486Data(), this.dtRange )
+						.filter( wv -> wv.getValue()
+								.regionType() == this.cbsRegionLevel )
+						.toMultimap( wv -> wv.getValue().regionPeriod(),
+								Functions.identity(), TreeMap::new )
+						.blockingGet();
+				this.hhTypeDist = ConditionalDistribution
+						.of( this.distFactory::createCategorical, values );
+
+				// TODO from CBS
 				final ProbabilityDistribution<Long> cultureDist = ProbabilityDistribution
 						.createDeterministic( NA );
+				// TODO from PIENTER
 				final ProbabilityDistribution<BigDecimal> attitudeDist = ProbabilityDistribution
 						.createDeterministic( BigDecimal.ZERO );
-				final ProbabilityDistribution<Long> locationDist = ProbabilityDistribution
-						.createDeterministic( NA );
-				final TreeMap<BigDecimal, Object> fertileFemKeys = new TreeMap<>();
 
-				LOG.trace( "Initializing households..." );
-				households.creation().subscribe( hh ->
-				{
-					final Map<FamilyRank, Object> memberKeys =
-							// setup household and member parameters
-							setupHousehold( indSeq::getAndIncrement,
-									persons::create, hh,
-									hhSeq.getAndIncrement(), cultureDist.draw(),
-									attitudeDist.draw(), locationDist.draw() );
+				// read files and subscribe to all demical events
+				Observable
+						.fromArray( //
+								setupBirths(), //
+								setupDeaths(), //
+								setupImmigrations( cultureDist, attitudeDist ),
+								setupEmigrations() )
+						.flatMap( ev -> ev ).subscribe( this.events );
 
-					householdKeys.add( hh.key() );
+				setupHouseholds( this.config.populationSize(), cultureDist,
+						attitudeDist );
 
-					// index fertile female members
-					final Object partnerKey = memberKeys
-							.get( FamilyRank.PARTNER );
-					if( partnerKey != null && !NA.equals( partnerKey ) )
-					{
-						final PersonTuple partner = persons
-								.select( partnerKey );
-						final BigDecimal partnerAge = nowDecimal().subtract(
-								partner.get( Persons.BirthTime.class ) );
-						if( fertilityAgeRange.contains( partnerAge ) )
-							synchronized( fertileFemKeys )
-						{
-							fertileFemKeys.put( partnerAge, partnerKey );
-						}
-					}
-				}, scheduler()::fail );
-				try
-				{
-					final ProbabilityDistribution<CBSHousehold> hhCompositionDist = this.distParser
-							.parse( this.config.householdTypeDist(),
-									CBSHousehold.class );
+				// TODO RELOCATION, UNION, SEPARATION, DIVISION
+				// TODO local partner/divorce rate, age, gender (CBS 37890)
+				// TODO age diff (60036ned) 
 
-					parallellize( n, () ->
-					{
-						final CBSHousehold composition = hhCompositionDist
-								.draw();
-						households.create( new Households.Composition()
-								.with( composition ) );
-						return composition.size();
-					} );
+				// TODO attitude exchange
 
-					scheduleDemeEvents().subscribe( eventType ->
-					{
-						switch( eventType )
-						{
-						case ELIMINATION: // TODO handle orphans
-						case EMIGRATION:
-						case UNION:
-							final Object key = removeRandomKey( householdKeys );
-							if( key != null )
-							{
-								households.remove( key );
-								this.events.onNext( eventType.create() );
-							} else
-								LOG.warn( "No household to remove??" );
-							break;
+				// TODO outbreak, vaccination
 
-						case SEPARATION:
-						case IMMIGRATION:
-						case DIVISION:
-							households.create( new Households.Composition()
-									.with( hhCompositionDist.draw() ) );
-							this.events.onNext( eventType.create() );
-							break;
-
-						case EXPANSION: // TODO update referent/partner status
-						case RELOCATION: // TODO update home location
-							this.events.onNext( eventType.create() );
-							break;
-
-						default:
-							LOG.warn( "Unhandled event type: {}", eventType );
-						}
-					}, this.events::onError );
-				} catch( final ParseException e )
-				{
-					this.events.onError( e );
-				}
-
-				synchronized( fertileFemKeys )
-				{
-					LOG.trace( "Fertile: {}", fertileFemKeys
-							.size()/*
-									 * .values().stream() .map( Object::toString
-									 * ) .reduce( ( s1, s2 ) -> String .join(
-									 * ", ", s1, s2 ) ) .orElse( "[]" )
-									 */ );
-				}
-
-				scheduler().atEnd( t -> this.events.onComplete() );
+//				scheduler().atEnd( t -> this.events.onComplete() );
 				return this;
 			}
 
-			private Observable<DemeEventType> scheduleDemeEvents()
+			private Object regionFor( final String name )
 			{
-				LOG.trace( "Scheduling deme-events à la Gillespie" );
-
-				@SuppressWarnings( "unchecked" )
-				// mean event interval per household = inverse event rate
-				final ComparableQuantity<?> dt = this.config
-						.householdEventDuration().to( scheduler().timeUnit() );
-				// mean event interval across all households
-				final BigDecimal mean = DecimalUtil.divide( dt.getValue(),
-						this.hhSeq.get() );
-				// event rate: i.i.d. exponential distribution
-				final QuantityDistribution<?> hhEvDurDist = this.distParser
-						.getFactory().createExponential( mean )
-						.toQuantities( scheduler().timeUnit() );
-				try
-				{
-					final ProbabilityDistribution<DemeEventType> nextEvent = this.distParser
-							.<DemeEventType, DemeEventType>parse(
-									this.config.householdEventTypeDist(),
-									DemeEventType.class );
-					return atEach( () -> (Infiniterator) () -> now()
-							.add( hhEvDurDist.draw() ) )
-									.map( t -> nextEvent.draw() );
-				} catch( final ParseException e )
-				{
-					return Observable.error( e );
-				}
+				// TODO look-up super-region reference in hierarchy
+				return this.regionKeys.computeIfAbsent( name, k -> this.regions
+						.insertValues(
+								map -> map.put( Regions.ParentRef.class, null )
+										.put( Regions.RegionName.class, name )
+										.put( Regions.Population.class, 0L ) )
+						.key() );
 			}
 
-			private final ForkJoinPool forkJoinPool = new ForkJoinPool(
-					Runtime.getRuntime().availableProcessors() - 1 );
-
-			private void parallellize( final long n,
-				final Supplier<Integer> handler )
+			private void setupHouseholds( final int n,
+				final ProbabilityDistribution<Long> cultureDist,
+				final ProbabilityDistribution<BigDecimal> attitudeDist )
 			{
-				final AtomicLong count = new AtomicLong(),
+				LOG.trace( "Initializing households..." );
+				final AtomicLong personCount = new AtomicLong(),
 						lastCount = new AtomicLong(),
 						t0 = new AtomicLong( System.currentTimeMillis() ),
 						lastTime = new AtomicLong( t0.get() );
 
 				final CountDownLatch latch = new CountDownLatch( 1 );
-				// FIXME use observable schedulers
-				this.forkJoinPool.submit(
-						() -> LongStream.range( 0, n ).parallel().forEach( i ->
-						{
-							try
-							{
-								if( count.get() < n )
-									count.addAndGet( handler.get() );
-								else
-									latch.countDown();
-							} catch( final Throwable t )
-							{
-								this.events.onError( t );
-								latch.countDown();
-							}
-						} ) );
+				// FIXME use observable's schedulers?
+				new ForkJoinPool(
+						Runtime.getRuntime().availableProcessors() - 1 )
+								.submit( () -> LongStream.range( 0, n )
+										.parallel().forEach( i ->
+										{
+											try
+											{
+												if( personCount.get() < n )
+												{
+													final String regName = "";
+													final RegionPeriod regPer = RegionPeriod
+															.of( regName,
+																	dt() );
+													personCount.addAndGet(
+															createHousehold(
+																	this.hhSeq
+																			.incrementAndGet(),
+																	cultureDist
+																			.draw(),
+																	hhTypeDist
+																			.draw( regPer )
+																			.hhTypeDist(
+																					this.distFactory::createCategorical )
+																			.draw(),
+																	attitudeDist
+																			.draw(),
+																	NA ).size() );
+												} else
+													latch.countDown();
+											} catch( final Throwable t )
+											{
+												this.events.onError( t );
+												latch.countDown();
+											}
+										} ) );
 
 				while( latch.getCount() > 0 )
 				{
@@ -657,12 +771,12 @@ public interface DemoModel
 						latch.await( 5, TimeUnit.SECONDS );
 						if( latch.getCount() > 0 )
 						{
-							final long i = count.get(),
+							final long i = personCount.get(),
 									i0 = lastCount.getAndSet( i ),
 									t = System.currentTimeMillis(),
 									ti = lastTime.getAndSet( t );
 							LOG.trace(
-									"Handled {} of {} persons ({}%) in {}s, adding at {}/s...",
+									"Created {} of {} persons ({}%) in {}s, adding at {}/s...",
 									i, n,
 									DecimalUtil.toScale(
 											DecimalUtil.divide( i * 100, n ),
@@ -677,132 +791,333 @@ public interface DemoModel
 						this.events.onError( e );
 					}
 				}
-				final long i = count.get(),
+				final long i = personCount.get(),
 						dt = System.currentTimeMillis() - t0.get();
-				LOG.trace( "Handled {} of {} persons in {}s at {}/s", i, n,
+				LOG.trace( "Created {} of {} persons in {}s at {}/s", i, n,
 						DecimalUtil.toScale( DecimalUtil.divide( dt, 1000 ),
 								1 ),
 						DecimalUtil.toScale( DecimalUtil.divide( i * 1000, dt ),
 								1 ) );
 			}
 
-			private Object removeRandomKey( final List<Object> keys )
+			private Observable<DemicalEvent> setupBirths()
 			{
-				if( keys.isEmpty() ) return null;
 
-				synchronized( keys )
+				final ConditionalDistribution<Cbs37201json.Category, RegionPeriod> localBirthDist = ConditionalDistribution
+						.of( this.distFactory::createCategorical, Cbs37201json
+								.readAsync(
+										( /* no :: on OWNER */ ) -> this.config
+												.cbs37201Data(),
+										this.dtRange )
+								.filter( wv -> wv.getValue()
+										.regionType() == this.cbsRegionLevel )
+								// <RegionPeriod, WeightedValue<Cbs37201json.Category>>
+								.toMultimap( wv -> wv.getValue().regionPeriod(),
+										Functions.identity(), TreeMap::new )
+								.blockingGet() );
+
+				final Table.Partition hhMomIndex = new Table.Partition(
+						this.households );
+				hhMomIndex.split( Households.MotherAgeRange.class );
+
+				// initialize births
+				final DemogEvents births = new DemogEvents(
+						CBSPopulationDynamic.BIRTHS, this.distFactory,
+						( /* no :: on OWNER */ ) -> this.config.cbs37230Data(),
+						this.cbsRegionLevel, this.dtRange,
+						this.dtScalingFactor );
+				final AtomicReference<Cbs37201json.Category> pendingBirthCat = new AtomicReference<>();
+				return infiniterate( () -> births.nextDelay( dt(), regRef ->
 				{
-					final int last = keys.size() - 1, i = this.distParser
-							.getFactory().getStream().nextInt( last + 1 );
-					final Object result = keys.get( i );
-					// swap with last, so ArrayList#remove() needs not shift
-					if( i != last ) keys.set( i, keys.get( last ) );
-					keys.remove( last );
-					return result;
-				}
+					final RegionPeriod regPer = RegionPeriod.of( regRef, dt() );
+					final Cbs37201json.Category birthCat = pendingBirthCat
+							.getAndSet( localBirthDist.draw( regPer ) );
+
+					if( birthCat == null ) return 1;
+
+					// TODO marriage, multiplets (CBS 37422) 
+					// TODO age diff (60036ned)
+
+					final CBSMotherAgeRange momAge = birthCat
+							.ageDist( this.distFactory::createCategorical )
+							.draw();
+					final CBSGender gender = birthCat
+							.genderDist( this.distFactory::createCategorical )
+							.draw();
+					final CBSBirthRank rank = birthCat
+							.rankDist( this.distFactory::createCategorical )
+							.draw();
+//							 CBSFamilyRank.ofChildIndex( hhType.childCount() );
+					LOG.trace(
+							"{} {}: growing {} as {} child ({}) in hh, mom {}",
+							dt(), DemeEventType.EXPANSION, regRef, rank, gender,
+							momAge );
+//					LOG.trace( "Indexed hh: {}", hhMomIndex.keys( momAge ) );
+
+					// TODO find in (local) hh fertility index
+//					final Long hhRef = 0L; 
+//					final HouseholdTuple hh = this.households
+//							.get( hhRef );
+//					// retry for full mother age range
+//					final CBSHousehold hhType = hh
+//							.get( Households.Composition.class );
+//					createPerson( hh.key(),
+//							this.indSeq.incrementAndGet(), rank, male,
+//							now().decimal(), regRef );
+//					hh.set( Households.Composition.class,
+//							hhType.addChild() );
+					return 1;
+				} ) ).map( t -> DemeEventType.EXPANSION.create() );
 			}
 
-			private Map<FamilyRank, Object> setupHousehold(
-				final Supplier<Long> ppSeq,
-				final Supplier<PersonTuple> personFactory,
-				final HouseholdTuple hh, final Long hhSeq,
-				final Object cultureRef, final BigDecimal attitude,
+			private Observable<DemicalEvent> setupDeaths()
+			{
+				final DemogEvents deaths = new DemogEvents(
+						CBSPopulationDynamic.DEATHS, this.distFactory,
+						( /* no :: on OWNER */ ) -> this.config.cbs37230Data(),
+						this.cbsRegionLevel, this.dtRange,
+						this.dtScalingFactor );
+				final AtomicReference<String> pendingReg = new AtomicReference<>();
+				return infiniterate( () -> deaths.nextDelay( dt(), nextRegRef ->
+				{
+					final String regRef = pendingReg.getAndSet( nextRegRef );
+
+					if( regRef == null ) return 1;
+
+					LOG.trace( "{} {}: shrinking {}", dt(),
+							DemeEventType.ELIMINATION, regRef );
+//					final CBSFamilyRank rank = CBSFamilyRank.CHILD1;
+//					final Long hhRef = 0L; // TODO from local hh rank index
+//					final HouseholdTuple hh = this.households
+//							.get( hhRef );
+//					final CBSHousehold hhType = hh
+//							.get( Households.Composition.class );
+
+					// TODO handle orphans
+//					final Object indKey = removeRandomKey( indKeys );
+//					final PersonTuple ind = persons.select( indKey );
+//					hh.set( Households.Composition.class,
+//							hhType.removeAdult() );
+					return 1;
+				} ) ).map( t -> DemeEventType.ELIMINATION.create() );
+			}
+
+			private Observable<DemicalEvent> setupImmigrations(
+				// TODO make culture and attribute conditional on location
+				final ProbabilityDistribution<Long> cultureDist,
+				final ProbabilityDistribution<BigDecimal> attitudeDist )
+			{
+				final DemogEvents immigrations = new DemogEvents(
+						CBSPopulationDynamic.IMMIGRATION, this.distFactory,
+						( /* no :: on OWNER */ ) -> this.config.cbs37230Data(),
+						this.cbsRegionLevel, this.dtRange,
+						this.dtScalingFactor );
+
+				final AtomicReference<String> pendingReg = new AtomicReference<>();
+				return infiniterate(
+						() -> immigrations.nextDelay( dt(), nextRegRef ->
+						{
+							final String regRef = pendingReg
+									.getAndSet( nextRegRef );
+
+							if( regRef == null ) return 1;
+
+							final Cbs71486json.Category hhCat = this.hhTypeDist
+									.draw( RegionPeriod.of( regRef, dt() ) );
+							final CBSHousehold hhType = hhCat
+									.hhTypeDist(
+											this.distFactory::createCategorical )
+									.draw();
+							LOG.trace( "{} {}: joining {} of {} aged {}", dt(),
+									DemeEventType.IMMIGRATION, regRef, hhType,
+									hhCat.ageRange() );
+//							createHousehold( this.hhSeq.incrementAndGet(),
+//									cultureDist.draw(), hhType,
+//									attitudeDist.draw(), regionFor( regRef ) );
+							return hhType.size();
+						} ) ).map( t -> DemeEventType.IMMIGRATION.create() );
+			}
+
+			private Observable<DemicalEvent> setupEmigrations()
+			{
+				final DemogEvents emigrations = new DemogEvents(
+						CBSPopulationDynamic.EMIGRATION, this.distFactory,
+						( /* no :: on OWNER */ ) -> this.config.cbs37230Data(),
+						this.cbsRegionLevel, this.dtRange,
+						this.dtScalingFactor );
+
+				final AtomicReference<String> pendingReg = new AtomicReference<>();
+				return infiniterate(
+						() -> emigrations.nextDelay( dt(), nextRegRef ->
+						{
+							final String regRef = pendingReg
+									.getAndSet( nextRegRef );
+
+							if( regRef == null ) return 1;
+
+							// TODO emigrating household type/members (70133NED)
+
+							final Cbs71486json.Category hhCat = this.hhTypeDist
+									.draw( RegionPeriod.of( regRef, dt() ) );
+
+							final CBSHousehold hhType = hhCat
+									.hhTypeDist(
+											this.distFactory::createCategorical )
+									.draw();
+
+							// TODO select hh from reg/type index
+							LOG.trace( "{} {}: leaving {} hh {} aged {}", dt(),
+									DemeEventType.EMIGRATION, regRef, hhType,
+									hhCat.ageRange() );
+//							final Long hhRef = selectEmigrantHousehold( regRef,
+//									hhType, hhCat.ageRange() );
+//							final Observable<Entry<Actor.ID, Instant>> category = householdsFor(
+//									regRef, hhType ).cache();
+//							if( category.isEmpty().blockingGet() )
+//							{
+//								if( regRef == null ) return null;
+//								if( hhType == null )
+//									return selectEmigrantHousehold( null, null, hhRefAge );
+//								return selectEmigrantHousehold( regRef, null, hhRefAge );
+//							}
+//							final Actor.ID result;
+//							if( hhRefAge == null )
+//								result = this.distFact.getStream().nextElement(
+//										category.map( Entry::getKey ).toList().blockingGet() );
+//							else
+//							{
+//								final Range<Instant> ageRange = hhRefAge.map( age -> now()
+//										.subtract( Duration.of( age, TimeUnits.ANNUM ) ) );
+//								final NavigableMap<Instant, Actor.ID> selection = (NavigableMap<Instant, Actor.ID>) category
+//										.toMap( Entry::getValue, Entry::getKey, TreeMap::new )
+//										.blockingGet();
+//								final NavigableMap<Instant, Actor.ID> ageSelection = ageRange
+//										.apply( selection, false );
+//								if( ageSelection.isEmpty() )
+//								{
+//									// get nearest to age range
+//									final Entry<Instant, ID> earlier = selection
+//											.floorEntry( ageRange.lowerValue() );
+//									final Entry<Instant, ID> later = selection
+//											.ceilingEntry( ageRange.upperValue() );
+//
+//									result = later != null
+//											? (earlier != null
+//													? Compare.lt(
+//															// distance below range
+//															ageRange.lowerValue()
+//																	.subtract( earlier.getKey() ),
+//															// distance above range
+//															later.getKey().subtract(
+//																	ageRange.upperValue() ) )
+//																			? earlier.getValue()
+//																			: later.getValue()
+//													: later.getValue())
+//											: earlier != null ? earlier.getValue() : null;
+//								} else
+//									result = this.distFact.getStream()
+//											.nextElement( ageSelection.values() );
+//							}
+
+//							final int size = this.households.get( hhRef )
+//									.get( Households.Composition.class ).size();
+//							this.households.delete( hhRef );
+//							return size;
+							return 1;
+						} ) ).map( t -> DemeEventType.EMIGRATION.create() );
+			}
+
+			private Map<CBSFamilyRank, Object> createHousehold(
+				final long hhSeq, final Object cultureRef,
+				final CBSHousehold composition, final BigDecimal attitude,
 				final Object homeLocationKey )
 			{
-				final CBSHousehold composition = hh
-						.get( Households.Composition.class );
-				hh.with( Households.HouseholdSeq.class, hhSeq )
-						.with( Cultures.CultureRef.class, cultureRef )
-//							.with( Households.Composition.class, composition )
-						.with( Households.HomeLocationRef.class,
-								homeLocationKey )
-						.with( Households.Attitude.class, attitude );
-				if( hh.get( Households.HouseholdSeq.class )
-						.compareTo( hhSeq ) != 0 )
-				{
-					LOG.trace( "Retry optimistic setup of household #{} -> {}",
-							hh.key(), hh );
-					return setupHousehold( ppSeq, personFactory, hh, hhSeq,
-							cultureRef, attitude, homeLocationKey );
-				}
-				final Map<FamilyRank, Object> result = new EnumMap<>(
-						FamilyRank.class );
-				final boolean refMale = true;
-				final BigDecimal refBirth = BigDecimal.ZERO;
-				result.put( FamilyRank.REFERENT,
-						setupPerson( personFactory.get(), hh.key(), ppSeq.get(),
-								FamilyRank.REFERENT, refMale, refBirth,
-								homeLocationKey ).key() );
+				final HouseholdTuple hh = this.households
+						.insertValues( map -> map
+								.put( Households.Composition.class,
+										composition )
+								.put( Households.HouseholdSeq.class, hhSeq )
+								.put( Cultures.CultureSeq.class, cultureRef )
+								.put( Households.HomeRegionRef.class,
+										homeLocationKey )
+								.put( Households.Attitude.class, attitude ) );
 
+//				while( hh.get( Households.HouseholdSeq.class )
+//						.compareTo( hhSeq ) != 0 )
+//					LOG.warn( "Retry optimistic setup of household #" + hh.key()
+//							+ ": " + hh );
+
+				Map<CBSFamilyRank, Object> result = new EnumMap<>(
+						CBSFamilyRank.class );
+
+				// add household's referent
+				final boolean refMale = true;
+				final double refAge = 18. // TODO
+						+ this.distParser.getFactory().getStream().nextDouble()
+								* 55;
+				final BigDecimal refBirth = QuantityUtil.decimalValue(
+						QuantityUtil.valueOf( refAge, TimeUnits.YEAR ),
+						scheduler().timeUnit() );
+				CBSMotherAgeRange range = refMale ? null
+						: CBSMotherAgeRange.forAge( refAge );
+				hh.set( Households.MotherAgeRange.class, range );
+				final PersonTuple referent = createPerson( hh.key(),
+						this.indSeq.incrementAndGet(), CBSFamilyRank.REFERENT,
+						refMale, nowDecimal().subtract( refBirth ),
+						homeLocationKey );
+				result.put( CBSFamilyRank.REFERENT, referent.key() );
+
+				// add household's partner
 				if( composition.couple() ) // add partner
 				{
-					final boolean partnerMale = false;
-					final BigDecimal partnerAge = QuantityUtil.decimalValue(
-							QuantityUtil.valueOf(
-									15. + this.distParser.getFactory()
-											.getStream().nextDouble() * 35,
-									TimeUnits.YEAR ),
+					final boolean partnerMale = false; // TODO
+					final double partnerAge = 15. + this.distParser.getFactory()
+							.getStream().nextDouble() * 35;
+					final CBSFamilyRank rank = CBSFamilyRank.PARTNER;
+					final BigDecimal birth = QuantityUtil.decimalValue(
+							QuantityUtil.valueOf( partnerAge, TimeUnits.YEAR ),
 							scheduler().timeUnit() );
-					result.put( FamilyRank.PARTNER,
-							setupPerson( personFactory.get(), hh.key(),
-									ppSeq.get(), FamilyRank.PARTNER,
-									partnerMale,
-									nowDecimal().subtract( partnerAge ),
-									homeLocationKey ).key() );
-				}
+					final PersonTuple partner = createPerson( hh.key(),
+							this.indSeq.incrementAndGet(), rank, partnerMale,
+							nowDecimal().subtract( birth ), homeLocationKey );
+					result.put( rank, partner.key() );
 
-				if( composition.childCount() > 0 ) // add first child
-				{
-					final boolean child1Male = false;
-					final BigDecimal child1Birth = BigDecimal.ZERO;
-					result.put( FamilyRank.CHILD1,
-							setupPerson( personFactory.get(), hh.key(),
-									ppSeq.get(), FamilyRank.CHILD1, child1Male,
-									child1Birth, homeLocationKey ).key() );
+					// set fertility
+					if( !partnerMale )
+						range = CBSMotherAgeRange.forAge( refAge );
 				}
+				hh.set( Households.MotherAgeRange.class, range );
 
-				if( composition.childCount() > 1 ) // add second child
+				// add household's children
+				final CBSGender[] childGenders = {}; // composition.childCount()
+				final double[] ages = {}; // TODO composition.childCount()
+				for( int r = 0; r < ages.length; r++ )
 				{
-					final boolean child2Male = false;
-					final BigDecimal child2Birth = BigDecimal.ZERO;
-					result.put( FamilyRank.CHILD2,
-							setupPerson( personFactory.get(), hh.key(),
-									ppSeq.get(), FamilyRank.CHILD2, child2Male,
-									child2Birth, homeLocationKey ).key() );
-				}
-
-				if( composition.childCount() > 2 ) // add third child
-				{
-					final boolean child3Male = false;
-					final BigDecimal child3Birth = BigDecimal.ZERO;
-					final PersonTuple child3 = setupPerson( personFactory.get(),
-							hh.key(), ppSeq.get(), FamilyRank.CHILD3,
-							child3Male, child3Birth, homeLocationKey );
-					result.put( FamilyRank.CHILD3, child3.key() );
+					final CBSFamilyRank rank = CBSFamilyRank.ofChildIndex( r );
+					final BigDecimal birth = QuantityUtil.decimalValue(
+							QuantityUtil.valueOf( ages[r], TimeUnits.YEAR ),
+							scheduler().timeUnit() );
+					final boolean male = childGenders[r].isMale();
+					final PersonTuple child = createPerson( hh.key(),
+							this.indSeq.incrementAndGet(), rank, male,
+							nowDecimal().subtract( birth ), homeLocationKey );
+					result.put( rank, child.key() );
 				}
 
 				return result;
 			}
 
-			private PersonTuple setupPerson( final PersonTuple pp,
-				final Object hhKey, final long ppSeq, final FamilyRank rank,
-				final boolean male, final BigDecimal birthDay,
-				final Object locationRef )
+			private PersonTuple createPerson( final Object hhKey,
+				final long ppSeq, final CBSFamilyRank rank, final boolean male,
+				final BigDecimal birth, final Object locationRef )
 			{
-				pp.with( Persons.PersonSeq.class, ppSeq )
-						.with( Persons.HouseholdRef.class, hhKey )
-						.with( Persons.MemberRank.class, rank )
-						.with( Persons.BirthTime.class, birthDay )
-						.with( Persons.Male.class, male )
-						.with( Persons.SiteRef.class, locationRef );
-				if( pp.get( Persons.PersonSeq.class ).compareTo( ppSeq ) != 0 )
-				{
-					LOG.trace( "Retry optimistic setup of person #{} -> {}",
-							pp.key(), pp );
-					return setupPerson( pp, hhKey, ppSeq, rank, male, birthDay,
-							locationRef );
-				}
-				return pp;
+				return this.persons.insertValues(
+						map -> map.put( Persons.PersonSeq.class, ppSeq )
+								.put( Persons.HouseholdRef.class, hhKey )
+								.put( Persons.MemberRank.class, rank )
+								.put( Persons.BirthTime.class, birth )
+								.put( Persons.Male.class, male )
+								.put( Persons.SiteRef.class, locationRef ) );
 			}
 		}
 	}

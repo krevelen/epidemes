@@ -37,8 +37,7 @@ import nl.rivm.cib.pilot.PilotConfig.RandomSeedConverter;
  * @author Rick van Krevelen
  */
 @Sources( {
-		"file:${" + DemoConfig.CONFIG_BASE_KEY + "}"
-				+ DemoConfig.CONFIG_YAML_FILE,
+		"file:" + DemoConfig.CONFIG_BASE_PARAM + DemoConfig.CONFIG_YAML_FILE,
 		"file:" + DemoConfig.CONFIG_BASE_DIR + DemoConfig.CONFIG_YAML_FILE,
 		"classpath:" + DemoConfig.CONFIG_YAML_FILE } )
 public interface DemoConfig extends YamlConfig
@@ -46,6 +45,9 @@ public interface DemoConfig extends YamlConfig
 
 	/** configuration file name system property */
 	String CONFIG_BASE_KEY = "config.base";
+
+	/** configuration file name system property */
+	String CONFIG_BASE_PARAM = "${" + CONFIG_BASE_KEY + "}";
 
 	/** configuration and data file base directory */
 	String CONFIG_BASE_DIR = "dist/";

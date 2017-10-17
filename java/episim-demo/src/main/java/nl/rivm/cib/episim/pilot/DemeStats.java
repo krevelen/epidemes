@@ -118,8 +118,7 @@ public interface DemeStats extends Proactive
 
 			try
 			{
-				atEach( timing.iterate() ).subscribe( this::stats,
-						this::onError );
+				atEach( timing.iterate(), this::stats );
 			} catch( final ParseException e )
 			{
 				onError( e );
