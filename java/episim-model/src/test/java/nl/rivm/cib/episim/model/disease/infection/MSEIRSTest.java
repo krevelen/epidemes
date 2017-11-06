@@ -548,14 +548,16 @@ public class MSEIRSTest
 							MSEIRS.Broker.SimpleDefault.class, sirConfig )
 					.build();
 
-			final LocalBinder binder = binderConfig
-					.createBinder( MapBuilder.<Class<?>, Object>unordered()
-							.put( ProbabilityDistribution.Factory.class,
-									new Math3ProbabilityDistribution.Factory(
-											new Math3PseudoRandom.MersenneTwisterFactory()
-													.create( PseudoRandom.Config.NAME_DEFAULT,
-															config.seed() ) ) )
-							.build() );
+			final long seed = config.seed() == null ? System.currentTimeMillis()
+					: config.seed();
+			final LocalBinder binder = binderConfig.createBinder( MapBuilder
+					.<Class<?>, Object>unordered()
+					.put( ProbabilityDistribution.Factory.class,
+							new Math3ProbabilityDistribution.Factory(
+									new Math3PseudoRandom.MersenneTwisterFactory()
+											.create( PseudoRandom.Config.NAME_DEFAULT,
+													seed ) ) )
+					.build() );
 			final Transition si = Transition.SUSCEPTIBILITY,
 					ir = Transition.INFECTIOUS;
 			binder.inject( Scheduler.class,

@@ -196,7 +196,7 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	}
 
 	@Override
-	public HouseholdComposition addAdult()
+	public CBSHousehold plusAdult()
 	{
 		switch( this )
 		{
@@ -219,7 +219,7 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	}
 
 	@Override
-	public HouseholdComposition removeAdult()
+	public CBSHousehold minusAdult()
 	{
 		switch( this )
 		{
@@ -247,7 +247,7 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	}
 
 	@Override
-	public CBSHousehold addChild()
+	public CBSHousehold plusChild()
 	{
 		switch( this )
 		{
@@ -256,27 +256,27 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 		case SOLO_1KID:
 			return SOLO_2KIDS;
 		case SOLO_2KIDS:
+		case SOLO_3PLUSKIDS:
 			return SOLO_3PLUSKIDS;
 //		case SOLO_1PLUSKIDS:
-//		case SOLO_3PLUSKIDS:
 
 		case DUO_NOKIDS:
 			return DUO_1KID;
 		case DUO_1KID:
 			return DUO_2KIDS;
 		case DUO_2KIDS:
+		case DUO_3PLUSKIDS:
 			return DUO_3PLUSKIDS;
 //		case DUO_0PLUSKIDS:
-//		case DUO_3PLUSKIDS:
 
 		case REGDUO_NOKIDS:
 			return REGDUO_1KID;
 		case REGDUO_1KID:
 			return REGDUO_2KIDS;
 		case REGDUO_2KIDS:
+		case REGDUO_3PLUSKIDS:
 			return REGDUO_3PLUSKIDS;
 //		case REGDUO_0PLUS:
-//		case REGDUO_3PLUSKIDS:
 
 		case POLY_NOKIDS:
 			return POLY_1PLUSKIDS;
@@ -289,7 +289,7 @@ public enum CBSHousehold implements HouseholdComposition, CBSJsonProperty
 	}
 
 	@Override
-	public HouseholdComposition removeChild()
+	public CBSHousehold minusChild()
 	{
 		switch( this )
 		{

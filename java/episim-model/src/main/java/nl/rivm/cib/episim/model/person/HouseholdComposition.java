@@ -50,15 +50,15 @@ public interface HouseholdComposition
 	boolean more();
 
 	/** @return the new {@link HouseholdComposition} */
-	HouseholdComposition addAdult();
+	HouseholdComposition plusAdult();
 
 	/** @return the new {@link HouseholdComposition} */
-	HouseholdComposition removeAdult();
+	HouseholdComposition minusAdult();
 
 	/** @return the new {@link HouseholdComposition} */
-	HouseholdComposition addChild();
+	HouseholdComposition plusChild();
 
 	/** @return the new {@link HouseholdComposition} */
-	HouseholdComposition removeChild();
+	HouseholdComposition minusChild();
 
 }

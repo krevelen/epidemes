@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 import javax.inject.Inject;
+import javax.persistence.EntityManager;
 
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +46,7 @@ import io.coala.data.DataLayer;
 import io.coala.data.MatrixLayer;
 import io.coala.data.Table;
 import io.coala.dsol3.Dsol3Scheduler;
+import io.coala.enterprise.persist.FactDao;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
@@ -55,7 +57,7 @@ import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.SchedulerConfig;
 import io.coala.util.MapBuilder;
-import nl.rivm.cib.demo.DemoModel.Demical.DemicalEvent;
+import io.reactivex.Observable;
 import nl.rivm.cib.demo.DemoModel.Demical.SimpleDeme;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
@@ -129,6 +131,8 @@ public class BrokerTest
 		// data event statistics
 		private final Map<Class<?>, AtomicLong> dataEventStats = new HashMap<>();
 
+		private SimpleDeme deme = null;
+
 		@Override
 		public Scheduler scheduler()
 		{
@@ -168,20 +172,19 @@ public class BrokerTest
 							scheduler()::fail );
 
 			// populate and run deme
-			final AtomicLong t0 = new AtomicLong();
-			this.binder
-					.inject( SimpleDeme.class,
-							this.config.toJSON( DemoConfig.SCENARIO_BASE,
-									DemoConfig.POPULATION_BASE ) )
-					.reset().events()//.observeOn( Schedulers.io() )
-					.ofType( DemicalEvent.class ).subscribe( ev ->
+			final AtomicLong tLog = new AtomicLong();
+			this.deme = this.binder.inject( SimpleDeme.class,
+					this.config.toJSON( DemoConfig.SCENARIO_BASE,
+							DemoConfig.POPULATION_BASE ) );
+			this.deme.reset().events()//.observeOn( Schedulers.io() )
+					.ofType( Demical.Deme.DemicFact.class ).subscribe( ev ->
 					{
-						t0.updateAndGet( ms ->
+						tLog.updateAndGet( tPrev ->
 						{
-							final long t = System.currentTimeMillis();
-							if( t - ms < 1000 ) return ms;
+							final long tWall = System.currentTimeMillis();
+							if( tWall - tPrev < 1000 ) return tPrev;
 							logStats();
-							return t;
+							return tWall;
 						} );
 						this.demeEventStats
 								.computeIfAbsent( ev.getClass(),
@@ -206,6 +209,12 @@ public class BrokerTest
 									.map( e -> e.getKey().getSimpleName() + "="
 											+ e.getValue() )
 									.toArray( String[]::new ) ) );
+		}
+
+		public Observable<FactDao> emitFacts( final EntityManager em )
+		{
+			return this.deme.emitFacts()
+					.map( fact -> FactDao.create( em, fact ) );
 		}
 	}
 
@@ -243,11 +252,11 @@ public class BrokerTest
 		LOG.trace( "table before: \n{}", m );
 		final Table.Partition p = new Table.Partition( t );
 		LOG.trace( "partition all: {}", p );
-		p.split( Prop1.class, Arrays.asList( .8 ) );
+		p.groupBy( Prop1.class, Arrays.asList( .8 ) );
 		LOG.trace( "partition col1-1: {}", p );
-		p.split( Prop2.class, Arrays.asList( .8 ) );
+		p.groupBy( Prop2.class, Arrays.asList( .8 ) );
 		LOG.trace( "partition col1-2: {}", p );
-		p.split( Prop3.class, Arrays.asList( .8 ) );
+		p.groupBy( Prop3.class, Arrays.asList( .8 ) );
 		LOG.trace( "partition col1-3: {}", p );
 		final Table.Tuple n1 = t.insert();
 		LOG.trace( "insert #{}: {} -> {}", n1.key(), n1, p );
@@ -279,7 +288,7 @@ public class BrokerTest
 						.put( SchedulerConfig.DURATION_KEY, "" + durationDays )
 						.build() )
 				.withProvider( DataLayer.class, DataLayer.Default.class )
-				.withProvider( Scenario.class, DemoScenario.class )
+//				.withProvider( Scenario.class, DemoScenario.class )
 				.withProvider( ProbabilityDistribution.Parser.class,
 						DistributionParser.class )
 				.build();
@@ -294,7 +303,8 @@ public class BrokerTest
 														config.randomSeed() ) ) )
 						.build() );
 
-		final Scenario model = binder.inject( Scenario.class );
+//		final Scenario model = binder.inject( Scenario.class );
+		final Scenario model = binder.inject( DemoScenario.class );
 		model.run();
 
 		LOG.info( "Test done" );

@@ -91,6 +91,20 @@ public enum CBSMotherAgeRange implements CBSJsonProperty
 	}
 
 	/**
+	 * @param r1
+	 * @param r2
+	 * @return natural ordering (by {@link #ordinal()}) allowing {@code null} as
+	 *         smallest value
+	 */
+	public static int compare( final CBSMotherAgeRange r1,
+		final CBSMotherAgeRange r2 )
+	{
+		return r1 == null ? (r2 == null ? 0 : -1)
+				: (r2 == null ? 1
+						: Integer.compare( r1.ordinal(), r2.ordinal() ));
+	}
+
+	/**
 	 * @param age
 	 * @return
 	 */

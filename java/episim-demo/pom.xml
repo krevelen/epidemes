@@ -149,6 +149,10 @@
 
 		<dependency>
 			<groupId>io.coala</groupId>
+			<artifactId>coala-api-enterprise</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
 			<artifactId>guice4-coala-adapter</artifactId>
 		</dependency>
 		<dependency>

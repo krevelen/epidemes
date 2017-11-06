@@ -144,13 +144,13 @@ public class PilotScenario implements Scenario
 	private static final long NA = -1L;
 
 	/** */
-	private static final HHAttribute[] CHILD_REF_COLUMN_INDICES = {
-			// HHAttribute.REFERENT_REF,
-			// HHAttribute.PARTNER_REF,
-			HHAttribute.CHILD1_REF
-//			, HHAttribute.CHILD2_REF
-//			, HHAttribute.CHILD3_REF 
-	};
+//	private static final HHAttribute[] CHILD_REF_COLUMN_INDICES = {
+//			// HHAttribute.REFERENT_REF,
+//			// HHAttribute.PARTNER_REF,
+//			HHAttribute.CHILD1_REF
+////			, HHAttribute.CHILD2_REF
+////			, HHAttribute.CHILD3_REF 
+//	};
 
 	@InjectConfig( Scope.DEFAULT )
 	private transient PilotConfig config;
@@ -751,12 +751,7 @@ public class PilotScenario implements Scenario
 					this.pressure, localSIR );
 
 			final double recoverDays = recoveryDaysDist.draw();
-			after( recoverDays, TimeUnits.DAYS ).call( t ->
-			{
-				LOG.trace( "t={} RECOVERED #{} @{}", prettyDate( now() ), i,
-						this.name );
-				setRecovered( i );
-			} );
+			after( recoverDays, TimeUnits.DAYS ).call( t -> setRecovered( i ) );
 		}
 
 		private int[] getSIR()
@@ -792,17 +787,17 @@ public class PilotScenario implements Scenario
 			// schedule infection events
 			if( noPressure() )
 			{
-//				if( this.cumPressure > 0 )
-//					LOG.trace( "t={} @{} convened for {}, SIR: {}+{}+{}",
-//							prettyDate( now() ), this.name, dt,
-//							this.susceptibles.size(), this.infectious.size(),
-//							this.recovered.size() );
+				if( this.pressure > 0 )
+					LOG.trace( "t={} @{} convened for {}, SIR: {}+{}+{}",
+							prettyDate( now() ), this.name, dt,
+							this.susceptibles.size(), this.infectious.size(),
+							this.recovered.size() );
 			} else
 			{
-//				LOG.trace( "t={} @{} pressured for {}, SIR: {}+{}+{}",
-//						prettyDate( now() ), this.name, dt,
-//						this.susceptibles.size(), this.infectious.size(),
-//						this.recovered.size() );
+				LOG.trace( "t={} @{} pressured for {}, SIR: {}+{}+{}",
+						prettyDate( now() ), this.name, dt,
+						this.susceptibles.size(), this.infectious.size(),
+						this.recovered.size() );
 
 				resist( QuantityUtil.decimalValue( dt, TimeUnits.DAYS )
 						.doubleValue() );
@@ -812,9 +807,9 @@ public class PilotScenario implements Scenario
 
 		void adjourn( final Consumer<Long> adjourner )
 		{
-//			LOG.trace( "t={} @{} adjourned, SIR: {}+{}+{}", prettyDate( now() ),
-//					this.name, this.susceptibles.size(), this.infectious.size(),
-//					this.recovered.size() );
+			LOG.trace( "t={} @{} adjourned, SIR: {}+{}+{}", prettyDate( now() ),
+					this.name, this.susceptibles.size(), this.infectious.size(),
+					this.recovered.size() );
 			unscheduleInfect();
 			if( this.pendingAdjourn != null
 					&& this.pendingAdjourn.unwrap().compareTo( now() ) > 0 )
@@ -894,6 +889,8 @@ public class PilotScenario implements Scenario
 		setStatus( i, HHMemberStatus.NATURAL_IMMUNE );
 		motorsFor( i ).forEach( local ->
 		{
+			LOG.trace( "t={} RECOVERED #{} @{}", prettyDate( now() ), i,
+					local.name );
 			local.infectious.remove( i );
 			local.recovered.add( i );
 		} );
