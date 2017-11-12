@@ -28,7 +28,7 @@ import nl.rivm.cib.episim.model.person.Gender;
 import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link Cbs60036json} helps to import CBS table 37230ned data (JSON
+ * {@link Cbs60036json} helps to import CBS table 60036ned data (JSON
  * formatted). See http://statline.cbs.nl/Statweb/selection/?PA=60036ned and
  * source data at
  * http://opendata.cbs.nl/ODataFeed/odata/60036ned/UntypedDataSet?$format=json

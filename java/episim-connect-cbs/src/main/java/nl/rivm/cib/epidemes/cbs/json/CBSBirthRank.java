@@ -48,10 +48,15 @@ public enum CBSBirthRank implements CBSJsonProperty
 	{
 		return this.jsonKey;
 	}
-	
+
 	public int rank()
 	{
 		return ordinal();
+	}
+
+	public CBSBirthRank plusOne()
+	{
+		return values()[Math.min( values().length - 1, ordinal() + 1 )];
 	}
 
 }

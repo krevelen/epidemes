@@ -198,3 +198,4 @@ susceptibility
 &mu;
 integrator
 dormand
+equidistant

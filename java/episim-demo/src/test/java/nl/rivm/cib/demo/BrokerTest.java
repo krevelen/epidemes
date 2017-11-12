@@ -22,12 +22,15 @@ package nl.rivm.cib.demo;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.inject.Inject;
@@ -43,6 +46,7 @@ import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
 import io.coala.data.DataLayer;
+import io.coala.data.IndexPartition;
 import io.coala.data.MatrixLayer;
 import io.coala.data.Table;
 import io.coala.dsol3.Dsol3Scheduler;
@@ -239,7 +243,7 @@ public class BrokerTest
 	@Test
 	public void testPartitions()
 	{
-		LOG.info( "Test partitions" );
+		LOG.info( "Test partitions (static)" );
 
 		final int n = 10;
 		@SuppressWarnings( "rawtypes" )
@@ -248,21 +252,40 @@ public class BrokerTest
 		final Matrix m = Matrix.Factory.rand( 2 * n, props.size() );
 		final Table<Table.Tuple> t = new MatrixLayer( m, props )
 				.createTable( Table.Tuple.class );
-		IntStream.range( 0, n ).forEach( i -> t.insert() );
-		LOG.trace( "table before: \n{}", m );
-		final Table.Partition p = new Table.Partition( t );
+		final List<Object> removable = IntStream.range( 0, n / 2 )
+				.mapToObj( i ->
+				{
+					m.setAsInt( 1 + i / 3, i, 0 );
+					return t.insert().key();
+				} ).collect( Collectors.toCollection( ArrayList::new ) );
+//		LOG.trace( "table before: \n{}", m );
+		final IndexPartition p = new IndexPartition( t );
 		LOG.trace( "partition all: {}", p );
-		p.groupBy( Prop1.class, Arrays.asList( .8 ) );
+		p.groupBy( Prop1.class /* ,Arrays.asList( .8 ) */ ); // use value as bin
 		LOG.trace( "partition col1-1: {}", p );
 		p.groupBy( Prop2.class, Arrays.asList( .8 ) );
 		LOG.trace( "partition col1-2: {}", p );
 		p.groupBy( Prop3.class, Arrays.asList( .8 ) );
 		LOG.trace( "partition col1-3: {}", p );
+		IntStream.range( n / 2, n ).forEach( i ->
+		{
+			m.setAsInt( 1 + i / 3, i, 0 );
+			final Table.Tuple r = t.insert();
+			LOG.trace( "insert #{}: {} -> {}", r.key(), r, p );
+			removable.add( r.key() );
+		} );
 		final Table.Tuple n1 = t.insert();
 		LOG.trace( "insert #{}: {} -> {}", n1.key(), n1, p );
-		@SuppressWarnings( "deprecation" )
-		final Table.Tuple n2 = t.remove( Long.valueOf( 1 ) );
-		LOG.trace( "remove #{}: {} -> {}", n2.key(), n2, p );
+//		@SuppressWarnings( "deprecation" )
+//		final Table.Tuple n2 = t.remove( Long.valueOf( 1 ) );
+//		LOG.trace( "remove #{}: {} -> {}", n2.key(), n2, p );
+		LOG.trace( "matrix pre-deletion: {}\n{}", m );
+		Collections.reverse( removable );
+		removable.forEach( i ->
+		{
+			t.delete( i );
+			LOG.trace( "deleted #{}", i );
+		} );
 		final long[] keys = p.keys().stream().mapToLong( i -> (Long) i )
 				.toArray();
 		LOG.trace( "matrix after: {}\n{}", keys, m );
