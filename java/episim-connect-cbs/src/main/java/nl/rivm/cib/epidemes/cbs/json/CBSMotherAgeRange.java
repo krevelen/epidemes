@@ -20,12 +20,15 @@
 package nl.rivm.cib.epidemes.cbs.json;
 
 import java.text.ParseException;
+import java.util.function.BiFunction;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
+import io.coala.random.ProbabilityDistribution;
+import io.coala.random.QuantityDistribution;
 import io.coala.time.TimeUnits;
 import tec.uom.se.ComparableQuantity;
 
@@ -83,6 +86,20 @@ public enum CBSMotherAgeRange implements CBSJsonProperty
 	public String jsonKey()
 	{
 		return this.jsonKey;
+	}
+
+	public QuantityDistribution<Time> toDist(
+		final BiFunction<Number, Number, ProbabilityDistribution<? extends Number>> distFact )
+	{
+		return distFact
+				.apply( this.cutoffYears.lowerValue(),
+						this.cutoffYears.upperValue() )
+				.toQuantities( TimeUnits.YEAR );
+	}
+
+	public Range<Double> rangeYears()
+	{
+		return this.cutoffYears;
 	}
 
 	public Range<ComparableQuantity<Time>> range()

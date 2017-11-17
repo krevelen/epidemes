@@ -25,12 +25,10 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import javax.persistence.EntityManagerFactory;
 
@@ -44,6 +42,7 @@ import org.hibernate.cfg.AvailableSettings;
 
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
+import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.log.LogUtil;
@@ -86,29 +85,21 @@ public class PilotSimulator
 		throws IOException, InterruptedException
 	{
 		// convert command-line arguments to map
-		final Map<String, String> argMap = Arrays.stream( args )
-				.filter( arg -> arg.contains( "=" ) )
-				.map( arg -> arg.split( "=" ) ).filter( arr -> arr.length > 1 )
-				.collect( Collectors.toMap( arr -> arr[0], arr ->
-				{
-					final String[] value = new String[arr.length - 1];
-					System.arraycopy( arr, 1, value, 0, value.length );
-					return String.join( "=", value );
-				} ) );
+		final Map<String, String> argMap = ConfigUtil.cliArgMap( args );
+
+		// set default configuration data file base directory/url
+		final String fileName = argMap.computeIfAbsent( CONF_ARG,
+				confArg -> System.getProperty( CONF_ARG,
+						ConfigUtil.cliConfBase( argMap,
+								PilotConfig.CONFIG_BASE_KEY,
+								PilotConfig.CONFIG_BASE_DIR,
+								PilotConfig.CONFIG_YAML_FILE ) ) );
 
 		// merge arguments into configuration imported from YAML file
 		final PilotConfig hhConfig = ConfigCache.getOrCreate( PilotConfig.class,
 				// CLI args added first: override config resource and defaults 
 				argMap,
-				YamlUtil.flattenYaml( FileUtil
-						.toInputStream( argMap.computeIfAbsent( CONF_ARG,
-								confArg -> System.getProperty( CONF_ARG,
-										// set default configuration data file base directory/url
-										argMap.computeIfAbsent(
-												PilotConfig.CONFIG_BASE_KEY,
-												baseKey -> System.getProperty(
-														PilotConfig.CONFIG_BASE_KEY, PilotConfig.CONFIG_BASE_DIR ) )
-												+ PilotConfig.CONFIG_YAML_FILE ) ) ) ) );
+				YamlUtil.flattenYaml( FileUtil.toInputStream( fileName ) ) );
 
 		if( System.getProperty(
 				ConfigurationFactory.CONFIGURATION_FILE_PROPERTY ) == null )

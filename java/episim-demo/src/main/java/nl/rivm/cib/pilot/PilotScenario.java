@@ -616,22 +616,6 @@ public class PilotScenario implements Scenario
 
 	}
 
-	private Subject<PropertyChangeEvent> networkEvents = PublishSubject
-			.create();
-
-	public Observable<PropertyChangeEvent> network()
-	{
-		return this.networkEvents;
-	}
-
-	private final BehaviorSubject<long[]> sirTransitions = BehaviorSubject
-			.create();
-
-	public Observable<long[]> sirTransitions()
-	{
-		return this.sirTransitions;
-	}
-
 	class LocalPressure
 	{
 		final NavigableMap<Double, Long> susceptibles = new TreeMap<>();
@@ -897,15 +881,6 @@ public class PilotScenario implements Scenario
 		publishSIR( 0, -1, 1 );
 	}
 
-	private void publishSIR( final long... delta )
-	{
-		final long[] old = this.sirTransitions.getValue(), sir = Arrays
-				.copyOf( delta, old == null ? delta.length : old.length );
-		if( old != null ) for( int i = old.length; --i != -1; )
-			sir[i] += old[i];
-		this.sirTransitions.onNext( sir );
-	}
-
 	private Double getResistance( final long i )
 	{
 		return this.ppAttributes.getAsDouble( i,
@@ -922,6 +897,31 @@ public class PilotScenario implements Scenario
 	{
 		this.ppAttributes.setAsInt( status.ordinal(), i,
 				HHMemberAttribute.STATUS.ordinal() );
+	}
+
+	private void publishSIR( final long... delta )
+	{
+		final long[] old = this.sirTransitions.getValue(), sir = Arrays
+				.copyOf( delta, old == null ? delta.length : old.length );
+		if( old != null ) for( int i = old.length; --i != -1; )
+			sir[i] += old[i];
+		this.sirTransitions.onNext( sir );
+	}
+
+	private final BehaviorSubject<long[]> sirTransitions = BehaviorSubject
+			.create();
+
+	public Observable<long[]> sirTransitions()
+	{
+		return this.sirTransitions;
+	}
+
+	private Subject<PropertyChangeEvent> networkEvents = PublishSubject
+			.create();
+
+	public Observable<PropertyChangeEvent> network()
+	{
+		return this.networkEvents;
 	}
 
 	public Number seed()

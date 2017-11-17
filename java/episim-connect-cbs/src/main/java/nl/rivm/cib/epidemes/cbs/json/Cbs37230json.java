@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -41,15 +42,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 
 import io.coala.exception.Thrower;
+import io.coala.function.ThrowingFunction;
 import io.coala.json.JsonUtil;
 import io.coala.math.DecimalUtil;
+import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.math.Tuple;
 import io.coala.math.WeightedValue;
+import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.TimeUnits;
 import io.reactivex.Observable;
+import io.reactivex.observables.GroupedObservable;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 
@@ -351,5 +356,70 @@ public class Cbs37230json
 				metrics == null || metrics.length == 0
 						? Observable.just( CBSPopulationDynamic.POP )
 						: Observable.fromArray( metrics ) );
+	}
+
+	/**
+	 * historic an local demography event rates (births, deaths, migrations,
+	 * ...)
+	 */
+	public static class EventProducer
+	{
+		final BigDecimal scalingFactor;
+		final ProbabilityDistribution.Factory distFact;
+		ConditionalDistribution<Cbs37230json.Category, LocalDate> periodDist;
+		ConditionalDistribution<Cbs37230json.Category, LocalDate> siteDist;
+
+		// <LocalDate, WeightedValue<Cbs37230json.Category>>
+		public EventProducer( final CBSPopulationDynamic metric,
+			final ProbabilityDistribution.Factory distFact,
+			final Callable<InputStream> data,
+			final CBSRegionType cbsRegionLevel, final Range<LocalDate> dtRange,
+			final BigDecimal scalingFactor )
+		{
+			this.scalingFactor = scalingFactor;
+			this.distFact = distFact;
+			Cbs37230json.readAsync( data, dtRange, metric )
+					.groupBy( wv -> wv.getValue().regionType() )
+					.filter( g -> g.getKey() == cbsRegionLevel
+							|| g.getKey() == CBSRegionType.COUNTRY )
+					// GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>>
+					.blockingForEach( g ->
+					{
+						// event locations at configured regional level
+						if( g.getKey() == cbsRegionLevel )
+							this.siteDist = create( g );
+
+						// event rates at national level, scaled to synth.pop.size?
+						if( g.getKey() == CBSRegionType.COUNTRY )
+							this.periodDist = create( g );
+					} );
+		}
+
+		private ConditionalDistribution<Cbs37230json.Category, LocalDate>
+			create(
+				final GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g )
+		{
+			// Navigable TreeMap to resolve out-of-bounds conditions
+			return ConditionalDistribution.of( this.distFact::createCategorical,
+					g.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
+							TreeMap::new ).blockingGet() );
+		}
+
+		public Quantity<Time> nextDelay( final LocalDate dt,
+			final ThrowingFunction<String, Integer, Exception> eventSitePersonCounter )
+			throws Exception
+		{
+			final String regRef = this.siteDist.draw( dt ).regionPeriod()
+					.regionRef();
+			final int n = eventSitePersonCounter.apply( regRef );
+			final QuantityDistribution<Time> timeDist = this.periodDist
+					.draw( dt )
+					.timeDist( freq -> this.distFact.createExponential(
+							DecimalUtil.divide( freq, this.scalingFactor ) ) );
+			Quantity<Time> dur = QuantityUtil.zero( Time.class );
+			for( int i = 0; i < n; i++ )
+				dur = dur.add( timeDist.draw() );
+			return dur;
+		}
 	}
 }

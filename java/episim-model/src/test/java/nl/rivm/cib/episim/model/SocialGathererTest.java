@@ -69,8 +69,8 @@ public class SocialGathererTest
 		{
 			final SocialGatherer.Factory gatherers = binder
 					.inject( SocialGatherer.Factory.SimpleBinding.class );
-			final SocialGatherer gatherer = gatherers
-					.create( JsonUtil.getJOM().createObjectNode()//
+			final SocialGatherer gatherer = gatherers.create( "gath",
+					JsonUtil.getJOM().createObjectNode()//
 							.put( SocialGatherer.TIMING_KEY,
 									"59 29 9 ? * MON *" )
 							.put( SocialGatherer.DURATION_KEY, "const(6 h)" )

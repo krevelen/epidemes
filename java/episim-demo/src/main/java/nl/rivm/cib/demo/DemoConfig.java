@@ -66,6 +66,15 @@ public interface DemoConfig extends YamlConfig
 	String REPLICATION_PREFIX = SCENARIO_BASE + KEY_SEP + "replication"
 			+ KEY_SEP;
 
+	/** configuration key */
+	String POPULATION_BASE = "demography";
+
+	/** configuration key */
+	String LOCATION_BASE = "geography";
+
+	/** configuration key */
+	String MOTION_BASE = "mobility";
+
 	@Key( REPLICATION_PREFIX + "setup-name" )
 	@DefaultValue( "pilot" )
 	String setupName();
@@ -84,7 +93,4 @@ public interface DemoConfig extends YamlConfig
 	@DefaultValue( "2012-01-01" )
 	@ConverterClass( LocalDateConverter.class )
 	LocalDate offset();
-
-	/** configuration key */
-	String POPULATION_BASE = "demography";
 }
