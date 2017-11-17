@@ -118,7 +118,9 @@ public interface DemeStats extends Proactive
 
 			try
 			{
-				atEach( timing.iterate(), this::stats );
+				final Instant now = now();
+				atEach( timing.offset( now.toJava8( scheduler().offset() ) )
+						.iterate( now ), this::stats );
 			} catch( final ParseException e )
 			{
 				onError( e );

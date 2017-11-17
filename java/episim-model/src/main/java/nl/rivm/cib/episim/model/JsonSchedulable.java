@@ -92,9 +92,10 @@ public interface JsonSchedulable<THIS extends JsonSchedulable<?>>
 		{
 			try
 			{
+				final Instant now = now();
 				final Iterable<Instant> timing = Timing.of( item.occurrence )
-						.offset( now().toJava8( scheduler().offset() ) )
-						.iterate();
+						.offset( now.toJava8( scheduler().offset() ) )
+						.iterate( now );
 				final Map<K, List<V>> series = item.series.entrySet()
 						.parallelStream()
 						.collect( Collectors.toMap(

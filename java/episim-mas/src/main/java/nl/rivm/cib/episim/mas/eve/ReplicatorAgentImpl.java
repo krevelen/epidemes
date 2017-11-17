@@ -311,7 +311,8 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 					listener, TIME_TOPIC, timing );
 			if( timing != null ) // poll the time periodically
 				sub = this.scheduler
-						.atEach( timing.offset( this.myOffset ).stream() )
+						.atEach( timing.offset( this.myOffset )
+								.stream( this.scheduler.now() ) )
 						.subscribe( t -> publishTime( result, listener, t ),
 								e -> LOG.error( "Problem", e ) );
 			else // subscribe to all time changes directly
@@ -327,7 +328,8 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 				try
 				{
 					this.scheduler
-							.atEach( timing.offset( this.myOffset ).iterate() )
+							.atEach( timing.offset( this.myOffset )
+									.iterate( this.scheduler.now() ) )
 							.subscribe( scheduler ->
 							{
 								publishPace( result, listener, this.myPace );

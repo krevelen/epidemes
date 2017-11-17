@@ -185,10 +185,12 @@ public interface SocialGatherer
 		{
 			try
 			{
-				final Iterable<Instant> timing = Timing
-						.valueOf( fromConfigNonEmpty( TIMING_KEY ) )
-						.offset( now().toJava8( scheduler().offset() ) )
-						.iterate();
+				final String cron = fromConfigNonEmpty( TIMING_KEY );
+				final Instant offset = now();
+//				LOG.trace( "repeating '{}' as of {}", cron, offset );
+				final Iterable<Instant> timing = Timing.valueOf( cron )
+						.offset( offset.toJava8( scheduler().offset() ) )
+						.iterate( offset );
 				final QuantityDistribution<Time> dist = this.distParser
 						.parseQuantity( fromConfigNonEmpty( DURATION_KEY ),
 								Time.class );

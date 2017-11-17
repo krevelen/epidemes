@@ -113,7 +113,7 @@ public class CbsImportTest
 		final ZonedDateTime dt = LocalDate.parse( "2012-01-01" )
 				.atStartOfDay( TimeUtil.NL_TZ );
 		for( Instant t : Timing.of( "0 0 * * * ?" ).offset( dt ).max( 10L )
-				.iterate() )
+				.iterate( Instant.ZERO ) )
 			LOG.trace( "t={}, dt={} (offset: {} -> {})", t, t.prettify( dt ),
 					dt, dt.toInstant() );
 	}
@@ -220,7 +220,8 @@ public class CbsImportTest
 			final ZipCode zip = buurt.zipDist( distFact::createCategorical )
 					.draw();
 			LOG.trace( "draw #{}: reg: {} of {}, codes: {}, ref: {}, zip: {}",
-					i, regRef, async.size(), buurt.codes, buurt.neighbourhoodRef(), zip );
+					i, regRef, async.size(), buurt.codes,
+					buurt.neighbourhoodRef(), zip );
 		}
 
 		LOG.info( "done BoroughPC6" );
@@ -339,9 +340,10 @@ public class CbsImportTest
 	public void read83287() throws IOException
 	{
 		LOG.info( "start 83287" );
-		final Cbs83287Json json = Cbs83287Json.parse( FileUtil.toInputStream( CBS_83287_FILE ) );
-		LOG.trace( "Parsed '{}' -> \nfrom-gm: {}\nto-gm: {}",
-				CBS_83287_FILE, json.toMap(), json.toReverseMap() );
+		final Cbs83287Json json = Cbs83287Json
+				.parse( FileUtil.toInputStream( CBS_83287_FILE ) );
+		LOG.trace( "Parsed '{}' -> \nfrom-gm: {}\nto-gm: {}", CBS_83287_FILE,
+				json.toMap(), json.toReverseMap() );
 
 		LOG.info( "done 83287" );
 	}

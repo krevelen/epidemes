@@ -234,8 +234,7 @@ public interface PilotConfig extends GlobalConfig
 	default Iterable<Instant> statisticsRecurrence( final Scheduler scheduler )
 		throws ParseException
 	{
-		return Timing.of( statisticsRecurrence() ).offset( scheduler.offset() )
-				.iterate();
+		return Timing.of( statisticsRecurrence() ).iterate( scheduler );
 	}
 
 	@Key( POPULATION_PREFIX + "population-size" )
@@ -416,9 +415,7 @@ public interface PilotConfig extends GlobalConfig
 	default Iterable<Instant> vaccinationRecurrence( final Scheduler scheduler )
 		throws ParseException
 	{
-		return Timing.of( vaccinationRecurrence() )
-				.offset( scheduler.now().toJava8( scheduler.offset() ) )
-				.iterate();
+		return Timing.of( vaccinationRecurrence() ).iterate( scheduler );
 	}
 
 	/** @see VaxOccasion#utility() */
@@ -647,8 +644,7 @@ public interface PilotConfig extends GlobalConfig
 	default Iterable<Instant> attitudePropagatorRecurrence(
 		final Scheduler scheduler ) throws ParseException
 	{
-		return Timing.of( attitudePropagatorRecurrence() )
-				.offset( scheduler.offset() ).iterate();
+		return Timing.of( attitudePropagatorRecurrence() ).iterate( scheduler );
 	}
 
 //	@Key( "morphine.measles.contact-period" )
