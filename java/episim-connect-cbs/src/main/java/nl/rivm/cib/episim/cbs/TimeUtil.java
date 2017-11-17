@@ -21,10 +21,9 @@ package nl.rivm.cib.episim.cbs;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.TreeMap;
 
 import io.coala.math.Range;
@@ -56,25 +55,19 @@ public class TimeUtil
 		final LocalDate offset, final List<Integer> dayCounts,
 		final Range<LocalDate> range )
 	{
-		return indicesFor( () -> new Iterator<LocalDate>()
+		final NavigableMap<LocalDate, Integer> result = new TreeMap<>();
+		if( range.lt( offset ) ) // range ends before data offset
+			result.put( offset, 0 );
+		else
 		{
-			private LocalDate current = offset;
-			private int i = 0;
-
-			@Override
-			public boolean hasNext()
-			{
-				return i < dayCounts.size();
-			}
-
-			@Override
-			public LocalDate next()
-			{
-				final LocalDate result = this.current;
-				this.current = this.current.plusDays( dayCounts.get( i++ ) );
-				return result;
-			}
-		}, range );
+			LocalDate current = offset;
+			for( int i = 0; i < dayCounts.size(); current = current
+					.plusDays( dayCounts.get( i++ ) ) )
+				if( range.contains( current ) ) result.put( current, i );
+			if( result.isEmpty() ) // range starts after last 
+				result.put( current, dayCounts.size() - 1 );
+		}
+		return result;
 	}
 
 	/**
@@ -83,15 +76,21 @@ public class TimeUtil
 	 * @return
 	 */
 	public static NavigableMap<LocalDate, Integer> indicesFor(
-		final Iterable<LocalDate> offsets, final Range<LocalDate> range )
+		final List<LocalDate> offsets, final Range<LocalDate> range )
 	{
-		final NavigableMap<LocalDate, Integer> indices = new TreeMap<>();
-		int i = 0;
-		for( Iterator<LocalDate> it = Objects
-				.requireNonNull( offsets, "missing offsets" ).iterator(); it
-						.hasNext(); )
-			indices.put( it.next(), i++ );
+		if( offsets.isEmpty() ) return Collections.emptyNavigableMap();
+		final NavigableMap<LocalDate, Integer> result = new TreeMap<>();
 
-		return range == null ? indices : range.apply( indices, true );
+		final int last = offsets.size() - 1;
+		if( range.lt( offsets.get( 0 ) ) ) // range ends before data offset
+			result.put( offsets.get( 0 ), 0 );
+		else if( range.gt( offsets.get( last ) ) ) // range starts after last 
+			result.put( offsets.get( last ), last );
+		else
+			for( int i = 0; i < offsets.size(); i++ )
+				if( range.contains( offsets.get( i ) ) )
+					result.put( offsets.get( i ), i );
+
+		return result;
 	}
 }

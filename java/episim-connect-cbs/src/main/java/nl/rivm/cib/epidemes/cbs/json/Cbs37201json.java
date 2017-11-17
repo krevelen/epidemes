@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
@@ -186,7 +187,9 @@ public class Cbs37201json
 		{
 			super( Arrays.asList(
 
-					RegionPeriod.of( entry.region, entry.offset ) // key
+					RegionPeriod.of( entry.region,
+							entry.offset.plusDays( IntStream.range( 0, index )
+									.map( entry.dayCounts::get ).sum() ) ) // key
 
 					, entry.dayCounts.get( index ) // calculate frequency/rate
 					, Tuple.of( entry.frequenciesFor( index ) ) // values

@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.measure.Quantity;
@@ -193,7 +194,9 @@ public class Cbs37230json
 		{
 			super( Arrays.asList(
 
-					RegionPeriod.of( entry.region, entry.offset ) // key
+					RegionPeriod.of( entry.region,
+							entry.offset.plusDays( IntStream.range( 0, index )
+									.map( entry.dayCounts::get ).sum() ) ) // key
 
 					, entry.dayCounts.get( index ) // calculate frequency/rate
 					, metric, // value filter
@@ -366,10 +369,10 @@ public class Cbs37230json
 	{
 		final BigDecimal scalingFactor;
 		final ProbabilityDistribution.Factory distFact;
-		ConditionalDistribution<Cbs37230json.Category, LocalDate> periodDist;
-		ConditionalDistribution<Cbs37230json.Category, LocalDate> siteDist;
+		ConditionalDistribution<Category, LocalDate> nationalFreqDist;
+		ConditionalDistribution<Category, LocalDate> siteDist;
 
-		// <LocalDate, WeightedValue<Cbs37230json.Category>>
+		// <LocalDate, WeightedValue<Category>>
 		public EventProducer( final CBSPopulationDynamic metric,
 			final ProbabilityDistribution.Factory distFact,
 			final Callable<InputStream> data,
@@ -378,11 +381,11 @@ public class Cbs37230json
 		{
 			this.scalingFactor = scalingFactor;
 			this.distFact = distFact;
-			Cbs37230json.readAsync( data, dtRange, metric )
+			readAsync( data, dtRange, metric )
 					.groupBy( wv -> wv.getValue().regionType() )
 					.filter( g -> g.getKey() == cbsRegionLevel
 							|| g.getKey() == CBSRegionType.COUNTRY )
-					// GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>>
+					// GroupedObservable<CBSRegionType, WeightedValue<Category>>
 					.blockingForEach( g ->
 					{
 						// event locations at configured regional level
@@ -391,13 +394,12 @@ public class Cbs37230json
 
 						// event rates at national level, scaled to synth.pop.size?
 						if( g.getKey() == CBSRegionType.COUNTRY )
-							this.periodDist = create( g );
+							this.nationalFreqDist = create( g );
 					} );
 		}
 
-		private ConditionalDistribution<Cbs37230json.Category, LocalDate>
-			create(
-				final GroupedObservable<CBSRegionType, WeightedValue<Cbs37230json.Category>> g )
+		private ConditionalDistribution<Category, LocalDate> create(
+			final GroupedObservable<CBSRegionType, WeightedValue<Category>> g )
 		{
 			// Navigable TreeMap to resolve out-of-bounds conditions
 			return ConditionalDistribution.of( this.distFact::createCategorical,
@@ -412,7 +414,7 @@ public class Cbs37230json
 			final String regRef = this.siteDist.draw( dt ).regionPeriod()
 					.regionRef();
 			final int n = eventSitePersonCounter.apply( regRef );
-			final QuantityDistribution<Time> timeDist = this.periodDist
+			final QuantityDistribution<Time> timeDist = this.nationalFreqDist
 					.draw( dt )
 					.timeDist( freq -> this.distFact.createExponential(
 							DecimalUtil.divide( freq, this.scalingFactor ) ) );
