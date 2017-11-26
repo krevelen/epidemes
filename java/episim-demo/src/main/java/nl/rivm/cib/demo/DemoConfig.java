@@ -74,13 +74,19 @@ public interface DemoConfig extends YamlConfig
 
 	/** configuration key */
 	String MOTION_BASE = "mobility";
+	
+	/** configuration key */
+	String VACCINATION_BASE = "vaccination"; 
+	
+	/** configuration key */
+	String HESITANCY_BASE = "hesitancy"; 
 
 	@Key( REPLICATION_PREFIX + "setup-name" )
 	@DefaultValue( "pilot" )
 	String setupName();
 
 	@Key( REPLICATION_PREFIX + "random-seed" )
-	@DefaultValue( "NAN" )
+	@DefaultValue( "NaN" )
 	@ConverterClass( RandomSeedConverter.class )
 	Long randomSeed();
 

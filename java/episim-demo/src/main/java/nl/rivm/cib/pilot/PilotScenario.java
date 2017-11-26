@@ -66,6 +66,9 @@ import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.episim.model.SocialConnector;
 import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
+import nl.rivm.cib.json.HesitancyProfileJson;
+import nl.rivm.cib.json.RelationFrequencyJson;
+import nl.rivm.cib.json.HesitancyProfileJson.VaccineStatus;
 import nl.rivm.cib.pilot.dao.HHStatisticsDao;
 import nl.rivm.cib.pilot.dao.PilotConfigDao;
 import nl.rivm.cib.pilot.hh.HHAttitudeEvaluator;
@@ -75,9 +78,6 @@ import nl.rivm.cib.pilot.hh.HHAttractor.Broker;
 import nl.rivm.cib.pilot.hh.HHAttribute;
 import nl.rivm.cib.pilot.hh.HHMemberAttribute;
 import nl.rivm.cib.pilot.hh.HHMemberStatus;
-import nl.rivm.cib.pilot.json.HesitancyProfileJson;
-import nl.rivm.cib.pilot.json.HesitancyProfileJson.VaccineStatus;
-import nl.rivm.cib.pilot.json.RelationFrequencyJson;
 import tec.uom.se.ComparableQuantity;
 
 /**

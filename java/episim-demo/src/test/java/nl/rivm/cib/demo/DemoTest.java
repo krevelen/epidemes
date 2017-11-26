@@ -19,10 +19,16 @@
  */
 package nl.rivm.cib.demo;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
@@ -42,15 +48,18 @@ import io.coala.math3.Math3PseudoRandom;
 import io.coala.random.DistributionParser;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.PseudoRandom;
-import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
 import io.coala.time.SchedulerConfig;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
+import io.reactivex.Observable;
 import nl.rivm.cib.demo.DemoModel.Demical.Deme;
-import nl.rivm.cib.demo.DemoModel.Medical.SiteBroker;
-import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
+import nl.rivm.cib.demo.DemoModel.Epidemical.SiteBroker;
+import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
+import nl.rivm.cib.demo.DemoModel.Cultural.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
 import nl.rivm.cib.episim.cbs.TimeUtil;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 
 /**
  * {@link DemoTest}
@@ -72,17 +81,16 @@ public class DemoTest
 //		+ DemoConfig.CONFIG_YAML_FILE
 		final Map<String, String> argMap = ConfigUtil.cliArgMap( "test1=a",
 				"test=b" );
-		final String fileName = argMap.computeIfAbsent( CONF_ARG,
+		final String confFile = argMap.computeIfAbsent( CONF_ARG,
 				confArg -> System.getProperty( CONF_ARG,
 						ConfigUtil.cliConfBase( argMap,
 								DemoConfig.CONFIG_BASE_KEY,
-								DemoConfig.CONFIG_BASE_DIR,
-								"sim.yaml" ) ) );
+								DemoConfig.CONFIG_BASE_DIR, "sim.yaml" ) ) );
 
 		final DemoConfig config = ConfigFactory.create( DemoConfig.class,
 				// CLI args added first: override config resource and defaults 
 				argMap,
-				YamlUtil.flattenYaml( FileUtil.toInputStream( fileName ) ) );
+				YamlUtil.flattenYaml( FileUtil.toInputStream( confFile ) ) );
 		final ZonedDateTime offset = config.offset()
 				.atStartOfDay( TimeUtil.NL_TZ );
 		final long durationDays = Duration
@@ -90,13 +98,13 @@ public class DemoTest
 
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.POPULATION_BASE );
-		LOG.trace( "Deme config: {}", demeConfig );
+		LOG.debug( "Deme config: {}", demeConfig );
 		final JsonNode siteConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.LOCATION_BASE );
-		LOG.trace( "Site config: {}", siteConfig );
+		LOG.debug( "Site config: {}", siteConfig );
 		final JsonNode societyConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.MOTION_BASE );
-		LOG.trace( "Society config: {}", societyConfig );
+		LOG.debug( "Society config: {}", societyConfig );
 		final LocalConfig binderConfig = LocalConfig.builder().withProvider(
 				Scheduler.class, Dsol3Scheduler.class,
 				MapBuilder.unordered()
@@ -109,18 +117,22 @@ public class DemoTest
 				// add data layer: static caching
 				.withProvider( DataLayer.class, DataLayer.StaticCaching.class )
 				// add deme to create households/persons
-				.withProvider( Deme.class, SimpleDeme.class, demeConfig )
+				.withProvider( Deme.class, SimplePersonBroker.class,
+						demeConfig )
 				// add site broker for regions/sites/transmission
 				.withProvider( SiteBroker.class, SimpleSiteBroker.class,
 						siteConfig )
 				// add society broker for groups/gatherings
 				.withProvider( SocietyBroker.class, SimpleSocietyBroker.class,
 						societyConfig )
-				// TODO impl social/mental influences
+				.withProvider( PeerBroker.class, SimplePeerBroker.class,
+						societyConfig )
+				.withProvider( HealthBroker.class, SimpleHealthBroker.class,
+						societyConfig )
 
 				.build();
 
-		// FIXME workaround until seed becomes configurable in coala
+		// FIXME workaround until seed becomes configurable from coala
 		final long seed = config.randomSeed();
 		final LocalBinder binder = binderConfig
 				.createBinder( MapBuilder.<Class<?>, Object>unordered()
@@ -131,13 +143,76 @@ public class DemoTest
 														seed ) ) )
 						.build() );
 
-		LOG.trace( "Constructing model (seed: {}, config: {})...", seed,
+		LOG.debug( "Constructing model (seed: {}, config: {})...", seed,
 				binderConfig.toJSON() );
-		final Scenario model = binder.inject( SimpleScenario.class );
+		final SimpleDemoScenario model = binder
+				.inject( SimpleDemoScenario.class );
 
-		LOG.trace( "Starting..." );
+		final TreeSet<String> regNames = new TreeSet<>();
+		final List<MSEIRS.Compartment> cols = Arrays.asList(
+				MSEIRS.Compartment.SUSCEPTIBLE, MSEIRS.Compartment.INFECTIVE,
+				MSEIRS.Compartment.RECOVERED, MSEIRS.Compartment.VACCINATED );
+		final String sep = ";", eol = "\r\n",
+				sirFile = "daily-" + System.currentTimeMillis() + ".csv";
+		Observable.using( () -> new FileWriter( sirFile, false ),
+				fw -> model.emitEpidemicStats( "0 0 12 ? * *" ).map( homeSIR ->
+				{
+					if( regNames.isEmpty() )
+					{
+						regNames.addAll( homeSIR.keySet() );
+						fw.write( "ActualTime" + sep + "VirtualTime" + sep
+								+ String.join( sep + " ",
+										regNames.stream()
+												.flatMap( reg -> cols.stream()
+														.map( c -> reg + '_'
+																+ c.name()
+																		.charAt( 0 ) ) )
+												.toArray( String[]::new ) )
+								+ eol );
+						fw.flush();
+					}
+					fw.write( DateTimeFormatter.ISO_LOCAL_DATE_TIME
+							.format( ZonedDateTime.now() )
+							+ sep
+							+ model.scheduler()
+									.now( DateTimeFormatter.ISO_LOCAL_DATE_TIME )
+							+ sep
+							+ String.join( sep + " ", regNames.stream().flatMap(
+									reg -> cols.stream().map( c -> homeSIR
+											.computeIfAbsent( reg,
+													k -> new HashMap<>() )
+											.computeIfAbsent( c,
+													k -> Long.valueOf( 0 ) )
+											.toString() ) )
+									.toArray( String[]::new ) )
+							+ eol );
+					fw.flush();
+					return homeSIR;
+				} ), fw ->
+				{
+					fw.close();
+					LOG.debug( "SIR stats written to {}", sirFile );
+				} )
+				.subscribe( homeSIR -> LOG.debug( "t={} SIR:{ {} }",
+						model.scheduler()
+								.now( DateTimeFormatter.ISO_LOCAL_DATE_TIME ),
+						String.join( ", ", regNames.stream()
+								.map( reg -> reg + ":[" + String.join( ",",
+										cols.stream().map( c -> homeSIR
+												.computeIfAbsent( reg,
+														k -> new HashMap<>() )
+												.computeIfAbsent( c,
+														k -> Long.valueOf( 0 ) )
+												.toString() )
+												.toArray( String[]::new ) )
+										+ "]" )
+								.toArray( String[]::new ) ) ),
+						Throwable::printStackTrace );
+
+		LOG.debug( "Starting..." );
 		model.run();
 
 		LOG.info( "Demo test done" );
 	}
+
 }

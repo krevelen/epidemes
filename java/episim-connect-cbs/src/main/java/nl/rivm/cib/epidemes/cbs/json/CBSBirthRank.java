@@ -54,6 +54,11 @@ public enum CBSBirthRank implements CBSJsonProperty
 		return ordinal();
 	}
 
+	public CBSBirthRank minusOne()
+	{
+		return values()[Math.max( 0, ordinal() - 1 )];
+	}
+
 	public CBSBirthRank plusOne()
 	{
 		return values()[Math.min( values().length - 1, ordinal() + 1 )];

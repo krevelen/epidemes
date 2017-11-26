@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import org.ujmp.core.Matrix;
 
 import io.coala.config.Jsonifiable;
-import nl.rivm.cib.pilot.json.RelationFrequencyJson;
+import nl.rivm.cib.json.RelationFrequencyJson;
 
 /**
  * {@link HHAttribute}

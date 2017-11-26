@@ -20,6 +20,7 @@
 package nl.rivm.cib.demo;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
@@ -39,7 +39,6 @@ import com.eaio.uuid.UUID;
 
 import io.coala.data.Table.Property;
 import io.coala.data.Table.Tuple;
-import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.QuantityUtil;
 import io.coala.time.Instant;
@@ -47,7 +46,6 @@ import io.coala.time.Proactive;
 import io.coala.time.TimeUnits;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
@@ -76,6 +74,17 @@ public interface DemoModel
 		public static HouseholdPosition ofChildIndex( final int rank )
 		{
 			return rank < 3 ? values()[2 + rank] : CHILDMORE;
+		}
+
+		/**
+		 * @param ppPos
+		 * @return
+		 */
+		public HouseholdPosition shift( final HouseholdPosition missing )
+		{
+			return missing == REFERENT ? (this == PARTNER ? REFERENT : this)
+					: (!isAdult() && ordinal() > missing.ordinal()
+							? values()[ordinal() - 1] : this);
 		}
 	}
 
@@ -132,8 +141,9 @@ public interface DemoModel
 		{
 		}
 
-		class HomeSiteRef extends AtomicReference<Object>
-			implements Property<Object>
+		@SuppressWarnings( "rawtypes" )
+		class HomeSiteRef extends AtomicReference<Comparable>
+			implements Property<Comparable>
 		{
 		}
 
@@ -168,7 +178,12 @@ public interface DemoModel
 
 		class HouseholdTuple extends Tuple
 		{
-
+			@Override
+			@SuppressWarnings( "rawtypes" )
+			public List<Class<? extends Property>> properties()
+			{
+				return PROPERTIES;
+			}
 		}
 	}
 
@@ -205,11 +220,11 @@ public interface DemoModel
 		{
 		}
 
-		@SuppressWarnings( "rawtypes" )
-		class SiteRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
+//		@SuppressWarnings( "rawtypes" )
+//		class SiteRef extends AtomicReference<Comparable>
+//			implements Property<Comparable>
+//		{
+//		}
 
 		@SuppressWarnings( "rawtypes" )
 		class HomeRegionRef extends AtomicReference<Comparable>
@@ -238,12 +253,18 @@ public interface DemoModel
 				// list frequently accessed fields first
 				EpiCompartment.class, HouseholdRef.class, MemberPosition.class,
 				Birth.class, HomeRegionRef.class, HomeSiteRef.class,
-				SiteRef.class, EpiResistance.class, Male.class,
-				CultureRef.class, PersonSeq.class );
+//				SiteRef.class, 
+				EpiResistance.class, Male.class, CultureRef.class,
+				PersonSeq.class );
 
 		class PersonTuple extends Tuple
 		{
-
+			@Override
+			@SuppressWarnings( "rawtypes" )
+			public List<Class<? extends Property>> properties()
+			{
+				return PROPERTIES;
+			}
 		}
 	}
 
@@ -273,7 +294,12 @@ public interface DemoModel
 
 		class RegionTuple extends Tuple
 		{
-
+			@Override
+			@SuppressWarnings( "rawtypes" )
+			public List<Class<? extends Property>> properties()
+			{
+				return PROPERTIES;
+			}
 		}
 	}
 
@@ -329,6 +355,12 @@ public interface DemoModel
 
 		class SiteTuple extends Tuple
 		{
+			@Override
+			@SuppressWarnings( "rawtypes" )
+			public List<Class<? extends Property>> properties()
+			{
+				return PROPERTIES;
+			}
 
 		}
 	}
@@ -389,7 +421,12 @@ public interface DemoModel
 
 		class SocietyTuple extends Tuple
 		{
-
+			@Override
+			@SuppressWarnings( "rawtypes" )
+			public List<Class<? extends Property>> properties()
+			{
+				return PROPERTIES;
+			}
 		}
 	}
 
@@ -403,6 +440,16 @@ public interface DemoModel
 		EpiActor reset() throws Exception;
 
 		Observable<? extends EpiFact> events();
+
+		default LocalDate dt()
+		{
+			return dt( now() );
+		}
+
+		default LocalDate dt( final Instant t )
+		{
+			return t.toJava8( scheduler().offset().toLocalDate() );
+		}
 
 		default Pretty prettyDate( final Instant t )
 		{
@@ -425,25 +472,51 @@ public interface DemoModel
 //							.toJava8( scheduler().offset().toLocalDate() ));
 //		}
 
-		default void logError( final Throwable e )
-		{
-			LogUtil.getLogger( EpiActor.class ).error( "Problem", e );
-		}
+//		default void logError( final Throwable e )
+//		{
+//			LogUtil.getLogger( EpiActor.class ).error( "Problem", e );
+//		}
 	}
+
+//	interface Cultural
+//	{
+//		// group-related variance/subcultures, in social and medical behaviors 
+//
+//		interface Person extends EpiActor
+//		{
+//			// accepts all requests...
+//		}
+//	}
 
 	interface Cultural
 	{
-		// group-related variance/subcultures, in social and medical behaviors 
+		// social/mental peer pressure networks, dynamics
 
-		interface Person extends EpiActor
+		class GatherFact extends EpiFact
 		{
-			// accepts all requests...
-		}
-	}
+			public Object siteRef = NA;
+			public Quantity<Time> duration = null;
+			public List<Object> participants = Collections.emptyList();
 
-	interface Social
-	{
-		// peer pressure networks, dynamics
+			public GatherFact withSite( final Object siteRef )
+			{
+				this.siteRef = siteRef;
+				return this;
+			}
+
+			public GatherFact withDuration( final Quantity<Time> duration )
+			{
+				this.duration = duration;
+				return this;
+			}
+
+			public GatherFact
+				withParticipants( final List<Object> participants )
+			{
+				this.participants = participants;
+				return this;
+			}
+		}
 
 		/** organizes meetings at a location */
 		interface SocietyBroker extends EpiActor
@@ -451,17 +524,26 @@ public interface DemoModel
 			@Override
 			SocietyBroker reset() throws Exception;
 
+			@Override
+			Observable<? extends GatherFact> events();
+
 //			Object join( LifePurpose purpose, PersonTuple person );
 
-			Map<String, Object> join( PersonTuple person );
+//			Map<String, Object> join( PersonTuple person );
 
+//			void abandon( final PersonTuple person, final Object... socKeys );
+
+		}
+
+		interface PeerBroker extends EpiActor
+		{
+			// ingroup/peer-to-peer/media/authority advice
 		}
 
 	}
 
 	interface Medical
 	{
-		// transmission, intervention, information, decisions, vaccination
 
 		class EpidemicFact extends EpiFact
 		{
@@ -493,26 +575,38 @@ public interface DemoModel
 			}
 		}
 
+		interface HealthBroker extends EpiActor
+		{
+			// immunization
+
+			@Override
+			Observable<? extends EpidemicFact> events();
+		}
+	}
+
+	interface Epidemical
+	{
+		// TODO separate concerns: pathogen from location
+
+		// transmission, intervention, information, decisions, vaccination
+
 		interface SiteBroker extends EpiActor
 		{
 			@Override
 			SiteBroker reset() throws Exception;
 
-			@Override
-			Observable<? extends EpidemicFact> events();
-
-			Object findHome( String regionRef );
+//			Object findHome( String regionRef );
 
 			SiteTuple findNearby( String lifeRole, Object originSiteRef );
-
-			void convene( Object siteRef, Quantity<Time> dt,
-				Stream<Object> participants, Runnable onAdjourn );
 
 			/**
 			 * @param homeSiteRef
 			 * @return
 			 */
 			double[] positionOf( Object siteRef );
+
+//			void populateHome( Object homeRef,
+//				Map<MSEIRS.Compartment, List<Object>> sirDelta );
 		}
 
 	}

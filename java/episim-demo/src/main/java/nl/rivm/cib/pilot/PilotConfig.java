@@ -61,13 +61,13 @@ import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.locate.Region;
 import nl.rivm.cib.episim.model.locate.Region.ID;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
+import nl.rivm.cib.json.HesitancyProfileJson;
+import nl.rivm.cib.json.RelationFrequencyJson;
+import nl.rivm.cib.json.HesitancyProfileJson.HesitancyDimension;
 import nl.rivm.cib.pilot.hh.HHAttitudeEvaluator;
 import nl.rivm.cib.pilot.hh.HHAttitudePropagator;
 import nl.rivm.cib.pilot.hh.HHAttractor;
 import nl.rivm.cib.pilot.hh.HHAttribute;
-import nl.rivm.cib.pilot.json.HesitancyProfileJson;
-import nl.rivm.cib.pilot.json.HesitancyProfileJson.HesitancyDimension;
-import nl.rivm.cib.pilot.json.RelationFrequencyJson;
 import tec.uom.se.ComparableQuantity;
 
 /**

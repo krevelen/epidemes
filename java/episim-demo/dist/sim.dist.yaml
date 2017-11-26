@@ -6,121 +6,254 @@
 javax:
   persistence:
     jdbc:
-      url: jdbc:h2:~/morphdat/h2_hhdb;AUTO_SERVER=TRUE
+      url: jdbc:h2:~/pilotdat/h2_hhdb;AUTO_SERVER=TRUE
       user: sa
       password: sa
       
 scenario:
   # anything below is persisted, except for YAML comments
-  comment: blabla
+  __stored_comment__: blabla
   replication:
-    run-name: run1
-    duration-period: P18M
-    offset-date: 2012-06-01
+    setup-name: run1
+    duration-period: P7M
+    offset-date: 2012-12-17
     statistics:
       recurrence: 1 0 0 ? * MON *
 #      db-enabled: true
-  population:
-    size: 10000
-    hh-type-dist: const(SOLO_1KID)
-    hh-ref-age-dist: uniform(20;25)
-    hh-leavehome-age: 5 yr
-    hh-migrate-rate: .02 annual
-#   vaccination occasions recur to hesitant parents of susceptible children
-    vaccination:
-      # http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html
-      # e.g.: 0 0 0 7 * ? * # each 7th day of the month
-      occasion-recurrence: 0 0 12 1 1/2 ? 2013-2020
-      occasion-utility-dist: const(0.5)
-      occasion-clarity-dist: const(0.5)
-      occasion-affinity-dist: const(0.5)
-      occasion-proximity-dist: const(0.5)
-    hesitancy:
-      # TODO include in hesitancy profile sample?
-      calculation-dist: const(0.5)
-      # incl. covariate sample indices
-      profiles: conf/hesitancy-univariate.json
-      profile-sample: conf/hesitancy-initial.json
-      relation-frequencies: conf/relation-frequency.json
-      evaluator: nl.rivm.cib.morphine.household.HHAttitudeEvaluator$Average
-      propagator: nl.rivm.cib.morphine.household.HHAttitudePropagator$Shifted
-      propagator-recurrence: 0 0 0 ? * MON *
-      # avg. no. family + friends + neighbors
-      social-network-degree: 30
-      # 0 = lattice, 1 = random network
-      social-network-beta: 0.5
-      # fraction of 'similar' connections
-      social-assortativity: 0.85
-      # whether school is 'similar'
-      school-assortativity-dist: bernoulli(0.75) 
-      school-capacities: 
-        0-4: 50
-        4-12: 100
-        12-20: 200
-        
-      attractor-factory: nl.rivm.cib.morphine.household.HHAttractor$Factory$SimpleBinding
-      attractors:
-      # local pressure, mainly from e.g. Health Services
-        sec-reg:
-          religious: 0
-          alternative: 0
-          confidence: 1
-          complacency: 0
-          # relative impact per it., >1: outweigh soc. network
-          impression-inpeer-weight: 1
-          impression-outpeer-weight: 1
-          impression-self-multiplier: 100
-          impression-attractor-multiplier: 1
-          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
-      # local pressure, mainly from e.g. Protestantists
-        rel-reg:
-          religious: 1
-          alternative: 0
-          confidence: .5
-          complacency: 1
-          # 1 = relative impact per it., >1: outweigh soc. network
-          impression-inpeer-weight: 1
-          impression-outpeer-weight: 1
-          impression-self-multiplier: 100
-          impression-attractor-multiplier: 1
-          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
-          schedule: 
-          # spike monthly and adjust every 2 days 5x toward original values
-          - occurrence: 0 0 0 1 * ? *
-            period: P2D
-            series:
-              confidence:  [.5, .6, .7, .8, .9, 1]
-              complacency: [.5, .4, .3, .2, .1, 0]
-      # local pressure, mainly from e.g. Traditionalists
-        sec-alt:
-          religious: 0
-          alternative: 1
-          confidence: 0
-          complacency: 1
-          # 1 = relative impact per it., >1: outweigh soc. network
-          impression-inpeer-weight: 1
-          impression-outpeer-weight: 1
-          impression-self-multiplier: 100
-          impression-attractor-multiplier: 1
-          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
-      # local pressure, mainly from e.g. Mixture
-        rel-alt:
-          religious: 1
-          alternative: 1
-          confidence: .5
-          complacency: .5
-          # 1 = relative impact per it., >1: outweigh soc. network
-          impression-inpeer-weight: 1
-          impression-outpeer-weight: 1
-          impression-self-multiplier: 100
-          impression-attractor-multiplier: 1
-          type: nl.rivm.cib.morphine.household.HHAttractor$SignalSchedule
-          # schedule disturbances by triggering series of new values
-          schedule: 
-          # spike monthly and adjust every 2 days 5x toward original values
-          - occurrence: 0 0 0 1 * ? *
-            period: P2D
-            series:
-              confidence:  [1, .9, .8, .7, .6, .5]
-              complacency: [0, .1, .2, .3, .4, .5]
-  
+  demography:
+    population-size: 100000
+#    hh-type-dist: const(SOLO_1KID)
+#    hh-ref-age-dist: uniform(20;25)
+#    hh-leavehome-age: 5 yr
+#    hh-migrate-rate: .02 annual
+  geography:
+    broker-factory: nl.rivm.cib.pilot.hh.HHGeography$Factory
+    regional-resolution: MUNICIPALITY
+    region-fallback-ref: GM0363
+    region-mapping-data: ${config.base}83287NED.json
+    region-density-data: ${config.base}pc6_buurt.json
+    weight-proximity: 1
+    weight-assortativity: 1
+  mobility:
+    motor-factory: nl.rivm.cib.episim.model.SocialGatherer$Factory$SimpleBinding
+    motors:
+      # week days for (assortative?) daycare/school/work/centre @office
+      career: 
+        convene-timing: 0 0 0 ? * MON-FRI
+        duration-dist: const(8 hr)
+      # saturdays for (assortative/local) sports/hobby @club
+      leisure: 
+        convene-timing: 0 0 0 ? * SAT
+        duration-dist: const(3 hr)
+        assortative: true
+      # sundays for (random/regional) relatives @church/matriarch/patriarch
+      family: 
+        convene-timing: 0 0 0 ? * SUN
+        duration-dist: const(3 hr)
+        proximity-weight: 1
+        assortativity-weight: 1
+  pathology:
+    pathogen-factory: nl.rivm.cib.pilot.Pathogen$Factory$SimpleBinding
+    # measles
+    MV1:
+      # force of infection (S->E): t=?, viral shedding -> respiratory/surface contact 
+      # infection pressure function of #infectious vs. #non-infectious
+      pathogen-type: nl.rivm.cib.pilot.Pathogen$MSEIR
+      pressure-type: nl.rivm.cib.episim.model.disease.infection.InfectionPressure$Proportional
+      # invasion period (S->E) the duration of 'exposure resistance' per individual
+      passive-period-dist: tria( 10 day; 20 day; 30 day )
+      # latent period (E->I)
+      #  - t+0, onset around t+14 but infectious already 4 days before
+      #  - exp(0.09) : 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
+      latent-period-dist: tria( 1 day; 10 day; 17 day )
+      # recovery/infectious period (I->R) = viral shedding until recovery
+      #  - exp(.16) : 1/10d (6-14d) = prodromal fever 3-7 days + rash 4-7days
+      #  - t+14-4, [onset-4,onset+4] 
+      shedding-period-dist: tria( 0 day; 8 day; 10 day )
+      # wane period (R->S) = duration of immunity, e.g. forever immune
+      wane-period-dist: const( 1000 yr )
+      # incubation period (E->C, sub->clinical symptoms)
+      #  - exp(0.07) : 1/14 (7-21 days, says CDC)
+      #  - e.g. t+7-21 days (CDC) rash, fever, Koplik spots, ... 
+      #  - e.g. t+9-12 days (https://www.wikiwand.com/en/Incubation_period)
+      incubation-period-dist: tria( 7 day; 11 day; 21 day )
+      # symptom/clinical period (C->R, normal/asymptomatic)
+      symptom-period-dist: tria( 4 day; 5 day; 7 day )
+  # vaccination occasions recur to hesitant parents of susceptible children
+  vaccination:
+    invitation-age: "[.5 yr; 4 yr)"
+    # http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html
+    # e.g.: 0 0 0 7 * ? *   = at midnight on each 7th day of the month
+    occasion-recurrence: 0 0 12 1 1/2 ? 2013-2020
+    occasion-utility-dist: const(0.5)
+    occasion-clarity-dist: const(0.5)
+    occasion-affinity-dist: const(0.5)
+    occasion-proximity-dist: const(0.5)
+  hesitancy:
+    # TODO include in hesitancy profile sample?
+    calculation-dist: const(0.5)
+    # incl. covariate sample indices
+    profiles: ${config.base}hesitancy-univariate.json
+    profile-sample: ${config.base}hesitancy-initial.json
+    relation-frequencies: ${config.base}relation-frequency.json
+    evaluator: nl.rivm.cib.pilot.hh.HHAttitudeEvaluator$Average
+    propagator: nl.rivm.cib.pilot.hh.HHAttitudePropagator$Shifted
+    propagator-recurrence: 0 0 0 ? * MON *
+    # avg. no. family + friends + neighbors actually applying (peer) pressure
+    social-network-degree: 10
+    # 0 = lattice, 1 = random network
+    social-network-beta: 0.5
+    # fraction of 'similar' connections
+    social-assortativity: 0.85
+    # whether school is 'similar'
+    school-assortativity-dist: bernoulli(0.75) 
+    school-capacities: 
+      0-4: 50
+      4-12: 100
+      12-20: 200
+    attractor-factory: nl.rivm.cib.pilot.hh.HHAttractor$Factory$SimpleBinding
+    attractors:
+    # local pressure, mainly from e.g. Health Services
+      sec-reg:
+        religious: 0
+        alternative: 0
+        confidence: 1
+        complacency: 0
+        # relative impact per it., >1: outweigh soc. network
+        impression-inpeer-weight: 1
+        impression-outpeer-weight: 1
+        impression-self-multiplier: 100
+        impression-attractor-multiplier: 1
+#    # local pressure, mainly from e.g. Protestantists
+#      rel-reg:
+#        religious: 1
+#        alternative: 0
+#        confidence: .5
+#        complacency: 1
+#        # 1 = relative impact per it., >1: outweigh soc. network
+#        impression-inpeer-weight: 1
+#        impression-outpeer-weight: 1
+#        impression-self-multiplier: 100
+#        impression-attractor-multiplier: 1
+##        schedule: 
+##        # spike monthly and adjust every 2 days 5x toward original values
+##        - occurrence: 0 0 0 1 * ? *
+##          period: P2D
+##          series:
+##            confidence:  [.5, .6, .7, .8, .9, 1]
+##            complacency: [.5, .4, .3, .2, .1, 0]
+#    # local pressure, mainly from e.g. Traditionalists
+#      sec-alt:
+#        religious: 0
+#        alternative: 1
+#        confidence: 0
+#        complacency: 1
+#        # 1 = relative impact per it., >1: outweigh soc. network
+#        impression-inpeer-weight: 1
+#        impression-outpeer-weight: 1
+#        impression-self-multiplier: 100
+#        impression-attractor-multiplier: 1
+#    # local pressure, mainly from e.g. Mixture
+#      rel-alt:
+#        religious: 1
+#        alternative: 1
+#        confidence: .5
+#        complacency: .5
+#        # 1 = relative impact per it., >1: outweigh soc. network
+#        impression-inpeer-weight: 1
+#        impression-outpeer-weight: 1
+#        impression-self-multiplier: 100
+#        impression-attractor-multiplier: 1
+##        # schedule disturbances by triggering series of new values
+##        schedule: 
+##        # spike monthly and adjust every 2 days 5x toward original values
+##        - occurrence: 0 0 0 1 * ? *
+##          period: P2D
+##          series:
+##            confidence:  [1, .9, .8, .7, .6, .5]
+##            complacency: [0, .1, .2, .3, .4, .5]
+
+
+#binder:
+#  providers:
+#
+## the Scheduler implementations
+#  - impl: "io.coala.dsol3.Dsol3Scheduler"
+#    bindings:
+#    - type: "io.coala.time.Scheduler"
+#        
+## the pseudo-random implementations
+#  - impl: "io.coala.math3.Math3PseudoRandom$MersenneTwisterFactory"
+#    bindings:
+#    - type: "io.coala.random.PseudoRandom$Factory"
+#  - impl: "io.coala.math3.Math3ProbabilityDistribution$Factory"
+#    bindings:
+#    - type: "io.coala.random.ProbabilityDistribution$Factory"
+#  - impl: "io.coala.random.DistributionParser"
+#    bindings:
+#    - type: "io.coala.random.ProbabilityDistribution$Parser"
+#
+## the enterprise ontology implementation
+#  - impl: "io.coala.enterprise.Actor$Factory$LocalCaching"
+#    bindings:
+#    - type: "io.coala.enterprise.Actor$Factory"
+#  - impl: "io.coala.enterprise.Transaction$Factory$LocalCaching"
+#    bindings:
+#    - type: "io.coala.enterprise.Transaction$Factory"
+#  - impl: "io.coala.enterprise.Fact$Factory$SimpleProxies"
+#    bindings:
+#    - type: "io.coala.enterprise.Fact$Factory"
+#  - impl: "io.coala.enterprise.FactBank$SimpleCache"
+#    bindings:
+#    - type: "io.coala.enterprise.FactBank"
+#  - impl: "io.coala.enterprise.FactExchange$SimpleBus"
+#    bindings:
+#    - type: "io.coala.enterprise.FactExchange"
+
+# person organization type
+#person:
+#  healthAdvisorName: asdasd
+
+#  - impl: "nl.rivm.cib.morphine.MorphineScenario"
+#    bindings:
+#    - type: "io.coala.time.Scenario"
+#    params:
+#      population:
+#        size: 100000
+#      culture:
+#        type: nl.rivm.cib.morphine.culture.SingleCulture
+#        params:
+#        # n/a
+#      attitude:
+#        type: nl.rivm.cib.morphine.opinion.SmallWorld
+#        params:
+#        # n/a
+#      disease:
+#        type: nl.rivm.cib.morphine.contact.SingleDisease
+#        params:
+#        # n/a
+#      treatment:
+#        type: nl.rivm.cib.morphine.vaccine.UniversalHealthCare
+#        params:
+#        # n/a, MunicipalHealthCare
+
+#populations:
+#  secu_regu:
+#    generators:
+#      adversity:
+#        interval: "1 wk"
+#        frequency: "poisson(10)"
+#    transition:
+#      # probability of offspring switching to niche of secondary parent 
+#      # offspring: [ 1.0, 0.1, 0.0, 0.0 ]
+#      # probability of adverse event leading to niche transition
+#      adversity: [ 0.9, 0.0, 0.1, 0.0 ]
+#  secu_alto:
+#    transition:
+#      birth: "[0,1,0,0]"
+#  reli_regu:
+#    transition:
+#      birth: "[0,0,1,0]"
+#  reli_alto:
+#    transition:
+#      birth: "[0,0,0,1]"

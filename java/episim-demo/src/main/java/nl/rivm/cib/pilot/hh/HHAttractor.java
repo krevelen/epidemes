@@ -39,8 +39,8 @@ import io.coala.exception.Thrower;
 import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import nl.rivm.cib.episim.model.JsonSchedulable;
-import nl.rivm.cib.pilot.json.HesitancyProfileJson;
-import nl.rivm.cib.pilot.json.HesitancyProfileJson.Category;
+import nl.rivm.cib.json.HesitancyProfileJson;
+import nl.rivm.cib.json.HesitancyProfileJson.Category;
 
 /**
  * {@link HHAttractor} adds special proactive entities acting as special

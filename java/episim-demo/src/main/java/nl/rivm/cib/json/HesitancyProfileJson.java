@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.pilot.json;
+package nl.rivm.cib.json;
 
 import java.io.InputStream;
 import java.math.BigDecimal;

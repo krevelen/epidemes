@@ -22,7 +22,6 @@ package nl.rivm.cib.episim.model;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.NavigableMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -46,12 +45,12 @@ import io.coala.name.Identified;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.Duration;
-import io.coala.time.Expectation;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
 import io.coala.time.Timing;
 import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import tec.uom.se.ComparableQuantity;
 
 /**
@@ -180,51 +179,27 @@ public interface SocialGatherer
 			return fromConfig( ASSORTATIVE_KEY, false );
 		}
 
+		private Subject<Instant> summonings = null;
+
+		private QuantityDistribution<Time> dist = null;
+
 		@Override
 		public Observable<Quantity<Time>> summon()
 		{
-			try
+			if( this.summonings == null ) try
 			{
+				this.dist = this.distParser.parseQuantity(
+						fromConfigNonEmpty( DURATION_KEY ), Time.class );
+				this.summonings = PublishSubject.create();
 				final String cron = fromConfigNonEmpty( TIMING_KEY );
-				final Instant offset = now();
-//				LOG.trace( "repeating '{}' as of {}", cron, offset );
 				final Iterable<Instant> timing = Timing.valueOf( cron )
-						.offset( offset.toJava8( scheduler().offset() ) )
-						.iterate( offset );
-				final QuantityDistribution<Time> dist = this.distParser
-						.parseQuantity( fromConfigNonEmpty( DURATION_KEY ),
-								Time.class );
-				return Observable.create( sub ->
-				{
-					final AtomicReference<Expectation> next = new AtomicReference<>();
-					atEach( timing, t -> sub.onNext( dist.draw() ) ).subscribe(
-							next::set, sub::onError, sub::onComplete );
-					sub.setDisposable( new Disposable()
-					{
-						private boolean disposed = false;
-
-						@Override
-						public boolean isDisposed()
-						{
-							return this.disposed;
-						}
-
-						@Override
-						public void dispose()
-						{
-							next.updateAndGet( exp ->
-							{
-								if( exp != null ) exp.remove();
-								return null;
-							} );
-							this.disposed = true;
-						}
-					} );
-				} );
+						.iterate( scheduler() );
+				atEach( timing, this.summonings::onNext );
 			} catch( final Exception e )
 			{
 				return Observable.error( e );
 			}
+			return this.summonings.map( t -> this.dist.draw() );
 		}
 	}
 

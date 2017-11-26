@@ -87,8 +87,9 @@ public class TimeUtil
 		else if( range.gt( offsets.get( last ) ) ) // range starts after last 
 			result.put( offsets.get( last ), last );
 		else
-			for( int i = 0; i < offsets.size(); i++ )
-				if( range.contains( offsets.get( i ) ) )
+			for( int i = 0, n = offsets.size() - 1; i < n; i++ )
+				if( range.overlaps(
+						Range.of( offsets.get( i ), offsets.get( i + 1 ) ) ) )
 					result.put( offsets.get( i ), i );
 
 		return result;

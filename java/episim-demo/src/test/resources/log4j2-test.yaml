@@ -12,10 +12,14 @@ Configuration:
 
   Loggers:
     Root:
-      level: trace
+      level: debug
       AppenderRef:
         ref: Console
     Logger:
+#      - name: nl.rivm
+#        level: info
+#      - name: io.coala
+#        level: info
       - name: javax.management
         level: warn
       - name: com.google.inject

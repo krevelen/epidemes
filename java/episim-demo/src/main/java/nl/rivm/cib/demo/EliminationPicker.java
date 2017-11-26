@@ -64,12 +64,13 @@ public class EliminationPicker implements Timed
 		this.timed = scheduler;
 		this.rng = rng;
 		this.data = data;
+		
 		this.index = new IndexPartition( this.data, scheduler::fail );
 		this.index.groupBy( Persons.HomeRegionRef.class );
 		this.index.groupBy( Persons.Birth.class,
-				IntStream.range( 0, 100 /* TODO plus sim length (yr) */ )
+				IntStream.range( -20, 0 /* TODO plus sim length (yr) */ )
 						.mapToObj( dt -> now()
-								.subtract( Duration.of( dt, TimeUnits.YEAR ) )
+								.add( Duration.of( 5 * dt, TimeUnits.YEAR ) )
 								.decimal() ) );
 //				this.picker = Table.Picker.of( data, rng, ( v, p, d ) ->
 //				{
@@ -98,10 +99,11 @@ public class EliminationPicker implements Timed
 //				LOG.trace( "Picking from {} persons: {}",
 //						this.picker.index().keys().size(),
 //						this.picker.index() );
+//		LOG.trace( "Elimination pick from {}", this.index );
 		return this.data.select(
 				this.rng.nextElement( this.index.nearestKeys( ( p, d ) ->
 				{
-					LOG.trace( "Death deviate: [{};{}] widened to {}:{}",
+					LOG.trace( "Death [{};{}] deviate: widened to {}:{}",
 							regRef, QuantityUtil.pretty( age, 3 ),
 							p.getSimpleName(), d );
 					return true;
