@@ -70,8 +70,6 @@ public class SimpleSiteBroker implements SiteBroker
 		@Key( DemoConfig.CONFIG_BASE_KEY )
 		String configBase();
 
-		double beta();
-
 	}
 
 	@InjectConfig
@@ -198,14 +196,6 @@ public class SimpleSiteBroker implements SiteBroker
 //	}
 
 	private static final String HOME_FUNCTION = "home";
-
-	@Override
-	public double[] positionOf( Object siteRef )
-	{
-		final SiteTuple site = this.sites.get( siteRef );
-		return new double[] { site.get( Sites.Latitude.class ),
-				site.get( Sites.Longitude.class ) };
-	}
 
 	private final AtomicLong siteSeq = new AtomicLong();
 

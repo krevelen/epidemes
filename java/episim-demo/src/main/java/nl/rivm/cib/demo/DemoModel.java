@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -40,17 +41,25 @@ import com.eaio.uuid.UUID;
 import io.coala.data.Table.Property;
 import io.coala.data.Table.Tuple;
 import io.coala.log.LogUtil.Pretty;
+import io.coala.math.Extreme;
 import io.coala.math.QuantityUtil;
+import io.coala.math.Range;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.TimeUnits;
+import io.coala.util.Compare;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
+import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
+import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
+import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
+import tec.uom.se.ComparableQuantity;
 
 /**
  * {@link DemoModel} implements the Epidemes enterprise ontology
@@ -61,32 +70,6 @@ import nl.rivm.cib.episim.model.person.HouseholdComposition;
 public interface DemoModel
 {
 	Long NA = -1L;
-
-	enum HouseholdPosition
-	{
-		REFERENT, PARTNER, CHILD1, CHILD2, CHILD3, CHILDMORE;
-
-		public boolean isAdult()
-		{
-			return ordinal() < 2;
-		}
-
-		public static HouseholdPosition ofChildIndex( final int rank )
-		{
-			return rank < 3 ? values()[2 + rank] : CHILDMORE;
-		}
-
-		/**
-		 * @param ppPos
-		 * @return
-		 */
-		public HouseholdPosition shift( final HouseholdPosition missing )
-		{
-			return missing == REFERENT ? (this == PARTNER ? REFERENT : this)
-					: (!isAdult() && ordinal() > missing.ordinal()
-							? values()[ordinal() - 1] : this);
-		}
-	}
 
 	interface Cultures
 	{
@@ -190,31 +173,64 @@ public interface DemoModel
 	@SuppressWarnings( "serial" )
 	interface Persons
 	{
+
+		enum HouseholdPosition
+		{
+			REFERENT, PARTNER, CHILD1, CHILD2, CHILD3, CHILDMORE;
+
+			public boolean isAdult()
+			{
+				return ordinal() < 2;
+			}
+
+			public static HouseholdPosition ofChildIndex( final int rank )
+			{
+				return rank < 3 ? values()[2 + rank] : CHILDMORE;
+			}
+
+			/**
+			 * @param ppPos
+			 * @return
+			 */
+			public HouseholdPosition shift( final HouseholdPosition missing )
+			{
+				return missing == REFERENT ? (this == PARTNER ? REFERENT : this)
+						: (!isAdult() && ordinal() > missing.ordinal()
+								? values()[ordinal() - 1] : this);
+			}
+		}
+
+		/** person's sequence/serial number */
 		class PersonSeq extends AtomicReference<Long> implements Property<Long>
 		{
 			// increases monotone at every new initiation/birth/immigration/...
 		}
 
-		class HouseholdRef extends AtomicReference<Object>
-			implements Property<Object>
-		{
-		}
-
+		/** reference of person's culture */
 		@SuppressWarnings( "rawtypes" )
 		class CultureRef extends AtomicReference<Comparable>
 			implements Property<Comparable>
 		{
 		}
 
-		class MemberPosition extends AtomicReference<HouseholdPosition>
+		/** reference of person's household */
+		class HouseholdRef extends AtomicReference<Object>
+			implements Property<Object>
+		{
+		}
+
+		/** person's current household rank */
+		class HouseholdRank extends AtomicReference<HouseholdPosition>
 			implements Property<HouseholdPosition>
 		{
 		}
 
+		/** person's gender */
 		class Male extends AtomicReference<Boolean> implements Property<Boolean>
 		{
 		}
 
+		/** virtual absolute time of person's birth */
 		class Birth extends AtomicReference<BigDecimal>
 			implements Property<BigDecimal>
 		{
@@ -226,36 +242,64 @@ public interface DemoModel
 //		{
 //		}
 
+		/** reference of person's current home region */
 		@SuppressWarnings( "rawtypes" )
 		class HomeRegionRef extends AtomicReference<Comparable>
 			implements Property<Comparable>
 		{
 		}
 
+		/** reference of person's current home site */
 		@SuppressWarnings( "rawtypes" )
 		class HomeSiteRef extends AtomicReference<Comparable>
 			implements Property<Comparable>
 		{
 		}
 
-		class EpiCompartment extends AtomicReference<MSEIRS.Compartment>
+		/** person's current epidemiological compartment for some pathogen */
+		class PathogenCompartment extends AtomicReference<MSEIRS.Compartment>
 			implements Property<MSEIRS.Compartment>
 		{
 		}
 
-		class EpiResistance extends AtomicReference<Double>
+		/** person's current remaining 'resistance' against some pathogen */
+		class PathogenResistance extends AtomicReference<Double>
 			implements Property<Double>
 		{
+		}
+
+		/**
+		 * person's current vaccination compliance (bitwise, see
+		 * https://stackoverflow.com/a/31921748)
+		 */
+		class VaxCompliance extends AtomicReference<Integer>
+			implements Property<Integer>
+		{
+			public static boolean isCompliant( final Tuple t, final int n )
+			{
+				return (t.get( VaxCompliance.class ).intValue()
+						& (1 << n)) != 0;
+			}
+
+			public static Integer setCompliant( final Tuple t, final int n )
+			{
+				return t.updateAndGet( VaxCompliance.class, v -> v | (1 << n) );
+			}
+
+			public static Integer setNoncompliant( final Tuple t, final int n )
+			{
+				return t.updateAndGet( VaxCompliance.class,
+						v -> v & ~(1 << n) );
+			}
 		}
 
 		@SuppressWarnings( "rawtypes" )
 		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
 				// list frequently accessed fields first
-				EpiCompartment.class, HouseholdRef.class, MemberPosition.class,
-				Birth.class, HomeRegionRef.class, HomeSiteRef.class,
-//				SiteRef.class, 
-				EpiResistance.class, Male.class, CultureRef.class,
-				PersonSeq.class );
+				PathogenCompartment.class, HouseholdRef.class,
+				HouseholdRank.class, Birth.class, HomeRegionRef.class,
+				HomeSiteRef.class, PathogenResistance.class, Male.class,
+				CultureRef.class, VaxCompliance.class, PersonSeq.class );
 
 		class PersonTuple extends Tuple
 		{
@@ -582,6 +626,169 @@ public interface DemoModel
 			@Override
 			Observable<? extends EpidemicFact> events();
 		}
+
+		enum VaxDose
+		{
+			/**
+			 * e.g. BMR0-1 (applied 6-12 months old) no invite (eg. holiday,
+			 * outbreak)
+			 */
+			DOSE0( null, 26, 1 * 52 ),
+
+			/**
+			 * e.g. BMR1-1 (applied 1-9 years old) invite for 11 months/48
+			 * weeks/335 days
+			 */
+			DOSE1( 48, 48, 9 * 52 ),
+
+			/**
+			 * e.g. BMR2-1 (applied 1-9 years old) invite for 14 months/61
+			 * weeks/425 days
+			 */
+			DOSE2( 61, 52, 9 * 52 ),
+
+			/** e.g. BMR2-2 (applied 9-19 years old) no invite (eg. ZRA) */
+			DOSE3( null, 9 * 52, 19 * 52 ),
+
+			;
+
+			private final int bit = 1 << ordinal();
+
+			private final Range<ComparableQuantity<Time>> ageRangeOptional;
+
+			private final Range<ComparableQuantity<Time>> ageRangeDefault;
+
+			private VaxDose( final Integer defaultAgeWeeks,
+				final Integer minimumAgeWeeks, final Integer maximumAgeWeeks )
+			{
+				this.ageRangeOptional = Range.of( minimumAgeWeeks,
+						maximumAgeWeeks, TimeUnits.WEEK );
+				this.ageRangeDefault = defaultAgeWeeks == null ? null
+						: Range.of( defaultAgeWeeks, maximumAgeWeeks,
+								TimeUnits.WEEK );
+			}
+
+			public Range<ComparableQuantity<Time>> ageRangeOptional()
+			{
+				return this.ageRangeOptional;
+			}
+
+			public Range<ComparableQuantity<Time>> ageRangeDefault()
+			{
+				return this.ageRangeDefault;
+			}
+
+			public int bit()
+			{
+				return this.bit;
+			}
+
+			public boolean isSet( final int v )
+			{
+				return !isUnset( v );
+			}
+
+			public boolean isUnset( final int v )
+			{
+				return (v & bit()) == 0;
+			}
+
+			public int set( final int v )
+			{
+				return v | bit();
+			}
+
+			public int unset( final int v )
+			{
+				return v & ~bit();
+			}
+
+			public static boolean isCompliant( final int v )
+			{
+				return DOSE2.isSet( v ) || DOSE3.isSet( v );
+			}
+
+			/** @return the NIP (default) schedule's next dose */
+			public static VaxDose nextDefault( final int v,
+				final ComparableQuantity<Time> age )
+			{
+				for( VaxDose dose : values() )
+					if( dose.ageRangeDefault() != null && !dose.isSet( v )
+							&& !dose.ageRangeDefault().lt( age ) )
+						return dose;
+				return null;
+			}
+
+			/** @return the alternative (outbreak, ZRA) schedule's next dose */
+			public static VaxDose nextOption( final int v,
+				final ComparableQuantity<Time> age )
+			{
+				for( VaxDose dose : values() )
+					if( !dose.isSet( v ) && !dose.ageRangeOptional().lt( age ) )
+						return dose;
+				return null;
+			}
+
+			private static Range<ComparableQuantity<Time>> OVERALL_AGE_RANGE = null;
+
+			public static Range<ComparableQuantity<Time>> decisionAgeRange()
+			{
+				if( OVERALL_AGE_RANGE == null )
+				{
+					Extreme<ComparableQuantity<Time>> lower = Extreme.lower(
+							QuantityUtil.valueOf( 3, TimeUnits.WEEK ), true ),
+							upper = null;
+					for( VaxDose dose : values() )
+						if( dose.ageRangeDefault() != null )
+						{
+							upper = upper == null
+									? dose.ageRangeDefault().getUpper()
+									: Compare.max( upper,
+											dose.ageRangeDefault().getUpper() );
+						}
+					OVERALL_AGE_RANGE = Range.of( lower, upper );
+				}
+				return OVERALL_AGE_RANGE;
+			}
+		}
+
+		@FunctionalInterface
+		interface AttitudeEvaluator
+			extends BiPredicate<HouseholdTuple, VaxOccasion>
+		{
+
+			/**
+			 * applied {@link VaxHesitancy#minimumConvenience} and
+			 * {@link VaxHesitancy#averageBarrier}
+			 */
+			AttitudeEvaluator MIN_CONVENIENCE_GE_AVG_ATTITUDE = ( hh,
+				occasion ) ->
+			{
+				final BigDecimal confidence = hh
+						.get( Households.Confidence.class ),
+						complacency = hh.get( Households.Complacency.class );
+
+				// no occasion, just return general attitude
+				if( occasion == null )
+					return Compare.gt( confidence, complacency );
+
+				final BigDecimal convenience = VaxHesitancy
+						.minimumConvenience( occasion );
+				final BigDecimal barrier = VaxHesitancy
+						.averageBarrier( confidence, complacency );
+				return Compare.ge( convenience, barrier );
+			};
+
+			class Average implements AttitudeEvaluator
+			{
+				@Override
+				public boolean test( final HouseholdTuple hh,
+					final VaxOccasion occasion )
+				{
+					return MIN_CONVENIENCE_GE_AVG_ATTITUDE.test( hh, occasion );
+				}
+			}
+		}
 	}
 
 	interface Epidemical
@@ -598,12 +805,6 @@ public interface DemoModel
 //			Object findHome( String regionRef );
 
 			SiteTuple findNearby( String lifeRole, Object originSiteRef );
-
-			/**
-			 * @param homeSiteRef
-			 * @return
-			 */
-			double[] positionOf( Object siteRef );
 
 //			void populateHome( Object homeRef,
 //				Map<MSEIRS.Compartment, List<Object>> sirDelta );

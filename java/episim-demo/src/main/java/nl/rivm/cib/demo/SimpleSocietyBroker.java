@@ -103,10 +103,6 @@ public class SimpleSocietyBroker implements SocietyBroker
 	@Inject
 	private DataLayer data;
 
-//	@Inject
-//	private ProbabilityDistribution.Factory distFactory;
-	private int maxKm = 100; // TODO from config
-
 	@Inject
 	private SiteBroker siteBroker;
 
@@ -130,17 +126,28 @@ public class SimpleSocietyBroker implements SocietyBroker
 		return this.events;
 	}
 
+	/** */
 	private Table<SocietyTuple> societies;
+	/** */
 	private Table<PersonTuple> persons;
-//	private Table<HouseholdTuple> households;
-
+	/** */
+	private Table<SiteTuple> sites;
+	/** */
 	private IndexPartition capacityIndex;
-
+	/** */
+//	private transient ProbabilityDistribution<Boolean> schoolAssortativity;
+	/** */
+	private int maxKm = 100; // TODO from config
+	/** */
 	private NavigableMap<String, SocialGatherer> gatherers;
+	/** */
 	private final Map<Object, List<Object>> societyMembers = new HashMap<>();
-
+	/** */
 	private final Map<Object, Object[]> ppSocieties = new HashMap<>();
 
+	/**
+	 *
+	 */
 	@Override
 	public SimpleSocietyBroker reset() throws Exception
 	{
@@ -149,6 +156,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 			Thrower.throwNew( IllegalStateException::new,
 					() -> "No gatherers configured: " + gathererConfig );
 
+		this.sites = this.data.getTable( SiteTuple.class );
 		this.societies = this.data.getTable( SocietyTuple.class );
 		this.persons = this.data.getTable( PersonTuple.class );
 		this.persons.onCreate( this::join, scheduler()::fail );
@@ -163,6 +171,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 
 		// TODO auto-assign cultures to households
 
+//		this.schoolAssortativity = this.config
+//				.hesitancySchoolAssortativity( this.distParser );
+
 		final Class<? extends SocialGatherer.Factory> factory = this.config
 				.socialGathererFactory();
 		LOG.trace( "{} creating gatherers: {}", factory, gathererConfig );
@@ -173,6 +184,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 		return this;
 	}
 
+	/**
+	 * @param pp
+	 */
 	void join( final PersonTuple pp )
 	{
 		final ComparableQuantity<?> age = QuantityUtil.valueOf(
@@ -208,6 +222,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 							.toArray( new Object[roleMemberships.size()] ) );
 	}
 
+	/**
+	 * @param pp
+	 */
 	void abandon( final PersonTuple pp )
 	{
 		final Object[] socKeys = this.ppSocieties.remove( pp.key() );
@@ -218,50 +235,42 @@ public class SimpleSocietyBroker implements SocietyBroker
 								&& members.isEmpty() ? null : members ) );
 	}
 
+	/**
+	 * @param siteKey
+	 * @param dt
+	 * @param participants
+	 * @param onAdjourn
+	 */
 	void convene( final Object siteKey, final Quantity<Time> dt,
 		final List<Object> participants, final Runnable onAdjourn )
 	{
-//		final SiteTuple site = this.sites.select( siteKey );
-//		final Map<MSEIRS.Compartment, Map<Object, Double>> sir = 
-
 		this.events.onNext( new GatherFact().withSite( siteKey )
 				.withDuration( dt ).withParticipants( participants ) );
-
-//		participants.stream().map( this.persons::select ).filter( pp -> pp != null )
-//				.forEach( pp -> pp.updateAndGet( Persons.SiteRef.class,
-//						v -> (Comparable<?>) siteKey ) );
-//
-//		after( dt ).call( t ->
-//		{
-//			participants.stream().map( this.persons::select ).filter( pp -> pp != null )
-//					.forEach( pp -> pp.updateAndGet( Persons.SiteRef.class,
-//							v -> pp.get( Persons.HomeSiteRef.class ) ) );
-//		} );
-//				.collect( Collectors.groupingBy(
-//						pp -> pp.get( Persons.EpiCompartment.class ), Collectors
-//								.toMap( pp -> pp.key(), pp -> 0d ) ) );
-//		sir.computeIfPresent( MSEIRS.Compartment.SUSCEPTIBLE, ( k, v ) ->
-//		{
-//			v.replaceAll( ( key, res ) -> this.persons.selectValue( key,
-//					Persons.EpiResistance.class ) );
-//			return v;
-//		} );
-//
-//		pressurize( site, sir, 0d, QuantityUtil.valueOf( dt ), () ->
-//		{
-//			sir.values().stream().flatMap( l -> l.keySet().stream() ).allMatch(
-//					pp -> depart( this.persons.select( pp ), site ) );
-//
-//			onAdjourn.run();
-//		} );
 	}
 
+	/**
+	 * @param x
+	 * @param y
+	 * @return
+	 */
 	double euclideanDistance( final double[] x, final double[] y )
 	{
 		return Math.sqrt( IntStream.range( 0, x.length )
 				.mapToDouble( i -> x[i] - y[i] ).map( dx -> dx * dx ).sum() );
 	}
 
+	double[] positionOf( Object siteRef )
+	{
+		final SiteTuple site = this.sites.get( siteRef );
+		return new double[] { site.get( Sites.Latitude.class ),
+				site.get( Sites.Longitude.class ) };
+	}
+
+	/**
+	 * @param gatherer
+	 * @param person
+	 * @return
+	 */
 	SocietyTuple findSociety( final SocialGatherer gatherer,
 		final PersonTuple person )
 	{
@@ -279,14 +288,13 @@ public class SimpleSocietyBroker implements SocietyBroker
 //					result, this.capacityIndex );
 			return result;
 		}
-		final double[] origin = this.siteBroker.positionOf( homeSiteRef );
+		final double[] origin = positionOf( homeSiteRef );
 		double deg, degNearest = Double.MAX_VALUE;
 		for( int i = 0; i < socKeys.size(); i++ )
 		{
 			deg = euclideanDistance( origin,
-					this.siteBroker.positionOf(
-							this.societies.select( socKeys.get( i ) )
-									.get( Societies.SiteRef.class ) ) );
+					positionOf( this.societies.select( socKeys.get( i ) )
+							.get( Societies.SiteRef.class ) ) );
 			if( deg < degNearest ) degNearest = deg;
 		}
 		final double kmNearest = degNearest * 111;

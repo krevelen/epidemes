@@ -39,6 +39,7 @@ import io.coala.data.DataLayer;
 import io.coala.enterprise.persist.FactDao;
 import io.coala.log.LogUtil;
 import io.coala.math.MatrixUtil;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Instant;
 import io.coala.time.Scenario;
 import io.coala.time.Scheduler;
@@ -76,26 +77,14 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 	@InjectConfig
 	private DemoConfig config;
 
-//	@Inject
-//	private LocalBinder binder;
-
 	@Inject
 	private DataLayer data;
 
 	@Inject
 	private Scheduler scheduler;
 
-	// the data sources
-	private Matrix persons, households;
-
-	// model event statistics
-	private final Map<Class<?>, AtomicLong> demicEventStats = new HashMap<>();
-
-	// model event statistics
-	private final Map<MSEIRS.Compartment, AtomicLong> sirEventStats = new HashMap<>();
-
-	// data event statistics
-//	private final Map<Class<?>, AtomicLong> dataEventStats = new HashMap<>();
+	@Inject
+	private ProbabilityDistribution.Factory distFactory;
 
 	@Inject
 	private Deme deme;
@@ -118,11 +107,22 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		return this.scheduler;
 	}
 
+	// the data sources
+	private Matrix persons, households;
+
+	// model event statistics
+	private final Map<Class<?>, AtomicLong> demicEventStats = new HashMap<>();
+
+	// model event statistics
+	private final Map<MSEIRS.Compartment, AtomicLong> sirEventStats = new HashMap<>();
+
 	@Override
 	public void init() throws Exception
 	{
 		LOG.info( "Initializing {}, config: {}", getClass().getSimpleName(),
 				this.config );
+		LOG.info( "RNG seed: {}, scheduler offset: {}",
+				this.distFactory.getStream().seed(), scheduler().offset() );
 
 		this.persons = Matrix.Factory.sparse( ValueType.OBJECT, 1_100_000,
 				Persons.PROPERTIES.size() );
@@ -248,11 +248,12 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 //				+ e.getValue() )
 //		.toArray( String[]::new ) ),
 		final Matrix epicol = this.persons.selectColumns( Ret.LINK,
-				Persons.PROPERTIES.indexOf( Persons.EpiCompartment.class ) );
+				Persons.PROPERTIES.indexOf( Persons.PathogenCompartment.class ) );
 		final Matrix homecol = this.persons.selectColumns( Ret.LINK,
 				Persons.PROPERTIES.indexOf( Persons.HomeRegionRef.class ) );
 
-		final Map<String, Map<MSEIRS.Compartment, Long>> result= MatrixUtil.streamAvailableCoordinates( epicol, false ) // sequential
+		final Map<String, Map<MSEIRS.Compartment, Long>> result = MatrixUtil
+				.streamAvailableCoordinates( epicol, false ) // sequential
 				.filter( x -> homecol.getAsObject( x ) != null )
 				.collect( Collectors.groupingBy( homecol::getAsString,
 						Collectors.groupingBy( x -> MSEIRS.Compartment

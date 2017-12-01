@@ -74,10 +74,10 @@ import io.reactivex.subjects.Subject;
 import nl.rivm.cib.demo.DemoModel.Demical.Deme;
 import nl.rivm.cib.demo.DemoModel.Demical.DemeEventType;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
-import nl.rivm.cib.demo.DemoModel.HouseholdPosition;
 import nl.rivm.cib.demo.DemoModel.Households;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons;
+import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSGender;
@@ -238,7 +238,7 @@ public class SimplePersonBroker implements Deme
 							|| !this.sizeMismatches.add( hhKey ) )
 						return;
 
-					LOG.warn(
+					LOG.debug(
 							LogUtil.messageOf(
 									"t={} HH size mismatch {} for '{}'"
 											+ " {}={}+{} <> {}",
@@ -248,7 +248,7 @@ public class SimplePersonBroker implements Deme
 									members.stream()
 											.map( ppKey -> this.persons
 													.selectValue( ppKey,
-															Persons.MemberPosition.class ) )
+															Persons.HouseholdRank.class ) )
 											.toArray() ),
 							new IllegalStateException( "size mismatch" ) );
 				}, scheduler()::fail );
@@ -332,9 +332,9 @@ public class SimplePersonBroker implements Deme
 			return;
 		}
 
-		final HouseholdPosition ppPos = pp.get( Persons.MemberPosition.class );
+		final HouseholdPosition ppPos = pp.get( Persons.HouseholdRank.class );
 		otherMembers.forEach( ppRef -> this.persons.select( ppRef )
-				.updateAndGet( Persons.MemberPosition.class,
+				.updateAndGet( Persons.HouseholdRank.class,
 						memPos -> memPos.shift( ppPos ) ) );
 
 		CBSHousehold hhType = hh.get( Households.Composition.class );
@@ -570,8 +570,10 @@ public class SimplePersonBroker implements Deme
 			final Quantity<Time> refAgeOver15 = refAge
 					.subtract( QuantityUtil.valueOf( 15, TimeUnits.YEAR ) );
 			// equidistant ages: 0yr < age_1, .., age_n < (ref - 15yr)
-			final Instant birth = now().subtract( refAgeOver15
-					.subtract( refAgeOver15.multiply( (.5 + r) / n ) ) );
+			final Instant birth = now()
+					.subtract( refAgeOver15.subtract( refAgeOver15.multiply(
+							(1 - this.distFactory.getStream().nextDouble() * .5
+									+ r) / n ) ) );
 			final boolean childMale = this.distFactory.getStream()
 					.nextBoolean();
 			createPerson( hh, HouseholdPosition.ofChildIndex( r ), childMale,
@@ -581,13 +583,13 @@ public class SimplePersonBroker implements Deme
 	}
 
 	private PersonTuple createPerson( final HouseholdTuple hh,
-		final DemoModel.HouseholdPosition rank, final boolean male,
+		final HouseholdPosition rank, final boolean male,
 		final BigDecimal birth )
 	{
 		return this.persons.insertValues( map -> map
 				.put( Persons.PersonSeq.class, this.indSeq.incrementAndGet() )
 				.put( Persons.HouseholdRef.class, hh.key() )
-				.put( Persons.MemberPosition.class, rank )
+				.put( Persons.HouseholdRank.class, rank )
 				.put( Persons.Birth.class, birth )
 				.put( Persons.Male.class, male ) );
 	}
@@ -628,7 +630,7 @@ public class SimplePersonBroker implements Deme
 		LOG.trace( "{} {}: growing {} hh with {} child ({}), mom {}", dt(),
 				DemeEventType.EXPANSION, birthCat.regionRef(), kidRank, gender,
 				momAge );
-		final DemoModel.HouseholdPosition rank = HouseholdPosition.ofChildIndex(
+		final HouseholdPosition rank = HouseholdPosition.ofChildIndex(
 				hh.get( Households.Composition.class ).childCount() );
 		final PersonTuple newborn = createPerson( hh, rank, gender.isMale(),
 				now().decimal() );
@@ -642,7 +644,7 @@ public class SimplePersonBroker implements Deme
 				.withHouseholdDelta( map -> map.put( hhType, -1 )
 						.put( hhTypeNew, +1 ).build() )
 				.withMemberDelta( map -> map
-						.put( newborn.get( Persons.MemberPosition.class ), +1 )
+						.put( newborn.get( Persons.HouseholdRank.class ), +1 )
 						.build() ) );
 		return 1;
 
@@ -657,9 +659,14 @@ public class SimplePersonBroker implements Deme
 
 		// TODO import and sample deaths per agecat/region dist
 
-		final HouseholdTuple hh = this.households
-				.select( pp.get( Persons.HouseholdRef.class ) );
+		final Object hhRef = pp.get( Persons.HouseholdRef.class );
+		final HouseholdTuple hh = this.households.select( hhRef );
 
+		if( hh == null )
+		{
+			LOG.warn( "Missing household ref {} for pp {} ?", hhRef, pp );
+			return 0;
+		}
 		CBSHousehold hhType = hh.get( Households.Composition.class );
 		if( hhType == CBSHousehold.OTHER )
 		{

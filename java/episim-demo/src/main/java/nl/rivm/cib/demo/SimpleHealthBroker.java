@@ -19,13 +19,18 @@
  */
 package nl.rivm.cib.demo;
 
-import java.text.ParseException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
@@ -51,7 +56,6 @@ import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
-import io.coala.random.ProbabilityDistribution.Parser;
 import io.coala.random.QuantityDistribution;
 import io.coala.time.Duration;
 import io.coala.time.Expectation;
@@ -60,12 +64,17 @@ import io.coala.time.Proactive;
 import io.coala.time.Scheduler;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
+import io.coala.util.Compare;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
 import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
+import nl.rivm.cib.demo.DemoModel.Households;
+import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
+import nl.rivm.cib.demo.DemoModel.Medical.AttitudeEvaluator;
 import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
+import nl.rivm.cib.demo.DemoModel.Medical.VaxDose;
 import nl.rivm.cib.demo.DemoModel.Persons;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
@@ -84,73 +93,55 @@ public class SimpleHealthBroker implements HealthBroker
 
 	public interface HealthConfig extends YamlConfig
 	{
+		// BMR0-1 (applied 6-12 months old) no invite (eg. holiday, outbreak)
+		// BMR1-1 (applied 1-9 years old) invite for 11 months/48 weeks/335 days
+		// BMR2-1 (applied 1-9 years old) invite for 14 months/61 weeks/425 days
+		// BMR2-2 (applied 9-19 years old) no invite (eg. ZRA)
+		// and reminder(s) after +3 months/+13 weeks/+91 days
 
-		@Key( "invitation-age" )
-		@DefaultValue( "[.5 yr; 4 yr)" )
-		String vaccinationInvitationAge();
+		/**
+		 * (arbitrary) age when advocation reaches the target (appointment is
+		 * made)
+		 */
+		// 48 weeks = 11 months = age of earliest dose (BMR0-1) or 
+		// some preceding dose (eg. DKTP-Hib-HepB + Pneu)
+		@Key( "decision-age" )
+		@DefaultValue( "3 week" )
+		String decisionAge();
 
-		@SuppressWarnings( "unchecked" )
-		default Range<ComparableQuantity<Time>> vaccinationAgeRange()
-			throws ParseException
-		{
-			return Range
-					.parse( vaccinationInvitationAge(), QuantityUtil::valueOf )
-					.map( v -> v.asType( Time.class ) );
-		}
+		@Key( "cohort-birth-resolution" )
+		@DefaultValue( "1 week" )
+		String cohortBirthResolution();
+
+		// BMR2 reached, mean(sd): 14.2(0.5) months/61.5(1.9) weeks/425(13) days
+		/** typical treatment delay relative to the (arbitrary) decision age */
+		@Key( "treatment-delay-dist" )
+		@DefaultValue( "normal(58.5 week;1.85 week)" )
+		String treatmentDelayDist();
 
 		@Key( "occasion-recurrence" )
-		@DefaultValue( "0 0 0 7 * ? *" )
-		String vaccinationRecurrence();
-
-		default Iterable<Instant> vaccinationRecurrence(
-			final Scheduler scheduler ) throws ParseException
-		{
-			return Timing.of( vaccinationRecurrence() ).iterate( scheduler );
-		}
+		@DefaultValue( "0 0 10 ? * MON-FRI *" )
+		String occasionRecurrence();
 
 		/** @see VaxOccasion#utility() */
 		@Key( "occasion-utility-dist" )
 		@DefaultValue( "const(0.5)" )
-		String vaccinationUtilityDist();
-
-		default ProbabilityDistribution<Number> vaccinationUtilityDist(
-			final Parser distParser ) throws ParseException
-		{
-			return distParser.parse( vaccinationUtilityDist() );
-		}
+		String occasionUtilityDist();
 
 		/** @see VaxOccasion#proximity() */
 		@Key( "occasion-proximity-dist" )
 		@DefaultValue( "const(0.5)" )
-		String vaccinationProximityDist();
-
-		default ProbabilityDistribution<Number> vaccinationProximityDist(
-			final Parser distParser ) throws ParseException
-		{
-			return distParser.parse( vaccinationProximityDist() );
-		}
+		String occasionProximityDist();
 
 		/** @see VaxOccasion#clarity() */
 		@Key( "occasion-clarity-dist" )
 		@DefaultValue( "const(0.5)" )
-		String vaccinationClarityDist();
-
-		default ProbabilityDistribution<Number> vaccinationClarityDist(
-			final Parser distParser ) throws ParseException
-		{
-			return distParser.parse( vaccinationClarityDist() );
-		}
+		String occasionClarityDist();
 
 		/** @see VaxOccasion#affinity() */
 		@Key( "occasion-affinity-dist" )
 		@DefaultValue( "const(0.5)" )
-		String vaccinationAffinityDist();
-
-		default ProbabilityDistribution<Number> vaccinationAffinityDist(
-			final Parser distParser ) throws ParseException
-		{
-			return distParser.parse( vaccinationAffinityDist() );
-		}
+		String occasionAffinityDist();
 	}
 
 	/** */
@@ -170,9 +161,14 @@ public class SimpleHealthBroker implements HealthBroker
 	private ProbabilityDistribution.Factory distFactory;
 
 	@Inject
+	private ProbabilityDistribution.Parser distParser;
+
+	@Inject
 	private SocietyBroker societyBroker;
 
 	private final PublishSubject<EpidemicFact> events = PublishSubject.create();
+
+	private final Map<Object, LocalPressure> homePressure = new HashMap<>();
 
 	@Override
 	public Scheduler scheduler()
@@ -188,6 +184,10 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private Table<Persons.PersonTuple> persons;
 
+	private Table<Households.HouseholdTuple> households;
+
+	private AttitudeEvaluator vaxAcceptance;
+
 	private ConditionalDistribution<MSEIRS.Compartment, RegionPeriod> sirStatusDist;
 
 	private ProbabilityDistribution<Double> resistanceDist;
@@ -196,33 +196,76 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private QuantityDistribution<Time> recoveryPeriodDist;
 
-	private final Map<Object, LocalPressure> homePressure = new HashMap<>();
+	/** minimum age for vaccination decision making, in scheduler time units */
+//	private BigDecimal vaxDecisionAgeMinimum;
+
+	/** age resolution of vaccination cohorts/bins, in scheduler time units */
+	private BigDecimal cohortBirthResolution;
+
+	/** */
+	private TreeMap<BigDecimal, List<Object>> birthCohorts = new TreeMap<>();
+	/** */
+	private ConditionalDistribution<VaxOccasion, VaxDose> vaxOccasionDist;
+	/** */
+	private QuantityDistribution<Time> vaxTreatmentDelay;
 
 	@Override
 	public SimpleHealthBroker reset() throws Exception
 	{
-
 		/** TODO from config */
 		// apply subpop(i) scaling: Prod_i(N/size_i)^(time_i)/T = (1000/1000)^(.25) * (1000/2)^(.75)
-		final double reproductionDays = 12d, recoveryDays = 14d, vaxDegree = .5,
+		final double reproductionDays = 12d, recoveryDays = 14d, vaxDegree = .9,
 				betaFactor = 100;
 		this.gamma_inv = recoveryDays;
 		this.beta = reproductionDays / recoveryDays * betaFactor;
 
-//		final LocalDate lastOutbreak = LocalDate.of( 2006, 6, 30 );
-		final Map<RegionPeriod, ProbabilityDistribution<Boolean>> vaxDegreeDist = new HashMap<>();
-		this.sirStatusDist = regPer ->
-//		regPer.periodRef().isBefore( lastOutbreak ) ? MSEIRS.Compartment.RECOVERED :
-		vaxDegreeDist
-				.computeIfAbsent( regPer,
-						k -> this.distFactory.createBernoulli( vaxDegree ) )
-				.draw() ? MSEIRS.Compartment.VACCINATED
-						: MSEIRS.Compartment.SUSCEPTIBLE;
+		// TODO from config
+		final LocalDate lastOutbreak = LocalDate.of( 2000, 6, 30 );
+		final Map<String, ProbabilityDistribution<Boolean>> localVaxDegreeDist = new HashMap<>();
+		this.sirStatusDist = regPer -> regPer.periodRef()
+				.isBefore( lastOutbreak )
+						? MSEIRS.Compartment.RECOVERED
+						: localVaxDegreeDist
+								.computeIfAbsent( regPer.regionRef(),
+										k -> this.distFactory
+												.createBernoulli( vaxDegree ) )
+								.draw() ? MSEIRS.Compartment.VACCINATED
+										: MSEIRS.Compartment.SUSCEPTIBLE;
+		// TODO from config
+		this.vaxTreatmentDelay = () -> QuantityUtil.valueOf(
+				this.distFactory.getStream().nextGaussian() * 1.8 + .5,
+				TimeUnits.WEEK );
+
 		this.resistanceDist = this.distFactory.createExponential( 1 );
 		this.recoveryPeriodDist = this.distFactory
 				.createExponential( this.gamma_inv )
 				.toQuantities( TimeUnits.DAYS );
 
+		// setup distribution of vaccination occasion convenience factors
+		final ProbabilityDistribution<Number> vaccinationUtilityDist = this.distParser
+				.parse( this.config.occasionUtilityDist() );
+		final ProbabilityDistribution<Number> vaccinationProximityDist = this.distParser
+				.parse( this.config.occasionProximityDist() );
+		final ProbabilityDistribution<Number> vaccinationClarityDist = this.distParser
+				.parse( this.config.occasionClarityDist() );
+		final ProbabilityDistribution<Number> vaccinationAffinityDist = this.distParser
+				.parse( this.config.occasionAffinityDist() );
+		this.vaxOccasionDist = dose -> VaxOccasion.of(
+				vaccinationUtilityDist.draw(), vaccinationProximityDist.draw(),
+				vaccinationClarityDist.draw(), vaccinationAffinityDist.draw() );
+
+		// schedule vaccination occasions
+		atEach( Timing.of( this.config.occasionRecurrence() )
+				.iterate( scheduler() ), this::scheduleVaccinations );
+
+//		this.vaxDecisionAgeMinimum = QuantityUtil
+//				.decimalValue( QuantityUtil.valueOf( this.config.decisionAge() )
+//						.to( scheduler().timeUnit() ) );
+		this.cohortBirthResolution = QuantityUtil.decimalValue(
+				QuantityUtil.valueOf( this.config.cohortBirthResolution() )
+						.to( scheduler().timeUnit() ) );
+
+		this.households = this.data.getTable( HouseholdTuple.class );
 		this.persons = this.data.getTable( PersonTuple.class );
 		this.persons.changes().subscribe( chg ->
 		{
@@ -235,7 +278,7 @@ public class SimpleHealthBroker implements HealthBroker
 //				if( chg.changedType() == Persons.SiteRef.class )
 //					onMove( chg.sourceRef(), chg.oldValue(), chg.newValue() );
 //				else 
-				if( chg.changedType() == Persons.EpiCompartment.class )
+				if( chg.changedType() == Persons.PathogenCompartment.class )
 				{
 					final PersonTuple pp = this.persons
 							.select( chg.sourceRef() );
@@ -249,8 +292,9 @@ public class SimpleHealthBroker implements HealthBroker
 //													.newValue(), 1 ) ) );
 					if( chg.newValue() == MSEIRS.Compartment.INFECTIVE )
 						// schedule recovery after infectious period 
-						after( this.recoveryPeriodDist.draw() ).call( t_r -> pp
-								.getAndUpdate( Persons.EpiCompartment.class,
+						after( this.recoveryPeriodDist.draw() )
+								.call( t_r -> pp.getAndUpdate(
+										Persons.PathogenCompartment.class,
 										prev -> prev == MSEIRS.Compartment.INFECTIVE
 												? MSEIRS.Compartment.RECOVERED
 												: prev ) );
@@ -258,6 +302,7 @@ public class SimpleHealthBroker implements HealthBroker
 			}
 		} );
 
+		this.vaxAcceptance = AttitudeEvaluator.MIN_CONVENIENCE_GE_AVG_ATTITUDE;
 		this.societyBroker.events().subscribe( e ->
 		{
 			final LocalPressure lp = getLP( e.siteRef );
@@ -297,18 +342,19 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private void scheduleOutbreakStart()
 	{
-		final LocalDateTime dt = LocalDateTime.of( 2013, 1, 2, 3, 4, 5 );
+		final LocalDateTime dt = LocalDateTime.of( 2013, 7, 6, 5, 43, 21 );
 		LOG.debug( "Scheduling outbreak at {}", dt );
 		at( dt ).call( tOutbreak ->
 		{
 			final PersonTuple minResistant = this.persons.stream()
-					.filter( pp -> pp.get( Persons.EpiCompartment.class )
+					.filter( pp -> pp.get( Persons.PathogenCompartment.class )
 							.isSusceptible() )
-					.min( ( l, r ) -> l.get( Persons.EpiResistance.class )
-							.compareTo( r.get( Persons.EpiResistance.class ) ) )
+					.min( ( l, r ) -> l.get( Persons.PathogenResistance.class )
+							.compareTo(
+									r.get( Persons.PathogenResistance.class ) ) )
 					.orElse( null );
 
-			minResistant.set( Persons.EpiCompartment.class,
+			minResistant.set( Persons.PathogenCompartment.class,
 					MSEIRS.Compartment.INFECTIVE );
 
 			final Disposable trackSub = this.persons
@@ -321,7 +367,8 @@ public class SimpleHealthBroker implements HealthBroker
 							//this.recoveryPeriodDist.draw() 
 							.call( tRecover ->
 							{
-								minResistant.set( Persons.EpiCompartment.class,
+								minResistant.set(
+										Persons.PathogenCompartment.class,
 										MSEIRS.Compartment.RECOVERED );
 								LOG.info( "t={} ENDED IMPORT at index case: {}",
 										scheduler().nowDT(), minResistant );
@@ -406,7 +453,7 @@ public class SimpleHealthBroker implements HealthBroker
 		void infect( final Object targetRef, final Double targetRes )
 		{
 			final PersonTuple target = this.ppGetter.apply( targetRef );
-			target.updateAndGet( Persons.EpiCompartment.class,
+			target.updateAndGet( Persons.PathogenCompartment.class,
 					oldSIR -> MSEIRS.Compartment.INFECTIVE );
 			// update local resistance (if still here)
 			this.resistance.replace( targetRef, targetRes, 0d );
@@ -423,6 +470,8 @@ public class SimpleHealthBroker implements HealthBroker
 			final Duration dtPressure = now().subtract( this.pressureStart );
 			if( !dtPressure.isZero() )
 			{
+				// TODO decrease resistance for partial vax compliance?
+
 				// resistance dr = dt / ( n / nI / beta ) = dt * beta * (nI / n)
 				final double resDecrease = DecimalUtil
 						.divide( dtPressure
@@ -484,10 +533,10 @@ public class SimpleHealthBroker implements HealthBroker
 		void doArrive( final PersonTuple pp )
 		{
 			final MSEIRS.Compartment sir = pp
-					.get( Persons.EpiCompartment.class );
+					.get( Persons.PathogenCompartment.class );
 			this.resistance.put( pp.key(),
 					sir == MSEIRS.Compartment.SUSCEPTIBLE
-							? pp.get( Persons.EpiResistance.class )
+							? pp.get( Persons.PathogenResistance.class )
 							: sir == MSEIRS.Compartment.INFECTIVE ? 0d : -1d );
 		}
 
@@ -506,107 +555,6 @@ public class SimpleHealthBroker implements HealthBroker
 			reschedule();
 			return this;
 		}
-
-//		private final Map<Object, Expectation> pending = new HashMap<>();
-//
-//		void reschedule( final SiteTuple site, final Quantity<Time> dt,
-//			final Runnable event )
-//		{
-//			this.pending.compute( site.key(), ( k, next ) ->
-//			{
-//				if( next != null && next.unwrap() != now() ) next.remove();
-//				return dt == null ? null : after( dt ).call( t ->
-//				{
-//					this.pending.remove( k );
-//					event.run();
-//				} );
-//			} );
-//		}
-//
-//		void pressurize( final SiteTuple site,
-//			final Map<MSEIRS.Compartment, Map<Object, Double>> sir,
-//			final Double pressureResisted,
-//			final ComparableQuantity<Time> timeRemaining, final Runnable onTimeOut )
-//		{
-//			final Map<Object, Double> susceptibles = sir
-//					.get( MSEIRS.Compartment.SUSCEPTIBLE ),
-//					infectives = sir.get( MSEIRS.Compartment.INFECTIVE );
-//			if( susceptibles == null || infectives == null )
-//			{
-////				reschedule( site, timeRemaining, () -> onTimeOut.run() );
-//				return;
-//			}
-//
-//			// remove anyone that has died/emigrated during pressure cycle
-//			sir.values().stream().forEach( ppl -> ppl.keySet()
-//					.removeIf( key -> this.persons.select( key ) == null ) );
-//			if( susceptibles.isEmpty() || infectives.isEmpty() )
-//			{
-////				reschedule( site, timeRemaining, () -> onTimeOut.run() );
-//				return;
-//			}
-//
-//			final int occ = sir.values().stream().mapToInt( Map::size ).sum();
-//
-//			final Object nextKey = susceptibles.keySet().stream().min( ( l,
-//				r ) -> susceptibles.get( l ).compareTo( susceptibles.get( r ) ) )
-//					.orElse( null );
-//			if( nextKey == null ) Thrower.throwNew( IllegalStateException::new,
-//					() -> "Unexpected, no minimum in " + susceptibles );
-//			final double localPressure = site.updateAndGet( Sites.Pressure.class,
-//					pressure -> ((double) infectives.size()) / occ ),
-//					nextResistance = susceptibles.get( nextKey );
-//			if( pressureResisted >= nextResistance )
-//				Thrower.throwNew( IllegalStateException::new,
-//						() -> "Unexpected, no resistance latency "
-//								+ pressureResisted + " >= " + nextResistance );
-//			final ComparableQuantity<Time> latencyTime = QuantityUtil.valueOf(
-//					(nextResistance - pressureResisted) / localPressure / this.beta,
-//					TimeUnits.DAYS );
-//
-//			LOG.trace( "t={} society pressure @{}: {}", dt(),
-//					Pretty.of( () -> site.get( Sites.SiteName.class ) ),
-//					Pretty.of( () -> sir.entrySet().stream()
-//							.collect( Collectors.toMap( Map.Entry::getKey,
-//									e -> e.getValue().size() ) ) ) );
-//			if( latencyTime.compareTo( timeRemaining ) < 0 )
-//			{
-//				LOG.trace(
-//						"t={}, infection @{} after {}, pressure = {} in {}=sum{}",
-//						dt(), Pretty.of( () -> site.get( Sites.SiteName.class ) ),
-//						latencyTime.to( TimeUnits.HOURS ), localPressure, occ,
-//						sir );
-//				reschedule( site, latencyTime, () ->
-//				{
-//					infect( this.persons.select( nextKey ) );
-//					susceptibles.remove( nextKey );
-//					infectives.put( nextKey, 0d );
-//					// schedule next infection/adjourn
-//					pressurize( site, sir, nextResistance,
-//							timeRemaining.subtract( latencyTime ), //onTimeOut
-//							null );
-//				} );
-//			} else // infection skips this meeting, update local pressure anyway	
-//			{
-//				final double totalResisted = pressureResisted
-//						+ QuantityUtil.decimalValue( timeRemaining, TimeUnits.DAYS )
-//								.doubleValue() * this.beta * localPressure;
-//				LOG.trace( "t={}, skip @{} after {}, pressure = {}, delta = -{}",
-//						dt(), Pretty.of( () -> site.get( Sites.SiteName.class ) ),
-//						timeRemaining.to( TimeUnits.HOURS ), localPressure,
-//						totalResisted );
-//				reschedule( site, timeRemaining, () ->
-//				{
-//					susceptibles.keySet().stream().map( this.persons::select )
-//							.filter( pp -> pp != null )
-//							.forEach( pp -> pp.updateAndGet(
-//									Persons.EpiResistance.class,
-//									resistance -> resistance - totalResisted ) );
-//					site.updateAndGet( Sites.Pressure.class, pressure -> 0d );
-////					onTimeOut.run();
-//				} );
-//			}
-//		}
 	}
 
 	private final Set<Object> nextCreations = new HashSet<>();
@@ -638,20 +586,53 @@ public class SimpleHealthBroker implements HealthBroker
 //		this.pendingPressure = null;
 	}
 
+	BigDecimal cohortAgeBin( final BigDecimal virtualTime )
+	{
+		return virtualTime.divide( this.cohortBirthResolution,
+				RoundingMode.FLOOR );
+	}
+
+	void addToCohort( final PersonTuple pp )
+	{
+		final BigDecimal ageBin = cohortAgeBin( pp.get( Persons.Birth.class ) );
+		this.birthCohorts.computeIfAbsent( ageBin, k -> new ArrayList<>() )
+				.add( pp.key() );
+	}
+
+	void removeFromCohort( final PersonTuple pp )
+	{
+		final BigDecimal ageBin = cohortAgeBin( pp.get( Persons.Birth.class ) );
+		this.birthCohorts.getOrDefault( ageBin, Collections.emptyList() )
+				.remove( pp.key() );
+	}
+
 	void onDelete( final PersonTuple pp )
 	{
 		final Object siteRef = pp.get( Persons.HomeSiteRef.class );
 		getLP( siteRef ).depart( pp );
+		removeFromCohort( pp );
 	}
 
 	void onCreate( final PersonTuple pp )
 	{
 		final MSEIRS.Compartment status = this.sirStatusDist.draw( RegionPeriod
 				.of( (String) pp.get( Persons.HomeRegionRef.class ), dt() ) );
-		final double resistance = status == MSEIRS.Compartment.SUSCEPTIBLE
-				? this.resistanceDist.draw() : 0d;
-		pp.set( Persons.EpiCompartment.class, status );
-		pp.set( Persons.EpiResistance.class, resistance );
+
+		pp.set( Persons.PathogenCompartment.class, status );
+		if( status == MSEIRS.Compartment.SUSCEPTIBLE )
+		{
+			pp.set( Persons.PathogenResistance.class,
+					this.resistanceDist.draw() );
+			addToCohort( pp );
+		} else
+		{
+			pp.set( Persons.PathogenResistance.class, 0d );
+//			final ComparableQuantity<Time> age = QuantityUtil.valueOf(
+//					now().decimal().subtract( pp.get( Persons.Birth.class ) ),
+//					now().unit().asType( Time.class ) );
+//			if( this.vaccinationAge.contains( age ) )
+//				pp.set( Persons.VaxInviteTime.class, 1 );
+		}
 
 		if( this.pendingPressure == null )
 			this.pendingPressure = atOnce( this::handleMoves );
@@ -659,29 +640,146 @@ public class SimpleHealthBroker implements HealthBroker
 		this.nextCreations.add( pp.key() );
 	}
 
-	void onMove( final Object ppRef, final Object oldSiteRef,
-		final Object newSiteRef )
-	{
-		final PersonTuple pp = this.persons.select( ppRef );
-		if( this.pendingPressure == null )
-			this.pendingPressure = atOnce( this::handleMoves );
+//	int statusOf(final VaxDose... doses )
+//	{
+//		int result = 0;
+//		if()
+//	}
 
-		if( oldSiteRef != null ) this.nextDepartures
-				.computeIfAbsent( oldSiteRef, k -> new HashSet<>() )
-				.add( pp.key() );
-		this.nextArrivals.computeIfAbsent( newSiteRef, k -> new HashSet<>() )
-				.add( pp );
+	private void scheduleVaccinations( final Instant t )
+	{
+		final BigDecimal now = t.decimal();
+		final Range<BigDecimal> decisionAgeBinRange = VaxDose.decisionAgeRange()
+				.map( dt -> t.decimal()
+						.subtract( QuantityUtil.decimalValue( dt, t.unit() ) )
+						.divide( this.cohortBirthResolution,
+								RoundingMode.FLOOR ) );
+
+		final NavigableMap<BigDecimal, List<Object>> subMap = decisionAgeBinRange
+				.apply( this.birthCohorts, false );
+		LOG.trace( "Vaccinate cohorts range {} -> {} : {}..{} <- {} ppl",
+				VaxDose.decisionAgeRange(), decisionAgeBinRange,
+				subMap.firstKey(), subMap.lastKey(),
+				subMap.values().stream().mapToInt( List::size ).sum() );
+		final PersonTuple[] removable = subMap.values().stream()
+				.flatMap( List::stream ).map( this.persons::select )
+				.filter( pp -> pp
+						.get( Persons.PathogenCompartment.class ) == MSEIRS.Compartment.SUSCEPTIBLE )
+				.filter( pp ->
+				{
+					final int status = pp.get( Persons.VaxCompliance.class );
+
+					if( VaxDose.isCompliant( status ) )
+					{
+						LOG.warn( "Already compliant {}", pp );
+						pp.updateAndGet( Persons.PathogenCompartment.class,
+								epi -> MSEIRS.Compartment.VACCINATED );
+						return true;
+					}
+					final ComparableQuantity<Time> age = QuantityUtil
+							.valueOf(
+									now.subtract(
+											pp.get( Persons.Birth.class ) ),
+									scheduler().timeUnit() )
+							.asType( Time.class ).to( TimeUnits.WEEK );
+
+					final VaxDose nextDose = VaxDose.nextDefault( status, age );
+					if( nextDose == null )
+					{
+						LOG.warn( "Not covered by NIP, age {} of {}",
+								QuantityUtil.pretty( age, TimeUnits.YEAR, 1 ),
+								pp );
+						return true;
+					}
+					final VaxOccasion occ = this.vaxOccasionDist
+							.draw( nextDose );
+					final HouseholdTuple hh = this.households
+							.get( pp.get( Persons.HouseholdRef.class ) );
+					if( this.vaxAcceptance.test( hh, occ ) )
+					{
+						startRegimen( nextDose, age, pp );
+						return true;
+					}
+
+					LOG.info( "Vax {} for {} rejected by {} of {}", occ,
+							nextDose, pp, hh );
+					return false;
+				} ).toArray( PersonTuple[]::new );
+		Arrays.stream( removable ).forEach( this::removeFromCohort );
 	}
 
-//	private boolean completeTransition( final PersonTuple pp,
-//		final MSEIRS.Compartment precondition, final MSEIRS.Transition sir )
-//	{
-//		if( pp == null ) return false;
-//		final MSEIRS.Compartment old = pp.getAndUpdate(
-//				Persons.EpiCompartment.class,
-//				prev -> prev == precondition ? sir.outcome() : prev );
-//		if( old != precondition ) // pre-con changed, person removed/replaced
-//			return false;
-//		return true;
+	private void startRegimen( final VaxDose nextDose,
+		final ComparableQuantity<Time> age, final PersonTuple pp )
+	{
+		final int status = pp.get( Persons.VaxCompliance.class );
+		final ComparableQuantity<Time> vaxAge = Compare.max(
+				nextDose.ageRangeOptional().lowerValue(),
+				nextDose.ageRangeDefault().lowerValue()
+						.add( this.vaxTreatmentDelay.draw() ) ),
+				delay = vaxAge.subtract( age );
+		LOG.info( "Vax {} @age {} (t+{}) status {}->{} for {}", nextDose,
+				QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ), delay, status,
+				nextDose.set( status ), pp );
+
+		after( delay ).call( t_v ->
+		{
+			pp.updateAndGet( Persons.PathogenCompartment.class,
+					epi -> MSEIRS.Compartment.VACCINATED );
+			pp.updateAndGet( Persons.VaxCompliance.class,
+					old -> nextDose.set( old ) );
+
+			// TODO check attitude & continue next dose until fully compliant
+		} );
+	}
+
+	//		final Range<BigDecimal> birthRange = this.vaxTreatmentAge
+//				.map( age -> t.subtract( age ).decimal() );
+//		
+//		LOG.debug( "t={}, vaccination occasion: {} for susceptibles born {}",
+//				prettyDate( t ), occ.asMap().values(),
+//				birthRange.map(
+//						age -> prettyDate( Instant.of( age, TimeUnits.ANNUM ) )
+//								.toString() ) );
+
+	// for each households evaluated with a positive attitude
+//		final List<Long> vax =
+
+//				this.attitudeEvaluator.isPositive( occ, this.hhAttributes )
+//				// for each child in the (positive) household, update child if:
+//				.flatMap( hh -> Arrays.stream( CHILD_REF_COLUMN_INDICES )
+//						.mapToLong( hhAtt -> this.hhAttributes.getAsLong( hh,
+//								hhAtt.ordinal() ) ) )
+//				// 1. exists
+//				.filter( i -> i != NA )
+//				// 2. is susceptible
+//				.filter( i -> getStatus( i ) == HHMemberStatus.SUSCEPTIBLE )
+//				// 3. is of vaccination age
+//				.filter( i -> birthRange
+//						.contains( this.ppAttributes.getAsBigDecimal( i,
+//								HHMemberAttribute.BIRTH.ordinal() ) ) )
+//				vaxDecisionAgeMinimum
+//				this.persons.stream().filter( pp -> pp.get(
+//						Persons.EpiCompartment.class ) == MSEIRS.Compartment.SUSCEPTIBLE )
+//				.filter(pp->birthRange.contains(pp.get(Persons.Birth.class ) ))
+//				.filter(pp->this.this.households.select(pp.get(Persons.HouseholdRef.class ) ).get(Households.))
+//				.forEach( this::setVaccinated );
+//	LOG.trace("t={} VACCINATED {} ppl.",
+//
+//	prettyDate( now() ), 0 );
 //	}
+
+//	void onMove( final Object ppRef, final Object oldSiteRef,
+//		final Object newSiteRef )
+//	{
+//		final PersonTuple pp = this.persons.select( ppRef );
+//		if( this.pendingPressure == null )
+//			this.pendingPressure = atOnce( this::handleMoves );
+//
+//		if( oldSiteRef != null ) this.nextDepartures
+//				.computeIfAbsent( oldSiteRef, k -> new HashSet<>() )
+//				.add( pp.key() );
+//		this.nextArrivals.computeIfAbsent( newSiteRef, k -> new HashSet<>() )
+//				.add( pp );
+//	}
+
 }
