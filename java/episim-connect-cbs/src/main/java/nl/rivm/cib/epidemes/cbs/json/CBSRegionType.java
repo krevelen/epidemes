@@ -19,6 +19,8 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import io.coala.exception.Thrower;
 import nl.rivm.cib.episim.model.locate.Region;
 
@@ -47,8 +49,14 @@ public enum CBSRegionType
 	/** gemeente, e.g. 'GM0003' (Appingedam) */
 	MUNICIPAL( "GM", "GM%04d" ),
 
-	/** corop */
+	/** corop (analytical region) */
 	COROP( "CR", "CR%02d" ),
+
+	/** COROP-subgebied */
+	COROP_SUB( "CS" ),
+
+	/** COROP-plusgebied */
+	COROP_PLUS( "CP" ),
 
 	/** provincie */
 	PROVINCE( "PV", "PV%02d" ),
@@ -56,26 +64,29 @@ public enum CBSRegionType
 	/** landsdeel */
 	TERRITORY( "LD", "LD%02d" ),
 
-	/** land in het Koninkrijk, e.g. 'NL00' (Nederland) */
-	COUNTRY( "NL", "NL%02d" ),
+	/** land */
+	COUNTRY( "NL" ),
 
-	/** arbeidsmarktregio */
-	LABORMARKET( "AM" ),
+	/** NUTS1 */
+	NUTS1( "NL" ),
 
-	/** arrondissement */
-	AR( "AR" ),
+	/** NUTS2 */
+	NUTS2( "NL" ),
 
-	/** COROP-subgebied */
-	CS( "CS" ),
+	/** NUTS3 */
+	NUTS3( "NL" ),
 
-	/** COROP-plusgebied */
-	CP( "CP" ),
+	/** arbeidsmarktregio (GEM+UWV) */
+	LABOR_MARKET( "AM" ),
+
+	/** arrondissement (rechtbank) */
+	DISTRICT( "AR" ),
 
 	/** GGD-regio */
-	GGD( "GG" ),
+	HEALTH_SERVICES( "GG" ),
 
 	/** Jeugdzorgregio */
-	JZ( "JZ" ),
+	CHILD_SERVICES( "JZ" ),
 
 	/** Kamer van Koophandel */
 	COMMERCE( "KK" ),
@@ -84,28 +95,28 @@ public enum CBSRegionType
 	AGRICULTURE( "LB" ),
 
 	/** Landbouwgebied-groep */
-	AGRICULTURE_GROUP( "LG" ),
+	AGRI_GROUP( "LG" ),
 
-	/** Ressorten (rechtsgebied) */
-	RE( "RE" ),
+	/** Politie regionale eenheid */
+	POLICE( "RE" ),
 
-	/**  */
-	RT( "RT" ),
+	/** Ressorten (gerechtshof) */
+	APPEAL_COURT( "RT" ),
 
 	/** RPA-gebied */
-	RP( "RP" ),
+	LABOR_PLATFORM( "RP" ),
 
 	/** Toeristengebied */
-	TR( "TR" ),
+	TOURISM( "TR" ),
 
 	/** Veiligheidsregio */
-	VR( "VR" ),
+	SAFETY( "VR" ),
 
 	/** WGR-samenwerkingsgebied */
-	WG( "WG" ),
+	MUNICIPAL_COOP( "WG" ),
 
 	/** Zorgkantoorregio */
-	ZK( "ZK" ),
+	HEALTH_WELFARE( "ZK" ),
 //
 	;
 
@@ -127,7 +138,8 @@ public enum CBSRegionType
 		this.typeId = Region.TypeID.of( name() );
 	}
 
-	protected String getPrefix()
+	@JsonValue
+	public String getPrefix()
 	{
 		return this.prefix;
 	}
@@ -145,8 +157,29 @@ public enum CBSRegionType
 
 	public static CBSRegionType parse( final String regionId )
 	{
+		if( regionId == null ) return null;
+		final String s = regionId.trim();
+		if( s.isEmpty() ) return null;
+
+		// FIXME replace by regular expressions?
+		if( s.substring( 0, 2 ).equalsIgnoreCase( "NL" ) ) switch( s.length() )
+		{
+		case 3:
+			return NUTS1;
+		case 5:
+			return NUTS3;
+		case 4:
+			return s.charAt( 2 ) == '0' ? COUNTRY : NUTS2;
+		default:
+			return Thrower.throwNew( IllegalArgumentException::new,
+					() -> "Unknown region type for: " + regionId );
+		}
+
 		for( CBSRegionType value : values() )
-			if( regionId.contains( value.prefix ) ) return value;
+			if( s.substring( 0, value.prefix.length() )
+					.equalsIgnoreCase( value.prefix ) )
+				return value;
+
 		return Thrower.throwNew( IllegalArgumentException::new,
 				() -> "Unknown region type for: " + regionId );
 	}
