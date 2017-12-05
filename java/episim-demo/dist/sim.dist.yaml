@@ -16,7 +16,7 @@ scenario:
   replication:
     setup-name: run1
     duration-period: P7M
-    offset-date: 2012-12-17
+    offset-date: 2012-12-29
     statistics:
       recurrence: 1 0 0 ? * MON *
 #      db-enabled: true
@@ -29,7 +29,6 @@ scenario:
   geography:
     broker-factory: nl.rivm.cib.pilot.hh.HHGeography$Factory
     regional-resolution: MUNICIPALITY
-    region-fallback-ref: GM0363
     region-mapping-data: ${config.base}83287NED.json
     region-density-data: ${config.base}pc6_buurt.json
     weight-proximity: 1
@@ -81,10 +80,23 @@ scenario:
       symptom-period-dist: tria( 4 day; 5 day; 7 day )
   # vaccination occasions recur to hesitant parents of susceptible children
   vaccination:
-    invitation-age: "[.5 yr; 4 yr)"
+    #invitation-age: "[.5 yr; 4 yr)"
+    reproduction-period: 12 day
+    recovery-period: 14 day
+    beta-factor: 100
+    # everyone born before this date is considered RECOVERED/REMOVED
+    last-outbreak-end-date: 2000-06-30
+    # pick patient zero with lowest resistance
+    next-outbreak-start-date: 2013-01-02T03:04:05
+    # 48 weeks = 11 months = age of earliest dose (BMR0-1) or some preceding dose (eg. DKTP-Hib-HepB + Pneu)
+    # BMR2 reached, mean(sd): 14.2(0.5) months/61.5(1.9) weeks/425(13) days
+    treatment-delay-dist: normal(0.5 week; 1.85 week)
+    cohort-birth-resolution: 1 week
+    acceptance-evaluator-type: nl.rivm.cib.demo.DemoModel$Medical$VaxAcceptanceEvaluator$Average
     # http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html
     # e.g.: 0 0 0 7 * ? *   = at midnight on each 7th day of the month
-    occasion-recurrence: 0 0 12 1 1/2 ? 2013-2020
+    # vax every weekday at 10AM
+    occasion-recurrence: 0 0 10 ? * MON-FRI 2013-2020
     occasion-utility-dist: const(0.5)
     occasion-clarity-dist: const(0.5)
     occasion-affinity-dist: const(0.5)
