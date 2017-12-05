@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
@@ -64,21 +65,11 @@ import io.coala.util.FileUtil;
 public class BagZipcode4RegionPolygons
 {
 
-//
-//	@JsonProperty("pc4")
-//	public int zip;
-//	
-//	@JsonProperty("pc6won")
-//	public int hh;
-//
-//	@JsonProperty("pc6pers")
-//	public int ppl;
-//
-//	@JsonProperty("bedrcnt")
-//	public int com;
-//
-//	@JsonProperty("geometrie")
-//	public GeoJson geo;
+	@JsonProperty("pc4")
+	public int zip;
+
+	@JsonProperty("gem_nr")
+	public int gm;
 
 	public Map<String, Object> values = new HashMap<>();
 

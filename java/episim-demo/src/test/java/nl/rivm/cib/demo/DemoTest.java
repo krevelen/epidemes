@@ -53,11 +53,11 @@ import io.coala.time.SchedulerConfig;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
+import nl.rivm.cib.demo.DemoModel.Cultural.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Demical.Deme;
 import nl.rivm.cib.demo.DemoModel.Epidemical.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
-import nl.rivm.cib.demo.DemoModel.Cultural.PeerBroker;
-import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 
@@ -99,12 +99,23 @@ public class DemoTest
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.POPULATION_BASE );
 		LOG.debug( "Deme config: {}", demeConfig );
+
+		final JsonNode healthConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
+				DemoConfig.VACCINATION_BASE );
+		LOG.debug( "Health config: {}", demeConfig );
+
+		final JsonNode peerConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
+				DemoConfig.HESITANCY_BASE );
+		LOG.debug( "Peer config: {}", demeConfig );
+
 		final JsonNode siteConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.LOCATION_BASE );
 		LOG.debug( "Site config: {}", siteConfig );
+
 		final JsonNode societyConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.MOTION_BASE );
 		LOG.debug( "Society config: {}", societyConfig );
+
 		final LocalConfig binderConfig = LocalConfig.builder().withProvider(
 				Scheduler.class, Dsol3Scheduler.class,
 				MapBuilder.unordered()
@@ -126,9 +137,9 @@ public class DemoTest
 				.withProvider( SocietyBroker.class, SimpleSocietyBroker.class,
 						societyConfig )
 				.withProvider( PeerBroker.class, SimplePeerBroker.class,
-						societyConfig )
+						peerConfig )
 				.withProvider( HealthBroker.class, SimpleHealthBroker.class,
-						societyConfig )
+						healthConfig )
 
 				.build();
 

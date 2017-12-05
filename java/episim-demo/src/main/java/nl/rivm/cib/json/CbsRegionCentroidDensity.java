@@ -19,12 +19,12 @@
  */
 package nl.rivm.cib.json;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.stream.Stream;
@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.util.FileUtil;
-import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 
 /**
@@ -157,31 +156,7 @@ public class CbsRegionCentroidDensity
 		// politie reg eenh (10x) -> districten (43x)
 		// agri_group -> agr
 
-		final String gmRegionFile = "dist/83287NED.json";
-		LOG.info( "Reading municipal region hierarchies from {}",
-				gmRegionFile );
-		final TreeMap<String, EnumMap<CBSRegionType, String>> gmRegs = JsonUtil
-				.getJOM().readValue( FileUtil.toInputStream( gmRegionFile ),
-						CbsRegionHierarchy.class )
-				.cityRegionsByType();
-
-		final ObjectNode ldPvCrCsCpGm = JsonUtil.getJOM().createObjectNode();
-		final ObjectNode ggGm = JsonUtil.getJOM().createObjectNode();
 		final ObjectNode gmBoroZipPos = JsonUtil.getJOM().createObjectNode();
-		gmRegs.forEach( ( k, v ) ->
-		{
-			final ObjectNode gmNode = gmBoroZipPos.with( k );
-			ldPvCrCsCpGm.with( v.get( CBSRegionType.TERRITORY ) )
-					.put( "nuts1", v.get( CBSRegionType.NUTS1 ) ) //
-					.with( "prov" ).with( v.get( CBSRegionType.PROVINCE ) ) //
-					.put( "nuts2", v.get( CBSRegionType.NUTS2 ) ) //
-					.with( "corop" ).with( v.get( CBSRegionType.COROP ) ) //
-					.put( "nuts3", v.get( CBSRegionType.NUTS3 ) ) //
-//					.with( "cp" ).with( v.get( CBSRegionType.COROP_PLUS ) ) //
-					.with( "gm" ).replace( k, gmNode );
-			ggGm.with( v.get( CBSRegionType.HEALTH_SERVICES ) ).replace( k,
-					gmNode );
-		} );
 //		LOG.info( "Got: {}", JsonUtil.toJSON( ldPvCrCsCpGm ) );
 
 		final String pc6GeoFile = "dist/bag_pc6_2016_01.json";
@@ -195,48 +170,52 @@ public class CbsRegionCentroidDensity
 						( m, v ) -> m.put( v.zip, v ) )
 				.blockingGet();
 
-		// gm -> { hier{ type -> sym }, wk_bu { pc6 -> lat_long [], home_work [] } }
+		// read CSV columns into tree: gm -> ward/boro -> zip4 -> zip6 -> count
 		final List<String> missing = new ArrayList<>();
 		try( final Stream<String> stream = Files.lines(
 				Paths.get( "dist", FILE_NAME ),
 				Charset.forName( "ISO-8859-1" ) ) )
 		{
-			stream.skip( 1 )//.limit( 2000 )
-					.map( line -> line.split( ";" ) ).forEach( v ->
-					{
-						final BagZipcode6Locations stat = pc6stat.get( v[0] );
-						if( stat == null )
-						{
-							missing.add( v[0] );
-							return;
-						}
-						if( stat.hr == 0 && stat.hh == 0 ) return;
+			stream.skip( 1 ).map( line -> line.split( ";" ) ).forEach( v ->
+			{
+				final BagZipcode6Locations stat = pc6stat.get( v[0] );
+				if( stat == null )
+				{
+					missing.add( v[0] );
+					return;
+				}
+				if( stat.hr == 0 && stat.hh == 0 ) return;
 
-						final String gwb = v[Col.gwb2016_code.ordinal()],
-								gmc = v[Col.gemeentecode.ordinal()],
-								gmc4 = String.format( "GM%04d",
-										Integer.valueOf( gmc ) );
-						final ArrayNode gm = gmBoroZipPos.with( gmc4 )
+				final String gwb = v[Col.gwb2016_code.ordinal()],
+						gmc = v[Col.gemeentecode.ordinal()], gmc4 = String
+								.format( "GM%04d", Integer.valueOf( gmc ) );
+				final ArrayNode gm = gmBoroZipPos.with( gmc4 )
 //								.put( "woonplaats", stat.city ).with( "buurt" )
-								.with( gwb.substring( gwb.length() - 4 ) )
-								.with( v[Col.pc6.ordinal()].substring( 0, 4 ) )
+						.with( gwb.substring( gwb.length() - 4 ) )
+						.with( v[Col.pc6.ordinal()].substring( 0, 4 ) )
 //								.with( stat.street )
-								.withArray(
-										v[Col.pc6.ordinal()].substring( 4 ) );
-						if( gm.size() == 0 ) gm.add( stat.geo.coords[1] )
-								.add( stat.geo.coords[0] ).add( stat.hh )
-								.add( stat.hr );
-					} );
+						.withArray( v[Col.pc6.ordinal()].substring( 4 ) );
+				if( gm.size() == 0 )
+					gm.add( stat.geo.coords[1] ).add( stat.geo.coords[0] )
+							.add( stat.hh ).add( stat.hr );
+			} );
 		}
+		
+		// put in administrative hierarchy...
+		final String gmRegionFile = "dist/83287NED.json";
 		final String outFileName = "dist/region-centroid-density.json";
-		try( final OutputStream os = FileUtil.toOutputStream( outFileName,
-				false ) )
+		try( final InputStream is = FileUtil.toInputStream( gmRegionFile );
+				final OutputStream os = FileUtil.toOutputStream( outFileName,
+						false ); )
 		{
+			final CbsRegionHierarchy gmRegs = JsonUtil.getJOM().readValue( is,
+					CbsRegionHierarchy.class );
+
+			final ObjectNode ldPvCrCsCpGm = gmRegs
+					.addAdminHierarchy( gmBoroZipPos );
 			JsonUtil.getJOM().writer().withDefaultPrettyPrinter()
 					.writeValue( os, ldPvCrCsCpGm );
 		}
-//		LOG.info( "Got: {}", JsonUtil.toJSON( ldPvCrCsCpGm ) );
-		LOG.info( "Written to {}, missing stats for PC6 addresses: {}",
-				outFileName, missing );
+		LOG.warn( "Missing stats for PC6 addresses: {}", missing );
 	}
 }

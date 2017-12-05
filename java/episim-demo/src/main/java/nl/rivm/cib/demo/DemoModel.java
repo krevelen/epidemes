@@ -753,7 +753,7 @@ public interface DemoModel
 		}
 
 		@FunctionalInterface
-		interface AttitudeEvaluator
+		interface VaxAcceptanceEvaluator
 			extends BiPredicate<HouseholdTuple, VaxOccasion>
 		{
 
@@ -761,7 +761,7 @@ public interface DemoModel
 			 * applied {@link VaxHesitancy#minimumConvenience} and
 			 * {@link VaxHesitancy#averageBarrier}
 			 */
-			AttitudeEvaluator MIN_CONVENIENCE_GE_AVG_ATTITUDE = ( hh,
+			VaxAcceptanceEvaluator MIN_CONVENIENCE_GE_AVG_ATTITUDE = ( hh,
 				occasion ) ->
 			{
 				final BigDecimal confidence = hh
@@ -779,7 +779,7 @@ public interface DemoModel
 				return Compare.ge( convenience, barrier );
 			};
 
-			class Average implements AttitudeEvaluator
+			class Average implements VaxAcceptanceEvaluator
 			{
 				@Override
 				public boolean test( final HouseholdTuple hh,

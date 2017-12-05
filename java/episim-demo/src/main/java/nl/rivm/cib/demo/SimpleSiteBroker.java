@@ -65,11 +65,9 @@ public class SimpleSiteBroker implements SiteBroker
 
 	public interface SiteConfig extends YamlConfig
 	{
-
 		@DefaultValue( DemoConfig.CONFIG_BASE_DIR )
 		@Key( DemoConfig.CONFIG_BASE_KEY )
 		String configBase();
-
 	}
 
 	@InjectConfig
@@ -125,23 +123,6 @@ public class SimpleSiteBroker implements SiteBroker
 		this.data.getTable( PersonTuple.class ).onCreate( this::onCreate,
 				scheduler()::fail );
 
-//		this.sirIndex = new IndexPartition( this.persons, scheduler()::fail );
-//		this.sirIndex.groupBy( Persons.EpiCompartment.class );
-//		this.sirIndex.groupBy( Persons.SiteRef.class );
-//		this.sirIndex.groupBy( Persons.EpiResistance.class, Stream.of( 0d ) );
-
-//		this.ewMeridian = new IndexPartition( this.sites, scheduler()::fail );
-//		this.ewMeridian.groupBy( Sites.Purpose.class );
-//		this.ewMeridian.groupBy( Sites.Longitude.class,
-//				Stream.of( 4d, 5d, 6d ) );
-//		this.ewMeridian.groupBy( Sites.Capacity.class, Stream.of( 1 ) );
-
-//		this.nsParallel = new IndexPartition( this.sites, scheduler()::fail );
-//		this.nsParallel.groupBy( Sites.Purpose.class );
-//		this.nsParallel.groupBy( Sites.Latitude.class,
-//				Stream.of( 51d, 52d, 53d, 54d ) );
-//		this.nsParallel.groupBy( Sites.Capacity.class, Stream.of( 1 ) );
-
 //		this.regions = this.data.getTable( RegionTuple.class );
 		final ProbabilityDistribution<Double> latDist = this.distFactory
 				.createUniformContinuous( 50.5, 54.5 );
@@ -179,22 +160,6 @@ public class SimpleSiteBroker implements SiteBroker
 //				homeRegRef, pp );
 	}
 
-//	private final Map<String, Comparable<?>> regionKeys = new HashMap<>();
-//	private Comparable<?> toRegionKey( final String regName )
-//	{
-//		return regName;
-//		return this.regionKeys.computeIfAbsent( regName, k ->
-//		{
-////			// TODO look-up in Cbs83287Json; update population
-//			final RegionTuple t = this.regions.insertValues(
-//					map -> map.put( Regions.RegionName.class, regName )
-////					.put( Regions.ParentRef.class, null )
-////					.put( Regions.Population.class, 0L ) )
-//			);
-//			return (Comparable<?>) t.key();
-//		} );
-//	}
-
 	private static final String HOME_FUNCTION = "home";
 
 	private final AtomicLong siteSeq = new AtomicLong();
@@ -220,89 +185,19 @@ public class SimpleSiteBroker implements SiteBroker
 						.put( Sites.Capacity.class, 100 ) ); // TODO
 	}
 
-//	List<Object> infectives( final SiteTuple site )
-//	{
-//		return this.sirIndex.keys( MSEIRS.Compartment.INFECTIVE,
-//				(Comparable<?>) site.key() );
-//	}
-//
-//	List<Object> susceptibles( final SiteTuple site )
-//	{
-//		return this.sirIndex.keys( MSEIRS.Compartment.SUSCEPTIBLE,
-//				(Comparable<?>) site.key() );
-//	}
+//	final String denom = v[Col.DENOMINATIE_VESTIGING.ordinal()];
+//	final String cultCat;
+//	if( denom.startsWith( "Evan" ) // 0.1%
+//			// || denom.contains( "PC" ) // 1.1%
+//			|| denom.startsWith( "Prot" ) // 23.1%
+//			|| denom.startsWith( "Geref" ) ) // 1.2%
+//		cultCat = "po_luther";
+//	else if( denom.startsWith( "Antro" ) ) // 0.9%
+//		cultCat = "po_steiner";
+//	else if( v[Col.SOORT_PO.ordinal()].equals( "Vso" )
+//			|| v[Col.SOORT_PO.ordinal()].equals( "So" ) )
+//		cultCat = "po_special";
+//	else
+//		cultCat = "po_rest";
 
-//	boolean noPressure( final SiteTuple site )
-//	{
-//		return infectives( site ).isEmpty() || susceptibles( site ).isEmpty();
-//	}
-
-//	@Override
-//	public void convene( final Comparable<?> siteKey, final Quantity<Time> dt,
-//		final Stream<Object> participants, final Runnable onAdjourn )
-//	{
-////		final SiteTuple site = this.sites.select( siteKey );
-////		final Map<MSEIRS.Compartment, Map<Object, Double>> sir = 
-//		participants.map( this.persons::select ).filter( pp -> pp != null )
-//				.forEach( pp -> pp.updateAndGet( Persons.SiteRef.class,
-//						v -> siteKey ) );
-//
-//		after( dt ).call( t ->
-//		{
-//			participants.map( this.persons::select ).filter( pp -> pp != null )
-//					.forEach( pp -> pp.updateAndGet( Persons.SiteRef.class,
-//							v -> pp.get( Persons.HomeSiteRef.class ) ) );
-//		} );
-////				.collect( Collectors.groupingBy(
-////						pp -> pp.get( Persons.EpiCompartment.class ), Collectors
-////								.toMap( pp -> pp.key(), pp -> 0d ) ) );
-////		sir.computeIfPresent( MSEIRS.Compartment.SUSCEPTIBLE, ( k, v ) ->
-////		{
-////			v.replaceAll( ( key, res ) -> this.persons.selectValue( key,
-////					Persons.EpiResistance.class ) );
-////			return v;
-////		} );
-////
-////		pressurize( site, sir, 0d, QuantityUtil.valueOf( dt ), () ->
-////		{
-////			sir.values().stream().flatMap( l -> l.keySet().stream() ).allMatch(
-////					pp -> depart( this.persons.select( pp ), site ) );
-////
-////			onAdjourn.run();
-////		} );
-//	}
-
-//	@Override
-//	public void populateHome( final Object homeRef,
-//		final Map<MSEIRS.Compartment, List<Object>> sirDelta )
-//	{
-////		final HomePressure pres = this.homePressure.computeIfAbsent( homeRef,
-////				k -> new HomePressure() );
-////		sirDelta.forEach( ( sir, delta ) ->
-////		{
-////			switch( sir )
-////			{
-////			case SUSCEPTIBLE:
-////				pres.sir[0] += delta.size();
-////				pres.susceptibles.addAll( delta );
-////				break;
-////			case INFECTIVE:
-////				pres.sir[1] += delta.size();
-////				break;
-////			default:
-////				pres.sir[2] += delta.size();
-////				break;
-////			}
-////		} );
-////		pres.reschedule( null, null, this.beta, this.persons::select,
-////				this::scheduleInfect );
-////		LOG.debug( "Populated household @{}: {}", homeRef, sirDelta );
-//		this.events.onNext( new Epidemical.EpidemicFact().withSite( homeRef )
-//				.withSIRDelta( map ->
-//				{
-//					sirDelta.forEach(
-//							( sir, delta ) -> map.put( sir, delta.size() ) );
-//					return map;
-//				} ) );
-//	}
 }

@@ -238,19 +238,15 @@ public class SimplePersonBroker implements Deme
 							|| !this.sizeMismatches.add( hhKey ) )
 						return;
 
-					LOG.debug(
-							LogUtil.messageOf(
-									"t={} HH size mismatch {} for '{}'"
-											+ " {}={}+{} <> {}",
-									scheduler().nowDT(), members.size(), hhKey,
-									hhType, hhType.adultCount(),
-									hhType.childCount(),
-									members.stream()
-											.map( ppKey -> this.persons
-													.selectValue( ppKey,
-															Persons.HouseholdRank.class ) )
-											.toArray() ),
-							new IllegalStateException( "size mismatch" ) );
+					LOG.warn( LogUtil.messageOf(
+							"t={} HH size mismatch {} for '{}'"
+									+ " {}={}+{} <> {}",
+							scheduler().nowDT(), members.size(), hhKey, hhType,
+							hhType.adultCount(), hhType.childCount(),
+							members.stream()
+									.map( ppKey -> this.persons.selectValue(
+											ppKey, Persons.HouseholdRank.class ) )
+									.toArray() ) );
 				}, scheduler()::fail );
 		this.persons = this.data.getTable( PersonTuple.class );
 		this.persons.onCreate( this::registerPerson, scheduler()::fail );

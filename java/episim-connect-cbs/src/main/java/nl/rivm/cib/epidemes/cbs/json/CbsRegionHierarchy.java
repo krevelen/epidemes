@@ -31,7 +31,11 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.util.FileUtil;
@@ -78,72 +82,6 @@ public class CbsRegionHierarchy
 	@JsonProperty( "reg" )
 	public String[] gm;
 
-//	@JsonProperty( "Arbeidsmarktregio's" )
-//	public String[] am;
-//
-//	@JsonProperty( "Arrondissementen (rechtsgebieden)" )
-//	public String[] ar;
-//
-//	@JsonProperty( "COROP-gebieden" )
-//	public String[] cr;
-//
-//	@JsonProperty( "COROP-subgebieden" )
-//	public String[] cs;
-//
-//	@JsonProperty( "COROP-plusgebieden" )
-//	public String[] cp;
-//
-//	@JsonProperty( "GGD-regio's" )
-//	public String[] gg;
-//
-//	@JsonProperty( "Jeugdzorgregios" )
-//	public String[] jz;
-//
-//	@JsonProperty( "Kamer van Koophandel" )
-//	public String[] kk;
-//
-//	@JsonProperty( "Landbouwgebieden" )
-//	public String[] lb;
-//
-//	@JsonProperty( "Landbouwgebieden (groepen)" )
-//	public String[] lg;
-//
-//	@JsonProperty( "Landsdelen" )
-//	public String[] ld;
-//
-//	@JsonProperty( "NUTS1-gebieden" )
-//	public String[] nl1;
-//
-//	@JsonProperty( "NUTS2-gebieden" )
-//	public String[] nl2;
-//
-//	@JsonProperty( "NUTS3-gebieden" )
-//	public String[] nl3;
-//
-//	@JsonProperty( "Politie Regionale eenheden" )
-//	public String[] re;
-//
-//	@JsonProperty( "Provincies" )
-//	public String[] pv;
-//
-//	@JsonProperty( "Ressorten (rechtsgebieden)" )
-//	public String[] rt;
-//
-//	@JsonProperty( "RPA-gebieden" )
-//	public String[] rp;
-//
-//	@JsonProperty( "Toeristengebieden" )
-//	public String[] tr;
-//
-//	@JsonProperty( "Veiligheidsregio's" )
-//	public String[] vr;
-//
-//	@JsonProperty( "Wgr-samenwerkingsgebieden" )
-//	public String[] wg;
-//
-//	@JsonProperty( "Zorgkantoorregio's" )
-//	public String[] zk;
-
 	public Map<String, Object> values = new TreeMap<>();
 
 	@JsonAnySetter
@@ -175,7 +113,8 @@ public class CbsRegionHierarchy
 		final CbsRegionHierarchy hier = JsonUtil.getJOM().readValue(
 				FileUtil.toInputStream( FILE_NAME ), CbsRegionHierarchy.class );
 
-		LOG.info( "Got: {}", JsonUtil.toJSON( hier.cityRegionsByType() ) );
+		LOG.info( "Got: {}",
+				JsonUtil.toJSON( hier.addAdminHierarchy( null ) ) );
 	}
 
 	@SuppressWarnings( "unchecked" )
@@ -193,5 +132,68 @@ public class CbsRegionHierarchy
 										() -> new EnumMap<>(
 												CBSRegionType.class ) ) ) ) )
 				.blockingGet();
+	}
+
+	public ObjectNode addAdminHierarchy( final JsonNode gmMap )
+	{
+		final TreeMap<String, EnumMap<CBSRegionType, String>> gmRegs = cityRegionsByType();
+
+		final ObjectNode result = JsonUtil.getJOM().createObjectNode();
+
+		if( gmMap != null && gmMap.isObject() && gmMap.size() != 0 )
+			// only place given keys in a hierarchy
+			JsonUtil.forEach( (ObjectNode) gmMap,
+					( k, v ) -> insertHierarchy( result,
+							gmRegs.get( k.toUpperCase() ), k, v ) );
+		else if( gmMap == null || gmMap.isNull()
+				|| (gmMap.isContainerNode() && gmMap.size() == 0) )
+			// create empty nodes for all known keys
+			gmRegs.forEach( ( k, v ) -> insertHierarchy( result, v, k,
+					JsonUtil.getJOM().createObjectNode() ) );
+		else
+			Thrower.throwNew( IllegalArgumentException::new,
+					() -> "Illegal filter: " + gmMap );
+
+		return result;
+	}
+
+	public static final String REG_TAGS_KEY = "reg_tags";
+
+	private void insertHierarchy( final ObjectNode container,
+		final EnumMap<CBSRegionType, String> v, final String gm,
+		final JsonNode gmNode )
+	{
+		final ObjectMapper om = JsonUtil.getJOM();
+
+		final ObjectNode ld = container
+				.with( v.get( CBSRegionType.TERRITORY ) );
+		ld.replace( REG_TAGS_KEY,
+				om.createArrayNode().add( v.get( CBSRegionType.TERRITORY ) )
+						.add( v.get( CBSRegionType.NUTS1 ) ) );
+
+		final ObjectNode pv = ld.with( CBSRegionType.PROVINCE.getPrefix() )
+				.with( v.get( CBSRegionType.PROVINCE ) );
+		pv.replace( REG_TAGS_KEY,
+				om.createArrayNode().add( v.get( CBSRegionType.TERRITORY ) )
+						.add( v.get( CBSRegionType.NUTS1 ) )
+						.add( v.get( CBSRegionType.PROVINCE ) )
+						.add( v.get( CBSRegionType.NUTS2 ) ) );
+
+		final ObjectNode cr = pv.with( CBSRegionType.COROP.getPrefix() )
+				.with( v.get( CBSRegionType.COROP ) );
+		cr.replace( REG_TAGS_KEY,
+				om.createArrayNode().add( v.get( CBSRegionType.TERRITORY ) )
+						.add( v.get( CBSRegionType.NUTS1 ) )
+						.add( v.get( CBSRegionType.PROVINCE ) )
+						.add( v.get( CBSRegionType.NUTS2 ) )
+						.add( v.get( CBSRegionType.COROP ) )
+						.add( v.get( CBSRegionType.NUTS3 ) ) );
+
+		cr.with( CBSRegionType.MUNICIPAL.getPrefix() )
+				.replace( gm,
+						gmNode.isObject()
+								? ((ObjectNode) gmNode).set( REG_TAGS_KEY,
+										om.valueToTree( v.values() ) )
+								: gmNode );
 	}
 }
