@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,6 +38,7 @@ import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import com.eaio.uuid.UUID;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.coala.data.Table.Property;
 import io.coala.data.Table.Tuple;
@@ -52,6 +54,7 @@ import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
+import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
@@ -59,6 +62,7 @@ import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
+import nl.rivm.cib.json.DuoPrimarySchool.ExportCol;
 import tec.uom.se.ComparableQuantity;
 
 /**
@@ -173,7 +177,6 @@ public interface DemoModel
 	@SuppressWarnings( "serial" )
 	interface Persons
 	{
-
 		enum HouseholdPosition
 		{
 			REFERENT, PARTNER, CHILD1, CHILD2, CHILD3, CHILDMORE;
@@ -508,6 +511,13 @@ public interface DemoModel
 			} );
 		}
 
+		default ComparableQuantity<Time> ageOf( final PersonTuple pp )
+		{
+			return QuantityUtil.valueOf(
+					now().decimal().subtract( pp.get( Persons.Birth.class ) ),
+					scheduler().timeUnit().asType( Time.class ) );
+		}
+
 //		default LocalDate dt()
 //		{
 //			// FIXME fix daylight savings adjustment, seems to adjust the wrong way
@@ -535,6 +545,31 @@ public interface DemoModel
 	interface Cultural
 	{
 		// social/mental peer pressure networks, dynamics
+
+		enum Culture
+		{
+			LUTHER, STEINER, SPECIAL, OTHERS;
+
+			public static Culture
+				resolvePO( final EnumMap<ExportCol, JsonNode> school )
+			{
+				final String denom = school.get( ExportCol.DENOMINATIE )
+						.asText();
+				if( denom.startsWith( "Prot" ) // 23.1%
+						|| denom.startsWith( "Geref" ) // 1.2%
+						|| denom.startsWith( "Evan" ) // 0.1%
+				) return LUTHER;
+
+				if( denom.startsWith( "Antro" ) ) // 0.9%
+					return STEINER;
+
+				final String type = school.get( ExportCol.PO_SOORT ).asText();
+				if( type.startsWith( "S" ) || type.contains( "s" ) )
+					return SPECIAL;
+
+				return OTHERS;
+			}
+		}
 
 		class GatherFact extends EpiFact
 		{

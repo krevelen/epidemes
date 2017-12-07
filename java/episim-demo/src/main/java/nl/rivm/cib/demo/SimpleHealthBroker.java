@@ -756,8 +756,9 @@ public class SimpleHealthBroker implements HealthBroker
 				nextDose.ageRangeDefault().lowerValue()
 						.add( this.vaxTreatmentDelay.draw() ) ),
 				delay = vaxAge.subtract( age );
-		LOG.info( "Vax {} @age {} (t+{}) status {}->{} for {}", nextDose,
-				QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ), delay, status,
+		LOG.info( "t={} Vax {} @age {} (t+{}) status {}->{} for {}", dt(),
+				nextDose, QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ),
+				QuantityUtil.pretty( delay, TimeUnits.WEEK, 1 ), status,
 				nextDose.set( status ), pp );
 
 		after( delay ).call( t_v ->

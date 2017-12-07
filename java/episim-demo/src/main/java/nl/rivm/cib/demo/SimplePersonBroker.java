@@ -89,6 +89,7 @@ import nl.rivm.cib.epidemes.cbs.json.Cbs37201json;
 import nl.rivm.cib.epidemes.cbs.json.Cbs37230json;
 import nl.rivm.cib.epidemes.cbs.json.Cbs71486json;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
+import tec.uom.se.ComparableQuantity;
 
 /** organizes survival and reproduction (across households) */
 @Singleton
@@ -110,8 +111,28 @@ public class SimplePersonBroker implements Deme
 		@DefaultValue( "" + 500_000 )
 		int populationSize();
 
-		@DefaultValue( "COROP" ) //"MUNICIPAL" //"PROVINCE" //"COROP"
-		CBSRegionType cbsRegionLevel();
+		// TODO read referent pop size from cbs data?
+		@Key( "population-size-ref" )
+		@DefaultValue( "" + 17_000_000 )
+		int referentPopulationSize();
+
+		// TODO draw partner age difference from CBS 37422?
+		@Key( "hh-partner-age-delta-range" )
+		@DefaultValue( "[-5 year; 1 year]" )
+		String hhPartnerAgeDeltaRange();
+
+		@Key( "hh-partner-age-delta-dist" )
+		@DefaultValue( "normal(-2 year; 2 year)" )
+		String hhPartnerAgeDeltaDist();
+
+		@Key( "pop-male-freq" )
+		@DefaultValue( "0.5" )
+		BigDecimal maleFreq();
+
+		// for demographic congruence accuracy
+		@Key( "regional-resolution" )
+		@DefaultValue( "MUNICIPAL" ) //"MUNICIPAL" //"PROVINCE" //"COROP" //"TERRITORY"
+		CBSRegionType regionalResolution();
 
 		@Key( "hh-type-birth-dist" )
 		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
@@ -130,10 +151,6 @@ public class SimplePersonBroker implements Deme
 				+ "71486ned-TS-2010-2016.json" )
 		@ConverterClass( InputStreamConverter.class )
 		InputStream cbs71486Data();
-
-		@Key( "pop-male-freq" )
-		@DefaultValue( "0.5" )
-		BigDecimal maleFreq();
 	}
 
 	@InjectConfig
@@ -150,6 +167,9 @@ public class SimplePersonBroker implements Deme
 
 	@Inject
 	private ProbabilityDistribution.Factory distFactory;
+
+	@Inject
+	private ProbabilityDistribution.Parser distParser;
 
 	private Subject<DemicFact> events = PublishSubject.create();
 
@@ -200,21 +220,14 @@ public class SimplePersonBroker implements Deme
 	private final AtomicLong hhSeq = new AtomicLong();
 
 	private ConditionalDistribution<Cbs71486json.Category, RegionPeriod> hhTypeDist;
-	// TODO draw partner age difference from config or CBS dist
-	private QuantityDistribution<Time> hhAgeDiffDist = () -> QuantityUtil
-			.valueOf(
-					Math.max( -3, Math.min( 1,
-							this.distFactory.getStream().nextGaussian() * 3 ) ),
-					TimeUnits.YEAR );
-
+	private QuantityDistribution<Time> hhPartnerAgeDiffDist;
 	private final Map<Object, List<Object>> hhMembers = new HashMap<>();
-
 	private EnumMap<CBSMotherAgeRange, QuantityDistribution<Time>> momAgeDists = new EnumMap<>(
 			CBSMotherAgeRange.class );
 
 	private final Set<Object> sizeMismatches = new HashSet<>();
 
-	private transient CBSRegionType cbsRegionLevel = null;
+	private transient CBSRegionType regionalResolution = null;
 	private transient BigDecimal dtScalingFactor = BigDecimal.ONE;
 	private transient Range<LocalDate> dtRange = null;
 
@@ -259,31 +272,40 @@ public class SimplePersonBroker implements Deme
 				.mapToLong( seq -> seq ).max().orElse( 0 ) );
 		this.dtRange = Range
 				.upFromAndIncluding( scheduler().offset().toLocalDate() );
-		this.cbsRegionLevel = this.config.cbsRegionLevel();
-		this.dtScalingFactor = DecimalUtil // TODO read cbs pop size from cbs data
-				.divide( this.config.populationSize(), 17_000_000 );
+		this.regionalResolution = this.config.regionalResolution();
+		this.dtScalingFactor = DecimalUtil.divide( this.config.populationSize(),
+				this.config.referentPopulationSize() );
 
 		final TreeMap<RegionPeriod, Collection<WeightedValue<Cbs71486json.Category>>> values = (TreeMap<RegionPeriod, Collection<WeightedValue<Cbs71486json.Category>>>) Cbs71486json
 				.readAsync( () -> this.config.cbs71486Data(), this.dtRange )
 				.filter( wv -> wv.getValue()
-						.regionType() == this.cbsRegionLevel )
+						.regionType() == this.regionalResolution )
 				.toMultimap( wv -> wv.getValue().regionPeriod(),
 						Functions.identity(), TreeMap::new )
 				.blockingGet();
 		this.hhTypeDist = ConditionalDistribution
 				.of( this.distFactory::createCategorical, values );
 
-		// read files and subscribe to all demical events
+		final Range<ComparableQuantity<Time>> ageDiffRange = Range
+				.parseQuantity( this.config.hhPartnerAgeDeltaRange(),
+						Time.class );
+		this.hhPartnerAgeDiffDist = this.distParser
+				.parseQuantity( this.config.hhPartnerAgeDeltaDist(),
+						Time.class )
+				.transform( v -> ageDiffRange
+						.crop( (ComparableQuantity<Time>) v ) );
+
+		// read files to generate dists and subscribe to their demical events
 		Observable
-				.fromArray( //
-						setupBirths(), //
+				.fromArray( setupBirths(), //
 						setupDeaths(), //
-						setupImmigrations(), setupEmigrations() )
+						setupImmigrations(), //
+						setupEmigrations() )
 				.flatMap( ev -> ev ).subscribe( this.events );
 
 		setupHouseholds( this.config.populationSize() );
 
-		// setup pickers after households to prevent re-indexing
+		// setup pickers AFTER households to prevent re-indexing
 		LOG.info( "Creating expansion/birth picker..." );
 		this.expansionPicker = //this.binder.inject( ExpansionPicker.class );
 				new ExpansionPicker( this.scheduler,
@@ -380,7 +402,7 @@ public class SimplePersonBroker implements Deme
 		final TreeMap<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>> values = (TreeMap<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>>) Cbs71486json
 				.readAsync( () -> this.config.cbs71486Data(), this.dtRange )
 				.filter( wv -> wv.getValue()
-						.regionType() == this.cbsRegionLevel )
+						.regionType() == this.regionalResolution )
 				.toMultimap( wv -> wv.getValue().regionPeriod().periodRef(),
 						Functions.identity(), TreeMap::new,
 						k -> new ArrayList<>() )
@@ -452,21 +474,20 @@ public class SimplePersonBroker implements Deme
 	{
 		// initialize birth family type dist
 		final ConditionalDistribution<Cbs37201json.Category, RegionPeriod> localBirthDist = ConditionalDistribution
-				.of( this.distFactory::createCategorical,
-						Cbs37201json
-								.readAsync( () -> this.config.cbs37201Data(),
-										this.dtRange )
-								.filter( wv -> wv.getValue()
-										.regionType() == this.cbsRegionLevel )
-								// <RegionPeriod, WeightedValue<Cbs37201json.Category>>
-								.toMultimap( wv -> wv.getValue().regionPeriod(),
-										Functions.identity(), TreeMap::new )
-								.blockingGet() );
+				.of( this.distFactory::createCategorical, Cbs37201json
+						.readAsync( () -> this.config.cbs37201Data(),
+								this.dtRange )
+						.filter( wv -> wv.getValue()
+								.regionType() == this.regionalResolution )
+						// <RegionPeriod, WeightedValue<Cbs37201json.Category>>
+						.toMultimap( wv -> wv.getValue().regionPeriod(),
+								Functions.identity(), TreeMap::new )
+						.blockingGet() );
 
 		// initialize birth space-time dist
 		final Cbs37230json.EventProducer births = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.BIRTHS, this.distFactory,
-				() -> this.config.cbs37230Data(), this.cbsRegionLevel,
+				() -> this.config.cbs37230Data(), this.regionalResolution,
 				this.dtRange, this.dtScalingFactor );
 		final AtomicReference<DemicFact> pendingEvent = new AtomicReference<>();
 		return infiniterate( () -> births.nextDelay( dt(),
@@ -479,7 +500,7 @@ public class SimplePersonBroker implements Deme
 	{
 		final Cbs37230json.EventProducer deaths = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.DEATHS, this.distFactory,
-				() -> this.config.cbs37230Data(), this.cbsRegionLevel,
+				() -> this.config.cbs37230Data(), this.regionalResolution,
 				this.dtRange, this.dtScalingFactor );
 		final AtomicReference<String> pendingReg = new AtomicReference<>();
 		return infiniterate( () -> deaths.nextDelay( dt(), nextRegRef ->
@@ -495,7 +516,7 @@ public class SimplePersonBroker implements Deme
 	{
 		final Cbs37230json.EventProducer immigrations = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.IMMIGRATION, this.distFactory,
-				() -> this.config.cbs37230Data(), this.cbsRegionLevel,
+				() -> this.config.cbs37230Data(), this.regionalResolution,
 				this.dtRange, this.dtScalingFactor );
 
 		final AtomicReference<String> pendingReg = new AtomicReference<>();
@@ -512,7 +533,7 @@ public class SimplePersonBroker implements Deme
 	{
 		final Cbs37230json.EventProducer emigrations = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.EMIGRATION, this.distFactory,
-				() -> this.config.cbs37230Data(), this.cbsRegionLevel,
+				() -> this.config.cbs37230Data(), this.regionalResolution,
 				this.dtRange, this.dtScalingFactor );
 
 		final AtomicReference<String> pendingReg = new AtomicReference<>();
@@ -533,8 +554,8 @@ public class SimplePersonBroker implements Deme
 				.ageDist( this.distFactory::createUniformContinuous ).draw();
 		final long hhSeq = this.hhSeq.incrementAndGet();
 		final Instant refBirth = now().subtract( Duration.of( refAge ) );
-		final Instant partnerBirth = now().subtract(
-				Duration.of( refAge.subtract( this.hhAgeDiffDist.draw() ) ) );
+		final Instant partnerBirth = now().subtract( Duration
+				.of( refAge.subtract( this.hhPartnerAgeDiffDist.draw() ) ) );
 		final HouseholdTuple hh = this.households.insertValues( map -> map
 				.put( Households.Composition.class, hhType )
 				.put( Households.KidRank.class,
@@ -562,10 +583,10 @@ public class SimplePersonBroker implements Deme
 		// add household's children
 		for( int r = 0, n = hhType.childCount(); r < n; r++ )
 		{
-			// TODO kid age diff (60036ned)
 			final Quantity<Time> refAgeOver15 = refAge
 					.subtract( QuantityUtil.valueOf( 15, TimeUnits.YEAR ) );
 			// equidistant ages: 0yr < age_1, .., age_n < (ref - 15yr)
+			// TODO kid age diff from cbs (60036ned)?
 			final Instant birth = now()
 					.subtract( refAgeOver15.subtract( refAgeOver15.multiply(
 							(1 - this.distFactory.getStream().nextDouble() * .5
@@ -599,9 +620,6 @@ public class SimplePersonBroker implements Deme
 		final Cbs37201json.Category oldCat = this.pendingBirthCat
 				.getAndSet( birthCat );
 		if( oldCat == null ) return 1; // initial execution
-
-		// TODO marriage, multiplets (CBS 37422) 
-		// TODO kid age diff (60036ned)
 
 		final CBSMotherAgeRange momAge = birthCat
 				.ageDist( this.distFactory::createCategorical ).draw();
@@ -670,23 +688,8 @@ public class SimplePersonBroker implements Deme
 			return 0;
 		}
 
-		if( this.sizeMismatches.contains( hh.key() ) )
-//		final List<Object> members = this.hhMembers.get( hh.key() );
-//		if( hhType.size() != members.size() )
-//		{
-//			if( !this.sizeMismatches.contains( hh.key() ) )
-//			{
-//				this.sizeMismatches.add( hh.key() ); // FIXME how come?
-//				LOG.debug( "t={} Skip size mismatch {} for '{}' {}={}+{} <> {}",
-//						scheduler().nowDT(), members.size(), hh.key(), hhType,
-//						hhType.adultCount(), hhType.childCount(),
-//						members.stream()
-//								.map( ppKey -> this.persons.selectValue( ppKey,
-//										Persons.MemberPosition.class ) )
-//								.toArray() );
-//			}
-			return 0;
-//		}
+		if( this.sizeMismatches.contains( hh.key() ) ) return 0;
+
 		LOG.trace( "{} {}: shrinking {} person aged ~{}", dt(),
 				DemeEventType.ELIMINATION, hhCat.regionRef(), age );
 

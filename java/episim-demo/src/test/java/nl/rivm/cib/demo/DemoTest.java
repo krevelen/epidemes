@@ -42,6 +42,7 @@ import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
 import io.coala.data.DataLayer;
 import io.coala.dsol3.Dsol3Scheduler;
+import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
@@ -98,23 +99,23 @@ public class DemoTest
 
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.POPULATION_BASE );
-		LOG.debug( "Deme config: {}", demeConfig );
+		LOG.debug( "Deme config: {}", JsonUtil.toJSON( demeConfig ) );
 
 		final JsonNode healthConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.VACCINATION_BASE );
-		LOG.debug( "Health config: {}", demeConfig );
+		LOG.debug( "Health config: {}", JsonUtil.toJSON( healthConfig ) );
 
 		final JsonNode peerConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.HESITANCY_BASE );
-		LOG.debug( "Peer config: {}", demeConfig );
+		LOG.debug( "Peer config: {}", JsonUtil.toJSON( peerConfig ) );
 
 		final JsonNode siteConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.LOCATION_BASE );
-		LOG.debug( "Site config: {}", siteConfig );
+		LOG.debug( "Site config: {}", JsonUtil.toJSON( siteConfig ) );
 
 		final JsonNode societyConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.MOTION_BASE );
-		LOG.debug( "Society config: {}", societyConfig );
+		LOG.debug( "Society config: {}", JsonUtil.toJSON( societyConfig ) );
 
 		final LocalConfig binderConfig = LocalConfig.builder().withProvider(
 				Scheduler.class, Dsol3Scheduler.class,
@@ -155,7 +156,7 @@ public class DemoTest
 						.build() );
 
 		LOG.debug( "Constructing model (seed: {}, config: {})...", seed,
-				binderConfig.toJSON() );
+				JsonUtil.toJSON( binderConfig.toJSON() ) );
 		final SimpleDemoScenario model = binder
 				.inject( SimpleDemoScenario.class );
 

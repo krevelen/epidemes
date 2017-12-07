@@ -19,24 +19,38 @@
  */
 package nl.rivm.cib.json;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
+import io.coala.math.WeightedValue;
+import io.coala.random.ConditionalDistribution;
+import io.coala.random.DistributionFactory;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.util.FileUtil;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 
 /**
@@ -68,40 +82,75 @@ public class DuoPrimarySchool
 
 	}
 
+	public static final String ZIPDIST_KEY = "zip_dist";
+
+	public static final String SCHOOLS_KEY = "schools";
+
+	public enum ExportCol
+	{
+		GEMEENTE, PO_SOORT, DENOMINATIE, BRIN, VESTIGING, POSTCODE, LATITUDE, LONGITUDE
+	};
+
 	private static final String outFileName = "dist/region-primary-school-students.json";
 
-	public static void main_old( final String[] args ) throws Exception
+	private static EnumMap<ExportCol, JsonNode> toEnumMap( final JsonNode node )
 	{
-		try( final InputStream is = FileUtil.toInputStream( outFileName ) )
-		{
-			final JsonNode root = JsonUtil.getJOM().readTree( is );
+		return JsonUtil.stream( (ArrayNode) node ).collect( Collectors.toMap(
+				e -> ExportCol.values()[e.getKey()], e -> e.getValue(),
+				( v1, v2 ) -> v2,
+				() -> new EnumMap<ExportCol, JsonNode>( ExportCol.class ) ) );
+	}
 
-			JsonUtil.forEach( (ObjectNode) root,
-					( ld, ldNode ) -> JsonUtil.forEach(
-							((ObjectNode) ldNode).with( "prov" ), ( pv,
-								pvNode ) -> JsonUtil.forEach(
-										((ObjectNode) pvNode).with( "corop" ), (
-											cr, crNode ) -> JsonUtil.forEach(
-													((ObjectNode) ldNode)
-															.with( "gm" ),
-													( gm, gmNode ) ->
-													{
-													} ) ) ) );
-//			final Map<String, WeightedValue<String>> localChoice;
-		}
+	public static <T> Map<String, Map<T, ProbabilityDistribution<String>>>
+		parse( final InputStream is,
+			final ProbabilityDistribution.Factory distFact,
+			final BiFunction<String, EnumMap<ExportCol, JsonNode>, T> classifier )
+			throws IOException
+	{
+		final JsonNode root = JsonUtil.getJOM().readTree( is );
+		final ObjectNode schools = ((ObjectNode) root.with( SCHOOLS_KEY ));
+		return JsonUtil.stream( root, ZIPDIST_KEY )
+				.flatMap( ldPv -> JsonUtil.stream( ldPv.getValue(),
+						CBSRegionType.PROVINCE.getPrefix() ) )
+				.flatMap( pvCr -> JsonUtil.stream( pvCr.getValue(),
+						CBSRegionType.COROP.getPrefix() ) )
+				.flatMap( crGm -> JsonUtil.stream( crGm.getValue(),
+						CBSRegionType.MUNICIPAL.getPrefix() ) )
+				.flatMap( gmZips -> JsonUtil.stream( gmZips.getValue() ) )
+				.filter( zipWvs -> !zipWvs.getKey()
+						.equals( CbsRegionHierarchy.REG_TAGS_KEY ) )
+				.collect( Collectors.toMap(
+						// key1: zip
+						Map.Entry::getKey,
+						zipWvs -> JsonUtil.stream( zipWvs.getValue() )
+								// reclassify
+								.collect( Collectors.groupingBy(
+										wv -> classifier.apply( wv.getKey(),
+												toEnumMap( schools
+														.get( wv.getKey() ) ) ) ) )
+								.entrySet().stream()
+								.collect( Collectors.toMap(
+										// key2: cat
+										Map.Entry::getKey,
+										catWvs -> distFact.createCategorical(
+												catWvs.getValue().stream()
+														.map( wv -> WeightedValue
+																.of( wv.getKey(),
+																		wv.getValue()
+																				.asInt() ) ) ),
+										( v1, v2 ) -> v2, HashMap::new ) ),
+						( v1, v2 ) -> v2, HashMap::new ) );
 	}
 
 	public static void main( final String[] args ) throws Exception
 	{
-
 		final String pc4GemFile = "dist/adm_pc4_2016_basis.json";
-
 		final TreeMap<String, String> pc4Gem = JsonUtil
 				.readArrayAsync( () -> FileUtil.toInputStream( pc4GemFile ),
 						BagZipcode4RegionPolygons.class )
 				.collect( () -> new TreeMap<String, String>(),
 						( m, v ) -> m.put( String.format( "%04d", v.zip ),
-								String.format( "GM%04d", v.gm ) ) )
+								CBSRegionType.MUNICIPAL.format( v.gm ) ) )
 				.blockingGet();
 
 		final String pc6GeoFile = "dist/bag_pc6_2016_01.json";
@@ -114,8 +163,6 @@ public class DuoPrimarySchool
 				.collectInto( new TreeMap<String, BagZipcode6Locations>(),
 						( m, v ) -> m.put( v.zip, v ) )
 				.blockingGet();
-
-//		(denominatie, gemeente/postcode, leeftijd) -> vestiging: [latlon, maxage, cap]
 
 		final ObjectNode gmCultAgeSchoolPos = JsonUtil.getJOM()
 				.createObjectNode();
@@ -144,56 +191,24 @@ public class DuoPrimarySchool
 						+ v[Col.VESTIGINGSNUMMER.ordinal()];
 
 				gmCultAgeSchoolPos //
-						.with( "dist" ).with( pc4Gm )
+						.with( ZIPDIST_KEY ).with( pc4Gm )
 						.with( v[Col.POSTCODE_LEERLING.ordinal()] )
-						.with( v[Col.DENOMINATIE_VESTIGING.ordinal()] )
 						.put( id, Integer.valueOf( v[Col.TOTAAL.ordinal()] ) );
 
-				gmCultAgeSchoolPos.with( "schools" )
-//				.with(String.format( "GM%04d", Integer.valueOf(
-//										v[Col.GEMEENTENUMMER.ordinal()] ) ) )
-						.putArray( id )
-						.add( String.format( "GM%04d",
-								Integer.valueOf(
-										v[Col.GEMEENTENUMMER.ordinal()] ) ) )
+				gmCultAgeSchoolPos.with( SCHOOLS_KEY ).putArray( id )
+						// following order of ExportCol enumeration
+						.add( CBSRegionType.MUNICIPAL.format( Integer
+								.valueOf( v[Col.GEMEENTENUMMER.ordinal()] ) ) )
 						.add( v[Col.SOORT_PO.ordinal()] )
-						.add( v[Col.POSTCODE_VESTIGING.ordinal()] )
 						.add( v[Col.DENOMINATIE_VESTIGING.ordinal()] )
+						.add( v[Col.BRIN_NUMMER.ordinal()] )
+						.add( v[Col.VESTIGINGSNUMMER.ordinal()] )
+						.add( v[Col.POSTCODE_VESTIGING.ordinal()] )
 						.add( stat.geo.coords[1] ).add( stat.geo.coords[0] )
-						.add( Integer.valueOf( v[Col.TOTAAL.ordinal()] ) );
-
-//
-//				brinData.computeIfAbsent( loc, k -> Stream.of( Col.BRIN_NUMMER,
-//						Col.VESTIGINGSNUMMER, Col.BEVOEGD_GEZAG_NUMMER,
-//						Col.INSTELLINGSNAAM_VESTIGING,
-//						Col.DENOMINATIE_VESTIGING, Col.PLAATSNAAM,
-//						Col.POSTCODE_VESTIGING, Col.PROVINCIE, Col.SOORT_PO,
-//						Col.GEMEENTENUMMER, Col.GEMEENTENAAM )
-//						.collect( () -> new EnumMap<>( Col.class ),
-//								( m, i ) -> m.put( i, v[i.ordinal()] ),
-//								( m1, m2 ) -> m1.putAll( m2 ) ) );
-//
-//				originCounts.computeIfAbsent( loc, k -> new HashMap<>() )
-//						.computeIfAbsent(
-//								v[Col.GEMEENTENAAM_LEERLING.ordinal()],
-//								k -> new HashMap<>() )
-//						.compute( v[Col.POSTCODE_LEERLING.ordinal()],
-//								( k, n ) -> (n == null ? 0 : n) + Integer
-//										.valueOf( v[Col.TOTAAL.ordinal()] ) );
-//
-//				final EnumMap<Col, Integer> ageCount = ageCounts
-//						.computeIfAbsent( loc,
-//								k -> new EnumMap<>( Col.class ) );
-//				IntStream
-//						.range( Col.L3_MIN.ordinal(), Col.TOTAAL.ordinal() + 1 )
-//						.filter( i -> Integer.valueOf( v[i] ) > 0 )
-//						.forEach( i -> ageCount.compute( Col.values()[i],
-//								( k, n ) -> (n == null ? 0 : n)
-//										+ Integer.valueOf( v[i] ) ) );
+				//
+				;
 			} );
 		}
-
-//		LOG.info( "Got: {}", JsonUtil.toJSON( gmCultAgeSchoolPos ) );
 
 		// put in administrative hierarchy...
 		final String gmRegionFile = "dist/83287NED.json";
@@ -204,111 +219,64 @@ public class DuoPrimarySchool
 			final CbsRegionHierarchy gmRegs = JsonUtil.getJOM().readValue( is,
 					CbsRegionHierarchy.class );
 
-			gmCultAgeSchoolPos.replace( "dist", gmRegs
-					.addAdminHierarchy( gmCultAgeSchoolPos.with( "dist" ) ) );
+			gmCultAgeSchoolPos.replace( ZIPDIST_KEY, gmRegs.addAdminHierarchy(
+					gmCultAgeSchoolPos.with( ZIPDIST_KEY ) ) );
 			JsonUtil.getJOM().writer().withDefaultPrettyPrinter()
 					.writeValue( os, gmCultAgeSchoolPos );
 		}
 		LOG.warn( "Missing stats for PC6 addresses: {}", missing );
+	}
 
-//		LOG.info( "Got counts..\n{}",
-//				String.join( "\n",
-//						brinData.entrySet().stream().limit( 10 )
-//								.map( e -> e.getValue() + "\n\t"
-//										+ originCounts.get( e.getKey() )
-//										+ "\n\t" + ageCounts.get( e.getKey() ) )
-//								.toArray( String[]::new ) ) );
-//
-//		brinData.entrySet().stream().forEach( e ->
-//		{
-//			final String denom = e.getValue().get( Col.DENOMINATIE_VESTIGING );
-//			final Map<String, List<WeightedValue<String>>> cultDist;
-//			final AtomicInteger cultCount;
-//			if( denom.startsWith( "Evan" ) // 0.1%
-////			|| denom.contains( "PC" ) // 1.1%
-////					|| denom.startsWith( "Prot" ) // 23.1%
-//					|| denom.startsWith( "Geref" ) // 1.2%
-//			)
-//			{
-//				cultDist = distPC;
-//				cultCount = countPC;
-//			} else if( denom.startsWith( "Antro" ) ) // 0.9%
-//			{
-//				cultDist = distAnt;
-//				cultCount = countAnt;
-//			} else
-//			{
-//				cultDist = dist;
-//				cultCount = count;
-//			}
-//			// count by zipcode
-////			originCounts.get( e.getKey() ).values().stream()
-////					.flatMap( m -> m.entrySet().stream() ) //
-////					.forEach( n ->
-////					{
-////						cultDist.computeIfAbsent( n.getKey(),
-////								k -> new ArrayList<>() )
-////								.add( WeightedValue.of( e.getKey(),
-////										n.getValue() ) );
-////						cultCount.addAndGet( n.getValue() );
-////					} );
-//			// count by municipality
-//			originCounts.get( e.getKey() ).entrySet().stream().forEach( n ->
-//			{
-//				final int sum = n.getValue().values().stream()
-//						.mapToInt( i -> i ).sum();
-//				cultDist.computeIfAbsent( n.getKey(), k -> new ArrayList<>() )
-//						.add( WeightedValue.of( e.getKey(), sum ) );
-//				cultCount.addAndGet( sum );
-//			} );
-//		} );
-//
-//		final int sum = count.get() + countPC.get() + countAnt.get();
-//		LOG.info( "Got dist ({}={}%): \n\n{}", count, DecimalUtil.toScale(
-//				DecimalUtil.divide( count, sum ).doubleValue() * 100, 1 ),
-//				String.join( "\n",
-//						dist.entrySet().stream().limit( 10 ).map( e -> e
-//								.getKey()
-//								+ ": "
-//								+ Arrays.toString( e.getValue().stream()
-//										.map( wv -> wv.getValue() + ":"
-//												+ wv.getWeight()
-//												+ ageCounts
-//														.get( wv.getValue() ) )
-//										.toArray( String[]::new ) ) )
-//								.toArray( String[]::new ) ) );
-//		LOG.info( "Got dist Reform ({}={}%): \n\n{}", countPC,
-//				DecimalUtil.toScale(
-//						DecimalUtil.divide( countPC, sum ).doubleValue() * 100,
-//						1 ),
-//				String.join( "\n", distPC.entrySet().stream().limit( 10 )
-//						.map( e -> e.getKey() + ": " + Arrays.toString( e
-//								.getValue().stream()
-//								.map( wv -> wv.getValue() + ":" + wv.getWeight()
-//										+ ageCounts.get( wv.getValue() ) )
-//								.toArray( String[]::new ) ) )
-//						.toArray( String[]::new ) ) );
-//		LOG.info( "Got dist Anthro ({}={}%): \n\n{}", countAnt,
-//				DecimalUtil.toScale(
-//						DecimalUtil.divide( countAnt, sum ).doubleValue() * 100,
-//						1 ),
-//				String.join( "\n", distAnt.entrySet().stream().limit( 10 )
-//						.map( e -> e.getKey() + ": " + Arrays.toString( e
-//								.getValue().stream()
-//								.map( wv -> wv.getValue() + ":" + wv.getWeight()
-//										+ ageCounts.get( wv.getValue() ) )
-//								.toArray( String[]::new ) ) )
-//						.toArray( String[]::new ) ) );
-//
-//		final String gmRegionFile = "dist/83287NED.json";
-//		LOG.info( "Reading municipal region hierarchies from {}",
-//				gmRegionFile );
-//		try( final InputStream is = FileUtil.toInputStream( gmRegionFile ) )
-//		{
-//			final CbsRegionHierarchy gmRegs = JsonUtil.getJOM().readValue( is,
-//					CbsRegionHierarchy.class );
-//			final ObjectNode gmBoroZipPos = gmRegs.addAdminHierarchy( null );
-//		}
+	public static void test( final String[] args ) throws Exception
+	{
+		try( final InputStream is = FileUtil.toInputStream( outFileName ) )
+		{
+			LOG.debug( "Creating RNG..." );
+			final DistributionFactory distFact = new DistributionFactory();
 
+			LOG.debug( "Aggregating into dist..." );
+
+			final String LUTHER = "po_luther", STEINER = "po_steiner",
+					SPECIAL = "po_special", REST = "po_rest";
+			final Map<String, EnumMap<ExportCol, JsonNode>> schoolCache = new HashMap<>();
+			final Map<String, Map<String, ProbabilityDistribution<String>>> zipCultDists = parse(
+					is, distFact, ( id, arr ) ->
+					{
+						schoolCache.computeIfAbsent( id, k -> arr );
+						final String denom = arr.get( ExportCol.DENOMINATIE )
+								.asText();
+						if( denom.startsWith( "Prot" ) // 23.1%
+								|| denom.startsWith( "Geref" ) // 1.2%
+								|| denom.startsWith( "Evan" ) // 0.1%
+						) return LUTHER;
+
+						if( denom.startsWith( "Antro" ) ) // 0.9%
+							return STEINER;
+
+						final String type = arr.get( ExportCol.PO_SOORT )
+								.asText();
+						if( type.startsWith( "S" ) || type.contains( "s" ) )
+							return SPECIAL;
+
+						return REST;
+					} );
+
+			final ConditionalDistribution<String, Object[]> pc4SchoolDist = ConditionalDistribution
+					.of( params -> zipCultDists
+							.computeIfAbsent( params[0].toString(),
+									zip -> Collections.emptyMap() )
+							.computeIfAbsent( params[1].toString(),
+									cat -> zipCultDists.get( params[0] )
+											.get( REST ) ) );
+
+			LOG.debug( "Testing dist fallback..." );
+			zipCultDists.keySet().stream().sorted().limit( 10 )
+					.forEach( pc4 -> Arrays.asList( LUTHER, STEINER, SPECIAL )
+							.stream()
+							.forEach( cat -> LOG.debug(
+									"...draw for {} x {}: {}", pc4, cat,
+									schoolCache.get( pc4SchoolDist.draw( pc4,
+											cat ) ) ) ) );
+		}
 	}
 }

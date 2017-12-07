@@ -134,6 +134,13 @@ public class CbsRegionHierarchy
 				.blockingGet();
 	}
 
+	// landsdeel/nuts1 -> prov/nuts2 (12) -> corop/nuts3 (25) -> corop_sub -> corop_plus -> gm (400)
+	// ggd (25x)
+	// jeugdzorg (42x)
+	// ressort (4) -> district (11) -> safety (25) (!= police reg eenh)
+	// politie reg eenh (10x) -> districten (43x)
+	// agri_group -> agr
+
 	public ObjectNode addAdminHierarchy( final JsonNode gmMap )
 	{
 		final TreeMap<String, EnumMap<CBSRegionType, String>> gmRegs = cityRegionsByType();

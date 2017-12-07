@@ -19,9 +19,12 @@
  */
 package nl.rivm.cib.json;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 
@@ -32,6 +35,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
+import io.coala.math.WeightedValue;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.util.FileUtil;
 
 /**
@@ -193,6 +198,31 @@ public class CbsWardBoroughPolygons
 
 	private static final String FILE_NAME = "dist/adm_cbs_wijkbuurt_2013_v1.json";
 
+	public static Map<String, ProbabilityDistribution<String>> parse(
+		final InputStream is, final ProbabilityDistribution.Factory distFact )
+		throws IOException
+	{
+		return JsonUtil.stream( JsonUtil.getJOM().readTree( is ) )
+				.collect( Collectors.toMap(
+						// municipal
+						gmZipBo -> gmZipBo.getKey(),
+						// zip distribution
+						gmZipBo -> distFact.createCategorical( JsonUtil
+								.stream( gmZipBo.getValue() ).map(
+										zipBo -> WeightedValue.of(
+												// pc4
+												zipBo.getKey(),
+												// sum weights from all boroughs
+												JsonUtil.stream(
+														zipBo.getValue() )
+														.mapToInt(
+																bo -> bo.getValue()
+																		.asInt() )
+														.sum() ) ) ) ) );
+	}
+
+	private static final String outFile = "dist/gm_pc4_boro_hh.json";
+
 	public static void main( final String[] args ) throws Exception
 	{
 		final TreeMap<String, Map<String, Map<String, Integer>>> result = JsonUtil
@@ -208,7 +238,6 @@ public class CbsWardBoroughPolygons
 								.put( v.boro, v.hh ) )
 				.blockingGet();
 
-		final String outFile = "dist/gm_pc4_boro_hh.json";
 		JsonUtil.getJOM().writerWithDefaultPrettyPrinter().writeValue(
 				FileUtil.toOutputStream( outFile, false ), result );
 

@@ -19,8 +19,11 @@
  */
 package nl.rivm.cib.demo;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,9 +51,15 @@ import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.QuantityUtil;
+import io.coala.math.Range;
+import io.coala.random.ConditionalDistribution;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Scheduler;
+import io.coala.time.TimeUnits;
+import io.coala.util.InputStreamConverter;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
+import nl.rivm.cib.demo.DemoModel.Cultural.Culture;
 import nl.rivm.cib.demo.DemoModel.Cultural.GatherFact;
 import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Epidemical.SiteBroker;
@@ -62,6 +71,8 @@ import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.demo.DemoModel.Societies;
 import nl.rivm.cib.demo.DemoModel.Societies.SocietyTuple;
 import nl.rivm.cib.episim.model.SocialGatherer;
+import nl.rivm.cib.json.DuoPrimarySchool;
+import nl.rivm.cib.json.DuoPrimarySchool.ExportCol;
 import tec.uom.se.ComparableQuantity;
 
 /**
@@ -85,6 +96,10 @@ public class SimpleSocietyBroker implements SocietyBroker
 		@DefaultValue( "nl.rivm.cib.episim.model.SocialGatherer$Factory$SimpleBinding" )
 		Class<? extends SocialGatherer.Factory> socialGathererFactory();
 
+		@Key( "primary-school-densities" )
+		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM + "gm_pc4_po_pupils.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream duoPrimarySchoolData();
 	}
 
 	/** */
@@ -102,6 +117,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 
 	@Inject
 	private DataLayer data;
+
+	@Inject
+	private ProbabilityDistribution.Factory distFactory;
 
 	@Inject
 	private SiteBroker siteBroker;
@@ -144,6 +162,10 @@ public class SimpleSocietyBroker implements SocietyBroker
 	private final Map<Object, List<Object>> societyMembers = new HashMap<>();
 	/** */
 	private final Map<Object, Object[]> ppSocieties = new HashMap<>();
+	/** */
+	private final Map<String, EnumMap<ExportCol, JsonNode>> schoolCache = new HashMap<>();
+	/** */
+	private ConditionalDistribution<String, Object[]> primarySchoolDist;
 
 	/**
 	 *
@@ -159,7 +181,8 @@ public class SimpleSocietyBroker implements SocietyBroker
 		this.sites = this.data.getTable( SiteTuple.class );
 		this.societies = this.data.getTable( SocietyTuple.class );
 		this.persons = this.data.getTable( PersonTuple.class );
-		this.persons.onCreate( this::join, scheduler()::fail );
+		this.persons.onCreate( pp -> // pass to new event when home site is set
+		atOnce( t -> join( pp ) ), scheduler()::fail );
 		this.persons.onDelete( this::abandon, scheduler()::fail );
 
 		this.capacityIndex = new IndexPartition( this.societies,
@@ -180,6 +203,22 @@ public class SimpleSocietyBroker implements SocietyBroker
 		this.gatherers = this.binder.inject( factory )
 				.createAll( gathererConfig );
 
+		try( final InputStream is = this.config.duoPrimarySchoolData() )
+		{
+			final Map<String, Map<Culture, ProbabilityDistribution<String>>> dists = DuoPrimarySchool
+					.parse( is, this.distFactory, ( id, arr ) ->
+					{
+						this.schoolCache.computeIfAbsent( id, k -> arr );
+						return Culture.resolvePO( arr );
+					} );
+
+			this.primarySchoolDist = ConditionalDistribution.of( params -> dists
+					.computeIfAbsent( params[0].toString(),
+							zip -> Collections.emptyMap() )
+					.computeIfAbsent( (Culture) params[1], cat -> dists
+							.get( params[0] ).get( Culture.OTHERS ) ) );
+		}
+
 		LOG.debug( "{} ready", getClass().getSimpleName() );
 		return this;
 	}
@@ -189,12 +228,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 	 */
 	void join( final PersonTuple pp )
 	{
-		final ComparableQuantity<?> age = QuantityUtil.valueOf(
-				now().decimal().subtract( pp.get( Persons.Birth.class ) ),
-				scheduler().timeUnit() );
 		final Map<String, Object> roleMemberships = this.gatherers.entrySet()
-				.stream()
-				.filter( e -> e.getValue().memberAges().contains( age ) )
+				.stream().filter(
+						e -> e.getValue().memberAges().contains( ageOf( pp ) ) )
 				// TODO schedule membership when age reaches membership range
 				.collect( Collectors.toMap( Map.Entry::getKey, e ->
 				{
@@ -266,6 +302,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 				site.get( Sites.Longitude.class ) };
 	}
 
+	private Range<ComparableQuantity<Time>> poAges = Range.of( 4.0, 12.5 )
+			.map( v -> QuantityUtil.valueOf( v, TimeUnits.YEAR ) );
+
 	/**
 	 * @param gatherer
 	 * @param person
@@ -274,6 +313,24 @@ public class SimpleSocietyBroker implements SocietyBroker
 	SocietyTuple findSociety( final SocialGatherer gatherer,
 		final PersonTuple person )
 	{
+		final ComparableQuantity<Time> age = ageOf( person );
+		if( gatherer.id().equals( "career" ) && this.poAges.contains( age ) )
+		{
+			final SiteTuple homeSite = this.sites
+					.select( person.get( Persons.HomeSiteRef.class ) );
+			final String homeZip = homeSite.get( Sites.SiteName.class )
+					.substring( 5, 9 );
+			final Culture cult = Culture.OTHERS; // TODO from hh
+			String schoolName = this.primarySchoolDist.draw( homeZip, cult );
+			if( schoolName == null )
+				LOG.debug( "No school dist for {} x {}", homeZip, cult );
+//			else
+//				LOG.debug( "Setting school for {}, age {}: {} x {} -> {}",
+//						person, QuantityUtil.pretty( age, TimeUnits.YEAR, 1 ),
+//						homeZip, cult,
+//						this.schoolCache.get( schoolName ).values() );
+		}
+
 		final List<?> socKeys = this.capacityIndex.keys( gatherer.id(), 1
 //				,person.get( Persons.CultureRef.class ) 
 		);

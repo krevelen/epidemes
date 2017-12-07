@@ -141,11 +141,22 @@ public enum CBSRegionType
 	@JsonValue
 	public String getPrefix()
 	{
+		return prefix();
+	}
+
+	public String prefix()
+	{
 		return this.prefix;
 	}
 
 	@SuppressWarnings( "unchecked" )
 	public <T> String toString( final T... args )
+	{
+		return format( args );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T> String format( final T... args )
 	{
 		return String.format( this.format, args );
 	}

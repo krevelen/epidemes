@@ -19,24 +19,35 @@
  */
 package nl.rivm.cib.json;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
+import io.coala.math.WeightedValue;
+import io.coala.random.DistributionFactory;
+import io.coala.random.ProbabilityDistribution;
 import io.coala.util.FileUtil;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 
 /**
@@ -147,15 +158,87 @@ public class CbsRegionCentroidDensity
 
 	private static final String FILE_NAME = "pc6hnr20160801_gwb.csv";
 
+	public static enum ExportCol
+	{
+		LATITUDE, LONGITUDE, HOUSEHOLDS, ORGANISATIONS;
+	}
+
+	public static <T> Map<String, ProbabilityDistribution<T>> parse(
+		final InputStream is, final ProbabilityDistribution.Factory distFact,
+		final BiFunction<String[], EnumMap<ExportCol, JsonNode>, T> keyMapper )
+		throws IOException
+	{
+		final JsonNode root = JsonUtil.getJOM().readTree( is );
+		return JsonUtil.stream( root )
+				.flatMap( ldPv -> JsonUtil.stream( ldPv.getValue(),
+						CBSRegionType.PROVINCE.getPrefix() ) )
+				.flatMap( pvCr -> JsonUtil.stream( pvCr.getValue(),
+						CBSRegionType.COROP.getPrefix() ) )
+				.flatMap( crGm -> JsonUtil.stream( crGm.getValue(),
+						CBSRegionType.MUNICIPAL.getPrefix() ) )
+				.collect( Collectors.toMap( Map.Entry::getKey,
+						gmBoros -> distFact.createCategorical( JsonUtil
+								.stream( gmBoros.getValue() ).flatMap(
+										boroZip4 -> JsonUtil
+												.stream( boroZip4.getValue() )
+												.flatMap( zip4zip6 -> JsonUtil
+														.stream( zip4zip6
+																.getValue() )
+														.map( zip6Data -> toWeightedValue(
+																boroZip4.getKey(),
+																zip4zip6.getKey(),
+																zip6Data,
+																keyMapper ) ) ) ) ) ) );
+	}
+
+	private static <T> WeightedValue<T> toWeightedValue( final String boro,
+		final String zip4, final Map.Entry<String, JsonNode> zip6Entry,
+		final BiFunction<String[], EnumMap<ExportCol, JsonNode>, T> keyMapper )
+	{
+		final String[] keys = { boro, zip4, zip6Entry.getKey() };
+		final EnumMap<ExportCol, JsonNode> values = JsonUtil
+				.stream( (ArrayNode) zip6Entry.getValue() )
+				.collect( Collectors.toMap( e -> ExportCol.values()[e.getKey()],
+						e -> e.getValue(), ( v1, v2 ) -> v2,
+						() -> new EnumMap<>( ExportCol.class ) ) );
+		return WeightedValue.of( keyMapper.apply( keys, values ), zip6Entry
+				.getValue().get( ExportCol.HOUSEHOLDS.ordinal() ).asInt() );
+	}
+
 	public static void main( final String[] args ) throws Exception
 	{
-		// landsdeel/nuts1 -> prov/nuts2 (12) -> corop/nuts3 (25) -> corop_sub -> corop_plus -> gm (400)
-		// ggd (25x)
-		// jeugdzorg (42x)
-		// ressort (4) -> district (11) -> safety (25) (!= police reg eenh)
-		// politie reg eenh (10x) -> districten (43x)
-		// agri_group -> agr
+		try( final InputStream is = FileUtil.toInputStream( outFileName ) )
+		{
+			LOG.debug( "Creating RNG..." );
+			final DistributionFactory distFact = new DistributionFactory();
 
+			LOG.debug( "Aggregating into dist..." );
+			final Map<String, double[]> latLong = new HashMap<>();
+			final Map<String, ProbabilityDistribution<String>> gmZips = parse(
+					is, distFact, ( keys, values ) ->
+					{
+						final String key = String.join( "_", keys );
+						final double[] pos = {
+						values.get( ExportCol.LATITUDE ).asDouble(),
+								values.get( ExportCol.LONGITUDE ).asDouble() };
+						latLong.put( key, pos );
+						return key;
+					} );
+
+			LOG.debug( "Testing dist fallback..." );
+			gmZips.keySet().stream().sorted().limit( 10 ).forEach( key ->
+			{
+				final String zip = gmZips.get( key ).draw();
+				LOG.debug( "draw {} -> {} -> {}", key, gmZips.get( key ).draw(),
+						latLong.get( zip ) );
+			} );
+		}
+	}
+
+	private final static String outFileName = "dist/gm_pc6_centroid_density.json";
+
+	public static void export( final String[] args ) throws Exception
+	{
 		final ObjectNode gmBoroZipPos = JsonUtil.getJOM().createObjectNode();
 //		LOG.info( "Got: {}", JsonUtil.toJSON( ldPvCrCsCpGm ) );
 
@@ -200,21 +283,20 @@ public class CbsRegionCentroidDensity
 							.add( stat.hh ).add( stat.hr );
 			} );
 		}
-		
+
 		// put in administrative hierarchy...
 		final String gmRegionFile = "dist/83287NED.json";
-		final String outFileName = "dist/region-centroid-density.json";
 		try( final InputStream is = FileUtil.toInputStream( gmRegionFile );
 				final OutputStream os = FileUtil.toOutputStream( outFileName,
 						false ); )
 		{
-			final CbsRegionHierarchy gmRegs = JsonUtil.getJOM().readValue( is,
-					CbsRegionHierarchy.class );
+			final CbsRegionHierarchy gmHierarchy = JsonUtil.getJOM()
+					.readValue( is, CbsRegionHierarchy.class );
 
-			final ObjectNode ldPvCrCsCpGm = gmRegs
+			final ObjectNode hierarchyZips = gmHierarchy
 					.addAdminHierarchy( gmBoroZipPos );
 			JsonUtil.getJOM().writer().withDefaultPrettyPrinter()
-					.writeValue( os, ldPvCrCsCpGm );
+					.writeValue( os, hierarchyZips );
 		}
 		LOG.warn( "Missing stats for PC6 addresses: {}", missing );
 	}

@@ -19,11 +19,10 @@
  */
 package nl.rivm.cib.demo;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NavigableSet;
 import java.util.Objects;
-import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.inject.Inject;
@@ -39,6 +38,7 @@ import io.coala.log.LogUtil;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Scheduler;
+import io.coala.util.InputStreamConverter;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import nl.rivm.cib.demo.DemoModel.EpiFact;
@@ -49,6 +49,8 @@ import nl.rivm.cib.demo.DemoModel.Persons;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Sites;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
+import nl.rivm.cib.json.CbsRegionCentroidDensity;
+import nl.rivm.cib.json.CbsRegionCentroidDensity.ExportCol;
 
 /**
  * {@link SimpleSiteBroker}
@@ -68,6 +70,12 @@ public class SimpleSiteBroker implements SiteBroker
 		@DefaultValue( DemoConfig.CONFIG_BASE_DIR )
 		@Key( DemoConfig.CONFIG_BASE_KEY )
 		String configBase();
+
+		@Key( "hh-zip-density" )
+		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
+				+ "gm_pc6_centroid_density.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream cbsZipcodeResidenceData();
 	}
 
 	@InjectConfig
@@ -107,8 +115,9 @@ public class SimpleSiteBroker implements SiteBroker
 	/** north-south, latitude, parallel */
 //	private IndexPartition nsParallel;
 
-	private final Map<Comparable<?>, NavigableSet<Comparable<?>>> regionSites = new HashMap<>();
-	private ConditionalDistribution<Comparable<?>, Comparable<?>> regionalHomeSiteDist;
+	private final Map<String, double[]> siteCoords = new HashMap<>();
+//	private final Map<Comparable<?>, NavigableSet<Comparable<?>>> regionSites = new HashMap<>();
+	private ConditionalDistribution<Comparable<?>, String> regionalHomeSiteDist;
 
 	@Override
 	public SimpleSiteBroker reset() throws Exception
@@ -116,32 +125,67 @@ public class SimpleSiteBroker implements SiteBroker
 		this.sites = this.data.getTable( SiteTuple.class );
 		this.households = this.data.getTable( HouseholdTuple.class ).onCreate(
 				hh -> hh.set( Households.HomeSiteRef.class,
-						this.regionalHomeSiteDist.draw(
-								hh.get( Households.HomeRegionRef.class ) ) ),
+						this.regionalHomeSiteDist.draw( (String) hh
+								.get( Households.HomeRegionRef.class ) ) ),
 				scheduler()::fail );
 //		this.persons = 
 		this.data.getTable( PersonTuple.class ).onCreate( this::onCreate,
 				scheduler()::fail );
 
-//		this.regions = this.data.getTable( RegionTuple.class );
-		final ProbabilityDistribution<Double> latDist = this.distFactory
-				.createUniformContinuous( 50.5, 54.5 );
-		final ProbabilityDistribution<Double> lonDist = this.distFactory
-				.createUniformContinuous( 3.5, 6.5 );
+////		this.regions = this.data.getTable( RegionTuple.class );
+//		final ProbabilityDistribution<Double> latDist = this.distFactory
+//				.createUniformContinuous( 50.5, 54.5 );
+//		final ProbabilityDistribution<Double> lonDist = this.distFactory
+//				.createUniformContinuous( 3.5, 6.5 );
+//		this.regionalHomeSiteDist = regName ->
+//		{
+//			// TODO get lat,long,zip from CBS distribution
+//			final SiteTuple site = this.sites.insertValues(
+//					map -> map.put( Sites.RegionRef.class, regName )
+//							.put( Sites.Purpose.class, HOME_FUNCTION )
+//							.put( Sites.Latitude.class, latDist.draw() )
+//							.put( Sites.Longitude.class, lonDist.draw() )
+////							.put( Sites.Capacity.class, 10 ) 
+//			);
+//			this.regionSites.computeIfAbsent( regName, k -> new TreeSet<>() )
+//					.add( (Comparable<?>) site.key() );
+//			return (Comparable<?>) site.key();
+//		};
+
+		final Map<String, ProbabilityDistribution<String>> gmZips = CbsRegionCentroidDensity
+				.parse( this.config.cbsZipcodeResidenceData(), this.distFactory,
+						( keys, values ) ->
+						{
+							final String siteName = String.join( "_", keys );
+							final double[] coords = {
+					values.get( ExportCol.LATITUDE ).asDouble(), values
+							.get( ExportCol.LONGITUDE ).asDouble() };
+							this.siteCoords.put( siteName, coords );
+							return siteName;
+						} );
+		
 		this.regionalHomeSiteDist = regName ->
 		{
-			// TODO get lat,long,zip from CBS distribution
+			final String siteName = gmZips.computeIfAbsent( regName, k ->
+			{
+				// TODO map missing to new (merged) regions, see CBS 70739ned
+//				LOG.debug( "Using fallback site dist for region: {}", regName );
+				return gmZips.get( "GM0363" );
+			} ).draw();
+			final double[] siteCoords = this.siteCoords.get( siteName );
 			final SiteTuple site = this.sites.insertValues(
 					map -> map.put( Sites.RegionRef.class, regName )
 							.put( Sites.Purpose.class, HOME_FUNCTION )
-							.put( Sites.Latitude.class, latDist.draw() )
-							.put( Sites.Longitude.class, lonDist.draw() )
+							.put( Sites.SiteName.class, siteName )
+							.put( Sites.Latitude.class, siteCoords[0] )
+							.put( Sites.Longitude.class, siteCoords[1] )
 //							.put( Sites.Capacity.class, 10 ) 
 			);
-			this.regionSites.computeIfAbsent( regName, k -> new TreeSet<>() )
-					.add( (Comparable<?>) site.key() );
+//			this.regionSites.computeIfAbsent( regName, k -> new TreeSet<>() )
+//					.add( (Comparable<?>) site.key() );
 			return (Comparable<?>) site.key();
 		};
+
 		LOG.debug( "{} ready", getClass().getSimpleName() );
 		return this;
 	}
@@ -184,20 +228,5 @@ public class SimpleSiteBroker implements SiteBroker
 						.put( Sites.Longitude.class, lon )
 						.put( Sites.Capacity.class, 100 ) ); // TODO
 	}
-
-//	final String denom = v[Col.DENOMINATIE_VESTIGING.ordinal()];
-//	final String cultCat;
-//	if( denom.startsWith( "Evan" ) // 0.1%
-//			// || denom.contains( "PC" ) // 1.1%
-//			|| denom.startsWith( "Prot" ) // 23.1%
-//			|| denom.startsWith( "Geref" ) ) // 1.2%
-//		cultCat = "po_luther";
-//	else if( denom.startsWith( "Antro" ) ) // 0.9%
-//		cultCat = "po_steiner";
-//	else if( v[Col.SOORT_PO.ordinal()].equals( "Vso" )
-//			|| v[Col.SOORT_PO.ordinal()].equals( "So" ) )
-//		cultCat = "po_special";
-//	else
-//		cultCat = "po_rest";
 
 }
