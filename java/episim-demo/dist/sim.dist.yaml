@@ -1,14 +1,14 @@
 # $Id$
 #
-# PILOT scenario sample configuration file
+# DEM scenario sample configuration file
 #
 
-javax:
-  persistence:
-    jdbc:
-      url: jdbc:h2:~/pilotdat/h2_hhdb;AUTO_SERVER=TRUE
-      user: sa
-      password: sa
+#javax:
+#  persistence:
+#    jdbc:
+#      url: jdbc:h2:~/pilotdat/h2_hhdb;AUTO_SERVER=TRUE
+#      user: sa
+#      password: sa
       
 scenario:
   # anything below is persisted, except for YAML comments
@@ -17,23 +17,24 @@ scenario:
     setup-name: run1
     duration-period: P7M
     offset-date: 2012-12-29
-    statistics:
-      recurrence: 1 0 0 ? * MON *
+#    statistics:
+#      recurrence: 1 0 0 ? * MON *
 #      db-enabled: true
   demography:
     population-size: 100000
-#    hh-type-dist: const(SOLO_1KID)
-#    hh-ref-age-dist: uniform(20;25)
-#    hh-leavehome-age: 5 yr
-#    hh-migrate-rate: .02 annual
+    population-size-ref: 17000000
+    regional-resolution: MUNICIPAL
+    hh-partner-age-delta-range: "[-5 year; 1 year]"
+    hh-partner-age-delta-dist: normal(-2 year; 2 year)
   geography:
-    broker-factory: nl.rivm.cib.pilot.hh.HHGeography$Factory
-    regional-resolution: MUNICIPALITY
-    region-mapping-data: ${config.base}83287NED.json
-    region-density-data: ${config.base}pc6_buurt.json
-    weight-proximity: 1
-    weight-assortativity: 1
+    hh-zip-density: ${config.base}gm_pc6_centroid_density.json
+#    broker-factory: nl.rivm.cib.pilot.hh.HHGeography$Factory
+#    region-mapping-data: ${config.base}83287NED.json
+#    region-density-data: ${config.base}pc6_buurt.json
+#    weight-proximity: 1
+#    weight-assortativity: 1
   mobility:
+    primary-school-densities: ${config.base}gm_pc4_po_pupils.json
     motor-factory: nl.rivm.cib.episim.model.SocialGatherer$Factory$SimpleBinding
     motors:
       # week days for (assortative?) daycare/school/work/centre @office
@@ -51,33 +52,33 @@ scenario:
         duration-dist: const(3 hr)
         proximity-weight: 1
         assortativity-weight: 1
-  pathology:
-    pathogen-factory: nl.rivm.cib.pilot.Pathogen$Factory$SimpleBinding
-    # measles
-    MV1:
-      # force of infection (S->E): t=?, viral shedding -> respiratory/surface contact 
-      # infection pressure function of #infectious vs. #non-infectious
-      pathogen-type: nl.rivm.cib.pilot.Pathogen$MSEIR
-      pressure-type: nl.rivm.cib.episim.model.disease.infection.InfectionPressure$Proportional
-      # invasion period (S->E) the duration of 'exposure resistance' per individual
-      passive-period-dist: tria( 10 day; 20 day; 30 day )
-      # latent period (E->I)
-      #  - t+0, onset around t+14 but infectious already 4 days before
-      #  - exp(0.09) : 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
-      latent-period-dist: tria( 1 day; 10 day; 17 day )
-      # recovery/infectious period (I->R) = viral shedding until recovery
-      #  - exp(.16) : 1/10d (6-14d) = prodromal fever 3-7 days + rash 4-7days
-      #  - t+14-4, [onset-4,onset+4] 
-      shedding-period-dist: tria( 0 day; 8 day; 10 day )
-      # wane period (R->S) = duration of immunity, e.g. forever immune
-      wane-period-dist: const( 1000 yr )
-      # incubation period (E->C, sub->clinical symptoms)
-      #  - exp(0.07) : 1/14 (7-21 days, says CDC)
-      #  - e.g. t+7-21 days (CDC) rash, fever, Koplik spots, ... 
-      #  - e.g. t+9-12 days (https://www.wikiwand.com/en/Incubation_period)
-      incubation-period-dist: tria( 7 day; 11 day; 21 day )
-      # symptom/clinical period (C->R, normal/asymptomatic)
-      symptom-period-dist: tria( 4 day; 5 day; 7 day )
+#  pathology:
+#    pathogen-factory: nl.rivm.cib.pilot.Pathogen$Factory$SimpleBinding
+#    # measles
+#    MV1:
+#      # force of infection (S->E): t=?, viral shedding -> respiratory/surface contact 
+#      # infection pressure function of #infectious vs. #non-infectious
+#      pathogen-type: nl.rivm.cib.pilot.Pathogen$MSEIR
+#      pressure-type: nl.rivm.cib.episim.model.disease.infection.InfectionPressure$Proportional
+#      # invasion period (S->E) the duration of 'exposure resistance' per individual
+#      passive-period-dist: tria( 10 day; 20 day; 30 day )
+#      # latent period (E->I)
+#      #  - t+0, onset around t+14 but infectious already 4 days before
+#      #  - exp(0.09) : 1/11d (6-17d) -3d coryza etc before prodromal fever at 7-21d
+#      latent-period-dist: tria( 1 day; 10 day; 17 day )
+#      # recovery/infectious period (I->R) = viral shedding until recovery
+#      #  - exp(.16) : 1/10d (6-14d) = prodromal fever 3-7 days + rash 4-7days
+#      #  - t+14-4, [onset-4,onset+4] 
+#      shedding-period-dist: tria( 0 day; 8 day; 10 day )
+#      # wane period (R->S) = duration of immunity, e.g. forever immune
+#      wane-period-dist: const( 1000 yr )
+#      # incubation period (E->C, sub->clinical symptoms)
+#      #  - exp(0.07) : 1/14 (7-21 days, says CDC)
+#      #  - e.g. t+7-21 days (CDC) rash, fever, Koplik spots, ... 
+#      #  - e.g. t+9-12 days (https://www.wikiwand.com/en/Incubation_period)
+#      incubation-period-dist: tria( 7 day; 11 day; 21 day )
+#      # symptom/clinical period (C->R, normal/asymptomatic)
+#      symptom-period-dist: tria( 4 day; 5 day; 7 day )
   # vaccination occasions recur to hesitant parents of susceptible children
   vaccination:
     #invitation-age: "[.5 yr; 4 yr)"
@@ -102,40 +103,40 @@ scenario:
     occasion-affinity-dist: const(0.5)
     occasion-proximity-dist: const(0.5)
   hesitancy:
-    # TODO include in hesitancy profile sample?
-    calculation-dist: const(0.5)
-    # incl. covariate sample indices
-    profiles: ${config.base}hesitancy-univariate.json
-    profile-sample: ${config.base}hesitancy-initial.json
-    relation-frequencies: ${config.base}relation-frequency.json
-    evaluator: nl.rivm.cib.pilot.hh.HHAttitudeEvaluator$Average
-    propagator: nl.rivm.cib.pilot.hh.HHAttitudePropagator$Shifted
-    propagator-recurrence: 0 0 0 ? * MON *
-    # avg. no. family + friends + neighbors actually applying (peer) pressure
-    social-network-degree: 10
-    # 0 = lattice, 1 = random network
-    social-network-beta: 0.5
-    # fraction of 'similar' connections
-    social-assortativity: 0.85
-    # whether school is 'similar'
-    school-assortativity-dist: bernoulli(0.75) 
-    school-capacities: 
-      0-4: 50
-      4-12: 100
-      12-20: 200
-    attractor-factory: nl.rivm.cib.pilot.hh.HHAttractor$Factory$SimpleBinding
-    attractors:
-    # local pressure, mainly from e.g. Health Services
-      sec-reg:
-        religious: 0
-        alternative: 0
-        confidence: 1
-        complacency: 0
-        # relative impact per it., >1: outweigh soc. network
-        impression-inpeer-weight: 1
-        impression-outpeer-weight: 1
-        impression-self-multiplier: 100
-        impression-attractor-multiplier: 1
+#    # TODO include in hesitancy profile sample?
+#    calculation-dist: const(0.5)
+#    # incl. covariate sample indices
+#    profiles: ${config.base}hesitancy-univariate.json
+#    profile-sample: ${config.base}hesitancy-initial.json
+#    relation-frequencies: ${config.base}relation-frequency.json
+#    evaluator: nl.rivm.cib.pilot.hh.HHAttitudeEvaluator$Average
+#    propagator: nl.rivm.cib.pilot.hh.HHAttitudePropagator$Shifted
+#    propagator-recurrence: 0 0 0 ? * MON *
+#    # avg. no. family + friends + neighbors actually applying (peer) pressure
+#    social-network-degree: 10
+#    # 0 = lattice, 1 = random network
+#    social-network-beta: 0.5
+#    # fraction of 'similar' connections
+#    social-assortativity: 0.85
+#    # whether school is 'similar'
+#    school-assortativity-dist: bernoulli(0.75) 
+#    school-capacities: 
+#      0-4: 50
+#      4-12: 100
+#      12-20: 200
+#    attractor-factory: nl.rivm.cib.pilot.hh.HHAttractor$Factory$SimpleBinding
+#    attractors:
+#    # local pressure, mainly from e.g. Health Services
+#      sec-reg:
+#        religious: 0
+#        alternative: 0
+#        confidence: 1
+#        complacency: 0
+#        # relative impact per it., >1: outweigh soc. network
+#        impression-inpeer-weight: 1
+#        impression-outpeer-weight: 1
+#        impression-self-multiplier: 100
+#        impression-attractor-multiplier: 1
 #    # local pressure, mainly from e.g. Protestantists
 #      rel-reg:
 #        religious: 1

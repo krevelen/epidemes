@@ -46,7 +46,7 @@ import nl.rivm.cib.json.HesitancyProfileJson.Category;
  * {@link HHAttractor} adds special proactive entities acting as special
  * households, representing the nationally or locally communicated (dynamic)
  * positions of e.g. public health, religious, alternative medicinal
- * authorities, or socially observed disease or adverse events, and determining
+ * authorities, or socially observed disease or adverse events
  * 
  * @version $Id$
  * @author Rick van Krevelen
