@@ -25,9 +25,10 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.aeonbits.owner.ConfigFactory;
@@ -44,6 +45,7 @@ import io.coala.data.DataLayer;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
+import io.coala.log.LogUtil.Pretty;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
 import io.coala.random.DistributionParser;
@@ -54,13 +56,13 @@ import io.coala.time.SchedulerConfig;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
+import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
+import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
+import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
-import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
-import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
-import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.episim.cbs.TimeUtil;
-import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 
 /**
  * {@link DemoTest}
@@ -75,6 +77,7 @@ public class DemoTest
 
 	private static final String CONF_ARG = "conf";
 
+	@SuppressWarnings( "unchecked" )
 	@Test
 	public void doTest() throws InterruptedException, IOException
 	{
@@ -161,72 +164,123 @@ public class DemoTest
 				.inject( SimpleDemoScenario.class );
 
 		final TreeSet<String> regNames = new TreeSet<>();
-		final List<MSEIRS.Compartment> cols = Arrays.asList(
-				MSEIRS.Compartment.SUSCEPTIBLE, MSEIRS.Compartment.INFECTIVE,
-				MSEIRS.Compartment.RECOVERED, MSEIRS.Compartment.VACCINATED );
-		final String sep = ";", eol = "\r\n",
-				sirFile = "daily-" + System.currentTimeMillis() + ".csv";
-		Observable.using( () -> new FileWriter( sirFile, false ),
-				fw -> model.emitEpidemicStats( "0 0 12 ? * *" ).map( homeSIR ->
+		final long timestamp = System.currentTimeMillis();
+		final String totalsFile = "daily-" + timestamp + "-sir-total.csv";
+		final String deltasFile = "daily-" + timestamp + "-sir-delta.csv";
+		final int n = 10;
+		Observable.using(
+				() -> Arrays.asList( new FileWriter( totalsFile, false ),
+						new FileWriter( deltasFile, false ) ),
+				fws -> model.atEach( "0 0 12 ? * *" ).map( self ->
 				{
+					final Map<String, EnumMap<Compartment, Long>> totals = self
+							.exportRegionalSIRTotal(),
+							deltas = self.exportRegionalSIRDelta();
 					if( regNames.isEmpty() )
 					{
-						regNames.addAll( homeSIR.keySet() );
-						fw.write( "ActualTime" + sep + "VirtualTime" + sep
-								+ String.join( sep + " ",
-										regNames.stream()
-												.flatMap( reg -> cols.stream()
-														.map( c -> reg + '_'
-																+ c.name()
-																		.charAt( 0 ) ) )
-												.toArray( String[]::new ) )
-								+ eol );
-						fw.flush();
+						regNames.addAll( totals.keySet() );
+						fws.get( 0 ).write( toHeader( regNames ) );
+						fws.get( 1 ).write( toHeader( regNames ) );
 					}
-					fw.write( DateTimeFormatter.ISO_LOCAL_DATE_TIME
-							.format( ZonedDateTime.now() )
-							+ sep
-							+ model.scheduler()
-									.now( DateTimeFormatter.ISO_LOCAL_DATE_TIME )
-							+ sep
-							+ String.join( sep + " ", regNames.stream().flatMap(
-									reg -> cols.stream().map( c -> homeSIR
-											.computeIfAbsent( reg,
-													k -> new HashMap<>() )
-											.computeIfAbsent( c,
-													k -> Long.valueOf( 0 ) )
-											.toString() ) )
-									.toArray( String[]::new ) )
-							+ eol );
-					fw.flush();
-					return homeSIR;
-				} ), fw ->
+					fws.get( 0 ).write( toLine( model.scheduler().nowDT(),
+							regNames, totals ) );
+					fws.get( 1 ).write( toLine( model.scheduler().nowDT(),
+							regNames, deltas ) );
+					fws.get( 0 ).flush();
+					fws.get( 1 ).flush();
+					return new Map[] { totals, deltas };
+				} ), fws ->
 				{
-					fw.close();
-					LOG.debug( "SIR stats written to {}", sirFile );
-				} )
-				.subscribe( homeSIR -> LOG.debug( "t={} SIR:{ {} }",
-						model.scheduler()
-								.now( DateTimeFormatter.ISO_LOCAL_DATE_TIME ),
-								
-								
-						String.join( ", ", regNames.stream()
-								.map( reg -> reg + ":[" + String.join( ",",
-										cols.stream().map( c -> homeSIR
-												.computeIfAbsent( reg,
-														k -> new HashMap<>() )
-												.computeIfAbsent( c,
-														k -> Long.valueOf( 0 ) )
-												.toString() )
-												.toArray( String[]::new ) )
-										+ "]" )
-								.toArray( String[]::new ) ) ),
+					LOG.debug( "SIR totals written to {}", totalsFile );
+					LOG.debug( "SIR deltas written to {}", deltasFile );
+					fws.get( 0 ).close();
+					fws.get( 1 ).close();
+				} ).subscribe(
+						homeSIR -> LOG.debug(
+								"t={}\n TOTAL-top{}:{ {} }\n DELTA-top{}:{ {} }",
+								model.scheduler().nowDT(), n,
+								Pretty.of( () -> toLog( homeSIR[0], n ) ), n,
+								Pretty.of( () -> toLog( homeSIR[1], n ) ) ),
 						Throwable::printStackTrace );
+//
+//		model.atEach("0 0 12 ? * *", self-> LOG.debug( "t={} DELTA:{ {} }",
+//				model.scheduler().nowDT(),
+//				Pretty.of( () -> toLog( self. ) ));
+//		model.emitMixingStats( "0 0 12 ? * *" ).subscribe(
+//				homeSIR -> LOG.debug( "t={} DELTA:{ {} }",
+//						model.scheduler().nowDT(),
+//						Pretty.of( () -> toLog( homeSIR ) ) ),
+//				Throwable::printStackTrace );
 
 		LOG.debug( "Starting..." );
 		model.run();
 
 		LOG.info( "Demo test done" );
+	}
+
+	private static final String sep = ";", eol = "\r\n";
+
+	private static final List<Compartment> sirCols = Arrays.asList(
+			Compartment.SUSCEPTIBLE, Compartment.INFECTIVE,
+			Compartment.RECOVERED, Compartment.VACCINATED );
+
+	private static final Compartment logSortReg = Compartment.INFECTIVE;
+
+	private String toHeader( final Set<String> colNames )
+	{
+		return "ActualTime" + sep + "VirtualTime" + sep
+				+ String.join( sep + " ",
+						colNames.stream().flatMap( reg -> sirCols.stream()
+								.map( c -> reg + '_' + c.name().charAt( 0 ) ) )
+								.toArray( String[]::new ) )
+				+ eol;
+	}
+
+	private String toLine( final ZonedDateTime t, final Set<String> colNames,
+		final Map<String, EnumMap<Compartment, Long>> homeSIR )
+	{
+		return DateTimeFormatter.ISO_LOCAL_DATE_TIME
+				.format( ZonedDateTime.now() ) //
+
+				+ sep + DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( t ) //
+				+ sep
+				+ String.join( sep + " ", colNames.stream()
+						.flatMap( reg -> sirCols.stream().map( c -> homeSIR
+								.computeIfAbsent( reg,
+										k -> new EnumMap<>(
+												Compartment.class ) )
+								.computeIfAbsent( c, k -> 0L ).toString() ) )
+						.toArray( String[]::new ) )
+				+ eol;
+	}
+
+	private String toLog( final Map<String, EnumMap<Compartment, Long>> homeSIR,
+		final int n )
+	{
+		return String.join( ", ", homeSIR.keySet().stream().sorted(
+
+				( r, l ) -> Long
+						.compare( homeSIR
+								.computeIfAbsent( l,
+										k -> new EnumMap<>(
+												Compartment.class ) )
+								.computeIfAbsent( logSortReg, k -> 0L ),
+								homeSIR
+										.computeIfAbsent( r,
+												k -> new EnumMap<>(
+														Compartment.class ) )
+										.computeIfAbsent( logSortReg,
+												k -> 0L ) ) )
+				.limit( n )
+				.map( reg -> reg + ":["
+						+ String.join( ",", sirCols.stream().map( c -> homeSIR
+								.computeIfAbsent( reg,
+										k -> new EnumMap<>(
+												Compartment.class ) )
+								.computeIfAbsent( c, k -> 0L ).toString() )
+								.toArray( String[]::new ) )
+						+ "]" )
+				.toArray( String[]::new ) );
 	}
 
 }

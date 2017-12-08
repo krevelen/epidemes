@@ -21,14 +21,14 @@ package nl.rivm.cib.demo;
 
 import java.text.ParseException;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
 
 import org.apache.logging.log4j.Logger;
 import org.ujmp.core.Matrix;
@@ -37,7 +37,6 @@ import org.ujmp.core.enums.ValueType;
 
 import io.coala.bind.InjectConfig;
 import io.coala.data.DataLayer;
-import io.coala.enterprise.persist.FactDao;
 import io.coala.log.LogUtil;
 import io.coala.math.MatrixUtil;
 import io.coala.random.ProbabilityDistribution;
@@ -48,19 +47,20 @@ import io.coala.time.Timing;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.schedulers.Schedulers;
-import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
-import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
-import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
-import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
+import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Regions.RegionTuple;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
+import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Societies.SocietyTuple;
-import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
+//import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 
 /**
  * {@link SimpleDemoScenario}
@@ -88,7 +88,7 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 	private ProbabilityDistribution.Factory distFactory;
 
 	@Inject
-	private PersonBroker deme;
+	private PersonBroker personBroker;
 
 	@Inject
 	private SiteBroker siteBroker;
@@ -108,14 +108,14 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		return this.scheduler;
 	}
 
-	// the data sources
+	/** the data source */
 	private Matrix persons, households;
 
-	// model event statistics
-	private final Map<Class<?>, AtomicLong> demicEventStats = new HashMap<>();
+	/** demographic event aggregates */
+	private final Map<String, AtomicLong> demicEventStats = new TreeMap<>();
 
-	// model event statistics
-	private final Map<MSEIRS.Compartment, AtomicLong> sirEventStats = new HashMap<>();
+	/** epidemic event aggregates */
+	private final Map<String, EnumMap<Compartment, AtomicLong>> sirEventStats = new TreeMap<>();
 
 	@Override
 	public void init() throws Exception
@@ -130,7 +130,7 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		this.households = Matrix.Factory.sparse( ValueType.OBJECT, 1_000_000,
 				Households.PROPERTIES.size() );
 
-		// register data sources
+		// register data sources BEFORE initializing the brokers
 		this.data
 				.withSource(
 						map -> map.put( PersonTuple.class, Persons.PROPERTIES ),
@@ -146,78 +146,87 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 						map -> map.put( SiteTuple.class, Sites.PROPERTIES ),
 						HashMap::new );
 
-		// populate and run deme
-		final AtomicLong tLog = new AtomicLong();
-
+		// reset brokers only AFTER data sources have been initialized
 		this.siteBroker.reset();
 		this.societyBroker.reset();
 		this.peerBroker.reset();
 		this.healthBroker.reset();
-		this.healthBroker.events().ofType( EpidemicFact.class )
-				.subscribe(
-						ev -> ev.sirDelta
-								.forEach( ( sir, delta ) -> this.sirEventStats
-										.computeIfAbsent( sir,
-												k -> new AtomicLong() )
-										.addAndGet( delta ) ),
+
+		// aggregate statistics
+		this.healthBroker.events().observeOn( Schedulers.io() )
+				.ofType( EpidemicFact.class ).subscribe( this::onEpidemicFact,
 						scheduler()::fail, this::logStats );
 
-		this.deme.reset().events()
-				// multi-thread
-				.observeOn( Schedulers.io() ) //
-				.ofType( Demical.DemicFact.class ).subscribe( ev ->
-				{
-					tLog.updateAndGet( tPrev ->
-					{
-						final long tWall = System.currentTimeMillis();
-						if( tWall - tPrev < 5000 ) return tPrev;
-						logStats();
-						return tWall;
-					} );
-					this.demicEventStats.computeIfAbsent( ev.getClass(),
-							k -> new AtomicLong() ).incrementAndGet();
-				}, scheduler()::fail, this::logStats );
+		this.personBroker.reset().events().observeOn( Schedulers.io() )
+				.ofType( Demical.DemicFact.class ).subscribe( this::onDemicFact,
+						scheduler()::fail, this::logStats );
+	}
 
+	private void onEpidemicFact( final EpidemicFact ev )
+	{
+		ev.sirDelta.forEach( ( sir, delta ) ->
+		{
+			if( delta < 0 ) return; // only positive
+			this.sirEventStats
+					.computeIfAbsent(
+							ev.pp.get( Persons.HomeRegionRef.class ).toString(),
+							k -> new EnumMap<>( Compartment.class ) )
+					.computeIfAbsent( sir, k -> new AtomicLong() )
+					.addAndGet( delta );
+		} );
+	}
+
+	private final AtomicLong logWalltime = new AtomicLong();
+
+	private void onDemicFact( final DemicFact ev )
+	{
+		this.demicEventStats.computeIfAbsent( ev.getClass().getSimpleName(),
+				k -> new AtomicLong() ).incrementAndGet();
+		this.logWalltime.updateAndGet( tPrev ->
+		{
+			final long tWall = System.currentTimeMillis();
+			if( tWall - tPrev < 5000 ) return tPrev;
+			logStats();
+			return tWall;
+		} );
 	}
 
 	private void logStats()
 	{
-		LOG.info( "t={} sir delta: {}, demic delta x {}: {}",
+		LOG.info( "t={} sir transitions overall x {}; recent demic (x {}): {}",
 				scheduler().now( DateTimeFormatter.ISO_WEEK_DATE ),
-				this.sirEventStats,
+				this.sirEventStats.values().stream()
+						.flatMap( e -> e.values().stream() )
+						.mapToLong( AtomicLong::get ).sum(),
 				this.demicEventStats.values().stream()
 						.mapToLong( AtomicLong::get ).sum(),
-				String.join( ", ", this.demicEventStats.entrySet().stream().map(
-						e -> e.getKey().getSimpleName() + "=" + e.getValue() )
-						.toArray( String[]::new ) ) );
-		this.sirEventStats.clear();
+				this.demicEventStats );
 		this.demicEventStats.clear();
 	}
 
-	public Observable<Map<String, Map<String, Long>>>
-		emitMixingStats( final String timing )
+	@Override
+	public Observable<DemoModel> atEach( final String timing )
 	{
 		return Observable.create( sub ->
 		{
 			if( scheduler().now() == null )
-				scheduler().onReset( s -> s
-						.atOnce( t -> scheduleMixingStats( timing, sub ) ) );
+				scheduler().onReset(
+						s -> s.atOnce( t -> scheduleAtEach( timing, sub ) ) );
 			else
-				scheduleMixingStats( timing, sub );
+				scheduleAtEach( timing, sub );
 		} );
 	}
 
-	private void scheduleMixingStats( final String timing,
-		final ObservableEmitter<Map<String, Map<String, Long>>> sub )
+	private void scheduleAtEach( final String timing,
+		final ObservableEmitter<DemoModel> sub ) throws ParseException
 	{
-		// schedule at end of current instant
-		atOnce( t -> sub.onNext( getMixingStats() ) );
+		atOnce( t -> sub.onNext( this ) );
 		scheduler().atEnd( t -> sub.onComplete() );
 		try
 		{
 			final Iterable<Instant> it = Timing.of( timing )
 					.iterate( scheduler() );
-			atEach( it, t -> sub.onNext( getMixingStats() ) );
+			atEach( it, t -> sub.onNext( this ) );
 		} catch( final ParseException e )
 		{
 			sub.onError( e );
@@ -225,44 +234,19 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		}
 	}
 
-	private Map<String, Map<String, Long>> getMixingStats()
+	@Override
+	public Map<String, EnumMap<Compartment, Long>> exportRegionalSIRDelta()
 	{
-		return Collections.emptyMap();
+		return this.sirEventStats.entrySet().stream().collect( Collectors.toMap(
+				Map.Entry::getKey,
+				e -> e.getValue().entrySet().stream().collect( Collectors.toMap(
+						Map.Entry::getKey, f -> f.getValue().getAndSet( 0 ),
+						( l, r ) -> l + r,
+						() -> new EnumMap<>( Compartment.class ) ) ) ) );
 	}
 
-	public Observable<Map<String, Map<MSEIRS.Compartment, Long>>>
-		emitEpidemicStats( final String timing )
-	{
-		return Observable.create( sub ->
-		{
-			if( scheduler().now() == null )
-				scheduler().onReset( s -> s.atOnce(
-						// defer until after initialization 
-						t -> scheduleLocalSIRStats( timing, sub ) ) );
-			else
-				scheduleLocalSIRStats( timing, sub );
-		} );
-	}
-
-	private void scheduleLocalSIRStats( final String timing,
-		final ObservableEmitter<Map<String, Map<MSEIRS.Compartment, Long>>> sub )
-	{
-		// schedule at end of current instant
-		atOnce( t -> sub.onNext( getLocalSIRStats() ) );
-		scheduler().atEnd( t -> sub.onComplete() );
-		try
-		{
-			final Iterable<Instant> it = Timing.of( timing )
-					.iterate( scheduler() );
-			atEach( it, t -> sub.onNext( getLocalSIRStats() ) );
-		} catch( final ParseException e )
-		{
-			sub.onError( e );
-			return;
-		}
-	}
-
-	private Map<String, Map<MSEIRS.Compartment, Long>> getLocalSIRStats()
+	@Override
+	public Map<String, EnumMap<Compartment, Long>> exportRegionalSIRTotal()
 	{
 		final Matrix epicol = this.persons.selectColumns( Ret.LINK,
 				Persons.PROPERTIES
@@ -270,25 +254,25 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		final Matrix homecol = this.persons.selectColumns( Ret.LINK,
 				Persons.PROPERTIES.indexOf( Persons.HomeRegionRef.class ) );
 
-		final Map<String, Map<MSEIRS.Compartment, Long>> result = MatrixUtil
-				.streamAvailableCoordinates( epicol, true )
+		return MatrixUtil.streamAvailableCoordinates( epicol, true )
 				// sequential? called from another thread
 				.filter( x -> homecol.getAsObject( x ) != null )
 				.collect( Collectors.groupingBy( homecol::getAsString,
-						Collectors.groupingBy( x -> MSEIRS.Compartment
-								.values()[epicol.getAsInt( x ) - 1],
+						Collectors.groupingBy(
+								x -> Compartment.values()[epicol.getAsInt( x )
+										- 1],
+								() -> new EnumMap<>( Compartment.class ),
 								Collectors.counting() ) ) );
-		return result;
 	}
 
-	public Observable<? extends DemicFact> emitDemicEvents()
-	{
-		return this.deme.events();
-	}
-
-	public Observable<FactDao> emitFactDaos( final EntityManager em )
-	{
-		return ((SimplePersonBroker) this.deme).emitFacts()
-				.map( fact -> FactDao.create( em, fact ) );
-	}
+//	public Observable<? extends DemicFact> emitDemicEvents()
+//	{
+//		return this.deme.events();
+//	}
+//
+//	public Observable<FactDao> emitFactDaos( final EntityManager em )
+//	{
+//		return ((SimplePersonBroker) this.deme).emitFacts()
+//				.map( fact -> FactDao.create( em, fact ) );
+//	}
 }

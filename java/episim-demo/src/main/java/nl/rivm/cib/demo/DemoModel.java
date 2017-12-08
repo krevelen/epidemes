@@ -65,6 +65,7 @@ import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
@@ -80,6 +81,12 @@ import tec.uom.se.ComparableQuantity;
 public interface DemoModel
 {
 	Long NA = -1L;
+
+	Observable<DemoModel> atEach( String timing );
+	
+	 Map<String, EnumMap<Compartment, Long>> exportRegionalSIRTotal();
+		
+	 Map<String, EnumMap<Compartment, Long>> exportRegionalSIRDelta();
 
 	interface Cultures
 	{
@@ -426,33 +433,20 @@ public interface DemoModel
 		{
 		}
 
-//		@SuppressWarnings( "rawtypes" )
-//		class RegionRef extends AtomicReference<Comparable>
-//			implements Property<Comparable>
-//		{
-//		}
-//
-//		class SiteLat extends AtomicReference<Double>
-//			implements Property<Double>
-//		{
-//		}
-//
-//		class SiteLon extends AtomicReference<Double>
-//			implements Property<Double>
-//		{
-//		}
+		class Capacity extends AtomicReference<Integer>
+			implements Property<Integer>
+		{
+		}
 
-		class MemberCapacity extends AtomicReference<Integer>
+		class MemberCount extends AtomicReference<Integer>
 			implements Property<Integer>
 		{
 		}
 
 		@SuppressWarnings( "rawtypes" )
 		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				CultureRef.class, //SiteLat.class, SiteLon.class,
-				Purpose.class, MemberCapacity.class, SocietyName.class,
-//				RegionRef.class, 
-				SiteRef.class );
+				CultureRef.class, MemberCount.class, Purpose.class,
+				Capacity.class, SocietyName.class, SiteRef.class );
 
 		class SocietyTuple extends Tuple
 		{
@@ -646,23 +640,23 @@ public interface DemoModel
 
 		class EpidemicFact extends EpiFact
 		{
-			public Object siteRef = NA;
-			public MSEIRS.Transition transition = null;
+			public PersonTuple pp = null;
+//			public MSEIRS.Transition transition = null;
 			public Map<MSEIRS.Compartment, Integer> sirDelta = Collections
 					.emptyMap();
 
-			public EpidemicFact withSite( final Object siteRef )
+			public EpidemicFact withPerson( final PersonTuple pp )
 			{
-				this.siteRef = siteRef;
+				this.pp = pp;
 				return this;
 			}
 
-			public EpidemicFact
-				withTransition( final MSEIRS.Transition transition )
-			{
-				this.transition = transition;
-				return this;
-			}
+//			public EpidemicFact
+//				withTransition( final MSEIRS.Transition transition )
+//			{
+//				this.transition = transition;
+//				return this;
+//			}
 
 			public EpidemicFact withSIRDelta(
 				final UnaryOperator<MapBuilder<MSEIRS.Compartment, Integer, ?>> mapBuilder )
@@ -702,23 +696,23 @@ public interface DemoModel
 			int bit();
 
 			/** @return {@code true} iff this dose bit is 1 in given status */
-			default boolean isSet( final int vaxStatus )
+			default boolean isFlippedOn( final int vaxStatus )
 			{
-				return !isUnset( vaxStatus );
+				return !isFlippedOff( vaxStatus );
 			}
 
-			default boolean isUnset( final int vaxStatus )
+			default boolean isFlippedOff( final int vaxStatus )
 			{
 				return (vaxStatus & bit()) == 0;
 			}
 
 			/** @return the status value after setting bit for this dose to 1 */
-			default int set( final int vaxStatus )
+			default int flippedOn( final int vaxStatus )
 			{
 				return vaxStatus | bit();
 			}
 
-			default int unset( final int vaxStatus )
+			default int flippedOff( final int vaxStatus )
 			{
 				return vaxStatus & ~bit();
 			}

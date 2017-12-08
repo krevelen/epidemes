@@ -32,12 +32,12 @@ import nl.rivm.cib.demo.DemoModel.Medical.VaxRegimen;
 import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link RVP}
+ * {@link MeaslesRVP}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class RVP implements VaxRegimen
+public class MeaslesRVP implements VaxRegimen
 {
 	/**
 	 * {@link BMR} doses vaccinate against measles, mumps and rubella (MMR)
@@ -111,14 +111,14 @@ public class RVP implements VaxRegimen
 		}
 	}
 
-	private static final RVP INSTANCE = new RVP();
+	private static final MeaslesRVP INSTANCE = new MeaslesRVP();
 
-	public static final RVP instance()
+	public static final MeaslesRVP instance()
 	{
 		return INSTANCE;
 	}
 
-	private RVP()
+	private MeaslesRVP()
 	{
 		// singleton
 	}
@@ -126,7 +126,7 @@ public class RVP implements VaxRegimen
 	@Override
 	public boolean isCompliant( final int vaxStatus )
 	{
-		return BMR.DOSE2.isSet( vaxStatus ) || BMR.DOSE3.isSet( vaxStatus );
+		return BMR.DOSE2.isFlippedOn( vaxStatus ) || BMR.DOSE3.isFlippedOn( vaxStatus );
 	}
 
 	@Override
@@ -134,7 +134,7 @@ public class RVP implements VaxRegimen
 	{
 		final ComparableQuantity<Time> ageC = QuantityUtil.valueOf( age );
 		for( BMR dose : BMR.values() )
-			if( dose.ageRangeNormal() != null && !dose.isSet( vaxStatus )
+			if( dose.ageRangeNormal() != null && !dose.isFlippedOn( vaxStatus )
 					&& !dose.ageRangeNormal().lt( ageC ) )
 				return dose;
 		return null;
@@ -145,7 +145,7 @@ public class RVP implements VaxRegimen
 	{
 		final ComparableQuantity<Time> ageC = QuantityUtil.valueOf( age );
 		for( BMR dose : BMR.values() )
-			if( !dose.isSet( vaxStatus ) && !dose.ageRangeSpecial().lt( ageC ) )
+			if( !dose.isFlippedOn( vaxStatus ) && !dose.ageRangeSpecial().lt( ageC ) )
 				return dose;
 		return null;
 	}

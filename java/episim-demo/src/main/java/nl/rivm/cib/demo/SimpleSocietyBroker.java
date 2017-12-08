@@ -166,7 +166,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 		this.capacityIndex = new IndexPartition( this.societies,
 				scheduler()::fail );
 		this.capacityIndex.groupBy( Societies.Purpose.class );
-		this.capacityIndex.groupBy( Societies.MemberCapacity.class,
+		this.capacityIndex.groupBy( Societies.Capacity.class,
 				Stream.of( 1 ) ); // separate 'full' < 1 <= 'available'
 //		this.capacityIndex.groupBy( Societies.CultureRef.class );
 
@@ -218,7 +218,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 					if( members.indexOf( pp.key() ) < 0 )
 					{
 						members.add( pp.key() );
-						soc.updateAndGet( Societies.MemberCapacity.class,
+						soc.updateAndGet( Societies.MemberCount.class,
+								n -> n + 1 );
+						soc.updateAndGet( Societies.Capacity.class,
 								n -> n - 1 );
 					} else
 						LOG.warn( "Already member: {} in {}",
@@ -227,8 +229,6 @@ public class SimpleSocietyBroker implements SocietyBroker
 
 					return soc.key();
 				} ) );
-
-		// TODO emit join event?
 
 		if( roleMemberships.isEmpty() )
 			LOG.debug( "{} is not a member in any society",
@@ -333,7 +333,8 @@ public class SimpleSocietyBroker implements SocietyBroker
 		final Long capacity = gatherer.sizeLimitDist().draw();
 		final SocietyTuple soc = this.societies.insertValues( map -> map
 				.put( Societies.CultureRef.class, cultureRef )
-				.put( Societies.MemberCapacity.class, capacity.intValue() )
+				.put( Societies.MemberCount.class, 0 )
+				.put( Societies.Capacity.class, capacity.intValue() )
 				.put( Societies.Purpose.class, gatherer.id() )
 				.put( Societies.SiteRef.class, site.key() )
 				.put( Societies.SocietyName.class, name ) );

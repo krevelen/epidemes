@@ -76,11 +76,12 @@ import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.demo.DemoModel.Medical.VaxAcceptanceEvaluator;
 import nl.rivm.cib.demo.DemoModel.Medical.VaxDose;
+import nl.rivm.cib.demo.DemoModel.Medical.VaxRegimen;
 import nl.rivm.cib.demo.DemoModel.Persons;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
-import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 import tec.uom.se.ComparableQuantity;
 
@@ -96,6 +97,11 @@ public class SimpleHealthBroker implements HealthBroker
 	public interface HealthConfig extends YamlConfig
 	{
 		String PATHOGEN_PREFIX = "pathogen" + DemoConfig.KEY_SEP;
+
+		String VACCINATION_PREFIX = "vaccination" + DemoConfig.KEY_SEP;
+
+		String OCCASION_PREFIX = VACCINATION_PREFIX + "occasion"
+				+ DemoConfig.KEY_SEP;
 
 		@Key( PATHOGEN_PREFIX + "average-reproduction-period" )
 		@DefaultValue( "12 day" )
@@ -123,13 +129,9 @@ public class SimpleHealthBroker implements HealthBroker
 //		@DefaultValue( ".9" )
 //		double overallVaccinationDegree();
 
-		String VACCINATION_PREFIX = "vaccination" + DemoConfig.KEY_SEP;
-
 		@Key( VACCINATION_PREFIX + "acceptance-evaluator" )
 		@DefaultValue( "nl.rivm.cib.demo.DemoModel$Medical$VaxAcceptanceEvaluator$Average" )
 		Class<?> acceptanceEvaluatorType();
-
-		// TODO configurable VaxRegimen/VaxDose state-machine implementations
 
 		// BMR2 reached, mean(sd): 14.2(0.5) months/61.5(1.9) weeks/425(13) days
 		/** typical treatment delay relative to the (arbitrary) decision age */
@@ -138,9 +140,7 @@ public class SimpleHealthBroker implements HealthBroker
 		@DefaultValue( "normal(.5;1.8)" )
 		String treatmentDelayDist();
 
-		String OCCASION_PREFIX = VACCINATION_PREFIX + "occasion"
-				+ DemoConfig.KEY_SEP;
-
+		// TODO allow multiple occasions, each recurring with unique convenience factors distributions
 		@Key( OCCASION_PREFIX + "recurrence" )
 		@DefaultValue( "0 0 10 ? * MON-FRI *" )
 		String occasionRecurrence();
@@ -208,28 +208,27 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private Table<Households.HouseholdTuple> households;
 
-	private VaxAcceptanceEvaluator vaxAcceptance;
+	// TODO from config
+	private VaxRegimen regimen = MeaslesRVP.instance();
 
-	private ConditionalDistribution<MSEIRS.Compartment, RegionPeriod> sirStatusDist;
-
-	private ProbabilityDistribution<Double> resistanceDist;
-
-	private double gamma_inv, beta;
-
-	private QuantityDistribution<Time> recoveryPeriodDist;
-
-	/** minimum age for vaccination decision making, in scheduler time units */
-//	private BigDecimal vaxDecisionAgeMinimum;
-
-	/** age resolution of vaccination cohorts/bins, in scheduler time units */
-	private BigDecimal vaxDecisionAgeResolution;
-
-	/** */
-	private TreeMap<BigDecimal, List<Object>> vaxAgeHesitants = new TreeMap<>();
+	// TODO from config
+	private VaxAcceptanceEvaluator vaxAcceptance = VaxAcceptanceEvaluator.MIN_CONVENIENCE_GE_AVG_ATTITUDE;
 	/** */
 	private ConditionalDistribution<VaxOccasion, VaxDose> vaxOccasionDist;
 	/** */
 	private QuantityDistribution<Time> vaxTreatmentDelay;
+	/** */
+	private ConditionalDistribution<Compartment, RegionPeriod> sirStatusDist;
+	/** */
+	private ProbabilityDistribution<Double> resistanceDist;
+	/** */
+	private double gamma_inv, beta;
+	/** */
+	private QuantityDistribution<Time> recoveryPeriodDist;
+	/** age resolution of vaccination cohorts/bins, in scheduler time units */
+	private BigDecimal vaxDecisionAgeResolution;
+	/** current hesitants/susceptibles within/before decision age, by age bin */
+	private TreeMap<BigDecimal, List<Object>> vaxAgeHesitants = new TreeMap<>();
 
 	@Override
 	public SimpleHealthBroker reset() throws Exception
@@ -259,13 +258,13 @@ public class SimpleHealthBroker implements HealthBroker
 //		final double vaxDegree = this.config.overallVaccinationDegree();
 //		final Map<String, ProbabilityDistribution<Boolean>> localVaxDegreeDist = new HashMap<>();
 		this.sirStatusDist = regPer -> regPer.periodRef()
-				.isBefore( lastOutbreak ) ? MSEIRS.Compartment.RECOVERED
+				.isBefore( lastOutbreak ) ? Compartment.RECOVERED
 //						: localVaxDegreeDist
 //								.computeIfAbsent( regPer.regionRef(),
 //										k -> this.distFactory
 //												.createBernoulli( vaxDegree ) )
-//								.draw() ? MSEIRS.Compartment.VACCINATED
-						: MSEIRS.Compartment.SUSCEPTIBLE;
+//								.draw() ? Compartment.VACCINATED
+						: Compartment.SUSCEPTIBLE;
 
 		this.vaxTreatmentDelay = this.distParser.parseQuantity(
 				this.config.treatmentDelayDist(), TimeUnits.WEEK );
@@ -294,43 +293,12 @@ public class SimpleHealthBroker implements HealthBroker
 
 		this.households = this.data.getTable( HouseholdTuple.class );
 		this.persons = this.data.getTable( PersonTuple.class );
-		this.persons.changes().subscribe( chg ->
-		{
-			if( chg.crud() == Table.Operation.CREATE )
-				onCreate( (PersonTuple) chg.newValue() );
-			else if( chg.crud() == Table.Operation.DELETE )
-				onDelete( (PersonTuple) chg.oldValue() );
-			else if( chg.crud() == Table.Operation.UPDATE )
-			{
-//				if( chg.changedType() == Persons.SiteRef.class )
-//					onMove( chg.sourceRef(), chg.oldValue(), chg.newValue() );
-//				else 
-				if( chg.changedType() == Persons.PathogenCompartment.class )
-				{
-					final PersonTuple pp = this.persons
-							.select( chg.sourceRef() );
-					this.events.onNext( //
-							new EpidemicFact()
-//									.withSite( pp.get( Persons.SiteRef.class ) )
-									.withSIRDelta( map -> map
-											.put( (MSEIRS.Compartment) chg
-													.oldValue(), -1 )
-											.put( (MSEIRS.Compartment) chg
-													.newValue(), 1 ) ) );
-					if( chg.newValue() == MSEIRS.Compartment.INFECTIVE )
-						// schedule recovery after infectious period 
-						after( this.recoveryPeriodDist.draw() )
-								.call( t_r -> pp.getAndUpdate(
-										Persons.PathogenCompartment.class,
-										prev -> prev == MSEIRS.Compartment.INFECTIVE
-												? MSEIRS.Compartment.RECOVERED
-												: prev ) );
-				}
-			}
-		} );
+		this.persons.onCreate( this::onCreate, scheduler()::fail );
+		this.persons.onDelete( this::onDelete, scheduler()::fail );
+//		this.persons.onUpdate( Persons.SiteRef.class,this::onMove, scheduler()::fail);
+		this.persons.onUpdate( Persons.PathogenCompartment.class,
+				this::onCompartmentTransition, scheduler()::fail );
 
-		// TODO from config
-		this.vaxAcceptance = VaxAcceptanceEvaluator.MIN_CONVENIENCE_GE_AVG_ATTITUDE;
 		this.societyBroker.events().subscribe( e ->
 		{
 			final LocalPressure lp = getLP( e.siteRef );
@@ -365,6 +333,26 @@ public class SimpleHealthBroker implements HealthBroker
 		return this;
 	}
 
+	private void onCompartmentTransition( final Object sourceRef,
+		final Compartment oldValue, final Compartment newValue )
+	{
+		final PersonTuple pp = this.persons.select( sourceRef );
+		this.events.onNext( new EpidemicFact().withPerson( pp ).withSIRDelta(
+				map -> map.put( oldValue, -1 ).put( newValue, 1 ) ) );
+		switch( newValue )
+		{
+		case INFECTIVE:
+			// schedule recovery after infectious period 
+			after( this.recoveryPeriodDist.draw() ).call(
+					t_r -> pp.getAndUpdate( Persons.PathogenCompartment.class,
+							prev -> prev == Compartment.INFECTIVE
+									? Compartment.RECOVERED : prev ) );
+			break;
+		default:
+			break; // TODO: apply IllnessTrajectory?
+		}
+	}
+
 	private void outbreakStart( final Instant t )
 	{
 		final PersonTuple minResistant = this.persons.stream()
@@ -376,7 +364,7 @@ public class SimpleHealthBroker implements HealthBroker
 				.orElse( null );
 
 		minResistant.set( Persons.PathogenCompartment.class,
-				MSEIRS.Compartment.INFECTIVE );
+				Compartment.INFECTIVE );
 
 		final Disposable trackSub = this.persons.changes( minResistant.key() )
 				.subscribe( chg -> LOG.warn( "t={} PATIENT ZERO {} change: {}",
@@ -387,7 +375,7 @@ public class SimpleHealthBroker implements HealthBroker
 		final Expectation recovery = after( dt ).call( tRecover ->
 		{
 			minResistant.set( Persons.PathogenCompartment.class,
-					MSEIRS.Compartment.RECOVERED );
+					Compartment.RECOVERED );
 			LOG.info( "t={} ENDED IMPORT at index case: {}",
 					scheduler().nowDT(), minResistant );
 			trackSub.dispose(); // stop tracking patient zero
@@ -471,7 +459,7 @@ public class SimpleHealthBroker implements HealthBroker
 		{
 			final PersonTuple target = this.ppGetter.apply( targetRef );
 			target.updateAndGet( Persons.PathogenCompartment.class,
-					oldSIR -> MSEIRS.Compartment.INFECTIVE );
+					oldSIR -> Compartment.INFECTIVE );
 			// update local resistance (if still here)
 			this.resistance.replace( targetRef, targetRes, 0d );
 			// shift all resistance
@@ -549,12 +537,11 @@ public class SimpleHealthBroker implements HealthBroker
 
 		void doArrive( final PersonTuple pp )
 		{
-			final MSEIRS.Compartment sir = pp
-					.get( Persons.PathogenCompartment.class );
+			final Compartment sir = pp.get( Persons.PathogenCompartment.class );
 			this.resistance.put( pp.key(),
-					sir == MSEIRS.Compartment.SUSCEPTIBLE
+					sir == Compartment.SUSCEPTIBLE
 							? pp.get( Persons.PathogenResistance.class )
-							: sir == MSEIRS.Compartment.INFECTIVE ? 0d : -1d );
+							: sir == Compartment.INFECTIVE ? 0d : -1d );
 		}
 
 		LocalPressure depart( final PersonTuple pp )
@@ -637,12 +624,11 @@ public class SimpleHealthBroker implements HealthBroker
 		final LocalDate birthDT = Instant
 				.of( pp.get( Persons.Birth.class ), scheduler().timeUnit() )
 				.toJava8( scheduler().offset().toLocalDate() );
-		final MSEIRS.Compartment status = this.sirStatusDist.draw(
-				RegionPeriod.of( (String) pp.get( Persons.HomeRegionRef.class ),
-						birthDT ) );
+		final Compartment status = this.sirStatusDist.draw( RegionPeriod.of(
+				(String) pp.get( Persons.HomeRegionRef.class ), birthDT ) );
 
 		pp.set( Persons.PathogenCompartment.class, status );
-		if( status == MSEIRS.Compartment.SUSCEPTIBLE )
+		if( status == Compartment.SUSCEPTIBLE )
 		{
 			pp.set( Persons.PathogenResistance.class,
 					this.resistanceDist.draw() );
@@ -660,7 +646,7 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private void scheduleVaccinations( final Instant t )
 	{
-		final Range<BigDecimal> decisionAgeBinRange = RVP.instance()
+		final Range<BigDecimal> decisionAgeBinRange = this.regimen
 				.decisionAgeRange()
 				.map( age -> vaxDecisionAgeBin( t.decimal().subtract(
 						QuantityUtil.decimalValue( age, t.unit() ) ) ) );
@@ -668,27 +654,27 @@ public class SimpleHealthBroker implements HealthBroker
 		final NavigableMap<BigDecimal, List<Object>> subMap = decisionAgeBinRange
 				.apply( this.vaxAgeHesitants, false );
 //		LOG.debug( "Vaccinate cohorts range {} -> {} : {}..{} <- {} ppl",
-//				RvpBmr.decisionAgeRange(), decisionAgeBinRange,
+//				this.regimen.decisionAgeRange(), decisionAgeBinRange,
 //				subMap.firstKey(), subMap.lastKey(),
 //				subMap.values().stream().mapToInt( List::size ).sum() );
 		final PersonTuple[] removable = subMap.values().stream()
 				.flatMap( List::stream ).map( this.persons::select )
 				.filter( pp -> pp
-						.get( Persons.PathogenCompartment.class ) == MSEIRS.Compartment.SUSCEPTIBLE )
+						.get( Persons.PathogenCompartment.class ) == Compartment.SUSCEPTIBLE )
 				.filter( pp ->
 				{
 					final int status = pp.get( Persons.VaxCompliance.class );
 
-					if( RVP.instance().isCompliant( status ) )
+					if( this.regimen.isCompliant( status ) )
 					{
 						LOG.warn( "Already compliant {}", pp );
 						pp.updateAndGet( Persons.PathogenCompartment.class,
-								epi -> MSEIRS.Compartment.VACCINATED );
+								epi -> Compartment.VACCINATED );
 						return true;
 					}
 					final ComparableQuantity<Time> age = ageOf( pp );
 
-					final VaxDose nextDose = RVP.instance().nextRegular( status,
+					final VaxDose nextDose = this.regimen.nextRegular( status,
 							age );
 					if( nextDose == null )
 					{
@@ -729,18 +715,19 @@ public class SimpleHealthBroker implements HealthBroker
 						.add( this.vaxTreatmentDelay.draw() ) ),
 				delay = vaxAge.subtract( age );
 
-		final int status = pp.get( Persons.VaxCompliance.class );
-		LOG.info( "t={} Vax {} @age {} (t+{}) status {}->{} for {}", dt(),
-				nextDose, QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ),
-				QuantityUtil.pretty( delay, TimeUnits.WEEK, 1 ), status,
-				nextDose.set( status ), pp.pretty( Persons.PROPERTIES ) );
+//		final int cOld = pp.get( Persons.VaxCompliance.class ),
+//				cNew = nextDose.set( cOld );
+//		LOG.trace( "t={} Vax {} @age {} (t+{}) status {}->{} for {}", dt(),
+//				nextDose, QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ),
+//				QuantityUtil.pretty( delay, TimeUnits.WEEK, 1 ), cOld, cNew,
+//				pp.pretty( Persons.PROPERTIES ) );
 
 		after( delay ).call( t_v ->
 		{
 			pp.updateAndGet( Persons.PathogenCompartment.class,
-					epi -> MSEIRS.Compartment.VACCINATED );
+					epi -> Compartment.VACCINATED );
 			pp.updateAndGet( Persons.VaxCompliance.class,
-					old -> nextDose.set( old ) );
+					old -> nextDose.flippedOn( old ) );
 
 			// TODO check attitude & continue next dose until fully compliant
 		} );
@@ -773,7 +760,7 @@ public class SimpleHealthBroker implements HealthBroker
 //								HHMemberAttribute.BIRTH.ordinal() ) ) )
 //				vaxDecisionAgeMinimum
 //				this.persons.stream().filter( pp -> pp.get(
-//						Persons.EpiCompartment.class ) == MSEIRS.Compartment.SUSCEPTIBLE )
+//						Persons.EpiCompartment.class ) == Compartment.SUSCEPTIBLE )
 //				.filter(pp->birthRange.contains(pp.get(Persons.Birth.class ) ))
 //				.filter(pp->this.this.households.select(pp.get(Persons.HouseholdRef.class ) ).get(Households.))
 //				.forEach( this::setVaccinated );
