@@ -384,10 +384,12 @@ public interface PilotConfig extends GlobalConfig
 				key -> async.get( fallback.apply( key ) ) ) );
 	}
 
+	@SuppressWarnings( "rawtypes" )
 	@Key( MOBILITY_PREFIX + "motor-factory" )
 	@DefaultValue( "nl.rivm.cib.episim.model.SocialGatherer$Factory$SimpleBinding" )
 	Class<? extends SocialGatherer.Factory> mobilityGathererFactory();
 
+	@SuppressWarnings( "unchecked" )
 	default NavigableMap<String, SocialGatherer>
 		mobilityGatherers( final LocalBinder binder ) throws Exception
 	{

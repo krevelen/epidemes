@@ -20,6 +20,7 @@
 package nl.rivm.cib.demo;
 
 import java.io.InputStream;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +30,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.coala.bind.InjectConfig;
 import io.coala.config.YamlConfig;
@@ -42,15 +45,16 @@ import io.coala.util.InputStreamConverter;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import nl.rivm.cib.demo.DemoModel.EpiFact;
-import nl.rivm.cib.demo.DemoModel.Epidemical.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Households;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Sites;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
+import nl.rivm.cib.demo.DemoModel.Social.EduCulture;
 import nl.rivm.cib.json.CbsRegionCentroidDensity;
-import nl.rivm.cib.json.CbsRegionCentroidDensity.ExportCol;
+import nl.rivm.cib.json.DuoPrimarySchool;
 
 /**
  * {@link SimpleSiteBroker}
@@ -76,6 +80,11 @@ public class SimpleSiteBroker implements SiteBroker
 				+ "gm_pc6_centroid_density.json" )
 		@ConverterClass( InputStreamConverter.class )
 		InputStream cbsZipcodeResidenceData();
+
+		@Key( "primary-school-densities" )
+		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM + "gm_pc4_po_pupils.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream duoPrimarySchoolData();
 	}
 
 	@InjectConfig
@@ -118,6 +127,10 @@ public class SimpleSiteBroker implements SiteBroker
 	private final Map<String, double[]> siteCoords = new HashMap<>();
 //	private final Map<Comparable<?>, NavigableSet<Comparable<?>>> regionSites = new HashMap<>();
 	private ConditionalDistribution<Comparable<?>, String> regionalHomeSiteDist;
+	/** */
+	private final Map<String, EnumMap<DuoPrimarySchool.ExportCol, JsonNode>> schoolCache = new HashMap<>();
+	/** */
+	private ConditionalDistribution<String, Object[]> primarySchoolDist;
 
 	@Override
 	public SimpleSiteBroker reset() throws Exception
@@ -128,29 +141,10 @@ public class SimpleSiteBroker implements SiteBroker
 						this.regionalHomeSiteDist.draw( (String) hh
 								.get( Households.HomeRegionRef.class ) ) ),
 				scheduler()::fail );
+
 //		this.persons = 
 		this.data.getTable( PersonTuple.class ).onCreate( this::onCreate,
 				scheduler()::fail );
-
-////		this.regions = this.data.getTable( RegionTuple.class );
-//		final ProbabilityDistribution<Double> latDist = this.distFactory
-//				.createUniformContinuous( 50.5, 54.5 );
-//		final ProbabilityDistribution<Double> lonDist = this.distFactory
-//				.createUniformContinuous( 3.5, 6.5 );
-//		this.regionalHomeSiteDist = regName ->
-//		{
-//			// TODO get lat,long,zip from CBS distribution
-//			final SiteTuple site = this.sites.insertValues(
-//					map -> map.put( Sites.RegionRef.class, regName )
-//							.put( Sites.Purpose.class, HOME_FUNCTION )
-//							.put( Sites.Latitude.class, latDist.draw() )
-//							.put( Sites.Longitude.class, lonDist.draw() )
-////							.put( Sites.Capacity.class, 10 ) 
-//			);
-//			this.regionSites.computeIfAbsent( regName, k -> new TreeSet<>() )
-//					.add( (Comparable<?>) site.key() );
-//			return (Comparable<?>) site.key();
-//		};
 
 		final Map<String, ProbabilityDistribution<String>> gmZips = CbsRegionCentroidDensity
 				.parse( this.config.cbsZipcodeResidenceData(), this.distFactory,
@@ -158,12 +152,30 @@ public class SimpleSiteBroker implements SiteBroker
 						{
 							final String siteName = String.join( "_", keys );
 							final double[] coords = {
-					values.get( ExportCol.LATITUDE ).asDouble(), values
-							.get( ExportCol.LONGITUDE ).asDouble() };
+					values.get( CbsRegionCentroidDensity.ExportCol.LATITUDE )
+							.asDouble(), values
+									.get( CbsRegionCentroidDensity.ExportCol.LONGITUDE )
+									.asDouble() };
 							this.siteCoords.put( siteName, coords );
 							return siteName;
 						} );
-		
+
+		try( final InputStream is = this.config.duoPrimarySchoolData() )
+		{
+			final Map<String, Map<EduCulture, ProbabilityDistribution<String>>> dists = DuoPrimarySchool
+					.parse( is, this.distFactory, ( id, arr ) ->
+					{
+						this.schoolCache.computeIfAbsent( id, k -> arr );
+						return EduCulture.resolvePO( arr );
+					} );
+
+			this.primarySchoolDist = ConditionalDistribution.of( params -> dists
+					.computeIfAbsent( params[0].toString(),
+							zip -> new HashMap<>() )
+					.computeIfAbsent( (EduCulture) params[1], cat -> dists
+							.get( params[0] ).get( EduCulture.OTHERS ) ) );
+		}
+
 		this.regionalHomeSiteDist = regName ->
 		{
 			final String siteName = gmZips.computeIfAbsent( regName, k ->
@@ -209,11 +221,25 @@ public class SimpleSiteBroker implements SiteBroker
 	private final AtomicLong siteSeq = new AtomicLong();
 
 	@Override
-	public SiteTuple findNearby( final String lifeRole,
-		final Object originSiteRef )
+	public SiteTuple findNearby( final String lifeRole, final PersonTuple pp )
 	{
+//		final ComparableQuantity<Time> age = ageOf( person );
+		final Object originSiteRef = pp.get( Persons.HomeSiteRef.class );
 		final SiteTuple origin = this.sites
 				.select( Objects.requireNonNull( originSiteRef, "homeless?" ) );
+
+		final String homeZip = origin.get( Sites.SiteName.class ).substring( 5,
+				9 );
+		final EduCulture cult = EduCulture.OTHERS; // TODO from hh
+		String schoolName = this.primarySchoolDist.draw( homeZip, cult );
+		if( schoolName == null )
+			LOG.debug( "No school dist for {} x {}", homeZip, cult );
+//		else
+//			LOG.debug( "Setting school for {}, age {}: {} x {} -> {}",
+//					person, QuantityUtil.pretty( age, TimeUnits.YEAR, 1 ),
+//					homeZip, cult,
+//					this.schoolCache.get( schoolName ).values() );
+
 		// TODO use actual locations/regions
 //		LOG.warn( "TODO extend existing {} site near {}", lifeRole, origin );
 		final Double lat = origin.get( Sites.Latitude.class ),

@@ -71,9 +71,8 @@ import io.reactivex.Observable;
 import io.reactivex.internal.functions.Functions;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.demo.DemoModel.Demical.Deme;
-import nl.rivm.cib.demo.DemoModel.Demical.DemeEventType;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
+import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
 import nl.rivm.cib.demo.DemoModel.Households;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons;
@@ -93,7 +92,7 @@ import tec.uom.se.ComparableQuantity;
 
 /** organizes survival and reproduction (across households) */
 @Singleton
-public class SimplePersonBroker implements Deme
+public class SimplePersonBroker implements PersonBroker
 {
 
 	/** */
@@ -146,7 +145,7 @@ public class SimplePersonBroker implements Deme
 		@ConverterClass( InputStreamConverter.class )
 		InputStream cbs37230Data();
 
-		@Key( "hh-type-geo-dist" )
+		@Key( "hh-type-region-dist" )
 		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
 				+ "71486ned-TS-2010-2016.json" )
 		@ConverterClass( InputStreamConverter.class )
@@ -509,7 +508,7 @@ public class SimplePersonBroker implements Deme
 			return regRef == null ? 1
 					: eliminatePerson( this.hhTypeDist
 							.draw( RegionPeriod.of( regRef, dt() ) ) );
-		} ) ).map( t -> DemeEventType.ELIMINATION.create() );
+		} ) ).map( t -> new Elimination() );
 	}
 
 	private Observable<DemicFact> setupImmigrations()
@@ -526,7 +525,7 @@ public class SimplePersonBroker implements Deme
 			return regRef == null ? 1
 					: immigrateHousehold( this.hhTypeDist
 							.draw( RegionPeriod.of( regRef, dt() ) ) );
-		} ) ).map( t -> DemeEventType.IMMIGRATION.create() );
+		} ) ).map( t -> new Immigration() );
 	}
 
 	private Observable<DemicFact> setupEmigrations()
@@ -543,7 +542,7 @@ public class SimplePersonBroker implements Deme
 			return regRef == null ? 1
 					: emigrateHousehold( this.hhTypeDist
 							.draw( RegionPeriod.of( regRef, dt() ) ) );
-		} ) ).map( t -> DemeEventType.EMIGRATION.create() );
+		} ) ).map( t -> new Emigration() );
 	}
 
 	private HouseholdTuple createHousehold( final Cbs71486json.Category hhCat )
@@ -641,9 +640,8 @@ public class SimplePersonBroker implements Deme
 					birthCat.regionRef() );
 			return 0;
 		}
-		LOG.trace( "{} {}: growing {} hh with {} child ({}), mom {}", dt(),
-				DemeEventType.EXPANSION, birthCat.regionRef(), kidRank, gender,
-				momAge );
+		LOG.trace( "{} EXPANSION: growing {} hh with {} child ({}), mom {}",
+				dt(), birthCat.regionRef(), kidRank, gender, momAge );
 		final HouseholdPosition rank = HouseholdPosition.ofChildIndex(
 				hh.get( Households.Composition.class ).childCount() );
 		final PersonTuple newborn = createPerson( hh, rank, gender.isMale(),
@@ -652,7 +650,7 @@ public class SimplePersonBroker implements Deme
 				Households.Composition.class, CBSHousehold::plusChild );
 		hh.updateAndGet( Households.KidRank.class, CBSBirthRank::plusOne );
 
-		pendingEvent.set( DemeEventType.EXPANSION.create()
+		pendingEvent.set( new Expansion()
 				.withContext( null, hh.key(),
 						hh.get( Households.HomeSiteRef.class ) )
 				.withHouseholdDelta( map -> map.put( hhType, -1 )
@@ -690,8 +688,8 @@ public class SimplePersonBroker implements Deme
 
 		if( this.sizeMismatches.contains( hh.key() ) ) return 0;
 
-		LOG.trace( "{} {}: shrinking {} person aged ~{}", dt(),
-				DemeEventType.ELIMINATION, hhCat.regionRef(), age );
+		LOG.trace( "{} ELIMINATION: shrinking {} person aged ~{}", dt(),
+				hhCat.regionRef(), age );
 
 		this.persons.delete( pp.key() );
 
@@ -702,9 +700,8 @@ public class SimplePersonBroker implements Deme
 	{
 		final HouseholdTuple hh = createHousehold( hhCat );
 		final CBSHousehold hhType = hh.get( Households.Composition.class );
-		LOG.trace( "{} {}: joining {} of {} aged {}", dt(),
-				DemeEventType.IMMIGRATION, hhCat.regionRef(), hhType,
-				hhCat.ageRange() );
+		LOG.trace( "{} IMMIGRATION: joining {} of {} aged {}", dt(),
+				hhCat.regionRef(), hhType, hhCat.ageRange() );
 		return hhType.size();
 	}
 
@@ -715,9 +712,8 @@ public class SimplePersonBroker implements Deme
 
 		final Quantity<Time> refAge = hhCat
 				.ageDist( this.distFactory::createUniformContinuous ).draw();
-		LOG.trace( "{} {}: leaving {} hh {} aged {}", dt(),
-				DemeEventType.EMIGRATION, hhCat.regionRef(), hhType,
-				QuantityUtil.pretty( refAge, 3 ) );
+		LOG.trace( "{} EMIGRATION: leaving {} hh {} aged {}", dt(),
+				hhCat.regionRef(), hhType, QuantityUtil.pretty( refAge, 3 ) );
 
 		final HouseholdTuple hh = this.emigrationPicker.pick( hhCat.regionRef(),
 				hhType, refAge );

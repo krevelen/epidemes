@@ -20,6 +20,7 @@
 package nl.rivm.cib.demo;
 
 import java.math.BigDecimal;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,18 +35,22 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.coala.bind.LocalBinder;
 import io.coala.data.Table.Property;
 import io.coala.data.Table.Tuple;
 import io.coala.log.LogUtil.Pretty;
-import io.coala.math.Extreme;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
+import io.coala.name.Identified;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.TimeUnits;
@@ -58,6 +63,7 @@ import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
+import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
@@ -278,22 +284,6 @@ public interface DemoModel
 		class VaxCompliance extends AtomicReference<Integer>
 			implements Property<Integer>
 		{
-			public static boolean isCompliant( final Tuple t, final int n )
-			{
-				return (t.get( VaxCompliance.class ).intValue()
-						& (1 << n)) != 0;
-			}
-
-			public static Integer setCompliant( final Tuple t, final int n )
-			{
-				return t.updateAndGet( VaxCompliance.class, v -> v | (1 << n) );
-			}
-
-			public static Integer setNoncompliant( final Tuple t, final int n )
-			{
-				return t.updateAndGet( VaxCompliance.class,
-						v -> v & ~(1 << n) );
-			}
 		}
 
 		@SuppressWarnings( "rawtypes" )
@@ -315,22 +305,20 @@ public interface DemoModel
 		}
 	}
 
+	@SuppressWarnings( "serial" )
 	interface Regions
 	{
-		@SuppressWarnings( "serial" )
 		class RegionName extends AtomicReference<String>
 			implements Property<String>
 		{
 
 		}
 
-		@SuppressWarnings( "serial" )
 		class ParentRef extends AtomicReference<Object>
 			implements Property<Object>
 		{
 		}
 
-		@SuppressWarnings( "serial" )
 		class Population extends AtomicReference<Long> implements Property<Long>
 		{
 		}
@@ -517,48 +505,25 @@ public interface DemoModel
 					now().decimal().subtract( pp.get( Persons.Birth.class ) ),
 					scheduler().timeUnit().asType( Time.class ) );
 		}
-
-//		default LocalDate dt()
-//		{
-//			// FIXME fix daylight savings adjustment, seems to adjust the wrong way
-//			return now().equals( this.dtInstant ) ? this.dtCache
-//					: (this.dtCache = (this.dtInstant = now())
-//							.toJava8( scheduler().offset().toLocalDate() ));
-//		}
-
-//		default void logError( final Throwable e )
-//		{
-//			LogUtil.getLogger( EpiActor.class ).error( "Problem", e );
-//		}
 	}
 
-//	interface Cultural
-//	{
-//		// group-related variance/subcultures, in social and medical behaviors 
-//
-//		interface Person extends EpiActor
-//		{
-//			// accepts all requests...
-//		}
-//	}
-
-	interface Cultural
+	interface Social
 	{
 		// social/mental peer pressure networks, dynamics
 
-		enum Culture
+		enum EduCulture
 		{
-			LUTHER, STEINER, SPECIAL, OTHERS;
+			REFORMED, STEINER, SPECIAL, OTHERS;
 
-			public static Culture
+			public static EduCulture
 				resolvePO( final EnumMap<ExportCol, JsonNode> school )
 			{
 				final String denom = school.get( ExportCol.DENOMINATIE )
 						.asText();
-				if( denom.startsWith( "Prot" ) // 23.1%
-						|| denom.startsWith( "Geref" ) // 1.2%
+				if( // denom.startsWith( "Prot" ) || // 23.1%
+				denom.startsWith( "Geref" ) // 1.2%
 						|| denom.startsWith( "Evan" ) // 0.1%
-				) return LUTHER;
+				) return REFORMED;
 
 				if( denom.startsWith( "Antro" ) ) // 0.9%
 					return STEINER;
@@ -569,6 +534,55 @@ public interface DemoModel
 
 				return OTHERS;
 			}
+		}
+
+		interface TimedGatherer extends SocialGatherer
+		{
+			String TYPE_KEY = "motor";
+
+			String SITE_SCOPE_KEY = "site-scope-km";
+
+			class Localized extends SocialGatherer.SimpleGatherer
+				implements TimedGatherer
+			{
+				// call site broker to locate a specific site type 
+
+				@Override
+				public double maxKm()
+				{
+					return fromConfig( SITE_SCOPE_KEY, 100d );
+				}
+
+			}
+
+			@Singleton
+			class SimpleFactory implements SocialGatherer.Factory<TimedGatherer>
+			{
+				@Inject
+				private LocalBinder binder;
+
+				@Override
+				public TimedGatherer create( final String name,
+					final ObjectNode config )
+					throws ClassNotFoundException, ParseException
+				{
+					final Class<? extends TimedGatherer> type = config
+							.has( TYPE_KEY )
+									? Class
+											.forName(
+													config.get( TYPE_KEY )
+															.textValue() )
+											.asSubclass( TimedGatherer.class )
+									: Localized.class;
+					return this.binder.inject( type,
+							config.put( Identified.ID_JSON_PROPERTY, name ) );
+				}
+			}
+
+			/**
+			 * @return
+			 */
+			double maxKm();
 		}
 
 		class GatherFact extends EpiFact
@@ -600,6 +614,8 @@ public interface DemoModel
 		/** organizes meetings at a location */
 		interface SocietyBroker extends EpiActor
 		{
+			String GOALS_KEY = "society-goals";
+
 			@Override
 			SocietyBroker reset() throws Exception;
 
@@ -617,12 +633,16 @@ public interface DemoModel
 		interface PeerBroker extends EpiActor
 		{
 			// ingroup/peer-to-peer/media/authority advice
+
+			String ATTRACTORS_KEY = "peer-attractors";
 		}
 
 	}
 
 	interface Medical
 	{
+
+		// transmission, intervention, information, decisions, vaccination
 
 		class EpidemicFact extends EpiFact
 		{
@@ -662,129 +682,17 @@ public interface DemoModel
 			Observable<? extends EpidemicFact> events();
 		}
 
-		enum VaxDose
+		interface VaxDose
 		{
-			/**
-			 * e.g. BMR0-1 (applied 6-12 months old) no invite (eg. holiday,
-			 * outbreak)
-			 */
-			DOSE0( null, 26, 1 * 52 ),
+			/** @return {@code true} iff this dose bit is 1 in given status */
+			boolean isSet( int vaxStatus );
 
-			/**
-			 * e.g. BMR1-1 (applied 1-9 years old) invite for 11 months/48
-			 * weeks/335 days
-			 */
-			DOSE1( 48, 48, 9 * 52 ),
+			/** @return the status value after setting bit for this dose to 1 */
+			int set( int vaxStatus );
 
-			/**
-			 * e.g. BMR2-1 (applied 1-9 years old) invite for 14 months/61
-			 * weeks/425 days
-			 */
-			DOSE2( 61, 52, 9 * 52 ),
+			Range<ComparableQuantity<Time>> ageRangeDefault();
 
-			/** e.g. BMR2-2 (applied 9-19 years old) no invite (eg. ZRA) */
-			DOSE3( null, 9 * 52, 19 * 52 ),
-
-			;
-
-			private final int bit = 1 << ordinal();
-
-			private final Range<ComparableQuantity<Time>> ageRangeOptional;
-
-			private final Range<ComparableQuantity<Time>> ageRangeDefault;
-
-			private VaxDose( final Integer defaultAgeWeeks,
-				final Integer minimumAgeWeeks, final Integer maximumAgeWeeks )
-			{
-				this.ageRangeOptional = Range.of( minimumAgeWeeks,
-						maximumAgeWeeks, TimeUnits.WEEK );
-				this.ageRangeDefault = defaultAgeWeeks == null ? null
-						: Range.of( defaultAgeWeeks, maximumAgeWeeks,
-								TimeUnits.WEEK );
-			}
-
-			public Range<ComparableQuantity<Time>> ageRangeOptional()
-			{
-				return this.ageRangeOptional;
-			}
-
-			public Range<ComparableQuantity<Time>> ageRangeDefault()
-			{
-				return this.ageRangeDefault;
-			}
-
-			public int bit()
-			{
-				return this.bit;
-			}
-
-			public boolean isSet( final int v )
-			{
-				return !isUnset( v );
-			}
-
-			public boolean isUnset( final int v )
-			{
-				return (v & bit()) == 0;
-			}
-
-			public int set( final int v )
-			{
-				return v | bit();
-			}
-
-			public int unset( final int v )
-			{
-				return v & ~bit();
-			}
-
-			public static boolean isCompliant( final int v )
-			{
-				return DOSE2.isSet( v ) || DOSE3.isSet( v );
-			}
-
-			/** @return the NIP (default) schedule's next dose */
-			public static VaxDose nextDefault( final int v,
-				final ComparableQuantity<Time> age )
-			{
-				for( VaxDose dose : values() )
-					if( dose.ageRangeDefault() != null && !dose.isSet( v )
-							&& !dose.ageRangeDefault().lt( age ) )
-						return dose;
-				return null;
-			}
-
-			/** @return the alternative (outbreak, ZRA) schedule's next dose */
-			public static VaxDose nextOption( final int v,
-				final ComparableQuantity<Time> age )
-			{
-				for( VaxDose dose : values() )
-					if( !dose.isSet( v ) && !dose.ageRangeOptional().lt( age ) )
-						return dose;
-				return null;
-			}
-
-			private static Range<ComparableQuantity<Time>> OVERALL_AGE_RANGE = null;
-
-			public static Range<ComparableQuantity<Time>> decisionAgeRange()
-			{
-				if( OVERALL_AGE_RANGE == null )
-				{
-					Extreme<ComparableQuantity<Time>> lower = Extreme.lower(
-							QuantityUtil.valueOf( 3, TimeUnits.WEEK ), true ),
-							upper = null;
-					for( VaxDose dose : values() )
-						if( dose.ageRangeDefault() != null )
-						{
-							upper = upper == null
-									? dose.ageRangeDefault().getUpper()
-									: Compare.max( upper,
-											dose.ageRangeDefault().getUpper() );
-						}
-					OVERALL_AGE_RANGE = Range.of( lower, upper );
-				}
-				return OVERALL_AGE_RANGE;
-			}
+			Range<ComparableQuantity<Time>> ageRangeOptional();
 		}
 
 		@FunctionalInterface
@@ -826,25 +734,17 @@ public interface DemoModel
 		}
 	}
 
-	interface Epidemical
+	interface Regional
 	{
-		// TODO separate concerns: pathogen from location
-
-		// transmission, intervention, information, decisions, vaccination
-
 		interface SiteBroker extends EpiActor
 		{
+			String SCOPES_KEY = "site-scopes";
+
 			@Override
 			SiteBroker reset() throws Exception;
 
-//			Object findHome( String regionRef );
-
-			SiteTuple findNearby( String lifeRole, Object originSiteRef );
-
-//			void populateHome( Object homeRef,
-//				Map<MSEIRS.Compartment, List<Object>> sirDelta );
+			SiteTuple findNearby( String lifeRole, PersonTuple pp );
 		}
-
 	}
 
 	/**
@@ -853,13 +753,58 @@ public interface DemoModel
 	interface Demical
 	{
 
-		interface Deme extends EpiActor
+		interface PersonBroker extends EpiActor
 		{
 			@Override
-			Deme reset() throws Exception;
+			PersonBroker reset() throws Exception;
 
 			@Override
 			Observable<? extends DemicFact> events();
+
+			class Preparation extends DemicFact
+			{
+				// conception, expecting a baby (triggers new behavior)
+			}
+
+			class Expansion extends DemicFact
+			{
+				// child birth, adoption, possibly 0 representing miscarriage etc
+			}
+
+			class Elimination extends DemicFact
+			{
+				// person dies, possibly leaving orphans, abandoning household
+			}
+
+			class Union extends DemicFact
+			{
+				// households merge, e.g. living together or marriage
+			}
+
+			class Separation extends DemicFact
+			{
+				// household splits, e.g. couple divorces
+			}
+
+			class Division extends DemicFact
+			{
+				// household splits, e.g. child reaches adulthood
+			}
+
+			class Relocation extends DemicFact
+			{
+//					HouseholdRef relocatedHHRef;
+			}
+
+			class Immigration extends DemicFact
+			{
+//					HouseholdRef immigratedHHRef;
+			}
+
+			class Emigration extends DemicFact
+			{
+//					HouseholdRef emigratedHHRef;
+			}
 		}
 
 		abstract class DemicFact extends EpiFact
@@ -896,84 +841,6 @@ public interface DemoModel
 						.ordered( HouseholdPosition.class, Integer.class ) );
 				return this;
 			}
-		}
-
-		enum DemeEventType
-		{
-			/** */
-			EXPANSION( Expansion.class ),
-			/** */
-			ELIMINATION( Elimination.class ),
-			/** */
-			UNION( Union.class ),
-			/** */
-			SEPARATION( Separation.class ),
-			/** */
-			DIVISION( Division.class ),
-			/** */
-			RELOCATION( Relocation.class ),
-			/** */
-			IMMIGRATION( Immigration.class ),
-			/** */
-			EMIGRATION( Emigration.class );
-
-			private final Class<? extends DemicFact> type;
-
-			private DemeEventType( final Class<? extends DemicFact> type )
-			{
-				this.type = type;
-			}
-
-			public DemicFact create()
-				throws InstantiationException, IllegalAccessException
-			{
-				return this.type.newInstance();
-			}
-		}
-
-		class Preparation extends DemicFact
-		{
-			// conception, expecting a baby (triggers new behavior)
-		}
-
-		class Expansion extends DemicFact
-		{
-			// child birth, adoption, possibly 0 representing miscarriage etc
-		}
-
-		class Elimination extends DemicFact
-		{
-			// person dies, possibly leaving orphans, abandoning household
-		}
-
-		class Union extends DemicFact
-		{
-			// households merge, e.g. living together or marriage
-		}
-
-		class Separation extends DemicFact
-		{
-			// household splits, e.g. couple divorces
-		}
-
-		class Division extends DemicFact
-		{
-			// household splits, e.g. child reaches adulthood
-		}
-
-		class Relocation extends DemicFact
-		{
-//				HouseholdRef relocatedHHRef;
-		}
-
-		class Immigration extends DemicFact
-		{
-//				HouseholdRef immigratedHHRef;
-		}
-
-		class Emigration extends DemicFact
-		{
-//				HouseholdRef emigratedHHRef;
 		}
 	}
 }

@@ -67,9 +67,9 @@ public interface SocialGatherer
 
 	String DURATION_KEY = "duration-dist";
 
-	String SIZE_KEY = "community-size-dist";
+	String SIZE_KEY = "capacity-dist";
 
-	String AGES_KEY = "ages";
+	String AGES_KEY = "age-filter";
 
 	String ASSORTATIVE_KEY = "assortative";
 
@@ -141,8 +141,9 @@ public interface SocialGatherer
 						"uniform-discrete(50;200)" );
 				try
 				{
-					this.sizeDist = this.distParser.parse( sizeDist,
-							BigDecimal.class );
+					this.sizeDist = this.distParser
+							.parse( sizeDist, BigDecimal.class )
+							.map( v -> ((Number) v).longValue() );
 				} catch( final ParseException e )
 				{
 					scheduler().fail( e );
@@ -203,14 +204,13 @@ public interface SocialGatherer
 		}
 	}
 
-	interface Factory
+	interface Factory<T>
 	{
 		String TYPE_KEY = "type";
 
-		SocialGatherer create( String name, ObjectNode config )
-			throws Exception;
+		T create( String name, ObjectNode config ) throws Exception;
 
-		default SocialGatherer createOrFail( String name, JsonNode config )
+		default T createOrFail( String name, JsonNode config )
 		{
 			try
 			{
@@ -221,8 +221,8 @@ public interface SocialGatherer
 			}
 		}
 
-		default NavigableMap<String, SocialGatherer>
-			createAll( final JsonNode config ) throws Exception
+		default NavigableMap<String, T> createAll( final JsonNode config )
+			throws Exception
 		{
 			// array: generate default numbered name
 			if( config.isArray() ) return JsonUtil.toMap( (ArrayNode) config,
@@ -239,7 +239,7 @@ public interface SocialGatherer
 		}
 
 		@Singleton
-		class SimpleBinding implements Factory
+		class SimpleBinding implements Factory<SocialGatherer>
 		{
 			@Inject
 			private LocalBinder binder;

@@ -67,16 +67,16 @@ public interface DemoConfig extends YamlConfig
 			+ KEY_SEP;
 
 	/** configuration key */
-	String POPULATION_BASE = "demography";
+	String DEMOGRAPHY_BASE = "demography";
 
 	/** configuration key */
-	String LOCATION_BASE = "geography";
+	String GEOGRAPHY_BASE = "geography";
 
 	/** configuration key */
 	String MOTION_BASE = "mobility";
 	
 	/** configuration key */
-	String VACCINATION_BASE = "vaccination"; 
+	String EPIDEMIOLOGY_BASE = "epidemiology"; 
 	
 	/** configuration key */
 	String HESITANCY_BASE = "hesitancy"; 

@@ -41,7 +41,7 @@ public enum CBSRegionType
 	CITY( "WP" ),
 
 	/** buurt, e.g. 'BU00030000' */
-	NEIGHBOURHOOD( "BU", "BU%04d%02d%02d" ),
+	BOROUGH( "BU", "BU%04d%02d%02d" ),
 
 	/** wijk, e.g. 'WK000300' */
 	WARD( "WK", "WK%04d%02d" ),

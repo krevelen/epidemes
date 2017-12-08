@@ -36,7 +36,7 @@ import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.demo.DemoModel.Cultural.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
 import nl.rivm.cib.demo.DemoModel.EpiFact;
 import nl.rivm.cib.demo.DemoModel.Households;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;

@@ -21,6 +21,7 @@ package nl.rivm.cib.demo;
 
 import java.text.ParseException;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,11 +48,11 @@ import io.coala.time.Timing;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.schedulers.Schedulers;
-import nl.rivm.cib.demo.DemoModel.Cultural.PeerBroker;
-import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
-import nl.rivm.cib.demo.DemoModel.Demical.Deme;
+import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
+import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
-import nl.rivm.cib.demo.DemoModel.Epidemical.SiteBroker;
+import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
@@ -87,7 +88,7 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 	private ProbabilityDistribution.Factory distFactory;
 
 	@Inject
-	private Deme deme;
+	private PersonBroker deme;
 
 	@Inject
 	private SiteBroker siteBroker;
@@ -189,13 +190,52 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 
 	private void logStats()
 	{
-		LOG.info( "t={} demic event x {}: {}",
+		LOG.info( "t={} sir delta: {}, demic event x {}: {}",
 				scheduler().now( DateTimeFormatter.ISO_WEEK_DATE ),
+				this.sirEventStats,
 				this.demicEventStats.values().stream()
 						.mapToLong( AtomicLong::get ).sum(),
 				String.join( ", ", this.demicEventStats.entrySet().stream().map(
 						e -> e.getKey().getSimpleName() + "=" + e.getValue() )
 						.toArray( String[]::new ) ) );
+		this.sirEventStats.clear();
+		this.demicEventStats.clear();
+	}
+
+	public Observable<Map<String, Map<String, Long>>>
+		emitMixingStats( final String timing )
+	{
+		return Observable.create( sub ->
+		{
+			if( scheduler().now() == null )
+				scheduler().onReset( s -> s
+						.atOnce( t -> scheduleMixingStats( timing, sub ) ) );
+			else
+				scheduleMixingStats( timing, sub );
+		} );
+	}
+
+	private void scheduleMixingStats( final String timing,
+		final ObservableEmitter<Map<String, Map<String, Long>>> sub )
+	{
+		// schedule at end of current instant
+		atOnce( t -> sub.onNext( getMixingStats() ) );
+		scheduler().atEnd( t -> sub.onComplete() );
+		try
+		{
+			final Iterable<Instant> it = Timing.of( timing )
+					.iterate( scheduler() );
+			atEach( it, t -> sub.onNext( getMixingStats() ) );
+		} catch( final ParseException e )
+		{
+			sub.onError( e );
+			return;
+		}
+	}
+
+	private Map<String, Map<String, Long>> getMixingStats()
+	{
+		return Collections.emptyMap();
 	}
 
 	public Observable<Map<String, Map<MSEIRS.Compartment, Long>>>
@@ -204,8 +244,8 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		return Observable.create( sub ->
 		{
 			if( scheduler().now() == null )
-				scheduler().onReset( s -> s
-						.atOnce( t -> scheduleLocalSIRStats( timing, sub ) ) );
+				scheduler().onReset( s -> s.atOnce( // defer until after initialization 
+						t -> scheduleLocalSIRStats( timing, sub ) ) );
 			else
 				scheduleLocalSIRStats( timing, sub );
 		} );
@@ -227,33 +267,18 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 			sub.onError( e );
 			return;
 		}
-//		final Matrix homecol = this.persons.selectColumns( Ret.LINK,
-//				Persons.PROPERTIES.indexOf( Persons.HomeRegionRef.class ) );
-//		sub.onNext( MatrixUtil.streamAvailableCoordinates( homecol, false ) // sequential
-//				.map( homecol::getAsString ).filter( reg -> reg != null )
-//				.distinct().collect( Collectors.toMap( reg -> reg,
-//						reg -> new HashMap<>() ) ) );
 	}
 
 	private Map<String, Map<MSEIRS.Compartment, Long>> getLocalSIRStats()
 	{
-//		this.dataEventStats.entrySet().stream().map(
-//		e -> e.getKey().getSimpleName() + " x " + e.getValue() )
-//		.reduce( ( s1, s2 ) -> String.join( ", ", s1, s2 ) )
-//		.orElse( "[]" ),
-//this.sirEventStats.values().stream()
-//		.mapToLong( AtomicLong::get ).sum(),
-//String.join( ", ", this.sirEventStats.entrySet().stream()
-//		.map( e -> e.getKey().name().substring( 0, 1 ) + "="
-//				+ e.getValue() )
-//		.toArray( String[]::new ) ),
 		final Matrix epicol = this.persons.selectColumns( Ret.LINK,
-				Persons.PROPERTIES.indexOf( Persons.PathogenCompartment.class ) );
+				Persons.PROPERTIES
+						.indexOf( Persons.PathogenCompartment.class ) );
 		final Matrix homecol = this.persons.selectColumns( Ret.LINK,
 				Persons.PROPERTIES.indexOf( Persons.HomeRegionRef.class ) );
 
 		final Map<String, Map<MSEIRS.Compartment, Long>> result = MatrixUtil
-				.streamAvailableCoordinates( epicol, false ) // sequential
+				.streamAvailableCoordinates( epicol, true ) // sequential
 				.filter( x -> homecol.getAsObject( x ) != null )
 				.collect( Collectors.groupingBy( homecol::getAsString,
 						Collectors.groupingBy( x -> MSEIRS.Compartment

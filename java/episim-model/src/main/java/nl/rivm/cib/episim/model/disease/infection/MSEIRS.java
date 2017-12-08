@@ -50,7 +50,7 @@ import io.reactivex.subjects.BehaviorSubject;
 import nl.rivm.cib.episim.model.disease.IllnessTrajectory;
 
 /**
- * {@link MSEIRS} produces an {@link IllnessTrajectory} that implements a
+ * {@link MSEIRS} produces an {@link IllnessTrajectory} that follows e.g. a
  * <a href=
  * "https://www.wikiwand.com/en/Compartmental_models_in_epidemiology#/The_MSEIRS_model">compartmental
  * model</a> <em>M &rarr; S &rarr; E &rarr; I &rarr; R &rarr; S</em> schema
@@ -621,7 +621,7 @@ public interface MSEIRS //extends IllnessTrajectory
 								final Double nextThreshold = this.indResistance
 										.firstKey();
 								final double delay = (nextThreshold
-										- this.cumPressure.get())*newPressure;
+										- this.cumPressure.get()) * newPressure;
 								return after( delay ).call( t ->
 								{
 									this.indResistance.remove( nextThreshold );

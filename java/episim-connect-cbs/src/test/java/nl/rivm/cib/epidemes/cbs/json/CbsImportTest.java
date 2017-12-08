@@ -221,7 +221,7 @@ public class CbsImportTest
 					.draw();
 			LOG.trace( "draw #{}: reg: {} of {}, codes: {}, ref: {}, zip: {}",
 					i, regRef, async.size(), buurt.codes,
-					buurt.neighbourhoodRef(), zip );
+					buurt.boroughRef(), zip );
 		}
 
 		LOG.info( "done BoroughPC6" );

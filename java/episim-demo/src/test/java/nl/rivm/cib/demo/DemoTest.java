@@ -54,10 +54,10 @@ import io.coala.time.SchedulerConfig;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
-import nl.rivm.cib.demo.DemoModel.Cultural.PeerBroker;
-import nl.rivm.cib.demo.DemoModel.Cultural.SocietyBroker;
-import nl.rivm.cib.demo.DemoModel.Demical.Deme;
-import nl.rivm.cib.demo.DemoModel.Epidemical.SiteBroker;
+import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
+import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
+import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
@@ -98,11 +98,11 @@ public class DemoTest
 				.between( offset, offset.plus( config.duration() ) ).toDays();
 
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
-				DemoConfig.POPULATION_BASE );
+				DemoConfig.DEMOGRAPHY_BASE );
 		LOG.debug( "Deme config: {}", JsonUtil.toJSON( demeConfig ) );
 
 		final JsonNode healthConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
-				DemoConfig.VACCINATION_BASE );
+				DemoConfig.EPIDEMIOLOGY_BASE );
 		LOG.debug( "Health config: {}", JsonUtil.toJSON( healthConfig ) );
 
 		final JsonNode peerConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
@@ -110,7 +110,7 @@ public class DemoTest
 		LOG.debug( "Peer config: {}", JsonUtil.toJSON( peerConfig ) );
 
 		final JsonNode siteConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
-				DemoConfig.LOCATION_BASE );
+				DemoConfig.GEOGRAPHY_BASE );
 		LOG.debug( "Site config: {}", JsonUtil.toJSON( siteConfig ) );
 
 		final JsonNode societyConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
@@ -129,7 +129,7 @@ public class DemoTest
 				// add data layer: static caching
 				.withProvider( DataLayer.class, DataLayer.StaticCaching.class )
 				// add deme to create households/persons
-				.withProvider( Deme.class, SimplePersonBroker.class,
+				.withProvider( PersonBroker.class, SimplePersonBroker.class,
 						demeConfig )
 				// add site broker for regions/sites/transmission
 				.withProvider( SiteBroker.class, SimpleSiteBroker.class,
@@ -208,6 +208,8 @@ public class DemoTest
 				.subscribe( homeSIR -> LOG.debug( "t={} SIR:{ {} }",
 						model.scheduler()
 								.now( DateTimeFormatter.ISO_LOCAL_DATE_TIME ),
+								
+								
 						String.join( ", ", regNames.stream()
 								.map( reg -> reg + ":[" + String.join( ",",
 										cols.stream().map( c -> homeSIR

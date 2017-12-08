@@ -67,7 +67,7 @@ public class SocialGathererTest
 
 		scheduler.onReset( s ->
 		{
-			final SocialGatherer.Factory gatherers = binder
+			final SocialGatherer.Factory<SocialGatherer> gatherers = binder
 					.inject( SocialGatherer.Factory.SimpleBinding.class );
 			final SocialGatherer gatherer = gatherers.create( "gath",
 					JsonUtil.getJOM().createObjectNode()//

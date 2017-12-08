@@ -160,7 +160,7 @@ public class CbsRegionCentroidDensity
 
 	public static enum ExportCol
 	{
-		LATITUDE, LONGITUDE, HOUSEHOLDS, ORGANISATIONS;
+		LATITUDE, LONGITUDE, RESIDENTIAL, INDUSTRIAL;
 	}
 
 	public static <T> Map<String, ProbabilityDistribution<T>> parse(
@@ -202,7 +202,7 @@ public class CbsRegionCentroidDensity
 						e -> e.getValue(), ( v1, v2 ) -> v2,
 						() -> new EnumMap<>( ExportCol.class ) ) );
 		return WeightedValue.of( keyMapper.apply( keys, values ), zip6Entry
-				.getValue().get( ExportCol.HOUSEHOLDS.ordinal() ).asInt() );
+				.getValue().get( ExportCol.RESIDENTIAL.ordinal() ).asInt() );
 	}
 
 	public static void main( final String[] args ) throws Exception
