@@ -145,16 +145,6 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 				.withSource(
 						map -> map.put( SiteTuple.class, Sites.PROPERTIES ),
 						HashMap::new );
-//		this.data.getTable( PersonTuple.class ).changes()
-//				.filter( chg -> chg.crud() == Table.Operation.UPDATE )
-//				.subscribe( chg -> LOG.debug( "t={} chg: {}", now(), chg ), e ->
-//				{
-//				} );
-//		this.data.getTable( HouseholdTuple.class ).changes()
-//				.filter( chg -> chg.crud() == Table.Operation.UPDATE )
-//				.subscribe( chg -> LOG.debug( "t={} chg: {}", now(), chg ), e ->
-//				{
-//				} );
 
 		// populate and run deme
 		final AtomicLong tLog = new AtomicLong();
@@ -172,7 +162,9 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 										.addAndGet( delta ) ),
 						scheduler()::fail, this::logStats );
 
-		this.deme.reset().events().observeOn( Schedulers.io() )
+		this.deme.reset().events()
+				// multi-thread
+				.observeOn( Schedulers.io() ) //
 				.ofType( Demical.DemicFact.class ).subscribe( ev ->
 				{
 					tLog.updateAndGet( tPrev ->
@@ -190,7 +182,7 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 
 	private void logStats()
 	{
-		LOG.info( "t={} sir delta: {}, demic event x {}: {}",
+		LOG.info( "t={} sir delta: {}, demic delta x {}: {}",
 				scheduler().now( DateTimeFormatter.ISO_WEEK_DATE ),
 				this.sirEventStats,
 				this.demicEventStats.values().stream()
@@ -244,7 +236,8 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		return Observable.create( sub ->
 		{
 			if( scheduler().now() == null )
-				scheduler().onReset( s -> s.atOnce( // defer until after initialization 
+				scheduler().onReset( s -> s.atOnce(
+						// defer until after initialization 
 						t -> scheduleLocalSIRStats( timing, sub ) ) );
 			else
 				scheduleLocalSIRStats( timing, sub );
@@ -278,7 +271,8 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 				Persons.PROPERTIES.indexOf( Persons.HomeRegionRef.class ) );
 
 		final Map<String, Map<MSEIRS.Compartment, Long>> result = MatrixUtil
-				.streamAvailableCoordinates( epicol, true ) // sequential
+				.streamAvailableCoordinates( epicol, true )
+				// sequential? called from another thread
 				.filter( x -> homecol.getAsObject( x ) != null )
 				.collect( Collectors.groupingBy( homecol::getAsString,
 						Collectors.groupingBy( x -> MSEIRS.Compartment

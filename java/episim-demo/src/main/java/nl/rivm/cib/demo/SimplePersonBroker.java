@@ -35,7 +35,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -48,7 +50,10 @@ import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
 import io.coala.config.YamlConfig;
 import io.coala.data.DataLayer;
+import io.coala.data.Picker;
 import io.coala.data.Table;
+import io.coala.data.Picker.Groups;
+import io.coala.data.Picker.Root;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
@@ -115,7 +120,7 @@ public class SimplePersonBroker implements PersonBroker
 		@DefaultValue( "" + 17_000_000 )
 		int referentPopulationSize();
 
-		// TODO draw partner age difference from CBS 37422?
+		// TODO draw partner age difference from CBS 37422, 37890, 60036ned?
 		@Key( "hh-partner-age-delta-range" )
 		@DefaultValue( "[-5 year; 1 year]" )
 		String hhPartnerAgeDeltaRange();
@@ -211,12 +216,18 @@ public class SimplePersonBroker implements PersonBroker
 	}
 
 	private Table<PersonTuple> persons;
-	private EliminationPicker eliminationPicker;
 	private Table<HouseholdTuple> households;
-	private final AtomicLong indSeq = new AtomicLong();
-	private ExpansionPicker expansionPicker;
-	private EmigrationPicker emigrationPicker;
 	private final AtomicLong hhSeq = new AtomicLong();
+	private final AtomicLong indSeq = new AtomicLong();
+
+	@SuppressWarnings( "rawtypes" )
+	private Groups<BigDecimal, Groups<CBSBirthRank, Groups<Comparable, Root<HouseholdTuple>>>> expansionPicker;
+
+	@SuppressWarnings( "rawtypes" )
+	private Groups<BigDecimal, Groups<CBSHousehold, Groups<Comparable, Root<HouseholdTuple>>>> emigrationPicker;
+
+	@SuppressWarnings( "rawtypes" )
+	private Groups<BigDecimal, Groups<Comparable, Root<PersonTuple>>> eliminationPicker;
 
 	private ConditionalDistribution<Cbs71486json.Category, RegionPeriod> hhTypeDist;
 	private QuantityDistribution<Time> hhPartnerAgeDiffDist;
@@ -306,23 +317,54 @@ public class SimplePersonBroker implements PersonBroker
 
 		// setup pickers AFTER households to prevent re-indexing
 		LOG.info( "Creating expansion/birth picker..." );
+		final Stream<BigDecimal> momAgeCats = IntStream
+				// prefix 5 years for those newly eligible during the simulation
+				.range( 15 - 5, 50 )
+				.mapToObj( dt -> now()
+						.subtract( Duration.of( dt, TimeUnits.YEAR ) )
+						.decimal() );
 		this.expansionPicker = //this.binder.inject( ExpansionPicker.class );
-				new ExpansionPicker( this.scheduler,
-						this.distFactory.getStream(), this.households );
+//				new ExpansionPicker( this.scheduler,
+//						this.distFactory.getStream(), this.households );
+				Picker.of( this.households, this.distFactory.getStream(),
+						scheduler()::fail )
+						.splitBy( Households.HomeRegionRef.class )
+						.thenBy( Households.KidRank.class )
+						.thenBy( Households.MomBirth.class, momAgeCats );
 
 		LOG.info( "Creating emigration picker..." );
+		final Stream<BigDecimal> refAgeCats = IntStream
+				.range( 15 - 5, // minus newly eligible
+						100 )
+				.mapToObj( dt -> now()
+						.subtract( Duration.of( dt, TimeUnits.YEAR ) )
+						.decimal() );
 		this.emigrationPicker = //this.binder.inject( EmigrationPicker.class );
-				new EmigrationPicker( this.scheduler,
-						this.distFactory.getStream(), this.households );
+//				new EmigrationPicker( this.scheduler,
+//						this.distFactory.getStream(), this.households );
+				Picker.of( this.households, this.distFactory.getStream(),
+						scheduler()::fail )
+						.splitBy( Households.HomeRegionRef.class )
+						.thenBy( Households.Composition.class )
+						.thenBy( Households.ReferentBirth.class, refAgeCats );
 
 		LOG.info( "Creating elimination/death picker..." );
+		final Stream<BigDecimal> birthAgeCats = IntStream
+				.range(
+						// minus newly eligible
+						-20 - 2, 0 )
+				.mapToObj(
+						n -> now().add( Duration.of( 5 * n, TimeUnits.YEAR ) )
+								.decimal() );
 		this.eliminationPicker = //this.binder.inject( EliminationPicker.class );
-				new EliminationPicker( this.scheduler,
-						this.distFactory.getStream(), this.persons );
+//				new EliminationPicker( this.scheduler,
+//						this.distFactory.getStream(), this.persons );
+				Picker.of( this.persons, this.distFactory.getStream(),
+						scheduler()::fail )
+						.splitBy( Persons.HomeRegionRef.class )
+						.thenBy( Persons.Birth.class, birthAgeCats );
 
 		// TODO RELOCATION, UNION, SEPARATION, DIVISION
-		// TODO local partner/divorce rate, age, gender (CBS 37890)
-		// TODO age diff (60036ned) 
 
 		LOG.debug( "{} ready", getClass().getSimpleName() );
 		return this;
@@ -620,19 +662,26 @@ public class SimplePersonBroker implements PersonBroker
 				.getAndSet( birthCat );
 		if( oldCat == null ) return 1; // initial execution
 
-		final CBSMotherAgeRange momAge = birthCat
-				.ageDist( this.distFactory::createCategorical ).draw();
+		// pick family
 		final CBSGender gender = birthCat
 				.genderDist( this.distFactory::createCategorical ).draw();
 		final CBSBirthRank kidRank = birthCat
 				.rankDist( this.distFactory::createCategorical ).draw();
-		HouseholdTuple hh = this.expansionPicker.pick( birthCat.regionRef(),
-				this.momAgeDists
-						.computeIfAbsent( momAge,
-								k -> k.toDist(
-										this.distFactory::createUniformContinuous ) )
-						.draw(),
-				kidRank );
+		final Quantity<Time> momAge = this.momAgeDists.computeIfAbsent(
+				birthCat.ageDist( this.distFactory::createCategorical ).draw(),
+				k -> k.toDist( this.distFactory::createUniformContinuous ) )
+				.draw();
+		final BigDecimal momBirth = now().subtract( momAge ).decimal();
+		final HouseholdTuple hh = this.expansionPicker.match( momBirth )
+				.match( kidRank ).match( birthCat.regionRef() )
+				.draw( ( args, k, v ) ->
+				{
+					LOG.trace( "Expanders {} deviate: {} in {}", args,
+							k.getSimpleName(), v );
+					return true;
+				} );
+
+		// sanity check
 		final CBSHousehold hhType = hh.get( Households.Composition.class );
 		if( hhType.adultCount() < 1 )
 		{
@@ -640,6 +689,7 @@ public class SimplePersonBroker implements PersonBroker
 					birthCat.regionRef() );
 			return 0;
 		}
+
 		LOG.trace( "{} EXPANSION: growing {} hh with {} child ({}), mom {}",
 				dt(), birthCat.regionRef(), kidRank, gender, momAge );
 		final HouseholdPosition rank = HouseholdPosition.ofChildIndex(
@@ -666,8 +716,14 @@ public class SimplePersonBroker implements PersonBroker
 	{
 		final Quantity<Time> age = hhCat
 				.ageDist( this.distFactory::createUniformContinuous ).draw();
-		final PersonTuple pp = this.eliminationPicker.pick( hhCat.regionRef(),
-				age );
+		final PersonTuple pp = this.eliminationPicker
+				.match( now().subtract( age ).decimal() )
+				.match( hhCat.regionRef() ).draw(( args, k, v ) ->
+				{
+					LOG.trace( "Death {} deviates: {} in {}", args,
+							k.getSimpleName(), v );
+					return true;
+				} );
 
 		// TODO import and sample deaths per agecat/region dist
 
@@ -715,8 +771,15 @@ public class SimplePersonBroker implements PersonBroker
 		LOG.trace( "{} EMIGRATION: leaving {} hh {} aged {}", dt(),
 				hhCat.regionRef(), hhType, QuantityUtil.pretty( refAge, 3 ) );
 
-		final HouseholdTuple hh = this.emigrationPicker.pick( hhCat.regionRef(),
-				hhType, refAge );
+		final HouseholdTuple hh = this.emigrationPicker
+				.match( now().subtract( refAge ).decimal() ).match( hhType )
+				.match( hhCat.regionRef() ).draw( ( args, k, v ) ->
+				{
+					LOG.trace( "Emigrants {} deviate: {} in {}", args,
+							k.getSimpleName(), v );
+					return true;
+				} );
+
 		final CBSHousehold pickedType = hh.get( Households.Composition.class );
 		this.households.delete( hh.key() );
 		return pickedType.size();

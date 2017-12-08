@@ -699,7 +699,11 @@ public class SimpleHealthBroker implements HealthBroker
 							.draw( nextDose );
 					final HouseholdTuple hh = this.households
 							.get( pp.get( Persons.HouseholdRef.class ) );
-					if( this.vaxAcceptance.test( hh, occ ) )
+					if( hh == null )
+					{
+						LOG.warn( "No hh for pp? {}",
+								pp.toString( Persons.PROPERTIES ) );
+					} else if( this.vaxAcceptance.test( hh, occ ) )
 					{
 						startRegimen( nextDose, age, pp );
 						return true;
