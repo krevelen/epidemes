@@ -47,6 +47,8 @@ import io.coala.data.Table;
 import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
+import io.coala.math.DecimalUtil;
+import io.coala.time.Expectation;
 import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
@@ -158,8 +160,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 		this.sites = this.data.getTable( SiteTuple.class );
 		this.societies = this.data.getTable( SocietyTuple.class );
 		this.persons = this.data.getTable( PersonTuple.class );
-		this.persons.onCreate( // defer join() until home site is fully created
-				pp -> atOnce( t -> join( pp ) ), scheduler()::fail );
+		this.persons.onCreate( this::deferJoin, scheduler()::fail );
 		this.persons.onDelete( this::abandon, scheduler()::fail );
 
 		this.capacityIndex = new IndexPartition( this.societies,
@@ -176,10 +177,31 @@ public class SimpleSocietyBroker implements SocietyBroker
 		return this;
 	}
 
+	private Expectation pendingJoin = null;
+	private List<PersonTuple> joinable = new ArrayList<>();
+
+	// defer join() until home site is fully created
+	private void deferJoin( final PersonTuple pp )
+	{
+		if( this.pendingJoin == null ) this.pendingJoin = atOnce( t ->
+		{
+			this.pendingJoin = null;
+			if( t.isZero() ) LOG.info( "Initializing societies..." );
+			this.joinable.removeIf( this::join );
+			if( t.isZero() )
+				LOG.info( "Initialized {} societies with avg. size: {}",
+						this.societyMembers.size(),
+						DecimalUtil.toScale( (double) this.societyMembers
+								.values().stream().mapToInt( List::size ).sum()
+								/ this.societyMembers.size(), 1 ) );
+		} );
+		this.joinable.add( pp );
+	}
+
 	/**
 	 * @param pp
 	 */
-	void join( final PersonTuple pp )
+	boolean join( final PersonTuple pp )
 	{
 		// FIXME
 //		pp.set( Persons.CultureRef.class, cultureDist.draw( "" ) );
@@ -199,7 +221,9 @@ public class SimpleSocietyBroker implements SocietyBroker
 						soc.updateAndGet( Societies.MemberCapacity.class,
 								n -> n - 1 );
 					} else
-						LOG.warn( "Already member: {} in {}", pp, soc );
+						LOG.warn( "Already member: {} in {}",
+								pp.pretty( Persons.PROPERTIES ),
+								soc.pretty( Societies.PROPERTIES ) );
 
 					return soc.key();
 				} ) );
@@ -207,11 +231,13 @@ public class SimpleSocietyBroker implements SocietyBroker
 		// TODO emit join event?
 
 		if( roleMemberships.isEmpty() )
-			LOG.debug( "{} is not a member in any society", pp );
+			LOG.debug( "{} is not a member in any society",
+					pp.pretty( Persons.PROPERTIES ) );
 		else
 			this.ppSocieties.compute( pp.key(),
 					( k, socKeys ) -> roleMemberships.values()
 							.toArray( new Object[roleMemberships.size()] ) );
+		return true;
 	}
 
 	/**
@@ -313,8 +339,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 				.put( Societies.SocietyName.class, name ) );
 
 		final List<Object> members = new ArrayList<>();
-		this.societyMembers
-				.put( soc.key(), members );
+		this.societyMembers.put( soc.key(), members );
 
 		// initiate gatherings
 		gatherer.summon().subscribe( dt ->

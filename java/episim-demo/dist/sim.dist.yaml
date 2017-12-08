@@ -31,9 +31,9 @@ scenario:
     pop-male-freq: 0.5
     hh-partner-age-delta-range: "[-5 year; 1 year]"
     hh-partner-age-delta-dist: normal(-2 year; 2 year)
-    hh-type-dist: ${config.base}37230ned_TS_2012_2017.json
-    hh-type-birth-dist: ${config.base}37201_TS_2010_2015.json
-    hh-type-region-dist: ${config.base}71486ned-TS-2010-2016.json
+    hh-dynamics-timeseries: ${config.base}37230ned_TS_2012_2017.json
+    hh-birth-timeseries: ${config.base}37201_TS_2010_2015.json
+    hh-age-timeseries: ${config.base}71486ned-TS-2010-2016.json
   geography:
     home-sites: ${config.base}gm_pc6_centroid_density.json
     primary-schools: ${config.base}gm_pc4_po_pupils.json

@@ -682,17 +682,50 @@ public interface DemoModel
 			Observable<? extends EpidemicFact> events();
 		}
 
+		interface VaxRegimen
+		{
+			boolean isCompliant( int vaxStatus );
+
+			/** @return the NIP (default) schedule's next dose */
+			VaxDose nextRegular( int vaxStatus, Quantity<Time> age );
+
+			/** @return the alternative (outbreak, ZRA) schedule's next dose */
+			VaxDose nextSpecial( int vaxStatus, Quantity<Time> age );
+
+			Range<ComparableQuantity<Time>> decisionAgeRange();
+		}
+
 		interface VaxDose
 		{
+			VaxRegimen regimen();
+
+			int bit();
+
 			/** @return {@code true} iff this dose bit is 1 in given status */
-			boolean isSet( int vaxStatus );
+			default boolean isSet( final int vaxStatus )
+			{
+				return !isUnset( vaxStatus );
+			}
+
+			default boolean isUnset( final int vaxStatus )
+			{
+				return (vaxStatus & bit()) == 0;
+			}
 
 			/** @return the status value after setting bit for this dose to 1 */
-			int set( int vaxStatus );
+			default int set( final int vaxStatus )
+			{
+				return vaxStatus | bit();
+			}
 
-			Range<ComparableQuantity<Time>> ageRangeDefault();
+			default int unset( final int vaxStatus )
+			{
+				return vaxStatus & ~bit();
+			}
 
-			Range<ComparableQuantity<Time>> ageRangeOptional();
+			Range<ComparableQuantity<Time>> ageRangeNormal();
+
+			Range<ComparableQuantity<Time>> ageRangeSpecial();
 		}
 
 		@FunctionalInterface

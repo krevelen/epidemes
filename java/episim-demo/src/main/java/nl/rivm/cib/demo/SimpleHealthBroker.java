@@ -70,7 +70,6 @@ import io.coala.util.Compare;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
-import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Households;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
@@ -79,6 +78,7 @@ import nl.rivm.cib.demo.DemoModel.Medical.VaxAcceptanceEvaluator;
 import nl.rivm.cib.demo.DemoModel.Medical.VaxDose;
 import nl.rivm.cib.demo.DemoModel.Persons;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
@@ -660,7 +660,8 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private void scheduleVaccinations( final Instant t )
 	{
-		final Range<BigDecimal> decisionAgeBinRange = RvpBmr.decisionAgeRange()
+		final Range<BigDecimal> decisionAgeBinRange = RVP.instance()
+				.decisionAgeRange()
 				.map( age -> vaxDecisionAgeBin( t.decimal().subtract(
 						QuantityUtil.decimalValue( age, t.unit() ) ) ) );
 
@@ -678,7 +679,7 @@ public class SimpleHealthBroker implements HealthBroker
 				{
 					final int status = pp.get( Persons.VaxCompliance.class );
 
-					if( RvpBmr.isCompliant( status ) )
+					if( RVP.instance().isCompliant( status ) )
 					{
 						LOG.warn( "Already compliant {}", pp );
 						pp.updateAndGet( Persons.PathogenCompartment.class,
@@ -687,12 +688,13 @@ public class SimpleHealthBroker implements HealthBroker
 					}
 					final ComparableQuantity<Time> age = ageOf( pp );
 
-					final VaxDose nextDose = RvpBmr.nextDefault( status, age );
+					final VaxDose nextDose = RVP.instance().nextRegular( status,
+							age );
 					if( nextDose == null )
 					{
-						LOG.warn( "Not covered by NIP, age {} of {}",
+						LOG.warn( "Not covered by NIP, age {} for pp {}",
 								QuantityUtil.pretty( age, TimeUnits.YEAR, 1 ),
-								pp );
+								pp.pretty( Persons.PROPERTIES ) );
 						return true;
 					}
 					final VaxOccasion occ = this.vaxOccasionDist
@@ -702,7 +704,8 @@ public class SimpleHealthBroker implements HealthBroker
 					if( hh == null )
 					{
 						LOG.warn( "No hh for pp? {}",
-								pp.toString( Persons.PROPERTIES ) );
+								pp.pretty( Persons.PROPERTIES ) );
+						return false;
 					} else if( this.vaxAcceptance.test( hh, occ ) )
 					{
 						startRegimen( nextDose, age, pp );
@@ -710,7 +713,8 @@ public class SimpleHealthBroker implements HealthBroker
 					}
 
 					LOG.info( "Vax {} for {} rejected by {} of {}", occ,
-							nextDose, pp, hh );
+							nextDose, pp.pretty( Persons.PROPERTIES ),
+							hh.pretty( Households.PROPERTIES ) );
 					return false;
 				} ).toArray( PersonTuple[]::new );
 		Arrays.stream( removable ).forEach( this::removeFromHesitant );
@@ -720,15 +724,16 @@ public class SimpleHealthBroker implements HealthBroker
 		final ComparableQuantity<Time> age, final PersonTuple pp )
 	{
 		final ComparableQuantity<Time> vaxAge = Compare.max(
-				nextDose.ageRangeOptional().lowerValue(),
-				nextDose.ageRangeDefault().lowerValue()
+				nextDose.ageRangeSpecial().lowerValue(),
+				nextDose.ageRangeNormal().lowerValue()
 						.add( this.vaxTreatmentDelay.draw() ) ),
 				delay = vaxAge.subtract( age );
-//		final int status = pp.get( Persons.VaxCompliance.class );
-//		LOG.info( "t={} Vax {} @age {} (t+{}) status {}->{} for {}", dt(),
-//				nextDose, QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ),
-//				QuantityUtil.pretty( delay, TimeUnits.WEEK, 1 ), status,
-//				nextDose.set( status ), pp );
+
+		final int status = pp.get( Persons.VaxCompliance.class );
+		LOG.info( "t={} Vax {} @age {} (t+{}) status {}->{} for {}", dt(),
+				nextDose, QuantityUtil.pretty( vaxAge, TimeUnits.WEEK, 1 ),
+				QuantityUtil.pretty( delay, TimeUnits.WEEK, 1 ), status,
+				nextDose.set( status ), pp.pretty( Persons.PROPERTIES ) );
 
 		after( delay ).call( t_v ->
 		{

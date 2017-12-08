@@ -51,9 +51,9 @@ import io.coala.bind.LocalBinder;
 import io.coala.config.YamlConfig;
 import io.coala.data.DataLayer;
 import io.coala.data.Picker;
-import io.coala.data.Table;
 import io.coala.data.Picker.Branch;
 import io.coala.data.Picker.Root;
+import io.coala.data.Table;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
 import io.coala.enterprise.FactKind;
@@ -138,23 +138,23 @@ public class SimplePersonBroker implements PersonBroker
 		@DefaultValue( "MUNICIPAL" ) //"MUNICIPAL" //"PROVINCE" //"COROP" //"TERRITORY"
 		CBSRegionType regionalResolution();
 
-		@Key( "hh-type-birth-dist" )
-		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
-				+ "37201_TS_2010_2015.json" )
-		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs37201Data();
-
-		@Key( "hh-type-dist" )
+		@Key( "hh-dynamics-timeseries" )
 		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
 				+ "37230ned_TS_2012_2017.json" )
 		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs37230Data();
+		InputStream cbsPopulationDynamics();
 
-		@Key( "hh-type-region-dist" )
+		@Key( "hh-birth-timeseries" )
+		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
+				+ "37201_TS_2010_2015.json" )
+		@ConverterClass( InputStreamConverter.class )
+		InputStream cbsHouseholdBirths();
+
+		@Key( "hh-age-timeseries" )
 		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
 				+ "71486ned-TS-2010-2016.json" )
 		@ConverterClass( InputStreamConverter.class )
-		InputStream cbs71486Data();
+		InputStream cbsHouseholdAges();
 	}
 
 	@InjectConfig
@@ -287,7 +287,7 @@ public class SimplePersonBroker implements PersonBroker
 				this.config.referentPopulationSize() );
 
 		final TreeMap<RegionPeriod, Collection<WeightedValue<Cbs71486json.Category>>> values = (TreeMap<RegionPeriod, Collection<WeightedValue<Cbs71486json.Category>>>) Cbs71486json
-				.readAsync( () -> this.config.cbs71486Data(), this.dtRange )
+				.readAsync( () -> this.config.cbsHouseholdAges(), this.dtRange )
 				.filter( wv -> wv.getValue()
 						.regionType() == this.regionalResolution )
 				.toMultimap( wv -> wv.getValue().regionPeriod(),
@@ -441,7 +441,7 @@ public class SimplePersonBroker implements PersonBroker
 				lastTime = new AtomicLong( t0.get() );
 
 		final TreeMap<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>> values = (TreeMap<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>>) Cbs71486json
-				.readAsync( () -> this.config.cbs71486Data(), this.dtRange )
+				.readAsync( () -> this.config.cbsHouseholdAges(), this.dtRange )
 				.filter( wv -> wv.getValue()
 						.regionType() == this.regionalResolution )
 				.toMultimap( wv -> wv.getValue().regionPeriod().periodRef(),
@@ -516,7 +516,7 @@ public class SimplePersonBroker implements PersonBroker
 		// initialize birth family type dist
 		final ConditionalDistribution<Cbs37201json.Category, RegionPeriod> localBirthDist = ConditionalDistribution
 				.of( this.distFactory::createCategorical, Cbs37201json
-						.readAsync( () -> this.config.cbs37201Data(),
+						.readAsync( () -> this.config.cbsHouseholdBirths(),
 								this.dtRange )
 						.filter( wv -> wv.getValue()
 								.regionType() == this.regionalResolution )
@@ -528,8 +528,8 @@ public class SimplePersonBroker implements PersonBroker
 		// initialize birth space-time dist
 		final Cbs37230json.EventProducer births = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.BIRTHS, this.distFactory,
-				() -> this.config.cbs37230Data(), this.regionalResolution,
-				this.dtRange, this.dtScalingFactor );
+				() -> this.config.cbsPopulationDynamics(),
+				this.regionalResolution, this.dtRange, this.dtScalingFactor );
 		final AtomicReference<DemicFact> pendingEvent = new AtomicReference<>();
 		return infiniterate( () -> births.nextDelay( dt(),
 				regRef -> expandHousehold(
@@ -541,8 +541,8 @@ public class SimplePersonBroker implements PersonBroker
 	{
 		final Cbs37230json.EventProducer deaths = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.DEATHS, this.distFactory,
-				() -> this.config.cbs37230Data(), this.regionalResolution,
-				this.dtRange, this.dtScalingFactor );
+				() -> this.config.cbsPopulationDynamics(),
+				this.regionalResolution, this.dtRange, this.dtScalingFactor );
 		final AtomicReference<String> pendingReg = new AtomicReference<>();
 		return infiniterate( () -> deaths.nextDelay( dt(), nextRegRef ->
 		{
@@ -557,8 +557,8 @@ public class SimplePersonBroker implements PersonBroker
 	{
 		final Cbs37230json.EventProducer immigrations = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.IMMIGRATION, this.distFactory,
-				() -> this.config.cbs37230Data(), this.regionalResolution,
-				this.dtRange, this.dtScalingFactor );
+				() -> this.config.cbsPopulationDynamics(),
+				this.regionalResolution, this.dtRange, this.dtScalingFactor );
 
 		final AtomicReference<String> pendingReg = new AtomicReference<>();
 		return infiniterate( () -> immigrations.nextDelay( dt(), nextRegRef ->
@@ -574,8 +574,8 @@ public class SimplePersonBroker implements PersonBroker
 	{
 		final Cbs37230json.EventProducer emigrations = new Cbs37230json.EventProducer(
 				CBSPopulationDynamic.EMIGRATION, this.distFactory,
-				() -> this.config.cbs37230Data(), this.regionalResolution,
-				this.dtRange, this.dtScalingFactor );
+				() -> this.config.cbsPopulationDynamics(),
+				this.regionalResolution, this.dtRange, this.dtScalingFactor );
 
 		final AtomicReference<String> pendingReg = new AtomicReference<>();
 		return infiniterate( () -> emigrations.nextDelay( dt(), nextRegRef ->
@@ -718,7 +718,7 @@ public class SimplePersonBroker implements PersonBroker
 				.ageDist( this.distFactory::createUniformContinuous ).draw();
 		final PersonTuple pp = this.eliminationPicker
 				.match( now().subtract( age ).decimal() )
-				.match( hhCat.regionRef() ).draw(( args, k, v ) ->
+				.match( hhCat.regionRef() ).draw( ( args, k, v ) ->
 				{
 					LOG.trace( "Death {} deviates: {} in {}", args,
 							k.getSimpleName(), v );
