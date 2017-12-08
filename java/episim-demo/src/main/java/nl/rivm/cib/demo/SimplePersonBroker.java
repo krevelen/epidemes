@@ -52,7 +52,7 @@ import io.coala.config.YamlConfig;
 import io.coala.data.DataLayer;
 import io.coala.data.Picker;
 import io.coala.data.Table;
-import io.coala.data.Picker.Groups;
+import io.coala.data.Picker.Branch;
 import io.coala.data.Picker.Root;
 import io.coala.enterprise.Actor;
 import io.coala.enterprise.Fact;
@@ -221,13 +221,13 @@ public class SimplePersonBroker implements PersonBroker
 	private final AtomicLong indSeq = new AtomicLong();
 
 	@SuppressWarnings( "rawtypes" )
-	private Groups<BigDecimal, Groups<CBSBirthRank, Groups<Comparable, Root<HouseholdTuple>>>> expansionPicker;
+	private Branch<BigDecimal, Branch<CBSBirthRank, Branch<Comparable, Root<HouseholdTuple>>>> expansionPicker;
 
 	@SuppressWarnings( "rawtypes" )
-	private Groups<BigDecimal, Groups<CBSHousehold, Groups<Comparable, Root<HouseholdTuple>>>> emigrationPicker;
+	private Branch<BigDecimal, Branch<CBSHousehold, Branch<Comparable, Root<HouseholdTuple>>>> emigrationPicker;
 
 	@SuppressWarnings( "rawtypes" )
-	private Groups<BigDecimal, Groups<Comparable, Root<PersonTuple>>> eliminationPicker;
+	private Branch<BigDecimal, Branch<Comparable, Root<PersonTuple>>> eliminationPicker;
 
 	private ConditionalDistribution<Cbs71486json.Category, RegionPeriod> hhTypeDist;
 	private QuantityDistribution<Time> hhPartnerAgeDiffDist;
