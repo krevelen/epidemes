@@ -118,7 +118,7 @@ public interface DemoConfig extends YamlConfig
 	String sep = ";", eol = "\r\n";
 
 	static String toHeader( final List<Compartment> sirCols,
-		final Set<String> colNames )
+		final Map<String, Set<String>> colMapping )
 	{
 		return "ActualTime" + sep + "VirtualTime" + sep
 				+ String.join( sep, sirCols.stream()
@@ -126,7 +126,7 @@ public interface DemoConfig extends YamlConfig
 						.toArray( String[]::new ) )
 				+ sep
 				+ String.join( sep, sirCols.stream()
-						.flatMap( c -> colNames.stream()
+						.flatMap( c -> colMapping.keySet().stream()
 								.map( reg -> c.name().substring( 0, 1 ) + '_'
 										+ reg ) )
 						.toArray( String[]::new ) )
@@ -134,30 +134,29 @@ public interface DemoConfig extends YamlConfig
 	}
 
 	static String toLine( final List<Compartment> sirCols, final String t,
-		final Set<String> colNames,
+		final Map<String, Set<String>> colMapping,
 		final Map<String, EnumMap<Compartment, Long>> homeSIR )
 	{
 		return DateTimeFormatter.ISO_LOCAL_DATE_TIME
 				.format( ZonedDateTime.now() ) + sep + t
 				+ sep
-				+ String.join( sep,
-						sirCols.stream()
-								.map( c -> colNames.stream()
-										.map( reg -> homeSIR
-												.computeIfAbsent( reg,
-														k -> new EnumMap<>(
-																Compartment.class ) )
-												.computeIfAbsent( c, k -> 0L ) )
-										.mapToLong( n -> n ).sum() )
-								.map( Object::toString )
-								.toArray( String[]::new ) )
+				+ String.join( sep, sirCols.stream()
+						.map( c -> colMapping.entrySet().stream()
+								.flatMap( e -> e.getValue().stream() )
+								.map( reg -> homeSIR
+										.computeIfAbsent( reg,
+												k -> new EnumMap<>(
+														Compartment.class ) )
+										.computeIfAbsent( c, k -> 0L ) )
+								.mapToLong( n -> n ).sum() )
+						.map( Object::toString ).toArray( String[]::new ) )
 				+ sep
-				+ String.join( sep,
-						sirCols.stream()
-								.flatMap( c -> colNames.stream()
-										.map( reg -> homeSIR.get( reg ).get( c )
-												.toString() ) )
-								.toArray( String[]::new ) )
+				+ String.join( sep, sirCols.stream().flatMap( c -> colMapping
+						.entrySet().stream()
+						.map( e -> e.getValue().stream()
+								.mapToLong( reg -> homeSIR.get( reg ).get( c ) )
+								.sum() ) )
+						.map( Object::toString ).toArray( String[]::new ) )
 				+ eol;
 	}
 

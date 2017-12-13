@@ -21,13 +21,18 @@ package nl.rivm.cib.demo;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.aeonbits.owner.ConfigFactory;
 import org.apache.logging.log4j.Logger;
@@ -59,6 +64,8 @@ import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
+import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 
@@ -160,7 +167,15 @@ public class DemoTest
 		final DemoScenarioMeasles1M model = binder
 				.inject( DemoScenarioMeasles1M.class );
 
-		final TreeSet<String> regNames = new TreeSet<>();
+		final CbsRegionHierarchy hier;
+		try( final InputStream is = FileUtil
+				.toInputStream( config.configBase() + "83287NED.json" ) )
+		{
+			hier = JsonUtil.getJOM().readValue( is, CbsRegionHierarchy.class );
+		}
+		final TreeMap<String, EnumMap<CBSRegionType, String>> gmRegions = hier
+				.cityRegionsByType();
+
 		final long timestamp = System.currentTimeMillis();
 		final String totalsFile = "daily-" + timestamp + "-sir-total.csv";
 		final String deltasFile = "daily-" + timestamp + "-sir-delta.csv";
@@ -170,7 +185,9 @@ public class DemoTest
 				Compartment.RECOVERED, Compartment.VACCINATED );
 		final Compartment logSortReg = Compartment.INFECTIVE;
 		final int n = 10;
+		final CBSRegionType aggregationLevel = CBSRegionType.COROP;
 
+		final TreeMap<String, Set<String>> regNames = new TreeMap<>();
 		Observable.using( () -> new FileWriter( totalsFile, false ),
 				fw -> model.atEach( timing ).map( self ->
 				{
@@ -178,7 +195,17 @@ public class DemoTest
 							.exportRegionalSIRTotal();
 					if( regNames.isEmpty() )
 					{
-						regNames.addAll( totals.keySet() );
+						regNames.putAll( totals.keySet().stream()
+								.collect( Collectors.groupingBy(
+										gmName -> gmRegions
+												.computeIfAbsent( gmName,
+														k -> gmRegions // FIXME
+																.get( "GM0363" ) )
+												.get( aggregationLevel ),
+										TreeMap::new,
+										Collectors.mapping( Function.identity(),
+												Collectors.toCollection(
+														TreeSet::new ) ) ) ) );
 						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
@@ -195,6 +222,7 @@ public class DemoTest
 						() -> LOG.debug( "SIR totals written to {}",
 								totalsFile ) );
 
+		regNames.clear();
 		Observable.using( () -> new FileWriter( deltasFile, false ),
 				fw -> model.atEach( timing ).map( self ->
 				{
@@ -202,7 +230,17 @@ public class DemoTest
 							.exportRegionalSIRDelta();
 					if( regNames.isEmpty() )
 					{
-						regNames.addAll( deltas.keySet() );
+						regNames.putAll( deltas.keySet().stream()
+								.collect( Collectors.groupingBy(
+										gmName -> gmRegions
+												.computeIfAbsent( gmName,
+														k -> gmRegions // FIXME
+																.get( "GM0363" ) )
+												.get( aggregationLevel ),
+										TreeMap::new,
+										Collectors.mapping( Function.identity(),
+												Collectors.toCollection(
+														TreeSet::new ) ) ) ) );
 						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,

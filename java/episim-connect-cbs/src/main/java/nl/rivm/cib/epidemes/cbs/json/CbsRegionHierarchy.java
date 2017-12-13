@@ -19,6 +19,8 @@
  */
 package nl.rivm.cib.epidemes.cbs.json;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,10 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.ConfigurationFactory;
+import org.apache.logging.log4j.core.config.ConfigurationSource;
+import org.apache.logging.log4j.core.config.yaml.YamlConfiguration;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -106,15 +112,33 @@ public class CbsRegionHierarchy
 	private static final Logger LOG = LogUtil
 			.getLogger( CbsRegionHierarchy.class );
 
-	private static final String FILE_NAME = "dist/83287NED.json";
+	private static final String FILE_BASE = "../episim-demo/dist/";
 
-	public static void main( final String[] args ) throws Exception
+	private static final String FILE_NAME = "83287NED.json";
+
+	public static void main( final String[] args ) throws IOException
 	{
-		final CbsRegionHierarchy hier = JsonUtil.getJOM().readValue(
-				FileUtil.toInputStream( FILE_NAME ), CbsRegionHierarchy.class );
 
-		LOG.info( "Got: {}",
-				JsonUtil.toJSON( hier.addAdminHierarchy( null ) ) );
+		if( System.getProperty(
+				ConfigurationFactory.CONFIGURATION_FILE_PROPERTY ) == null )
+			try( final InputStream is = FileUtil
+					.toInputStream( FILE_BASE + "log4j2.yaml" ) )
+			{
+			// see https://stackoverflow.com/a/42524443
+			final LoggerContext ctx = LoggerContext.getContext( false );
+			ctx.start( new YamlConfiguration( ctx, new ConfigurationSource( is ) ) );
+			}
+
+		try( final InputStream is = FileUtil
+				.toInputStream( FILE_BASE + FILE_NAME ) )
+		{
+			final CbsRegionHierarchy hier = JsonUtil.getJOM().readValue( is,
+					CbsRegionHierarchy.class );
+			LOG.info( "GM regions: {}", hier.cityRegionsByType() );
+
+			LOG.info( "Hierarchy: {}",
+					JsonUtil.toJSON( hier.addAdminHierarchy( null ) ) );
+		}
 	}
 
 	@SuppressWarnings( "unchecked" )

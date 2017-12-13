@@ -31,9 +31,11 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -88,6 +90,8 @@ import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Societies.SocietyTuple;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
+import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 import nl.rivm.cib.episim.cbs.TimeUtil;
 //import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
@@ -334,8 +338,7 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 			} catch( final IOException ignore )
 			{
 			}
-		
-		
+
 		final ZonedDateTime offset = config.offset()
 				.atStartOfDay( TimeUtil.NL_TZ );
 		final long durationDays = Duration
@@ -404,6 +407,15 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 		final DemoScenarioMeasles1M model = binder
 				.inject( DemoScenarioMeasles1M.class );
 
+		final CbsRegionHierarchy hier;
+		try( final InputStream is = FileUtil
+				.toInputStream( config.configBase() + "83287NED.json" ) )
+		{
+			hier = JsonUtil.getJOM().readValue( is, CbsRegionHierarchy.class );
+		}
+		final TreeMap<String, EnumMap<CBSRegionType, String>> gmRegions = hier
+				.cityRegionsByType();
+
 		// TODO from config
 		final long timestamp = System.currentTimeMillis();
 		final String totalsFile = "daily-" + timestamp + "-sir-total.csv";
@@ -414,8 +426,9 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 				Compartment.SUSCEPTIBLE, Compartment.INFECTIVE,
 				Compartment.RECOVERED, Compartment.VACCINATED );
 		final Compartment sortLogCol = Compartment.INFECTIVE;
+		final CBSRegionType aggregationLevel = CBSRegionType.COROP;
 
-		final TreeSet<String> regNames = new TreeSet<>();
+		final TreeMap<String, Set<String>> regNames = new TreeMap<>();
 		Observable.using( () -> new FileWriter( totalsFile, false ),
 				fw -> model.atEach( timing ).map( self ->
 				{
@@ -423,7 +436,17 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 							.exportRegionalSIRTotal();
 					if( regNames.isEmpty() )
 					{
-						regNames.addAll( totals.keySet() );
+						regNames.putAll( totals.keySet().stream()
+								.collect( Collectors.groupingBy(
+										gmName -> gmRegions
+												.computeIfAbsent( gmName,
+														k -> gmRegions // FIXME
+																.get( "GM0363" ) )
+												.get( aggregationLevel ),
+										TreeMap::new,
+										Collectors.mapping( Function.identity(),
+												Collectors.toCollection(
+														TreeSet::new ) ) ) ) );
 						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
@@ -436,10 +459,14 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 								model.scheduler().nowDT(), n,
 								Pretty.of( () -> DemoConfig.toLog( sirCols,
 										homeSIR, n, sortLogCol ) ) ),
-						Throwable::printStackTrace,
-						() -> LOG.debug( "SIR totals written to {}",
+						e ->
+						{
+							LOG.error( "Problem writing " + totalsFile, e );
+							System.exit( 1 );
+						}, () -> LOG.debug( "SIR totals written to {}",
 								totalsFile ) );
 
+		regNames.clear();
 		Observable.using( () -> new FileWriter( deltasFile, false ),
 				fw -> model.atEach( timing ).map( self ->
 				{
@@ -447,7 +474,17 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 							.exportRegionalSIRDelta();
 					if( regNames.isEmpty() )
 					{
-						regNames.addAll( deltas.keySet() );
+						regNames.putAll( deltas.keySet().stream()
+								.collect( Collectors.groupingBy(
+										gmName -> gmRegions
+												.computeIfAbsent( gmName,
+														k -> gmRegions // FIXME
+																.get( "GM0363" ) )
+												.get( aggregationLevel ),
+										TreeMap::new,
+										Collectors.mapping( Function.identity(),
+												Collectors.toCollection(
+														TreeSet::new ) ) ) ) );
 						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
@@ -460,8 +497,11 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 								model.scheduler().nowDT(), n,
 								Pretty.of( () -> DemoConfig.toLog( sirCols,
 										homeSIR, n, sortLogCol ) ) ),
-						Throwable::printStackTrace,
-						() -> LOG.debug( "SIR deltas written to {}",
+						e ->
+						{
+							LOG.error( "Problem writing " + deltasFile, e );
+							System.exit( 1 );
+						}, () -> LOG.debug( "SIR deltas written to {}",
 								deltasFile ) );
 
 		LOG.debug( "Starting..." );
