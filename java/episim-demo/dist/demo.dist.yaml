@@ -88,7 +88,7 @@ scenario:
       # everyone born before this date is considered RECOVERED/REMOVED
       last-outbreak-end-date: 2000-06-30
       # pick patient zero with lowest resistance
-      next-outbreak-start-date: 2013-01-02T03:04:05
+      next-outbreak-start-date: 2013-01-01T08:09:10
 #      # force of infection (S->E): t=?, viral shedding -> respiratory/surface contact 
 #      # infection pressure function of #infectious vs. #non-infectious
 #      pathogen-type: nl.rivm.cib.pilot.Pathogen$MSEIR

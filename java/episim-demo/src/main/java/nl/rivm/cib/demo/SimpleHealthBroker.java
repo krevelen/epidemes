@@ -258,7 +258,7 @@ public class SimpleHealthBroker implements HealthBroker
 //		final double vaxDegree = this.config.overallVaccinationDegree();
 //		final Map<String, ProbabilityDistribution<Boolean>> localVaxDegreeDist = new HashMap<>();
 		this.sirStatusDist = regPer -> regPer.periodRef()
-				.isBefore( lastOutbreak ) ? Compartment.RECOVERED
+				.isBefore( lastOutbreak ) ? Compartment.VACCINATED
 //						: localVaxDegreeDist
 //								.computeIfAbsent( regPer.regionRef(),
 //										k -> this.distFactory
@@ -304,7 +304,7 @@ public class SimpleHealthBroker implements HealthBroker
 			final LocalPressure lp = getLP( e.siteRef );
 
 			final Map<Object, Set<Object>> homeConveners = e.participants
-					.stream()
+					.stream().filter( this.persons::containsKey )
 					.collect( Collectors.groupingBy(
 							ppRef -> this.persons.selectValue( ppRef,
 									Persons.HomeSiteRef.class ),
@@ -707,8 +707,9 @@ public class SimpleHealthBroker implements HealthBroker
 						return true; // remove from hesitant
 					}
 
-					LOG.info( "Vax {} for {} rejected by {} of {}", occ,
-							nextDose, pp.pretty( Persons.PROPERTIES ),
+					LOG.debug( "t={} Vax {} for {} rejected by {} of {}",
+							scheduler().nowDT(), occ.asMap(), nextDose,
+							pp.pretty( Persons.PROPERTIES ),
 							hh.pretty( Households.PROPERTIES ) );
 					return false; // remain hesitant
 				} ).toArray( PersonTuple[]::new );

@@ -19,8 +19,15 @@
  */
 package nl.rivm.cib.demo;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.aeonbits.owner.Config.Sources;
 
@@ -28,6 +35,8 @@ import io.coala.config.ConfigUtil;
 import io.coala.config.LocalDateConverter;
 import io.coala.config.PeriodConverter;
 import io.coala.config.YamlConfig;
+import io.coala.math.DecimalUtil;
+import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.pilot.PilotConfig.RandomSeedConverter;
 
 /**
@@ -43,16 +52,20 @@ import nl.rivm.cib.pilot.PilotConfig.RandomSeedConverter;
 public interface DemoConfig extends YamlConfig
 {
 
+	String CONFIG_YAML_FILE = "demo.yaml";
+
+	/** configuration and data file base directory */
+	String CONFIG_BASE_DIR = "dist/";
+
 	/** configuration file name system property */
 	String CONFIG_BASE_KEY = "config.base";
 
 	/** configuration file name system property */
 	String CONFIG_BASE_PARAM = "${" + CONFIG_BASE_KEY + "}";
 
-	/** configuration and data file base directory */
-	String CONFIG_BASE_DIR = "dist/";
-
-	String CONFIG_YAML_FILE = "demo.yaml";
+	@DefaultValue( CONFIG_BASE_DIR )
+	@Key( CONFIG_BASE_KEY )
+	String configBase();
 
 	String DATASOURCE_JNDI = "jdbc/pilotDB";
 
@@ -74,12 +87,12 @@ public interface DemoConfig extends YamlConfig
 
 	/** configuration key */
 	String MOTION_BASE = "mobility";
-	
+
 	/** configuration key */
-	String EPIDEMIOLOGY_BASE = "epidemiology"; 
-	
+	String EPIDEMIOLOGY_BASE = "epidemiology";
+
 	/** configuration key */
-	String HESITANCY_BASE = "hesitancy"; 
+	String HESITANCY_BASE = "hesitancy";
 
 	@Key( REPLICATION_PREFIX + "setup-name" )
 	@DefaultValue( "pilot" )
@@ -99,4 +112,87 @@ public interface DemoConfig extends YamlConfig
 	@DefaultValue( "2012-01-01" )
 	@ConverterClass( LocalDateConverter.class )
 	LocalDate offset();
+
+	String CONF_ARG = "conf";
+
+	String sep = ";", eol = "\r\n";
+
+	static String toHeader( final List<Compartment> sirCols,
+		final Set<String> colNames )
+	{
+		return "ActualTime" + sep + "VirtualTime" + sep
+				+ String.join( sep, sirCols.stream()
+						.map( c -> c.name().substring( 0, 1 ) + "_TOTAL" )
+						.toArray( String[]::new ) )
+				+ sep
+				+ String.join( sep, sirCols.stream()
+						.flatMap( c -> colNames.stream()
+								.map( reg -> c.name().substring( 0, 1 ) + '_'
+										+ reg ) )
+						.toArray( String[]::new ) )
+				+ eol;
+	}
+
+	static String toLine( final List<Compartment> sirCols, final String t,
+		final Set<String> colNames,
+		final Map<String, EnumMap<Compartment, Long>> homeSIR )
+	{
+		return DateTimeFormatter.ISO_LOCAL_DATE_TIME
+				.format( ZonedDateTime.now() ) + sep + t
+				+ sep
+				+ String.join( sep,
+						sirCols.stream()
+								.map( c -> colNames.stream()
+										.map( reg -> homeSIR
+												.computeIfAbsent( reg,
+														k -> new EnumMap<>(
+																Compartment.class ) )
+												.computeIfAbsent( c, k -> 0L ) )
+										.mapToLong( n -> n ).sum() )
+								.map( Object::toString )
+								.toArray( String[]::new ) )
+				+ sep
+				+ String.join( sep,
+						sirCols.stream()
+								.flatMap( c -> colNames.stream()
+										.map( reg -> homeSIR.get( reg ).get( c )
+												.toString() ) )
+								.toArray( String[]::new ) )
+				+ eol;
+	}
+
+	static BigDecimal evaluate( final String key,
+		final Map<String, EnumMap<Compartment, Long>> values,
+		final Compartment descendCol )
+	{
+		final EnumMap<Compartment, Long> v = values.computeIfAbsent( key,
+				k -> new EnumMap<>( Compartment.class ) );
+		final Long dividend = v.get( descendCol );
+		if( dividend == null || dividend.longValue() == 0 )
+			return BigDecimal.ZERO;
+		return DecimalUtil.divide( dividend,
+				v.values().stream().mapToLong( n -> n ).sum() );
+	}
+
+	static String toLog( final List<Compartment> sirCols,
+		final Map<String, EnumMap<Compartment, Long>> homeSIR, final int n,
+		final Compartment descendCol )
+	{
+		return String.join( ", ",
+				homeSIR.keySet().stream().sorted( ( r,
+					l ) -> evaluate( l, homeSIR, descendCol ).compareTo(
+							evaluate( r, homeSIR, descendCol ) ) )
+						.limit( n )
+						.map( reg -> reg + ":["
+								+ String.join( ",",
+										sirCols.stream().map( c -> homeSIR
+												.computeIfAbsent( reg,
+														k -> new EnumMap<>(
+																Compartment.class ) )
+												.computeIfAbsent( c, k -> 0L )
+												.toString() )
+												.toArray( String[]::new ) )
+								+ "]" )
+						.toArray( String[]::new ) );
+	}
 }

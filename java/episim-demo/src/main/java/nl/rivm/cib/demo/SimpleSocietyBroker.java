@@ -322,6 +322,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 		soc.updateAndGet( Societies.MemberCount.class, n -> n + 1 );
 		soc.updateAndGet( Societies.Capacity.class, n -> n - 1 );
 
+		// if membership lasts beyond horizon, skip abandonment scheduling
 		if( dt == null || Compare.gt( dt, MEMBER_HORIZON ) ) return;
 
 		after( dt ).call( t ->

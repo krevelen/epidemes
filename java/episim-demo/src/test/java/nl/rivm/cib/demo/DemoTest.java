@@ -21,15 +21,12 @@ package nl.rivm.cib.demo;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 
 import org.aeonbits.owner.ConfigFactory;
@@ -47,7 +44,6 @@ import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
-import io.coala.math.DecimalUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
 import io.coala.random.DistributionParser;
@@ -77,21 +73,20 @@ public class DemoTest
 	/** */
 	static final Logger LOG = LogUtil.getLogger( DemoTest.class );
 
-	private static final String CONF_ARG = "conf";
-
 	@SuppressWarnings( "unchecked" )
 	@Test
 	public void doTest() throws InterruptedException, IOException
 	{
 		LOG.info( "Demo test" );
-//		+ DemoConfig.CONFIG_YAML_FILE
+
 		final Map<String, String> argMap = ConfigUtil.cliArgMap( "test1=a",
 				"test=b" );
-		final String confFile = argMap.computeIfAbsent( CONF_ARG,
-				confArg -> System.getProperty( CONF_ARG,
+		final String confFile = argMap.computeIfAbsent( DemoConfig.CONF_ARG,
+				confArg -> System.getProperty( DemoConfig.CONF_ARG,
 						ConfigUtil.cliConfBase( argMap,
 								DemoConfig.CONFIG_BASE_KEY,
-								DemoConfig.CONFIG_BASE_DIR, "sim.yaml" ) ) );
+								DemoConfig.CONFIG_BASE_DIR,
+								DemoConfig.CONFIG_YAML_FILE ) ) );
 
 		final DemoConfig config = ConfigFactory.create( DemoConfig.class,
 				// CLI args added first: override config resource and defaults 
@@ -162,54 +157,64 @@ public class DemoTest
 
 		LOG.debug( "Constructing model (seed: {}, config: {})...", seed,
 				JsonUtil.toJSON( binderConfig.toJSON() ) );
-		final SimpleDemoScenario model = binder
-				.inject( SimpleDemoScenario.class );
+		final DemoScenarioMeasles1M model = binder
+				.inject( DemoScenarioMeasles1M.class );
 
 		final TreeSet<String> regNames = new TreeSet<>();
 		final long timestamp = System.currentTimeMillis();
 		final String totalsFile = "daily-" + timestamp + "-sir-total.csv";
 		final String deltasFile = "daily-" + timestamp + "-sir-delta.csv";
+		final String timing = "0 0 12 ? * *";
+		final List<Compartment> sirCols = Arrays.asList(
+				Compartment.SUSCEPTIBLE, Compartment.INFECTIVE,
+				Compartment.RECOVERED, Compartment.VACCINATED );
+		final Compartment logSortReg = Compartment.INFECTIVE;
 		final int n = 10;
+
 		Observable.using( () -> new FileWriter( totalsFile, false ),
-				fw -> model.atEach( "0 0 12 ? * *" ).map( self ->
+				fw -> model.atEach( timing ).map( self ->
 				{
 					final Map<String, EnumMap<Compartment, Long>> totals = self
 							.exportRegionalSIRTotal();
 					if( regNames.isEmpty() )
 					{
 						regNames.addAll( totals.keySet() );
-						fw.write( toHeader( regNames ) );
+						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
-					fw.write( toLine( model.scheduler().nowDT(), regNames,
-							totals ) );
+					fw.write( DemoConfig.toLine( sirCols,
+							model.scheduler().nowDT().toLocalDate().toString(),
+							regNames, totals ) );
 					fw.flush();
 					return totals;
 				} ), FileWriter::close ).subscribe(
 						homeSIR -> LOG.debug( "t={} TOTAL-top{}:{ {} }",
 								model.scheduler().nowDT(), n,
-								Pretty.of( () -> toLog( homeSIR, n ) ) ),
+								Pretty.of( () -> DemoConfig.toLog( sirCols,
+										homeSIR, n, logSortReg ) ) ),
 						Throwable::printStackTrace,
 						() -> LOG.debug( "SIR totals written to {}",
 								totalsFile ) );
 
 		Observable.using( () -> new FileWriter( deltasFile, false ),
-				fw -> model.atEach( "0 0 12 ? * *" ).map( self ->
+				fw -> model.atEach( timing ).map( self ->
 				{
 					final Map<String, EnumMap<Compartment, Long>> deltas = self
 							.exportRegionalSIRDelta();
 					if( regNames.isEmpty() )
 					{
 						regNames.addAll( deltas.keySet() );
-						fw.write( toHeader( regNames ) );
+						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
-					fw.write( toLine( model.scheduler().nowDT(), regNames,
-							deltas ) );
+					fw.write( DemoConfig.toLine( sirCols,
+							model.scheduler().nowDT().toLocalDate().toString(),
+							regNames, deltas ) );
 					fw.flush();
 					return deltas;
 				} ), FileWriter::close ).subscribe(
 						homeSIR -> LOG.debug( "t={} DELTA-top{}:{ {} }",
 								model.scheduler().nowDT(), n,
-								Pretty.of( () -> toLog( homeSIR, n ) ) ),
+								Pretty.of( () -> DemoConfig.toLog( sirCols,
+										homeSIR, n, logSortReg ) ) ),
 						Throwable::printStackTrace,
 						() -> LOG.debug( "SIR deltas written to {}",
 								deltasFile ) );
@@ -219,71 +224,4 @@ public class DemoTest
 
 		LOG.info( "Demo test done" );
 	}
-
-	private static final String sep = ";", eol = "\r\n";
-
-	private static final List<Compartment> sirCols = Arrays.asList(
-			Compartment.SUSCEPTIBLE, Compartment.INFECTIVE,
-			Compartment.RECOVERED, Compartment.VACCINATED );
-
-	private static final Compartment logSortReg = Compartment.INFECTIVE;
-
-	private String toHeader( final Set<String> colNames )
-	{
-		return "ActualTime" + sep + "VirtualTime" + sep
-				+ String.join( sep,
-						colNames.stream().flatMap( reg -> sirCols.stream()
-								.map( c -> reg + '_' + c.name().charAt( 0 ) ) )
-								.toArray( String[]::new ) )
-				+ eol;
-	}
-
-	private String toLine( final ZonedDateTime t, final Set<String> colNames,
-		final Map<String, EnumMap<Compartment, Long>> homeSIR )
-	{
-		return DateTimeFormatter.ISO_LOCAL_DATE_TIME
-				.format( ZonedDateTime.now() ) //
-
-				+ sep + DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( t ) //
-				+ sep
-				+ String.join( sep, colNames.stream()
-						.flatMap( reg -> sirCols.stream().map( c -> homeSIR
-								.computeIfAbsent( reg,
-										k -> new EnumMap<>(
-												Compartment.class ) )
-								.computeIfAbsent( c, k -> 0L ).toString() ) )
-						.toArray( String[]::new ) )
-				+ eol;
-	}
-
-	private static BigDecimal evaluate( final String key,
-		final Map<String, EnumMap<Compartment, Long>> values )
-	{
-		final EnumMap<Compartment, Long> v = values.computeIfAbsent( key,
-				k -> new EnumMap<>( Compartment.class ) );
-		final Long dividend = v.get( logSortReg );
-		if( dividend == null || dividend.longValue() == 0 )
-			return BigDecimal.ZERO;
-		return DecimalUtil.divide( dividend,
-				v.values().stream().mapToLong( n -> n ).sum() );
-	}
-
-	private String toLog( final Map<String, EnumMap<Compartment, Long>> homeSIR,
-		final int n )
-	{
-		return String.join( ", ", homeSIR.keySet().stream()
-				.sorted( ( r, l ) -> evaluate( l, homeSIR )
-						.compareTo( evaluate( r, homeSIR ) ) )
-				.limit( n )
-				.map( reg -> reg + ":["
-						+ String.join( ",", sirCols.stream().map( c -> homeSIR
-								.computeIfAbsent( reg,
-										k -> new EnumMap<>(
-												Compartment.class ) )
-								.computeIfAbsent( c, k -> 0L ).toString() )
-								.toArray( String[]::new ) )
-						+ "]" )
-				.toArray( String[]::new ) );
-	}
-
 }

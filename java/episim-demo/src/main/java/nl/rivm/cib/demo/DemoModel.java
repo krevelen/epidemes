@@ -531,7 +531,7 @@ public interface DemoModel
 				final String key = type + denom;
 				final Pedagogy result = DUO_CACHE.computeIfAbsent( key, k ->
 				{
-					if( denom.startsWith( "Prot" ) || // 23.1%
+					if( //denom.startsWith( "Prot" ) || // 23.1%
 					denom.startsWith( "Geref" ) // 1.2%
 							|| denom.startsWith( "Evan" ) // 0.1%
 					) return REFORMED;
