@@ -240,7 +240,7 @@ public class SimpleDemoScenario implements DemoModel, Scenario
 		return this.sirEventStats.entrySet().stream().collect( Collectors.toMap(
 				Map.Entry::getKey,
 				e -> e.getValue().entrySet().stream().collect( Collectors.toMap(
-						Map.Entry::getKey, f -> f.getValue().getAndSet( 0 ),
+						Map.Entry::getKey, f -> f.getValue().get(),
 						( l, r ) -> l + r,
 						() -> new EnumMap<>( Compartment.class ) ) ) ) );
 	}

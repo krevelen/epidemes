@@ -37,17 +37,23 @@ import nl.rivm.cib.episim.model.locate.Region;
 public enum CBSRegionType
 {
 
-	/** Woonplaats */
-	CITY( "WP" ),
+	/** land */
+	COUNTRY( "NL" ),
 
-	/** buurt, e.g. 'BU00030000' */
-	BOROUGH( "BU", "BU%04d%02d%02d" ),
+	/** NUTS1 */
+	NUTS1( "NL", "NL%1d" ),
 
-	/** wijk, e.g. 'WK000300' */
-	WARD( "WK", "WK%04d%02d" ),
+	/** landsdeel */
+	TERRITORY( "LD", "LD%02d" ),
 
-	/** gemeente, e.g. 'GM0003' (Appingedam) */
-	MUNICIPAL( "GM", "GM%04d" ),
+	/** NUTS2 */
+	NUTS2( "NL", "NL%02d" ),
+
+	/** provincie */
+	PROVINCE( "PV", "PV%02d" ),
+
+	/** NUTS3 */
+	NUTS3( "NL", "NL%03d" ),
 
 	/** corop (analytical region) */
 	COROP( "CR", "CR%02d" ),
@@ -58,23 +64,23 @@ public enum CBSRegionType
 	/** COROP-plusgebied */
 	COROP_PLUS( "CP" ),
 
-	/** provincie */
-	PROVINCE( "PV", "PV%02d" ),
+	/** gemeente, e.g. 'GM0003' (Appingedam) */
+	MUNICIPAL( "GM", "GM%04d" ),
 
-	/** landsdeel */
-	TERRITORY( "LD", "LD%02d" ),
+	/** Woonplaats */
+	CITY( "WP" ),
 
-	/** land */
-	COUNTRY( "NL" ),
+	/** wijk, e.g. 'WK000300' */
+	WARD( "WK", "WK%04d%02d" ),
 
-	/** NUTS1 */
-	NUTS1( "NL" ),
+	/** buurt, e.g. 'BU00030000' */
+	BOROUGH( "BU", "BU%04d%02d%02d" ),
 
-	/** NUTS2 */
-	NUTS2( "NL" ),
+	/** 4-number zip code area */
+	ZIP4( "PC4", "%s" ),
 
-	/** NUTS3 */
-	NUTS3( "NL" ),
+	/** 2-letter zip code street ' */
+	ZIP6( "PC6", "%s%s" ),
 
 	/** arbeidsmarktregio (GEM+UWV) */
 	LABOR_MARKET( "AM" ),

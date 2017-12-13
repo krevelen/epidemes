@@ -112,7 +112,7 @@ public class SimpleHealthBroker implements HealthBroker
 		String recoveryPeriod();
 
 		@Key( PATHOGEN_PREFIX + "beta-factor" )
-		@DefaultValue( "100" )
+		@DefaultValue( "1" )
 		double betaFactor();
 
 		@Key( PATHOGEN_PREFIX + "last-outbreak-end-date" )
@@ -217,6 +217,10 @@ public class SimpleHealthBroker implements HealthBroker
 	private ConditionalDistribution<VaxOccasion, VaxDose> vaxOccasionDist;
 	/** */
 	private QuantityDistribution<Time> vaxTreatmentDelay;
+	/** age resolution of vaccination cohorts/bins, in scheduler time units */
+	private BigDecimal vaxDecisionAgeResolution;
+	/** current hesitants/susceptibles within/before decision age, by age bin */
+	private TreeMap<BigDecimal, List<Object>> vaxAgeHesitants = new TreeMap<>();
 	/** */
 	private ConditionalDistribution<Compartment, RegionPeriod> sirStatusDist;
 	/** */
@@ -225,10 +229,6 @@ public class SimpleHealthBroker implements HealthBroker
 	private double gamma_inv, beta;
 	/** */
 	private QuantityDistribution<Time> recoveryPeriodDist;
-	/** age resolution of vaccination cohorts/bins, in scheduler time units */
-	private BigDecimal vaxDecisionAgeResolution;
-	/** current hesitants/susceptibles within/before decision age, by age bin */
-	private TreeMap<BigDecimal, List<Object>> vaxAgeHesitants = new TreeMap<>();
 
 	@Override
 	public SimpleHealthBroker reset() throws Exception
@@ -355,6 +355,7 @@ public class SimpleHealthBroker implements HealthBroker
 
 	private void outbreakStart( final Instant t )
 	{
+		// TODO implement a steady way of choosing PATIENT ZERO?
 		final PersonTuple minResistant = this.persons.stream()
 				.filter( pp -> pp.get( Persons.PathogenCompartment.class )
 						.isSusceptible() )
@@ -365,10 +366,15 @@ public class SimpleHealthBroker implements HealthBroker
 
 		minResistant.set( Persons.PathogenCompartment.class,
 				Compartment.INFECTIVE );
+		this.events.onNext( new EpidemicFact().withPerson( minResistant )
+				.withSIRDelta( map -> map.put( Compartment.SUSCEPTIBLE, -1 )
+						.put( Compartment.INFECTIVE, 1 ) ) );
 
 		final Disposable trackSub = this.persons.changes( minResistant.key() )
-				.subscribe( chg -> LOG.warn( "t={} PATIENT ZERO {} change: {}",
-						scheduler().nowDT(), minResistant, chg ) );
+				.subscribe( chg -> LOG.warn( LogUtil.messageOf(
+						"t={} PATIENT ZERO {} change: {}", scheduler().nowDT(),
+						minResistant.pretty( Persons.PROPERTIES ), chg ),
+						new IllegalStateException( "Who updates this?" ) ) );
 
 		final ComparableQuantity<Time> dt = //this.recoveryPeriodDist.draw() 
 				QuantityUtil.valueOf( this.gamma_inv, TimeUnits.DAYS );
@@ -376,13 +382,18 @@ public class SimpleHealthBroker implements HealthBroker
 		{
 			minResistant.set( Persons.PathogenCompartment.class,
 					Compartment.RECOVERED );
-			LOG.info( "t={} ENDED IMPORT at index case: {}",
-					scheduler().nowDT(), minResistant );
+			this.events.onNext( new EpidemicFact().withPerson( minResistant )
+					.withSIRDelta( map -> map.put( Compartment.INFECTIVE, -1 )
+							.put( Compartment.RECOVERED, 1 ) ) );
+			LOG.info( "t={} index case patient zero removed: {}",
+					scheduler().nowDT(),
+					minResistant.pretty( Persons.PROPERTIES ) );
 			trackSub.dispose(); // stop tracking patient zero
 		} );
-		LOG.info( "t={} IMPORTED index case: {}, recovery +{}d= @{}",
-				scheduler().nowDT(), minResistant, this.gamma_inv,
-				recovery.due() );
+		LOG.info(
+				"t={} IMPORTED index case, patient zero: {}, recovery +{}d= @{}",
+				scheduler().nowDT(), minResistant.pretty( Persons.PROPERTIES ),
+				this.gamma_inv, recovery.due() );
 	}
 
 	private ComparableQuantity<Time> infectionTimer( final int nI, final int n )
@@ -398,7 +409,8 @@ public class SimpleHealthBroker implements HealthBroker
 						this::infectionTimer ) );
 	}
 
-	static class LocalPressure implements Proactive
+	public static class LocalPressure //extends Accumulator
+		implements Proactive
 	{
 		final Scheduler scheduler;
 		final Map<Object, Double> resistance = new HashMap<>();
@@ -426,10 +438,6 @@ public class SimpleHealthBroker implements HealthBroker
 		{
 			return this.scheduler;
 		}
-
-		// TODO from config;
-		private static final ComparableQuantity<Time> HORIZON = QuantityUtil
-				.valueOf( 3, TimeUnits.DAYS );
 
 		private Object getTargetAndRetally( final AtomicInteger infectives )
 		{
@@ -513,7 +521,7 @@ public class SimpleHealthBroker implements HealthBroker
 				final Double targetRes = this.resistance.get( targetRef );
 				final ComparableQuantity<Time> dt = this.pressurizedLatency
 						.multiply( targetRes );
-				return dt.compareTo( HORIZON ) > 0 ? null
+				return dt.compareTo( VAX_HORIZON ) > 0 ? null
 						: after( dt )
 								.call( t_i -> infect( targetRef, targetRes ) );
 			} );
@@ -670,7 +678,7 @@ public class SimpleHealthBroker implements HealthBroker
 						LOG.warn( "Already compliant {}", pp );
 						pp.updateAndGet( Persons.PathogenCompartment.class,
 								epi -> Compartment.VACCINATED );
-						return true;
+						return true; // remove from hesitant
 					}
 					final ComparableQuantity<Time> age = ageOf( pp );
 
@@ -681,7 +689,7 @@ public class SimpleHealthBroker implements HealthBroker
 						LOG.warn( "Not covered by NIP, age {} for pp {}",
 								QuantityUtil.pretty( age, TimeUnits.YEAR, 1 ),
 								pp.pretty( Persons.PROPERTIES ) );
-						return true;
+						return true; // remove from hesitant
 					}
 					final VaxOccasion occ = this.vaxOccasionDist
 							.draw( nextDose );
@@ -689,19 +697,20 @@ public class SimpleHealthBroker implements HealthBroker
 							.get( pp.get( Persons.HouseholdRef.class ) );
 					if( hh == null )
 					{
-						LOG.warn( "No hh for pp? {}",
+						LOG.warn( "No hh for pp, removing {}",
 								pp.pretty( Persons.PROPERTIES ) );
-						return false;
-					} else if( this.vaxAcceptance.test( hh, occ ) )
+						return true; // remove from hesitant
+					}
+					if( this.vaxAcceptance.test( hh, occ ) )
 					{
 						startRegimen( nextDose, age, pp );
-						return true;
+						return true; // remove from hesitant
 					}
 
 					LOG.info( "Vax {} for {} rejected by {} of {}", occ,
 							nextDose, pp.pretty( Persons.PROPERTIES ),
 							hh.pretty( Households.PROPERTIES ) );
-					return false;
+					return false; // remain hesitant
 				} ).toArray( PersonTuple[]::new );
 		Arrays.stream( removable ).forEach( this::removeFromHesitant );
 	}

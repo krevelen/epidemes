@@ -24,6 +24,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.NavigableMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,12 +52,14 @@ import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.math.DecimalUtil;
+import io.coala.math.Range;
 import io.coala.time.Expectation;
+import io.coala.time.Instant;
 import io.coala.time.Scheduler;
+import io.coala.util.Compare;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import nl.rivm.cib.demo.DemoModel.Persons;
-import nl.rivm.cib.demo.DemoModel.Persons.CultureRef;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Sites;
@@ -63,6 +69,7 @@ import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Social.TimedGatherer;
 import nl.rivm.cib.demo.DemoModel.Societies;
 import nl.rivm.cib.demo.DemoModel.Societies.SocietyTuple;
+import tec.uom.se.ComparableQuantity;
 
 /**
  * {@link SimpleSocietyBroker}
@@ -130,8 +137,6 @@ public class SimpleSocietyBroker implements SocietyBroker
 	/** */
 	private Table<PersonTuple> persons;
 	/** */
-	private Table<SiteTuple> sites;
-	/** */
 	private IndexPartition capacityIndex;
 	/** */
 	private NavigableMap<String, TimedGatherer> gatherers;
@@ -157,21 +162,17 @@ public class SimpleSocietyBroker implements SocietyBroker
 		this.gatherers = this.binder.inject( TimedGatherer.SimpleFactory.class )
 				.createAll( gathererConfig );
 
-		this.sites = this.data.getTable( SiteTuple.class );
 		this.societies = this.data.getTable( SocietyTuple.class );
 		this.persons = this.data.getTable( PersonTuple.class );
 		this.persons.onCreate( this::deferJoin, scheduler()::fail );
-		this.persons.onDelete( this::abandon, scheduler()::fail );
+		this.persons.onDelete( this::abandonAll, scheduler()::fail );
 
 		this.capacityIndex = new IndexPartition( this.societies,
 				scheduler()::fail );
 		this.capacityIndex.groupBy( Societies.Purpose.class );
-		this.capacityIndex.groupBy( Societies.Capacity.class,
-				Stream.of( 1 ) ); // separate 'full' < 1 <= 'available'
+		this.capacityIndex.groupBy( Societies.Capacity.class, Stream.of( 1 ) );
+		// separate 'full' < 1 <= 'available'
 //		this.capacityIndex.groupBy( Societies.CultureRef.class );
-
-		// TODO auto-assign cultures to households, using primary school dist
-//		this.cultureDist = regName -> EduCulture.OTHERS;
 
 		LOG.debug( "{} ready", getClass().getSimpleName() );
 		return this;
@@ -183,50 +184,115 @@ public class SimpleSocietyBroker implements SocietyBroker
 	// defer join() until home site is fully created
 	private void deferJoin( final PersonTuple pp )
 	{
-		if( this.pendingJoin == null ) this.pendingJoin = atOnce( t ->
-		{
-			this.pendingJoin = null;
-			if( t.isZero() ) LOG.info( "Initializing societies..." );
-			this.joinable.removeIf( this::join );
-			if( t.isZero() )
-				LOG.info( "Initialized {} societies with avg. size: {}",
-						this.societyMembers.size(),
-						DecimalUtil.toScale( (double) this.societyMembers
-								.values().stream().mapToInt( List::size ).sum()
-								/ this.societyMembers.size(), 1 ) );
-		} );
+		if( this.pendingJoin == null )
+			this.pendingJoin = atOnce( this::handlePendingJoins );
 		this.joinable.add( pp );
+	}
+
+	private void handlePendingJoins( final Instant now )
+	{
+		this.pendingJoin = null;
+		if( now.isZero() ) LOG.info( "Initializing societies..." );
+		final CountDownLatch latch = new CountDownLatch( 1 );
+		final int n = this.joinable.size();
+		final AtomicLong personCount = new AtomicLong(),
+				lastCount = new AtomicLong(),
+				t0 = new AtomicLong( System.currentTimeMillis() ),
+				lastTime = new AtomicLong( t0.get() );
+		new Thread( () ->
+		{
+			Thread.currentThread().setName( "socMon" );
+			while( latch.getCount() > 0 )
+			{
+				try
+				{
+					latch.await( 1, TimeUnit.SECONDS );
+				} catch( final InterruptedException e )
+				{
+					return;
+				}
+				if( latch.getCount() == 0 ) return;
+
+				final long i = personCount.get(), i0 = lastCount.getAndSet( i ),
+						t = System.currentTimeMillis(),
+						ti = lastTime.getAndSet( t );
+				LOG.info(
+						"...joined {} of {} persons ({}%) in {}s, joining at {}/s...",
+						i, n,
+						DecimalUtil.toScale( DecimalUtil.divide( i * 100, n ),
+								1 ),
+						DecimalUtil.toScale(
+								DecimalUtil.divide( t - t0.get(), 1000 ), 1 ),
+						DecimalUtil.toScale(
+								DecimalUtil.divide( (i - i0) * 1000, t - ti ),
+								1 ) );
+			}
+		} ).start();
+		final Map<String, Map<Object, AtomicLong>> roleSocCount = new HashMap<>();
+		this.joinable.removeIf( pp ->
+		{
+			final Map<String, Object> roleMemberships = joinAll( pp );
+			roleMemberships.forEach( ( role, socKey ) -> roleSocCount
+					.computeIfAbsent( role, k -> new HashMap<>() )
+					.computeIfAbsent( socKey, k -> new AtomicLong() )
+					.incrementAndGet() );
+			personCount.incrementAndGet();
+			return true;
+		} );
+		latch.countDown();
+		if( now.isZero() ) LOG
+				.info( "Initialized {} societies with avg. size: {}",
+						this.societyMembers.size(),
+						String.join( "; ", roleSocCount.entrySet().stream()
+								.map( e -> e.getKey() + " x "
+										+ e.getValue().size()
+										+ " x " + DecimalUtil.pretty(
+												() -> ((double) e.getValue()
+														.values().stream()
+														.mapToLong(
+																AtomicLong::get )
+														.sum())
+														/ e.getValue().size(),
+												1 )
+										+ "pp" )
+								.toArray( String[]::new ) ) );
 	}
 
 	/**
 	 * @param pp
 	 */
-	boolean join( final PersonTuple pp )
+	private Map<String, Object> joinAll( final PersonTuple pp )
 	{
-		// FIXME
-//		pp.set( Persons.CultureRef.class, cultureDist.draw( "" ) );
-
+		final ComparableQuantity<Time> age = ageOf( pp );
 		final Map<String, Object> roleMemberships = this.gatherers.entrySet()
-				.stream().filter(
-						e -> e.getValue().memberAges().contains( ageOf( pp ) ) )
-				// TODO schedule membership when age reaches membership range
-				.collect( Collectors.toMap( Map.Entry::getKey, e ->
+				.stream().filter( e ->
 				{
-					final SocietyTuple soc = findSociety( e.getValue(), pp );
-					final List<Object> members = this.societyMembers
-							.get( soc.key() );
-					if( members.indexOf( pp.key() ) < 0 )
+					final Range<ComparableQuantity<Time>> ageRange = e
+							.getValue().memberAges()
+							.map( q -> q.asType( Time.class ) );
+					if( ageRange.gt( age ) )
 					{
-						members.add( pp.key() );
-						soc.updateAndGet( Societies.MemberCount.class,
-								n -> n + 1 );
-						soc.updateAndGet( Societies.Capacity.class,
-								n -> n - 1 );
-					} else
-						LOG.warn( "Already member: {} in {}",
-								pp.pretty( Persons.PROPERTIES ),
-								soc.pretty( Societies.PROPERTIES ) );
-
+						// too young, schedule join for later
+						final ComparableQuantity<Time> dtJoin = ageRange
+								.lowerValue().subtract( age );
+						if( Compare.lt( dtJoin, MEMBER_HORIZON ) )
+							after( dtJoin ).call( t -> deferJoin( pp ) );
+						return false;
+					}
+					// not too old?
+					return !ageRange.lt( age );
+				} ).collect( Collectors.toMap( Map.Entry::getKey, e ->
+				{
+					final SocietyTuple soc = findOrCreateLocalSociety(
+							e.getValue(), pp );
+					final Range<ComparableQuantity<Time>> ageRange = e
+							.getValue().memberAges()
+							.map( q -> q.asType( Time.class ) );
+					final ComparableQuantity<Time> dtLeave = ageRange
+							.upperInclusive()
+									? ageRange.upperValue().subtract( age )
+									: null;
+					join( pp, soc, dtLeave );
 					return soc.key();
 				} ) );
 
@@ -237,13 +303,40 @@ public class SimpleSocietyBroker implements SocietyBroker
 			this.ppSocieties.compute( pp.key(),
 					( k, socKeys ) -> roleMemberships.values()
 							.toArray( new Object[roleMemberships.size()] ) );
-		return true;
+		return roleMemberships;
+	}
+
+	private void join( final PersonTuple pp, final SocietyTuple soc,
+		final ComparableQuantity<Time> dt )
+	{
+		final List<Object> members = this.societyMembers.get( soc.key() );
+		final Object ppRef = pp.key();
+		if( members.indexOf( pp.key() ) >= 0 )
+		{
+			LOG.warn( "Already member: {} in {}",
+					pp.pretty( Persons.PROPERTIES ),
+					soc.pretty( Societies.PROPERTIES ) );
+			return;
+		}
+		members.add( pp.key() );
+		soc.updateAndGet( Societies.MemberCount.class, n -> n + 1 );
+		soc.updateAndGet( Societies.Capacity.class, n -> n - 1 );
+
+		if( dt == null || Compare.gt( dt, MEMBER_HORIZON ) ) return;
+
+		after( dt ).call( t ->
+		{
+			// abandon
+			members.remove( ppRef );
+			soc.updateAndGet( Societies.MemberCount.class, n -> n - 1 );
+			soc.updateAndGet( Societies.Capacity.class, n -> n + 1 );
+		} );
 	}
 
 	/**
 	 * @param pp
 	 */
-	void abandon( final PersonTuple pp )
+	void abandonAll( final PersonTuple pp )
 	{
 		final Object[] socKeys = this.ppSocieties.remove( pp.key() );
 		if( socKeys != null ) Arrays.stream( socKeys )
@@ -267,58 +360,29 @@ public class SimpleSocietyBroker implements SocietyBroker
 	}
 
 	/**
-	 * @param x
-	 * @param y
-	 * @return
-	 */
-	double euclideanDistance( final double[] x, final double[] y )
-	{
-		return Math.sqrt( IntStream.range( 0, x.length )
-				.mapToDouble( i -> x[i] - y[i] ).map( dx -> dx * dx ).sum() );
-	}
-
-	double[] positionOf( Object siteRef )
-	{
-		final SiteTuple site = this.sites.get( siteRef );
-		return new double[] { site.get( Sites.Latitude.class ),
-				site.get( Sites.Longitude.class ) };
-	}
-
-	/**
 	 * @param gatherer
 	 * @param person
 	 * @return
 	 */
-	SocietyTuple findSociety( final TimedGatherer gatherer,
+	SocietyTuple findOrCreateLocalSociety( final TimedGatherer gatherer,
 		final PersonTuple person )
 	{
+		// select societies with current capacity >= 1
 		final List<?> socKeys = this.capacityIndex.keys( gatherer.id(), 1 );
-//		LOG.trace( "find soc {} x >={} : {} <- {}", gatherer.id(), 1, socKeys,
-//				this.capacityIndex );
-		final Object homeSiteRef = person.get( Persons.HomeSiteRef.class );
-		if( socKeys.isEmpty() )
-		{
-			final SocietyTuple result = createSociety( gatherer, person );
-//			LOG.debug( "Created first {} society: {}, index: {}", gatherer.id(),
-//					result, this.capacityIndex );
-			return result;
-		}
-		final double[] origin = positionOf( homeSiteRef );
-		double deg, degNearest = Double.MAX_VALUE;
-		for( int i = 0; i < socKeys.size(); i++ )
-		{
-			deg = euclideanDistance( origin,
-					positionOf( this.societies.select( socKeys.get( i ) )
-							.get( Societies.SiteRef.class ) ) );
-			if( deg < degNearest ) degNearest = deg;
-		}
-		final double kmNearest = degNearest * 111;
+
+		// if no societies yet, or all reached their capacity, create new
+		if( socKeys.isEmpty() ) return createSociety( gatherer, person );
+
+		// minimize society distance to person's home site
+		final Entry<SocietyTuple, Double> nearestSite = this.siteBroker
+				.selectNearest( person, IntStream.range( 0, socKeys.size() )
+						.mapToObj( socKeys::get ).map( this.societies::select ),
+						soc -> soc.get( Societies.SiteRef.class ) );
+
+		// if nearest is still too far, create new
+		final double kmNearest = Math.sqrt( nearestSite.getValue() ) * 111;
 		if( kmNearest > gatherer.maxKm() )
-		{
-//			LOG.debug( "Nearest of {} societies ({}) too far at ~{}km from {}",
-//					gatherer.id(), socKeys.size(), kmNearest, origin );
 			return createSociety( gatherer, person );
-		}
 
 		return this.societies.select( socKeys.get( 0 ) );
 	}
@@ -326,18 +390,25 @@ public class SimpleSocietyBroker implements SocietyBroker
 	SocietyTuple createSociety( final TimedGatherer gatherer,
 		final PersonTuple pp )
 	{
-		final Object cultureRef = pp.get( CultureRef.class );
-		final SiteTuple site = this.siteBroker.findNearby( gatherer.id(), pp );
+		final SiteTuple site;
+		final Long capacity = gatherer.sizeLimitDist().draw();
+		if( gatherer.id().equalsIgnoreCase( "junior" ) )
+			site = this.siteBroker.assignLocalPrimarySchool( pp );
+		else if( gatherer.id().equalsIgnoreCase( "career" ) )
+			site = this.siteBroker.createLocalIndustry( pp );
+		else
+			site = this.siteBroker.createLocalSME( pp );
+
 		final String name = gatherer.id() + "@"
 				+ site.get( Sites.SiteName.class );
-		final Long capacity = gatherer.sizeLimitDist().draw();
 		final SocietyTuple soc = this.societies.insertValues( map -> map
-				.put( Societies.CultureRef.class, cultureRef )
-				.put( Societies.MemberCount.class, 0 )
-				.put( Societies.Capacity.class, capacity.intValue() )
-				.put( Societies.Purpose.class, gatherer.id() )
-				.put( Societies.SiteRef.class, site.key() )
-				.put( Societies.SocietyName.class, name ) );
+				.set( Societies.EduCulture.class,
+						site.get( Sites.EduCulture.class ) )
+				.set( Societies.MemberCount.class, 0 )
+				.set( Societies.Capacity.class, capacity.intValue() )
+				.set( Societies.Purpose.class, gatherer.id() )
+				.set( Societies.SiteRef.class, (Comparable<?>) site.key() )
+				.set( Societies.SocietyName.class, name ) );
 
 		final List<Object> members = new ArrayList<>();
 		this.societyMembers.put( soc.key(), members );

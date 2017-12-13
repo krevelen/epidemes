@@ -300,8 +300,10 @@ public class JsonService
 							DemePersistence.MemCache.class )
 					.withProvider( DemeStats.class, DemeStats.Simple.class )
 
-					.build().createBinder( Collections
-							.singletonMap( EntityManagerFactory.class, EMF ) );
+					.build().createBinder( 
+							Collections
+							.singletonMap( EntityManagerFactory.class, EMF ) 
+							);
 
 			// init scenario TODO run & generate output later...
 			this.scenario = binder.inject( OutbreakScenario.class );

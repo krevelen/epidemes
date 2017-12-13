@@ -31,10 +31,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.aeonbits.owner.util.Collections;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -160,13 +160,26 @@ public class CbsRegionCentroidDensity
 
 	public static enum ExportCol
 	{
-		LATITUDE, LONGITUDE, RESIDENTIAL, INDUSTRIAL;
+		LATITUDE, LONGITUDE, RESIDENTS, EMPLOYEES;
+	}
+
+	@FunctionalInterface
+	public static interface ValueWeighter<T>
+	{
+		/**
+		 * @param dimensions
+		 * @param values
+		 * @return a stream of {@link WeightedValue}(s) for given dimensions and
+		 *         values
+		 */
+		Stream<WeightedValue<T>> toWeightedValues(
+			EnumMap<CBSRegionType, String> dimensions,
+			EnumMap<ExportCol, JsonNode> values );
 	}
 
 	public static <T> Map<String, ProbabilityDistribution<T>> parse(
 		final InputStream is, final ProbabilityDistribution.Factory distFact,
-		final BiFunction<String[], EnumMap<ExportCol, JsonNode>, T> keyMapper )
-		throws IOException
+		final ValueWeighter<T> wvMapper ) throws IOException
 	{
 		final JsonNode root = JsonUtil.getJOM().readTree( is );
 		return JsonUtil.stream( root )
@@ -176,33 +189,56 @@ public class CbsRegionCentroidDensity
 						CBSRegionType.COROP.getPrefix() ) )
 				.flatMap( crGm -> JsonUtil.stream( crGm.getValue(),
 						CBSRegionType.MUNICIPAL.getPrefix() ) )
-				.collect( Collectors.toMap( Map.Entry::getKey,
-						gmBoros -> distFact.createCategorical( JsonUtil
-								.stream( gmBoros.getValue() ).flatMap(
-										boroZip4 -> JsonUtil
-												.stream( boroZip4.getValue() )
-												.flatMap( zip4zip6 -> JsonUtil
-														.stream( zip4zip6
-																.getValue() )
-														.map( zip6Data -> toWeightedValue(
-																boroZip4.getKey(),
-																zip4zip6.getKey(),
-																zip6Data,
-																keyMapper ) ) ) ) ) ) );
+				.map( gmBoros ->
+				{
+					try
+					{
+						return Collections.entry( gmBoros.getKey(),
+								toDist( distFact, gmBoros, wvMapper ) );
+					} catch( final Exception e )
+					{
+						// empty
+						return null;
+					}
+				} ).filter( e -> e != null ).collect( Collectors
+						.toMap( Map.Entry::getKey, Map.Entry::getValue ) );
+
 	}
 
-	private static <T> WeightedValue<T> toWeightedValue( final String boro,
-		final String zip4, final Map.Entry<String, JsonNode> zip6Entry,
-		final BiFunction<String[], EnumMap<ExportCol, JsonNode>, T> keyMapper )
+	private static <T> ProbabilityDistribution<T> toDist(
+		final ProbabilityDistribution.Factory distFact,
+		final Map.Entry<String, JsonNode> gmBoros,
+		final ValueWeighter<T> wvMapper )
 	{
-		final String[] keys = { boro, zip4, zip6Entry.getKey() };
+		return distFact.createCategorical( JsonUtil.stream( gmBoros.getValue() ) //
+				.flatMap( boroZip4 -> JsonUtil.stream( boroZip4.getValue() ) //
+						.flatMap( zip4zip6 -> JsonUtil
+								.stream( zip4zip6.getValue() )
+								.flatMap( zip6Data -> toWeightedValues(
+										gmBoros.getKey(), boroZip4
+												.getKey(),
+										zip4zip6.getKey(), zip6Data,
+										wvMapper ) ) ) ) );
+	}
+
+	private static <T> Stream<WeightedValue<T>> toWeightedValues(
+		final String gm, final String boro, final String zip4,
+		final Map.Entry<String, JsonNode> zip6Entry,
+		final ValueWeighter<T> wvMapper )
+	{
+		final EnumMap<CBSRegionType, String> keys = new EnumMap<>(
+				CBSRegionType.class );
+		keys.put( CBSRegionType.MUNICIPAL, gm.substring( 2 ) );
+		keys.put( CBSRegionType.WARD, boro.substring( 0, 2 ) );
+		keys.put( CBSRegionType.BOROUGH, boro.substring( 2 ) );
+		keys.put( CBSRegionType.ZIP4, zip4 );
+		keys.put( CBSRegionType.ZIP6, zip6Entry.getKey() );
 		final EnumMap<ExportCol, JsonNode> values = JsonUtil
 				.stream( (ArrayNode) zip6Entry.getValue() )
 				.collect( Collectors.toMap( e -> ExportCol.values()[e.getKey()],
 						e -> e.getValue(), ( v1, v2 ) -> v2,
 						() -> new EnumMap<>( ExportCol.class ) ) );
-		return WeightedValue.of( keyMapper.apply( keys, values ), zip6Entry
-				.getValue().get( ExportCol.RESIDENTIAL.ordinal() ).asInt() );
+		return wvMapper.toWeightedValues( keys, values );
 	}
 
 	public static void main( final String[] args ) throws Exception
@@ -214,24 +250,29 @@ public class CbsRegionCentroidDensity
 
 			LOG.debug( "Aggregating into dist..." );
 			final Map<String, double[]> latLong = new HashMap<>();
-			final Map<String, ProbabilityDistribution<String>> gmZips = parse(
+			final Map<String, ProbabilityDistribution<String>> residentialDists = parse(
 					is, distFact, ( keys, values ) ->
 					{
-						final String key = String.join( "_", keys );
+						final String key = String.join( "_",
+								keys.values().stream().map( Object::toString )
+										.toArray( String[]::new ) );
 						final double[] pos = {
 						values.get( ExportCol.LATITUDE ).asDouble(),
 								values.get( ExportCol.LONGITUDE ).asDouble() };
 						latLong.put( key, pos );
-						return key;
+						return Stream.of( WeightedValue.of( key,
+								values.get( ExportCol.RESIDENTS ).asInt() ) );
 					} );
 
 			LOG.debug( "Testing dist fallback..." );
-			gmZips.keySet().stream().sorted().limit( 10 ).forEach( key ->
-			{
-				final String zip = gmZips.get( key ).draw();
-				LOG.debug( "draw {} -> {} -> {}", key, gmZips.get( key ).draw(),
-						latLong.get( zip ) );
-			} );
+			residentialDists.keySet().stream().sorted().limit( 10 )
+					.forEach( key ->
+					{
+						final String zip = residentialDists.get( key ).draw();
+						LOG.debug( "draw {} -> {} -> {}", key,
+								residentialDists.get( key ).draw(),
+								latLong.get( zip ) );
+					} );
 		}
 	}
 

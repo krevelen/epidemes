@@ -316,7 +316,7 @@ public class SimplePersonBroker implements PersonBroker
 		setupHouseholds( this.config.populationSize() );
 
 		// setup pickers AFTER households to prevent re-indexing
-		LOG.info( "Creating expansion/birth picker..." );
+		LOG.info( "...indexing potential mothers (expansion picker)" );
 		final Stream<BigDecimal> momAgeCats = IntStream
 				// prefix 5 years for those newly eligible during the simulation
 				.range( 15 - 5, 50 )
@@ -332,7 +332,7 @@ public class SimplePersonBroker implements PersonBroker
 						.thenBy( Households.KidRank.class )
 						.thenBy( Households.MomBirth.class, momAgeCats );
 
-		LOG.info( "Creating emigration picker..." );
+		LOG.info( "...indexing age of potential emigrant (emigration picker)" );
 		final Stream<BigDecimal> refAgeCats = IntStream
 				.range( 15 - 5, // minus newly eligible
 						100 )
@@ -348,7 +348,7 @@ public class SimplePersonBroker implements PersonBroker
 						.thenBy( Households.Composition.class )
 						.thenBy( Households.ReferentBirth.class, refAgeCats );
 
-		LOG.info( "Creating elimination/death picker..." );
+		LOG.info( "...indexing age of potential death (elimination picker)" );
 		final Stream<BigDecimal> birthAgeCats = IntStream
 				.range(
 						// minus newly eligible
@@ -435,11 +435,6 @@ public class SimplePersonBroker implements PersonBroker
 	private void setupHouseholds( final int n )
 	{
 		LOG.info( "Creating households..." );
-		final AtomicLong personCount = new AtomicLong(),
-				lastCount = new AtomicLong(),
-				t0 = new AtomicLong( System.currentTimeMillis() ),
-				lastTime = new AtomicLong( t0.get() );
-
 		final TreeMap<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>> values = (TreeMap<LocalDate, Collection<WeightedValue<Cbs71486json.Category>>>) Cbs71486json
 				.readAsync( () -> this.config.cbsHouseholdAges(), this.dtRange )
 				.filter( wv -> wv.getValue()
@@ -452,6 +447,10 @@ public class SimplePersonBroker implements PersonBroker
 		final ConditionalDistribution<Cbs71486json.Category, LocalDate> hhRegDist = ConditionalDistribution
 				.of( this.distFactory::createCategorical, values );
 		final CountDownLatch latch = new CountDownLatch( 1 );
+		final AtomicLong personCount = new AtomicLong(),
+				lastCount = new AtomicLong(),
+				t0 = new AtomicLong( System.currentTimeMillis() ),
+				lastTime = new AtomicLong( t0.get() );
 		new Thread( () ->
 		{
 			Thread.currentThread().setName( "hhMon" );
@@ -459,7 +458,7 @@ public class SimplePersonBroker implements PersonBroker
 			{
 				try
 				{
-					latch.await( 5, TimeUnit.SECONDS );
+					latch.await( 1, TimeUnit.SECONDS );
 				} catch( final InterruptedException e )
 				{
 					return;
@@ -470,7 +469,7 @@ public class SimplePersonBroker implements PersonBroker
 						t = System.currentTimeMillis(),
 						ti = lastTime.getAndSet( t );
 				LOG.info(
-						"Created {} of {} persons ({}%) in {}s, adding at {}/s...",
+						"...created {} of {} persons ({}%) in {}s, adding at {}/s...",
 						i, n,
 						DecimalUtil.toScale( DecimalUtil.divide( i * 100, n ),
 								1 ),
@@ -598,15 +597,15 @@ public class SimplePersonBroker implements PersonBroker
 		final Instant partnerBirth = now().subtract( Duration
 				.of( refAge.subtract( this.hhPartnerAgeDiffDist.draw() ) ) );
 		final HouseholdTuple hh = this.households.insertValues( map -> map
-				.put( Households.Composition.class, hhType )
-				.put( Households.KidRank.class,
+				.set( Households.Composition.class, hhType )
+				.set( Households.KidRank.class,
 						CBSBirthRank.values()[hhType.childCount()] )
-				.put( Households.HouseholdSeq.class, hhSeq )
-				.put( Households.ReferentBirth.class, refBirth.decimal() )
-				.put( Households.MomBirth.class,
+				.set( Households.HouseholdSeq.class, hhSeq )
+				.set( Households.ReferentBirth.class, refBirth.decimal() )
+				.set( Households.MomBirth.class,
 						hhType.couple() ? partnerBirth.decimal()
 								: Households.NO_MOM )
-				.put( Households.HomeRegionRef.class, hhCat.regionRef() ) );
+				.set( Households.HomeRegionRef.class, hhCat.regionRef() ) );
 
 		// add household's referent
 		final boolean refMale = true;
@@ -645,11 +644,11 @@ public class SimplePersonBroker implements PersonBroker
 		final BigDecimal birth )
 	{
 		return this.persons.insertValues( map -> map
-				.put( Persons.PersonSeq.class, this.indSeq.incrementAndGet() )
-				.put( Persons.HouseholdRef.class, hh.key() )
-				.put( Persons.HouseholdRank.class, rank )
-				.put( Persons.Birth.class, birth )
-				.put( Persons.Male.class, male ) );
+				.set( Persons.PersonSeq.class, this.indSeq.incrementAndGet() )
+				.set( Persons.HouseholdRef.class, hh.key() )
+				.set( Persons.HouseholdRank.class, rank )
+				.set( Persons.Birth.class, birth )
+				.set( Persons.Male.class, male ) );
 	}
 
 	private final AtomicReference<Cbs37201json.Category> pendingBirthCat = new AtomicReference<>();

@@ -21,6 +21,7 @@ package nl.rivm.cib.demo;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -46,6 +47,7 @@ import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
 import io.coala.log.LogUtil.Pretty;
+import io.coala.math.DecimalUtil;
 import io.coala.math3.Math3ProbabilityDistribution;
 import io.coala.math3.Math3PseudoRandom;
 import io.coala.random.DistributionParser;
@@ -102,23 +104,23 @@ public class DemoTest
 
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.DEMOGRAPHY_BASE );
-		LOG.debug( "Deme config: {}", JsonUtil.toJSON( demeConfig ) );
+//		LOG.debug( "Deme config: {}", JsonUtil.toJSON( demeConfig ) );
 
 		final JsonNode healthConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.EPIDEMIOLOGY_BASE );
-		LOG.debug( "Health config: {}", JsonUtil.toJSON( healthConfig ) );
+//		LOG.debug( "Health config: {}", JsonUtil.toJSON( healthConfig ) );
 
 		final JsonNode peerConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.HESITANCY_BASE );
-		LOG.debug( "Peer config: {}", JsonUtil.toJSON( peerConfig ) );
+//		LOG.debug( "Peer config: {}", JsonUtil.toJSON( peerConfig ) );
 
 		final JsonNode siteConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.GEOGRAPHY_BASE );
-		LOG.debug( "Site config: {}", JsonUtil.toJSON( siteConfig ) );
+//		LOG.debug( "Site config: {}", JsonUtil.toJSON( siteConfig ) );
 
 		final JsonNode societyConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.MOTION_BASE );
-		LOG.debug( "Society config: {}", JsonUtil.toJSON( societyConfig ) );
+//		LOG.debug( "Society config: {}", JsonUtil.toJSON( societyConfig ) );
 
 		final LocalConfig binderConfig = LocalConfig.builder().withProvider(
 				Scheduler.class, Dsol3Scheduler.class,
@@ -168,49 +170,49 @@ public class DemoTest
 		final String totalsFile = "daily-" + timestamp + "-sir-total.csv";
 		final String deltasFile = "daily-" + timestamp + "-sir-delta.csv";
 		final int n = 10;
-		Observable.using(
-				() -> Arrays.asList( new FileWriter( totalsFile, false ),
-						new FileWriter( deltasFile, false ) ),
-				fws -> model.atEach( "0 0 12 ? * *" ).map( self ->
+		Observable.using( () -> new FileWriter( totalsFile, false ),
+				fw -> model.atEach( "0 0 12 ? * *" ).map( self ->
 				{
 					final Map<String, EnumMap<Compartment, Long>> totals = self
-							.exportRegionalSIRTotal(),
-							deltas = self.exportRegionalSIRDelta();
+							.exportRegionalSIRTotal();
 					if( regNames.isEmpty() )
 					{
 						regNames.addAll( totals.keySet() );
-						fws.get( 0 ).write( toHeader( regNames ) );
-						fws.get( 1 ).write( toHeader( regNames ) );
+						fw.write( toHeader( regNames ) );
 					}
-					fws.get( 0 ).write( toLine( model.scheduler().nowDT(),
-							regNames, totals ) );
-					fws.get( 1 ).write( toLine( model.scheduler().nowDT(),
-							regNames, deltas ) );
-					fws.get( 0 ).flush();
-					fws.get( 1 ).flush();
-					return new Map[] { totals, deltas };
-				} ), fws ->
-				{
-					LOG.debug( "SIR totals written to {}", totalsFile );
-					LOG.debug( "SIR deltas written to {}", deltasFile );
-					fws.get( 0 ).close();
-					fws.get( 1 ).close();
-				} ).subscribe(
-						homeSIR -> LOG.debug(
-								"t={}\n TOTAL-top{}:{ {} }\n DELTA-top{}:{ {} }",
+					fw.write( toLine( model.scheduler().nowDT(), regNames,
+							totals ) );
+					fw.flush();
+					return totals;
+				} ), FileWriter::close ).subscribe(
+						homeSIR -> LOG.debug( "t={} TOTAL-top{}:{ {} }",
 								model.scheduler().nowDT(), n,
-								Pretty.of( () -> toLog( homeSIR[0], n ) ), n,
-								Pretty.of( () -> toLog( homeSIR[1], n ) ) ),
-						Throwable::printStackTrace );
-//
-//		model.atEach("0 0 12 ? * *", self-> LOG.debug( "t={} DELTA:{ {} }",
-//				model.scheduler().nowDT(),
-//				Pretty.of( () -> toLog( self. ) ));
-//		model.emitMixingStats( "0 0 12 ? * *" ).subscribe(
-//				homeSIR -> LOG.debug( "t={} DELTA:{ {} }",
-//						model.scheduler().nowDT(),
-//						Pretty.of( () -> toLog( homeSIR ) ) ),
-//				Throwable::printStackTrace );
+								Pretty.of( () -> toLog( homeSIR, n ) ) ),
+						Throwable::printStackTrace,
+						() -> LOG.debug( "SIR totals written to {}",
+								totalsFile ) );
+
+		Observable.using( () -> new FileWriter( deltasFile, false ),
+				fw -> model.atEach( "0 0 12 ? * *" ).map( self ->
+				{
+					final Map<String, EnumMap<Compartment, Long>> deltas = self
+							.exportRegionalSIRDelta();
+					if( regNames.isEmpty() )
+					{
+						regNames.addAll( deltas.keySet() );
+						fw.write( toHeader( regNames ) );
+					}
+					fw.write( toLine( model.scheduler().nowDT(), regNames,
+							deltas ) );
+					fw.flush();
+					return deltas;
+				} ), FileWriter::close ).subscribe(
+						homeSIR -> LOG.debug( "t={} DELTA-top{}:{ {} }",
+								model.scheduler().nowDT(), n,
+								Pretty.of( () -> toLog( homeSIR, n ) ) ),
+						Throwable::printStackTrace,
+						() -> LOG.debug( "SIR deltas written to {}",
+								deltasFile ) );
 
 		LOG.debug( "Starting..." );
 		model.run();
@@ -229,7 +231,7 @@ public class DemoTest
 	private String toHeader( final Set<String> colNames )
 	{
 		return "ActualTime" + sep + "VirtualTime" + sep
-				+ String.join( sep + " ",
+				+ String.join( sep,
 						colNames.stream().flatMap( reg -> sirCols.stream()
 								.map( c -> reg + '_' + c.name().charAt( 0 ) ) )
 								.toArray( String[]::new ) )
@@ -244,7 +246,7 @@ public class DemoTest
 
 				+ sep + DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( t ) //
 				+ sep
-				+ String.join( sep + " ", colNames.stream()
+				+ String.join( sep, colNames.stream()
 						.flatMap( reg -> sirCols.stream().map( c -> homeSIR
 								.computeIfAbsent( reg,
 										k -> new EnumMap<>(
@@ -254,23 +256,24 @@ public class DemoTest
 				+ eol;
 	}
 
+	private static BigDecimal evaluate( final String key,
+		final Map<String, EnumMap<Compartment, Long>> values )
+	{
+		final EnumMap<Compartment, Long> v = values.computeIfAbsent( key,
+				k -> new EnumMap<>( Compartment.class ) );
+		final Long dividend = v.get( logSortReg );
+		if( dividend == null || dividend.longValue() == 0 )
+			return BigDecimal.ZERO;
+		return DecimalUtil.divide( dividend,
+				v.values().stream().mapToLong( n -> n ).sum() );
+	}
+
 	private String toLog( final Map<String, EnumMap<Compartment, Long>> homeSIR,
 		final int n )
 	{
-		return String.join( ", ", homeSIR.keySet().stream().sorted(
-
-				( r, l ) -> Long
-						.compare( homeSIR
-								.computeIfAbsent( l,
-										k -> new EnumMap<>(
-												Compartment.class ) )
-								.computeIfAbsent( logSortReg, k -> 0L ),
-								homeSIR
-										.computeIfAbsent( r,
-												k -> new EnumMap<>(
-														Compartment.class ) )
-										.computeIfAbsent( logSortReg,
-												k -> 0L ) ) )
+		return String.join( ", ", homeSIR.keySet().stream()
+				.sorted( ( r, l ) -> evaluate( l, homeSIR )
+						.compareTo( evaluate( r, homeSIR ) ) )
 				.limit( n )
 				.map( reg -> reg + ":["
 						+ String.join( ",", sirCols.stream().map( c -> homeSIR

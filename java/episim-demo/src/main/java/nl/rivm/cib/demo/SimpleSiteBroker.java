@@ -19,16 +19,22 @@
  */
 package nl.rivm.cib.demo;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.aeonbits.owner.util.Collections;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,6 +44,8 @@ import io.coala.config.YamlConfig;
 import io.coala.data.DataLayer;
 import io.coala.data.Table;
 import io.coala.log.LogUtil;
+import io.coala.math.DecimalUtil;
+import io.coala.math.WeightedValue;
 import io.coala.random.ConditionalDistribution;
 import io.coala.random.ProbabilityDistribution;
 import io.coala.time.Scheduler;
@@ -51,10 +59,14 @@ import nl.rivm.cib.demo.DemoModel.Persons;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Sites;
+import nl.rivm.cib.demo.DemoModel.Sites.BuiltFunction;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
-import nl.rivm.cib.demo.DemoModel.Social.EduCulture;
+import nl.rivm.cib.demo.DemoModel.Social.Pedagogy;
+import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.json.CbsRegionCentroidDensity;
+import nl.rivm.cib.json.CbsRegionCentroidDensity.ExportCol;
 import nl.rivm.cib.json.DuoPrimarySchool;
+import nl.rivm.cib.json.DuoPrimarySchool.EduCol;
 
 /**
  * {@link SimpleSiteBroker}
@@ -79,7 +91,7 @@ public class SimpleSiteBroker implements SiteBroker
 		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM
 				+ "gm_pc6_centroid_density.json" )
 		@ConverterClass( InputStreamConverter.class )
-		InputStream cbsZipcodeResidenceData();
+		InputStream cbsZipcodeDensityData();
 
 		@Key( "primary-school-densities" )
 		@DefaultValue( DemoConfig.CONFIG_BASE_PARAM + "gm_pc4_po_pupils.json" )
@@ -113,6 +125,11 @@ public class SimpleSiteBroker implements SiteBroker
 		return this.events;
 	}
 
+	// TODO map missing to new (historic/merged) regions, eg CBS70739ned
+	private static final String FALLBACK_REG = "GM0363";
+
+	private final AtomicLong siteSeq = new AtomicLong();
+
 //	private Table<Persons.PersonTuple> persons;
 	private Table<HouseholdTuple> households;
 	private Table<SiteTuple> sites;
@@ -124,85 +141,145 @@ public class SimpleSiteBroker implements SiteBroker
 	/** north-south, latitude, parallel */
 //	private IndexPartition nsParallel;
 
-	private final Map<String, double[]> siteCoords = new HashMap<>();
-//	private final Map<Comparable<?>, NavigableSet<Comparable<?>>> regionSites = new HashMap<>();
-	private ConditionalDistribution<Comparable<?>, String> regionalHomeSiteDist;
 	/** */
-	private final Map<String, EnumMap<DuoPrimarySchool.ExportCol, JsonNode>> schoolCache = new HashMap<>();
+	private final Map<String, EnumMap<ExportCol, JsonNode>> zipCache = new HashMap<>();
 	/** */
-	private ConditionalDistribution<String, Object[]> primarySchoolDist;
+	private final Map<String, EnumMap<DuoPrimarySchool.EduCol, JsonNode>> schoolCache = new HashMap<>();
+	/** zip codes with residences */
+	private ConditionalDistribution<String, String> regionalHomeSiteDist;
+	/** zip codes with FTE >= {@link #SMALL_EMPLOYER_CAPACITY} */
+	private ConditionalDistribution<String, String> regionalCorpZipDist;
+	/** zip codes with FTE < {@link #SMALL_EMPLOYER_CAPACITY} */
+	private ConditionalDistribution<String, String> regionalSMESiteDist;
+	/** */
+	private TreeMap<String, Map<Pedagogy, ProbabilityDistribution<String>>> primarySchools;
 
 	@Override
 	public SimpleSiteBroker reset() throws Exception
 	{
 		this.sites = this.data.getTable( SiteTuple.class );
-		this.households = this.data.getTable( HouseholdTuple.class ).onCreate(
-				hh -> hh.set( Households.HomeSiteRef.class,
-						this.regionalHomeSiteDist.draw( (String) hh
-								.get( Households.HomeRegionRef.class ) ) ),
-				scheduler()::fail );
+		this.households = this.data.getTable( HouseholdTuple.class )
+				.onCreate( this::assignResidence, scheduler()::fail );
 
 //		this.persons = 
-		this.data.getTable( PersonTuple.class ).onCreate( this::onCreate,
-				scheduler()::fail );
+		this.data.getTable( PersonTuple.class )
+				.onCreate( this::copyHouseholdHome, scheduler()::fail );
 
-		final Map<String, ProbabilityDistribution<String>> gmZips = CbsRegionCentroidDensity
-				.parse( this.config.cbsZipcodeResidenceData(), this.distFactory,
-						( keys, values ) ->
-						{
-							final String siteName = String.join( "_", keys );
-							final double[] coords = {
-					values.get( CbsRegionCentroidDensity.ExportCol.LATITUDE )
-							.asDouble(), values
-									.get( CbsRegionCentroidDensity.ExportCol.LONGITUDE )
-									.asDouble() };
-							this.siteCoords.put( siteName, coords );
-							return siteName;
-						} );
-
-		try( final InputStream is = this.config.duoPrimarySchoolData() )
-		{
-			final Map<String, Map<EduCulture, ProbabilityDistribution<String>>> dists = DuoPrimarySchool
-					.parse( is, this.distFactory, ( id, arr ) ->
-					{
-						this.schoolCache.computeIfAbsent( id, k -> arr );
-						return EduCulture.resolvePO( arr );
-					} );
-
-			this.primarySchoolDist = ConditionalDistribution.of( params -> dists
-					.computeIfAbsent( params[0].toString(),
-							zip -> new HashMap<>() )
-					.computeIfAbsent( (EduCulture) params[1], cat -> dists
-							.get( params[0] ).get( EduCulture.OTHERS ) ) );
-		}
-
-		this.regionalHomeSiteDist = regName ->
-		{
-			final String siteName = gmZips.computeIfAbsent( regName, k ->
-			{
-				// TODO map missing to new (merged) regions, see CBS 70739ned
-//				LOG.debug( "Using fallback site dist for region: {}", regName );
-				return gmZips.get( "GM0363" );
-			} ).draw();
-			final double[] siteCoords = this.siteCoords.get( siteName );
-			final SiteTuple site = this.sites.insertValues(
-					map -> map.put( Sites.RegionRef.class, regName )
-							.put( Sites.Purpose.class, HOME_FUNCTION )
-							.put( Sites.SiteName.class, siteName )
-							.put( Sites.Latitude.class, siteCoords[0] )
-							.put( Sites.Longitude.class, siteCoords[1] )
-//							.put( Sites.Capacity.class, 10 ) 
-			);
-//			this.regionSites.computeIfAbsent( regName, k -> new TreeSet<>() )
-//					.add( (Comparable<?>) site.key() );
-			return (Comparable<?>) site.key();
-		};
+		LOG.debug( "...importing home sites" );
+		setupResidentialSites();
+		LOG.debug( "...importing large enterprise/corporate sites" );
+		setupIndustrialSites();
+		LOG.debug( "...importing small & medium enterprise sites" );
+		setupSMESites();
+		LOG.debug( "...importing primary school sites" );
+		setupSchoolSites();
 
 		LOG.debug( "{} ready", getClass().getSimpleName() );
 		return this;
 	}
 
-	public void onCreate( final PersonTuple pp )
+	private Stream<WeightedValue<String>> toWeightedValues(
+		final EnumMap<CBSRegionType, String> keys,
+		final EnumMap<ExportCol, JsonNode> values, final ExportCol weightCol )
+	{
+		final String siteName = String.join( "_", keys.values().stream()
+				.map( Object::toString ).toArray( String[]::new ) );
+		this.zipCache.computeIfAbsent( siteName, k -> values );
+		return Stream.of(
+				WeightedValue.of( siteName, values.get( weightCol ).asInt() ) );
+	}
+
+	protected void setupResidentialSites() throws IOException
+	{
+		try( final InputStream is = this.config.cbsZipcodeDensityData() )
+		{
+			final Map<String, ProbabilityDistribution<String>> residenceDists = //
+					CbsRegionCentroidDensity.parse( is, this.distFactory,
+							( keys, zip6 ) -> toWeightedValues( keys, zip6,
+									ExportCol.RESIDENTS ) );
+
+			this.regionalHomeSiteDist = regName -> residenceDists
+					.computeIfAbsent( regName,
+							k -> residenceDists.get( FALLBACK_REG ) )
+					.draw();
+		}
+	}
+
+	protected void setupIndustrialSites() throws IOException
+	{
+		try( final InputStream is = this.config.cbsZipcodeDensityData() )
+		{
+			final Map<String, ProbabilityDistribution<String>> workZipDists = //
+					CbsRegionCentroidDensity.parse( is, this.distFactory,
+							( keys,
+								zip6 ) -> zip6.get( ExportCol.EMPLOYEES )
+										// skip small-medium enterprise zones
+										.asInt() < ZIP6_SME_FTE_LIMIT
+												? Stream.empty()
+												: toWeightedValues( keys, zip6,
+														ExportCol.EMPLOYEES ) );
+
+			this.regionalCorpZipDist = regName -> workZipDists.computeIfAbsent(
+					regName, k -> workZipDists.get( FALLBACK_REG ) ).draw();
+		}
+	}
+
+	protected void setupSMESites() throws IOException
+	{
+		try( final InputStream is = this.config.cbsZipcodeDensityData() )
+		{
+			final Map<String, ProbabilityDistribution<String>> smeZipDists = //
+					CbsRegionCentroidDensity.parse( is, this.distFactory,
+							( keys,
+								zip6 ) -> zip6.get( ExportCol.EMPLOYEES )
+										// only small-medium enterprise zones
+										.asInt() >= ZIP6_SME_FTE_LIMIT
+												? Stream.empty()
+												: toWeightedValues( keys, zip6,
+														ExportCol.EMPLOYEES ) );
+
+			this.regionalSMESiteDist = regName -> smeZipDists.computeIfAbsent(
+					regName, k -> smeZipDists.get( FALLBACK_REG ) ).draw();
+		}
+	}
+
+	protected void setupSchoolSites() throws IOException
+	{
+		try( final InputStream is = this.config.duoPrimarySchoolData() )
+		{
+			this.primarySchools = DuoPrimarySchool.parse( is, this.distFactory,
+					( id, values ) ->
+					{
+						// store school data and categorize by 'culture'
+						this.schoolCache.computeIfAbsent( id, k -> values );
+						return Pedagogy.resolveDuo( values );
+					} );
+		}
+	}
+
+	protected void assignResidence( final HouseholdTuple hh )
+	{
+		final String homeReg = (String) hh
+				.get( Households.HomeRegionRef.class );
+		final String homeBoroZip = this.regionalHomeSiteDist.draw( homeReg );
+		final EnumMap<ExportCol, JsonNode> zipData = this.zipCache
+				.get( homeBoroZip );
+		final SiteTuple site = this.sites.insertValues( map -> map
+				.set( Sites.RegionRef.class, homeReg )
+				.set( Sites.SiteFunction.class, BuiltFunction.RESIDENCE )
+				.set( Sites.SiteName.class,
+						homeBoroZip + "/" + this.siteSeq.incrementAndGet() )
+				.set( Sites.Latitude.class,
+						zipData.get( ExportCol.LATITUDE ).asDouble() )
+				.set( Sites.Longitude.class,
+						zipData.get( ExportCol.LONGITUDE ).asDouble() )
+//				.put( Sites.Capacity.class, 
+//									zipData.get( ExportCol.RESIDENTIAL ) 
+		);
+		hh.set( Households.HomeSiteRef.class, (Comparable<?>) site.key() );
+	}
+
+	protected void copyHouseholdHome( final PersonTuple pp )
 	{
 		final HouseholdTuple hh = this.households
 				.select( pp.get( Persons.HouseholdRef.class ) );
@@ -211,48 +288,177 @@ public class SimpleSiteBroker implements SiteBroker
 				homeSiteRef = hh.get( Households.HomeSiteRef.class );
 		pp.set( Persons.HomeRegionRef.class, homeRegRef );
 		pp.set( Persons.HomeSiteRef.class, homeSiteRef );
-//		pp.set( Persons.SiteRef.class, homeSiteRef );
-//		LOG.debug( "Updating homeRef to {} in {} for {}", homeSiteRef,
-//				homeRegRef, pp );
 	}
 
-	private static final String HOME_FUNCTION = "home";
+	private double distanceSquaredDegrees( final double[] latlon,
+		final SiteTuple site )
+	{
+		return distanceSquaredDegrees( latlon, site.get( Sites.Latitude.class ),
+				site.get( Sites.Longitude.class ) );
+	}
 
-	private final AtomicLong siteSeq = new AtomicLong();
+	private double distanceSquaredDegrees( final double[] x, final double... y )
+	{
+		double[] dx = { x[0] - x[0], x[1] - y[1] };
+		return dx[0] * dx[0] + dx[1] * dx[1];
+	}
 
 	@Override
-	public SiteTuple findNearby( final String lifeRole, final PersonTuple pp )
+	public <T> Entry<T, Double> selectNearest( final PersonTuple pp,
+		final Stream<T> options, final Function<T, Object> optionSiteKeyMapper )
 	{
-//		final ComparableQuantity<Time> age = ageOf( person );
-		final Object originSiteRef = pp.get( Persons.HomeSiteRef.class );
-		final SiteTuple origin = this.sites
-				.select( Objects.requireNonNull( originSiteRef, "homeless?" ) );
-
-		final String homeZip = origin.get( Sites.SiteName.class ).substring( 5,
-				9 );
-		final EduCulture cult = EduCulture.OTHERS; // TODO from hh
-		String schoolName = this.primarySchoolDist.draw( homeZip, cult );
-		if( schoolName == null )
-			LOG.debug( "No school dist for {} x {}", homeZip, cult );
-//		else
-//			LOG.debug( "Setting school for {}, age {}: {} x {} -> {}",
-//					person, QuantityUtil.pretty( age, TimeUnits.YEAR, 1 ),
-//					homeZip, cult,
-//					this.schoolCache.get( schoolName ).values() );
-
-		// TODO use actual locations/regions
-//		LOG.warn( "TODO extend existing {} site near {}", lifeRole, origin );
-		final Double lat = origin.get( Sites.Latitude.class ),
-				lon = origin.get( Sites.Longitude.class );
-		final Object regRef = origin.get( Sites.RegionRef.class );
-		return this.sites
-				.insertValues( map -> map.put( Sites.RegionRef.class, regRef )
-						.put( Sites.SiteName.class,
-								regRef + "/" + this.siteSeq.incrementAndGet() )
-						.put( Sites.Purpose.class, lifeRole )
-						.put( Sites.Latitude.class, lat )
-						.put( Sites.Longitude.class, lon )
-						.put( Sites.Capacity.class, 100 ) ); // TODO
+		return selectNearest( pp, options,
+				( targetCoords, t ) -> distanceSquaredDegrees( targetCoords,
+						this.sites.select( optionSiteKeyMapper.apply( t ) ) ) );
 	}
 
+	public <T> Entry<T, Double> selectNearest( final PersonTuple pp,
+		final Stream<T> options,
+		final BiFunction<double[], T, Double> distanceMapper )
+	{
+		final SiteTuple targetSite = this.sites
+				.select( pp.get( Persons.HomeSiteRef.class ) );
+		final double[] targetCoords = { targetSite.get( Sites.Latitude.class ),
+				targetSite.get( Sites.Longitude.class ) };
+		return options
+				.map( t -> Collections.entry( t,
+						distanceMapper.apply( targetCoords, t ) ) )
+				.min( ( l, r ) -> Double.compare( l.getValue(), r.getValue() ) )
+				.orElse( null );
+	}
+
+	@Override
+	public SiteTuple createLocalSME( final PersonTuple pp )
+	{
+		final String smeRegRef = (String) pp.get( Persons.HomeRegionRef.class );
+		final String smeBoroZip = this.regionalSMESiteDist.draw( smeRegRef );
+		final EnumMap<ExportCol, JsonNode> smeZipData = this.zipCache
+				.get( smeBoroZip );
+		return this.sites.insertValues( map -> map
+				.set( Sites.RegionRef.class, smeRegRef )
+				.set( Sites.SiteFunction.class, BuiltFunction.SMALL_ENTERPRISE )
+				.set( Sites.SiteName.class,
+						smeBoroZip + "/" + this.siteSeq.incrementAndGet() )
+				.set( Sites.Latitude.class,
+						smeZipData.get( ExportCol.LATITUDE ).asDouble() )
+				.set( Sites.Longitude.class,
+						smeZipData.get( ExportCol.LONGITUDE ).asDouble() )
+//				.put( Sites.Capacity.class,
+//						smeZipData.get( ExportCol.EMPLOYEES ) ) 
+		);
+	}
+
+	@Override
+	public SiteTuple createLocalIndustry( final PersonTuple pp )
+	{
+		final String corpRegRef = (String) pp
+				.get( Persons.HomeRegionRef.class );
+		final String corpBoroZip = this.regionalCorpZipDist.draw( corpRegRef );
+		final EnumMap<ExportCol, JsonNode> corpZipData = this.zipCache
+				.get( corpBoroZip );
+		return this.sites.insertValues( map -> map
+				.set( Sites.RegionRef.class, corpRegRef )
+				.set( Sites.SiteFunction.class, BuiltFunction.LARGE_ENTERPRISE )
+				.set( Sites.SiteName.class,
+						corpBoroZip + "/" + this.siteSeq.incrementAndGet() )
+				.set( Sites.Latitude.class,
+						corpZipData.get( ExportCol.LATITUDE ).asDouble() )
+				.set( Sites.Longitude.class,
+						corpZipData.get( ExportCol.LONGITUDE ).asDouble() )
+//				.put( Sites.Capacity.class,
+//						corpZipData.get( ExportCol.EMPLOYEES ) ) 
+		);
+	}
+
+	@Override
+	public SiteTuple assignLocalPrimarySchool( final PersonTuple pp )
+	{
+		final HouseholdTuple hh = this.households
+				.get( pp.get( Persons.HouseholdRef.class ) );
+		final Pedagogy hhPedagogy = hh.get( Households.EduCulture.class );
+		final SiteTuple homeSite = this.sites
+				.select( pp.get( Persons.HomeSiteRef.class ) );
+		// crop "0153_00_05_7512_CJ" (GM_WK_BU_PC4_PC6) to PC4 [11..11+4]
+		final String siteName = homeSite.get( Sites.SiteName.class ),
+				homeZip = siteName.substring( 11, 15 );
+
+		final Map<Pedagogy, ProbabilityDistribution<String>> zipSchools = this.primarySchools
+				.computeIfAbsent( homeZip, k -> new HashMap<>() );
+		final ProbabilityDistribution<String> pedagogySchools = hhPedagogy == null
+				? null : zipSchools.get( hhPedagogy );
+
+		final String schoolName;
+		if( pedagogySchools != null ) // hh already has a pedagogy (for sibling)
+			schoolName = pedagogySchools.draw();
+		else if( hhPedagogy == null && !zipSchools.isEmpty() )
+			// apply local school/pedagogy distributions for first child
+			schoolName =
+//					zipSchools.containsKey( Pedagogy.OTHERS )
+//					? zipSchools.get( Pedagogy.OTHERS ).draw()
+//					: 
+					zipSchools.values().iterator().next().draw();
+		else
+		{
+			// search all schools for the nearest of the same pedagogy, if any
+			final Entry<Entry<String, EnumMap<EduCol, JsonNode>>, Double> nearest = selectNearest(
+					pp,
+					this.schoolCache.entrySet().stream()
+							.filter( e -> hhPedagogy == null || Pedagogy
+									.resolveDuo( e.getValue() ) == hhPedagogy ),
+					( targetCoords, entry ) -> distanceSquaredDegrees(
+							targetCoords,
+							entry.getValue().get( EduCol.LATITUDE ).asDouble(),
+							entry.getValue().get( EduCol.LONGITUDE )
+									.asDouble() ) );
+
+			schoolName = nearest.getKey().getKey();
+			LOG.debug( "...no record for {}/{}, elected nearest: {} (at {}km)",
+					homeZip, hhPedagogy, schoolName, DecimalUtil.pretty(
+							() -> Math.sqrt( nearest.getValue() ) * 111, 2 ) );
+
+			// cache search result for other children from same zip/pedagogy
+			zipSchools
+					.computeIfAbsent(
+							hhPedagogy == null
+									? Pedagogy.resolveDuo(
+											nearest.getKey().getValue() )
+									: hhPedagogy,
+							k -> ProbabilityDistribution
+									.createDeterministic( schoolName ) );
+
+			final SiteTuple schoolSite = this.sites
+					.selectWhere(
+							site -> site.isEqual( Sites.SiteFunction.class,
+									BuiltFunction.PRIMARY_EDUCATION )
+									&& site.isEqual( Sites.SiteName.class,
+											schoolName ) )
+					.findAny().orElse( null );
+			if( schoolSite != null ) return schoolSite;
+		}
+
+		final EnumMap<EduCol, JsonNode> values = this.schoolCache
+				.get( schoolName );
+		final Pedagogy sitePedagogy = Pedagogy.resolveDuo( values );
+
+		// update household culture / pedagogy
+		if( hhPedagogy == null )
+			hh.updateAndGet( Households.EduCulture.class, old -> sitePedagogy );
+
+		// create the elected school's site
+		return this.sites.insertValues( map -> map
+				.set( Sites.SiteName.class, schoolName )
+				.set( Sites.SiteFunction.class,
+						BuiltFunction.PRIMARY_EDUCATION )
+				.set( Sites.EduCulture.class, sitePedagogy )
+				.set( Sites.RegionRef.class,
+						values.get( DuoPrimarySchool.EduCol.GEMEENTE )
+								.asText() )
+				.set( Sites.Latitude.class,
+						values.get( DuoPrimarySchool.EduCol.LATITUDE )
+								.asDouble() )
+				.set( Sites.Longitude.class, values
+						.get( DuoPrimarySchool.EduCol.LONGITUDE ).asDouble() )
+//				.put( Sites.Capacity.class, 1000 ) 
+		);
+	}
 }

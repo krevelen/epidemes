@@ -388,6 +388,31 @@ public class SimplePeerBroker implements PeerBroker
 		// TODO auto-assign to new persons
 		this.households = this.data.getTable( HouseholdTuple.class );
 		this.households.onCreate( this::connectHousehold, scheduler()::fail );
+		this.households.onUpdate( Households.EduCulture.class,
+				( hhKey, prev, edu ) ->
+				{
+					final HouseholdTuple hh = this.households.get( hhKey );
+					switch( edu )
+					{
+					case ALTERNATIVE:
+					case REFORMED:
+						hh.updateAndGet( Households.Confidence.class,
+								old -> BigDecimal.ZERO );
+						hh.updateAndGet( Households.Complacency.class,
+								old -> BigDecimal.ONE );
+						LOG.debug( "HH re-positioned NEG: {}", hh );
+						break;
+						
+					case OTHERS:
+					case SPECIAL:
+					default:
+						hh.updateAndGet( Households.Confidence.class,
+								old -> BigDecimal.ONE );
+						hh.updateAndGet( Households.Complacency.class,
+								old -> BigDecimal.ZERO );
+						LOG.debug( "HH re-positioned POS: {}", hh );
+					}
+				}, scheduler()::fail );
 
 		// reference to json indices
 //		this.hesitancyDist = this.config

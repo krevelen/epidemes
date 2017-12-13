@@ -86,25 +86,25 @@ public class DuoPrimarySchool
 
 	public static final String SCHOOLS_KEY = "schools";
 
-	public enum ExportCol
+	public enum EduCol
 	{
 		GEMEENTE, PO_SOORT, DENOMINATIE, BRIN, VESTIGING, POSTCODE, LATITUDE, LONGITUDE
 	};
 
 	private static final String outFileName = "dist/region-primary-school-students.json";
 
-	private static EnumMap<ExportCol, JsonNode> toEnumMap( final JsonNode node )
+	private static EnumMap<EduCol, JsonNode> toEnumMap( final JsonNode node )
 	{
 		return JsonUtil.stream( (ArrayNode) node ).collect( Collectors.toMap(
-				e -> ExportCol.values()[e.getKey()], e -> e.getValue(),
+				e -> EduCol.values()[e.getKey()], e -> e.getValue(),
 				( v1, v2 ) -> v2,
-				() -> new EnumMap<ExportCol, JsonNode>( ExportCol.class ) ) );
+				() -> new EnumMap<EduCol, JsonNode>( EduCol.class ) ) );
 	}
 
-	public static <T> Map<String, Map<T, ProbabilityDistribution<String>>>
+	public static <T> TreeMap<String, Map<T, ProbabilityDistribution<String>>>
 		parse( final InputStream is,
 			final ProbabilityDistribution.Factory distFact,
-			final BiFunction<String, EnumMap<ExportCol, JsonNode>, T> classifier )
+			final BiFunction<String, EnumMap<EduCol, JsonNode>, T> classifier )
 			throws IOException
 	{
 		final JsonNode root = JsonUtil.getJOM().readTree( is );
@@ -139,7 +139,7 @@ public class DuoPrimarySchool
 																		wv.getValue()
 																				.asInt() ) ) ),
 										( v1, v2 ) -> v2, HashMap::new ) ),
-						( v1, v2 ) -> v2, HashMap::new ) );
+						( v1, v2 ) -> v2, TreeMap::new ) );
 	}
 
 	public static void main( final String[] args ) throws Exception
@@ -238,12 +238,12 @@ public class DuoPrimarySchool
 
 			final String LUTHER = "po_luther", STEINER = "po_steiner",
 					SPECIAL = "po_special", REST = "po_rest";
-			final Map<String, EnumMap<ExportCol, JsonNode>> schoolCache = new HashMap<>();
+			final Map<String, EnumMap<EduCol, JsonNode>> schoolCache = new HashMap<>();
 			final Map<String, Map<String, ProbabilityDistribution<String>>> zipCultDists = parse(
 					is, distFact, ( id, arr ) ->
 					{
 						schoolCache.computeIfAbsent( id, k -> arr );
-						final String denom = arr.get( ExportCol.DENOMINATIE )
+						final String denom = arr.get( EduCol.DENOMINATIE )
 								.asText();
 						if( denom.startsWith( "Prot" ) // 23.1%
 								|| denom.startsWith( "Geref" ) // 1.2%
@@ -253,7 +253,7 @@ public class DuoPrimarySchool
 						if( denom.startsWith( "Antro" ) ) // 0.9%
 							return STEINER;
 
-						final String type = arr.get( ExportCol.PO_SOORT )
+						final String type = arr.get( EduCol.PO_SOORT )
 								.asText();
 						if( type.startsWith( "S" ) || type.contains( "s" ) )
 							return SPECIAL;
@@ -272,11 +272,11 @@ public class DuoPrimarySchool
 			LOG.debug( "Testing dist fallback..." );
 			zipCultDists.keySet().stream().sorted().limit( 10 )
 					.forEach( pc4 -> Arrays.asList( LUTHER, STEINER, SPECIAL )
-							.stream()
-							.forEach( cat -> LOG.debug(
+							.stream().forEach( cat -> LOG.debug(
 									"...draw for {} x {}: {}", pc4, cat,
-									schoolCache.get( pc4SchoolDist.draw( pc4,
-											cat ) ) ) ) );
+									schoolCache.get( pc4SchoolDist.draw(
+											new Object[]
+									{ pc4, cat } ) ) ) ) );
 		}
 	}
 }

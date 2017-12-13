@@ -28,12 +28,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -61,6 +64,7 @@ import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
+import nl.rivm.cib.demo.DemoModel.Social.Pedagogy;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.episim.model.SocialGatherer;
@@ -69,7 +73,7 @@ import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
-import nl.rivm.cib.json.DuoPrimarySchool.ExportCol;
+import nl.rivm.cib.json.DuoPrimarySchool.EduCol;
 import tec.uom.se.ComparableQuantity;
 
 /**
@@ -83,30 +87,10 @@ public interface DemoModel
 	Long NA = -1L;
 
 	Observable<DemoModel> atEach( String timing );
-	
-	 Map<String, EnumMap<Compartment, Long>> exportRegionalSIRTotal();
-		
-	 Map<String, EnumMap<Compartment, Long>> exportRegionalSIRDelta();
 
-	interface Cultures
-	{
-//		@SuppressWarnings( "serial" )
-//		class CultureSeq extends AtomicReference<Object>
-//			implements Property<Object>
-//		{
-//			// track cultures through time (index key is data source dependent)
-//		}
+	Map<String, EnumMap<Compartment, Long>> exportRegionalSIRTotal();
 
-		@SuppressWarnings( "serial" )
-		class NormativeAttitude extends AtomicReference<BigDecimal>
-			implements Property<BigDecimal>
-		{
-		}
-
-		List<Class<?>> PROPERTIES = Arrays.asList(
-//				Cultures.CultureSeq.class,
-				Cultures.NormativeAttitude.class );
-	}
+	Map<String, EnumMap<Compartment, Long>> exportRegionalSIRDelta();
 
 	@SuppressWarnings( "serial" )
 	interface Households
@@ -120,8 +104,8 @@ public interface DemoModel
 		}
 
 		@SuppressWarnings( "rawtypes" )
-		class CultureRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
+		class EduCulture extends AtomicReference<Pedagogy>
+			implements Property<Pedagogy>
 		{
 		}
 
@@ -173,7 +157,7 @@ public interface DemoModel
 		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
 				HomeRegionRef.class, HomeSiteRef.class, Composition.class,
 				KidRank.class, ReferentBirth.class, MomBirth.class,
-				CultureRef.class, HouseholdSeq.class, Complacency.class,
+				EduCulture.class, HouseholdSeq.class, Complacency.class,
 				Confidence.class );
 
 		class HouseholdTuple extends Tuple
@@ -348,6 +332,12 @@ public interface DemoModel
 	@SuppressWarnings( "serial" )
 	interface Sites
 	{
+
+		enum BuiltFunction
+		{
+			RESIDENCE, LARGE_ENTERPRISE, SMALL_ENTERPRISE, PRIMARY_EDUCATION,;
+		}
+
 		class SiteName extends AtomicReference<String>
 			implements Property<String>
 		{
@@ -369,8 +359,13 @@ public interface DemoModel
 		{
 		}
 
-		class Purpose extends AtomicReference<String>
-			implements Property<String>
+		class SiteFunction extends AtomicReference<BuiltFunction>
+			implements Property<BuiltFunction>
+		{
+		}
+
+		class EduCulture extends AtomicReference<Pedagogy>
+			implements Property<Pedagogy>
 		{
 		}
 
@@ -391,9 +386,9 @@ public interface DemoModel
 
 		@SuppressWarnings( "rawtypes" )
 		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				Pressure.class, Occupancy.class, SiteName.class, Purpose.class,
-				RegionRef.class, Latitude.class, Longitude.class,
-				Capacity.class );
+				Pressure.class, Occupancy.class, SiteName.class,
+				SiteFunction.class, EduCulture.class, RegionRef.class,
+				Latitude.class, Longitude.class, Capacity.class );
 
 		class SiteTuple extends Tuple
 		{
@@ -421,9 +416,8 @@ public interface DemoModel
 		{
 		}
 
-		@SuppressWarnings( "rawtypes" )
-		class CultureRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
+		class EduCulture extends AtomicReference<Pedagogy>
+			implements Property<Pedagogy>
 		{
 		}
 
@@ -445,7 +439,7 @@ public interface DemoModel
 
 		@SuppressWarnings( "rawtypes" )
 		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				CultureRef.class, MemberCount.class, Purpose.class,
+				EduCulture.class, MemberCount.class, Purpose.class,
 				Capacity.class, SocietyName.class, SiteRef.class );
 
 		class SocietyTuple extends Tuple
@@ -505,28 +499,53 @@ public interface DemoModel
 	{
 		// social/mental peer pressure networks, dynamics
 
-		enum EduCulture
+		enum Pedagogy
 		{
-			REFORMED, STEINER, SPECIAL, OTHERS;
+			/**
+			 * Protestant (Luther), Gereformeerd/Vrijgemaakt/Evangelistisch
+			 * (Calvin)
+			 */
+			REFORMED,
 
-			public static EduCulture
-				resolvePO( final EnumMap<ExportCol, JsonNode> school )
+			/** Antroposofisch (Steiner/Waldorf) */
+			ALTERNATIVE,
+
+			/** speciaal onderwijs (special needs) */
+			SPECIAL,
+
+			/** public, catholic, islamic, mixed */
+			OTHERS,
+
+			/** unknown/all */
+//			ALL,
+
+			;
+
+			private static final Map<String, Pedagogy> DUO_CACHE = new HashMap<>();
+
+			public static Pedagogy
+				resolveDuo( final EnumMap<EduCol, JsonNode> school )
 			{
-				final String denom = school.get( ExportCol.DENOMINATIE )
-						.asText();
-				if( // denom.startsWith( "Prot" ) || // 23.1%
-				denom.startsWith( "Geref" ) // 1.2%
-						|| denom.startsWith( "Evan" ) // 0.1%
-				) return REFORMED;
+				final String type = school.get( EduCol.PO_SOORT ).asText();
+				final String denom = school.get( EduCol.DENOMINATIE ).asText();
+				final String key = type + denom;
+				final Pedagogy result = DUO_CACHE.computeIfAbsent( key, k ->
+				{
+					if( denom.startsWith( "Prot" ) || // 23.1%
+					denom.startsWith( "Geref" ) // 1.2%
+							|| denom.startsWith( "Evan" ) // 0.1%
+					) return REFORMED;
 
-				if( denom.startsWith( "Antro" ) ) // 0.9%
-					return STEINER;
+					if( denom.startsWith( "Antro" ) ) // 0.9%
+						return ALTERNATIVE;
 
-				final String type = school.get( ExportCol.PO_SOORT ).asText();
-				if( type.startsWith( "S" ) || type.contains( "s" ) )
-					return SPECIAL;
+					if( type.startsWith( "S" ) || type.contains( "s" ) )
+						return SPECIAL;
 
-				return OTHERS;
+					return OTHERS;
+				} );
+//				System.err.println( type + " :: " + denom + " -> " + result );
+				return result;
 			}
 		}
 
@@ -610,6 +629,10 @@ public interface DemoModel
 		{
 			String GOALS_KEY = "society-goals";
 
+			// TODO from config, or auto-adjust to meet scenario run length
+			ComparableQuantity<Time> MEMBER_HORIZON = QuantityUtil.valueOf( 4,
+					TimeUnits.YEAR );
+
 			@Override
 			SocietyBroker reset() throws Exception;
 
@@ -674,6 +697,10 @@ public interface DemoModel
 
 			@Override
 			Observable<? extends EpidemicFact> events();
+
+			// TODO from config;
+			ComparableQuantity<Time> VAX_HORIZON = QuantityUtil.valueOf( 3,
+					TimeUnits.DAYS );
 		}
 
 		interface VaxRegimen
@@ -763,14 +790,52 @@ public interface DemoModel
 
 	interface Regional
 	{
+
 		interface SiteBroker extends EpiActor
 		{
 			String SCOPES_KEY = "site-scopes";
 
+			// FTE limit for zip6's inclusion as small-medium vs corporate zone
+			int ZIP6_SME_FTE_LIMIT = 50;
+
+			/**
+			 * @return this {@link SiteBroker} after reset its distributions and
+			 *         event handlers, e.g. for auto-assigning households and
+			 *         persons to their residential sites and regions
+			 */
 			@Override
 			SiteBroker reset() throws Exception;
 
-			SiteTuple findNearby( String lifeRole, PersonTuple pp );
+			/**
+			 * @param pp the target (particular person)
+			 * @return the primary school site, pedagogy picked if not yet set
+			 */
+			SiteTuple assignLocalPrimarySchool( PersonTuple pp );
+
+			/**
+			 * @param pp the target (particular person)
+			 * @return the small/medium enterprise site, in zip6 zone with FTE's
+			 *         < {@link #ZIP6_SME_FTE_LIMIT}
+			 */
+			// TODO within various region types/ranges?
+			SiteTuple createLocalSME( PersonTuple pp );
+
+			/**
+			 * @param pp the target (particular person)
+			 * @return the small/medium enterprise site, in zip6 zone with FTE's
+			 *         >= {@link #ZIP6_SME_FTE_LIMIT}
+			 */
+			SiteTuple createLocalIndustry( PersonTuple pp );
+
+			/**
+			 * @param pp the target (particular person)
+			 * @param options the options to minimize, of some type {@link T}
+			 * @param optionSiteKeyMapper maps options to their site reference
+			 * @return key-value pair of the nearest option and rough distance
+			 *         (squared angular degrees in the WGS84 coordinate system)
+			 */
+			<T> Entry<T, Double> selectNearest( PersonTuple pp,
+				Stream<T> options, Function<T, Object> optionSiteKeyMapper );
 		}
 	}
 
