@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -34,8 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -78,6 +79,7 @@ import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.schedulers.Schedulers;
+import nl.rivm.cib.csv.CbsRegionHistory;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
 import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
@@ -198,16 +200,13 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 
 	private void onEpidemicFact( final EpidemicFact ev )
 	{
-		ev.sirDelta.forEach( ( sir, delta ) ->
-		{
-			if( delta < 0 ) return; // only positive
-			this.sirEventStats
-					.computeIfAbsent(
-							ev.pp.get( Persons.HomeRegionRef.class ).toString(),
-							k -> new EnumMap<>( Compartment.class ) )
-					.computeIfAbsent( sir, k -> new AtomicLong() )
-					.addAndGet( delta );
-		} );
+		ev.sirDelta.forEach( ( sir, delta ) -> //
+		this.sirEventStats
+				.computeIfAbsent(
+						ev.pp.get( Persons.HomeRegionRef.class ).toString(),
+						k -> new EnumMap<>( Compartment.class ) )
+				.computeIfAbsent( sir, k -> new AtomicLong() )
+				.addAndGet( delta ) );
 	}
 
 	private final AtomicLong logWalltime = new AtomicLong();
@@ -231,7 +230,8 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 				scheduler().now( DateTimeFormatter.ISO_WEEK_DATE ),
 				this.sirEventStats.values().stream()
 						.flatMap( e -> e.values().stream() )
-						.mapToLong( AtomicLong::get ).sum(),
+						.mapToLong( AtomicLong::get ).map( Math::abs ).sum()
+						/ 2,
 				this.demicEventStats.values().stream()
 						.mapToLong( AtomicLong::get ).sum(),
 				this.demicEventStats );
@@ -409,7 +409,8 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 
 		final CbsRegionHierarchy hier;
 		try( final InputStream is = FileUtil
-				.toInputStream( config.configBase() + "83287NED.json" ) )
+				.toInputStream( config.configBase() + "83287NED.json" // 2016
+		) )
 		{
 			hier = JsonUtil.getJOM().readValue( is, CbsRegionHierarchy.class );
 		}
@@ -428,6 +429,12 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 		final Compartment sortLogCol = Compartment.INFECTIVE;
 		final CBSRegionType aggregationLevel = CBSRegionType.COROP;
 
+		final Map<String, String> gmChanges = CbsRegionHistory.allChangesAsPer(
+				LocalDate.of( 2016, 1, 1 ), CbsRegionHistory.parse(
+						config.configBase(), "gm_changes_before_2018.csv" ) );
+		// TODO pick neighbor within region(s)
+		final String gmFallback = "GM0363";
+
 		final TreeMap<String, Set<String>> regNames = new TreeMap<>();
 		Observable.using( () -> new FileWriter( totalsFile, false ),
 				fw -> model.atEach( timing ).map( self ->
@@ -436,17 +443,30 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 							.exportRegionalSIRTotal();
 					if( regNames.isEmpty() )
 					{
-						regNames.putAll( totals.keySet().stream()
-								.collect( Collectors.groupingBy(
-										gmName -> gmRegions
-												.computeIfAbsent( gmName,
-														k -> gmRegions // FIXME
-																.get( "GM0363" ) )
-												.get( aggregationLevel ),
-										TreeMap::new,
-										Collectors.mapping( Function.identity(),
-												Collectors.toCollection(
-														TreeSet::new ) ) ) ) );
+						regNames.putAll( totals.keySet().stream().collect(
+								Collectors.groupingBy( gmName -> gmRegions
+										.computeIfAbsent( gmName, k ->
+										{
+											if( gmChanges.containsKey( k ) )
+												return gmRegions.get(
+														gmChanges.get( k ) );
+
+											LOG.warn( "Aggregating {} as {}",
+													gmName, gmFallback );
+											return gmRegions.get( gmFallback );
+										} ).get( aggregationLevel ),
+										TreeMap::new, Collectors.toCollection(
+												TreeSet::new ) ) ) );
+						try
+						{
+							synchronized( regNames )
+							{
+								regNames.notify();
+							}
+						} catch( final Exception ignore )
+						{
+
+						}
 						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
@@ -466,25 +486,26 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 						}, () -> LOG.debug( "SIR totals written to {}",
 								totalsFile ) );
 
-		regNames.clear();
+		final AtomicBoolean first = new AtomicBoolean( true );
 		Observable.using( () -> new FileWriter( deltasFile, false ),
 				fw -> model.atEach( timing ).map( self ->
 				{
 					final Map<String, EnumMap<Compartment, Long>> deltas = self
 							.exportRegionalSIRDelta();
-					if( regNames.isEmpty() )
+					if( first.get() )
 					{
-						regNames.putAll( deltas.keySet().stream()
-								.collect( Collectors.groupingBy(
-										gmName -> gmRegions
-												.computeIfAbsent( gmName,
-														k -> gmRegions // FIXME
-																.get( "GM0363" ) )
-												.get( aggregationLevel ),
-										TreeMap::new,
-										Collectors.mapping( Function.identity(),
-												Collectors.toCollection(
-														TreeSet::new ) ) ) ) );
+						while( regNames.isEmpty() )
+							try
+							{
+								synchronized( regNames )
+								{
+									regNames.wait();
+								}
+							} catch( final Exception ignore )
+							{
+
+							}
+						first.set( false );
 						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,

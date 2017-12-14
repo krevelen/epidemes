@@ -214,7 +214,7 @@ public class SimpleHealthBroker implements HealthBroker
 	// TODO from config
 	private VaxAcceptanceEvaluator vaxAcceptance = VaxAcceptanceEvaluator.MIN_CONVENIENCE_GE_AVG_ATTITUDE;
 	/** */
-	private ConditionalDistribution<VaxOccasion, VaxDose> vaxOccasionDist;
+	private ConditionalDistribution<VaxOccasion, VaxDose> vaxOccasionConvenienceDist;
 	/** */
 	private QuantityDistribution<Time> vaxTreatmentDelay;
 	/** age resolution of vaccination cohorts/bins, in scheduler time units */
@@ -283,7 +283,7 @@ public class SimpleHealthBroker implements HealthBroker
 				.parse( this.config.occasionClarityDist() );
 		final ProbabilityDistribution<Number> vaccinationAffinityDist = this.distParser
 				.parse( this.config.occasionAffinityDist() );
-		this.vaxOccasionDist = dose -> VaxOccasion.of(
+		this.vaxOccasionConvenienceDist = dose -> VaxOccasion.of(
 				vaccinationUtilityDist.draw(), vaccinationProximityDist.draw(),
 				vaccinationClarityDist.draw(), vaccinationAffinityDist.draw() );
 
@@ -665,6 +665,8 @@ public class SimpleHealthBroker implements HealthBroker
 //				this.regimen.decisionAgeRange(), decisionAgeBinRange,
 //				subMap.firstKey(), subMap.lastKey(),
 //				subMap.values().stream().mapToInt( List::size ).sum() );
+		final AtomicInteger accepting = new AtomicInteger(),
+				rejecting = new AtomicInteger();
 		final PersonTuple[] removable = subMap.values().stream()
 				.flatMap( List::stream ).map( this.persons::select )
 				.filter( pp -> pp
@@ -691,7 +693,7 @@ public class SimpleHealthBroker implements HealthBroker
 								pp.pretty( Persons.PROPERTIES ) );
 						return true; // remove from hesitant
 					}
-					final VaxOccasion occ = this.vaxOccasionDist
+					final VaxOccasion occ = this.vaxOccasionConvenienceDist
 							.draw( nextDose );
 					final HouseholdTuple hh = this.households
 							.get( pp.get( Persons.HouseholdRef.class ) );
@@ -703,17 +705,17 @@ public class SimpleHealthBroker implements HealthBroker
 					}
 					if( this.vaxAcceptance.test( hh, occ ) )
 					{
+						accepting.incrementAndGet();
 						startRegimen( nextDose, age, pp );
 						return true; // remove from hesitant
 					}
 
-					LOG.debug( "t={} Vax {} for {} rejected by {} of {}",
-							scheduler().nowDT(), occ.asMap(), nextDose,
-							pp.pretty( Persons.PROPERTIES ),
-							hh.pretty( Households.PROPERTIES ) );
+					rejecting.incrementAndGet();
 					return false; // remain hesitant
 				} ).toArray( PersonTuple[]::new );
 		Arrays.stream( removable ).forEach( this::removeFromHesitant );
+		LOG.debug( "t={} Vax accepted by {} and rejected by {}",
+				scheduler().nowDT(), accepting, rejecting );
 	}
 
 	private void startRegimen( final VaxDose nextDose,

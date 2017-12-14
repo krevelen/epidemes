@@ -160,17 +160,20 @@ public interface DemoConfig extends YamlConfig
 				+ eol;
 	}
 
-	static BigDecimal evaluate( final String key,
+	static BigDecimal evaluateFraction( final String key,
 		final Map<String, EnumMap<Compartment, Long>> values,
-		final Compartment descendCol )
+		final Compartment dividendCol )
 	{
 		final EnumMap<Compartment, Long> v = values.computeIfAbsent( key,
 				k -> new EnumMap<>( Compartment.class ) );
-		final Long dividend = v.get( descendCol );
-		if( dividend == null || dividend.longValue() == 0 )
+		final Long dividend = v.get( dividendCol );
+		if( dividend == null || dividend.longValue() == 0L )
 			return BigDecimal.ZERO;
-		return DecimalUtil.divide( dividend,
-				v.values().stream().mapToLong( n -> n ).sum() );
+		final long divisor = v.values().stream().mapToLong( Math::abs ).sum();
+//		if( sum == 0 )
+//			System.err.println( dividend + "/" + sum + "?" + v.values() );
+		final BigDecimal result = DecimalUtil.divide( dividend, divisor );
+		return result;
 	}
 
 	static String toLog( final List<Compartment> sirCols,
@@ -179,8 +182,8 @@ public interface DemoConfig extends YamlConfig
 	{
 		return String.join( ", ",
 				homeSIR.keySet().stream().sorted( ( r,
-					l ) -> evaluate( l, homeSIR, descendCol ).compareTo(
-							evaluate( r, homeSIR, descendCol ) ) )
+					l ) -> evaluateFraction( l, homeSIR, descendCol ).compareTo(
+							evaluateFraction( r, homeSIR, descendCol ) ) )
 						.limit( n )
 						.map( reg -> reg + ":["
 								+ String.join( ",",

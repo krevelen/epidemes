@@ -52,6 +52,8 @@ import io.coala.time.Scheduler;
 import io.coala.util.InputStreamConverter;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
+import nl.rivm.cib.csv.DuoPrimarySchool;
+import nl.rivm.cib.csv.DuoPrimarySchool.EduCol;
 import nl.rivm.cib.demo.DemoModel.EpiFact;
 import nl.rivm.cib.demo.DemoModel.Households;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
@@ -65,8 +67,6 @@ import nl.rivm.cib.demo.DemoModel.Social.Pedagogy;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.json.CbsRegionCentroidDensity;
 import nl.rivm.cib.json.CbsRegionCentroidDensity.ExportCol;
-import nl.rivm.cib.json.DuoPrimarySchool;
-import nl.rivm.cib.json.DuoPrimarySchool.EduCol;
 
 /**
  * {@link SimpleSiteBroker}

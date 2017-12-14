@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.json;
+package nl.rivm.cib.csv;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,6 +52,8 @@ import io.coala.random.ProbabilityDistribution;
 import io.coala.util.FileUtil;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
+import nl.rivm.cib.json.BagZipcode4RegionPolygons;
+import nl.rivm.cib.json.BagZipcode6Locations;
 
 /**
  * {@link DuoPrimarySchool}

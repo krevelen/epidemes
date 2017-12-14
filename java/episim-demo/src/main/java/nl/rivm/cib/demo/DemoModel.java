@@ -60,6 +60,7 @@ import io.coala.time.TimeUnits;
 import io.coala.util.Compare;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
+import nl.rivm.cib.csv.DuoPrimarySchool.EduCol;
 import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
 import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
@@ -73,7 +74,6 @@ import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
-import nl.rivm.cib.json.DuoPrimarySchool.EduCol;
 import tec.uom.se.ComparableQuantity;
 
 /**
