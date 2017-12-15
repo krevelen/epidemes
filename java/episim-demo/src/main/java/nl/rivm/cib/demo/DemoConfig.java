@@ -76,7 +76,10 @@ public interface DemoConfig extends YamlConfig
 	String SCENARIO_BASE = "scenario";
 
 	/** configuration key */
-	String REPLICATION_PREFIX = SCENARIO_BASE + KEY_SEP + "replication"
+	String REPLICATION_BASE = "replication";
+
+	/** configuration key */
+	String REPLICATION_PREFIX = SCENARIO_BASE + KEY_SEP + REPLICATION_BASE
 			+ KEY_SEP;
 
 	/** configuration key */
@@ -98,7 +101,9 @@ public interface DemoConfig extends YamlConfig
 	@DefaultValue( "pilot" )
 	String setupName();
 
-	@Key( REPLICATION_PREFIX + "random-seed" )
+	String RANDOM_SEED_KEY = "random-seed";
+
+	@Key( REPLICATION_PREFIX + RANDOM_SEED_KEY )
 	@DefaultValue( "NaN" )
 	@ConverterClass( RandomSeedConverter.class )
 	Long randomSeed();
@@ -117,13 +122,18 @@ public interface DemoConfig extends YamlConfig
 
 	String sep = ";", eol = "\r\n";
 
-	static String toHeader( final List<Compartment> sirCols,
+	static String toHeader( final Object config,
+		final List<Compartment> sirCols,
 		final Map<String, Set<String>> colMapping )
 	{
-		return "ActualTime" + sep + "VirtualTime" + sep
-				+ String.join( sep, sirCols.stream()
-						.map( c -> c.name().substring( 0, 1 ) + "_TOTAL" )
-						.toArray( String[]::new ) )
+		return "\"ActualTime "
+				// escape double-quotes within double-quotes by doubling them
+				// see https://stackoverflow.com/a/43274459
+				+ config.toString().replaceAll( "\"", "\"\"" ) + "\"" + sep
+				+ "VirtualTime" + sep
+				+ String.join( sep,
+						sirCols.stream().map( c -> c.name() )
+								.toArray( String[]::new ) )
 				+ sep
 				+ String.join( sep, sirCols.stream()
 						.flatMap( c -> colMapping.keySet().stream()
@@ -180,21 +190,19 @@ public interface DemoConfig extends YamlConfig
 		final Map<String, EnumMap<Compartment, Long>> homeSIR, final int n,
 		final Compartment descendCol )
 	{
-		return String.join( ", ",
-				homeSIR.keySet().stream().sorted( ( r,
-					l ) -> evaluateFraction( l, homeSIR, descendCol ).compareTo(
-							evaluateFraction( r, homeSIR, descendCol ) ) )
-						.limit( n )
-						.map( reg -> reg + ":["
-								+ String.join( ",",
-										sirCols.stream().map( c -> homeSIR
-												.computeIfAbsent( reg,
-														k -> new EnumMap<>(
-																Compartment.class ) )
-												.computeIfAbsent( c, k -> 0L )
-												.toString() )
-												.toArray( String[]::new ) )
-								+ "]" )
-						.toArray( String[]::new ) );
+		return String.join( ", ", homeSIR.keySet().stream()
+				.sorted( ( r, l ) -> evaluateFraction( l, homeSIR, descendCol )
+						.compareTo(
+								evaluateFraction( r, homeSIR, descendCol ) ) )
+				.limit( n )
+				.map( reg -> reg + ":["
+						+ String.join( ",", sirCols.stream().map( c -> homeSIR
+								.computeIfAbsent( reg,
+										k -> new EnumMap<>(
+												Compartment.class ) )
+								.computeIfAbsent( c, k -> 0L ).toString() )
+								.toArray( String[]::new ) )
+						+ "]" )
+				.toArray( String[]::new ) );
 	}
 }

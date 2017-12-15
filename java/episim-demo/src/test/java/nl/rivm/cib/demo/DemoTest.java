@@ -23,6 +23,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -39,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.bind.LocalBinder;
 import io.coala.bind.LocalConfig;
@@ -59,6 +61,7 @@ import io.coala.time.SchedulerConfig;
 import io.coala.util.FileUtil;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
+import nl.rivm.cib.csv.CbsRegionHistory;
 import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
@@ -187,6 +190,19 @@ public class DemoTest
 		final int n = 10;
 		final CBSRegionType aggregationLevel = CBSRegionType.COROP;
 
+		final Map<String, String> gmChanges = CbsRegionHistory.allChangesAsPer(
+				LocalDate.of( 2016, 1, 1 ), CbsRegionHistory.parse(
+						config.configBase(), "gm_changes_before_2018.csv" ) );
+		// TODO pick neighbor within region(s)
+		final String gmFallback = "GM0363";
+
+		final ObjectNode configTree = (ObjectNode) config
+				.toJSON( DemoConfig.SCENARIO_BASE );
+		configTree.with( DemoConfig.REPLICATION_BASE ).put(
+				DemoConfig.RANDOM_SEED_KEY,
+				binder.inject( ProbabilityDistribution.Factory.class )
+						.getStream().seed().longValue() );
+
 		final TreeMap<String, Set<String>> regNames = new TreeMap<>();
 		Observable.using( () -> new FileWriter( totalsFile, false ),
 				fw -> model.atEach( timing ).map( self ->
@@ -195,18 +211,24 @@ public class DemoTest
 							.exportRegionalSIRTotal();
 					if( regNames.isEmpty() )
 					{
-						regNames.putAll( totals.keySet().stream()
-								.collect( Collectors.groupingBy(
-										gmName -> gmRegions
-												.computeIfAbsent( gmName,
-														k -> gmRegions // FIXME
-																.get( "GM0363" ) )
-												.get( aggregationLevel ),
+						regNames.putAll( totals.keySet().stream().collect(
+								Collectors.groupingBy( gmName -> gmRegions
+										.computeIfAbsent( gmName, k ->
+										{
+											if( gmChanges.containsKey( k ) )
+												return gmRegions.get(
+														gmChanges.get( k ) );
+
+											LOG.warn( "Aggregating {} as {}",
+													gmName, gmFallback );
+											return gmRegions.get( gmFallback );
+										} ).get( aggregationLevel ),
 										TreeMap::new,
 										Collectors.mapping( Function.identity(),
 												Collectors.toCollection(
 														TreeSet::new ) ) ) ) );
-						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
+						fw.write( DemoConfig.toHeader( configTree, sirCols,
+								regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
 							model.scheduler().nowDT().toLocalDate().toString(),
@@ -241,7 +263,8 @@ public class DemoTest
 										Collectors.mapping( Function.identity(),
 												Collectors.toCollection(
 														TreeSet::new ) ) ) ) );
-						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
+						fw.write( DemoConfig.toHeader( configTree, sirCols,
+								regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
 							model.scheduler().nowDT().toLocalDate().toString(),

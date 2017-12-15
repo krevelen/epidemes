@@ -97,16 +97,16 @@ public class DuoPrimarySchool
 
 	private static EnumMap<EduCol, JsonNode> toEnumMap( final JsonNode node )
 	{
-		return JsonUtil.stream( (ArrayNode) node ).collect( Collectors.toMap(
-				e -> EduCol.values()[e.getKey()], e -> e.getValue(),
-				( v1, v2 ) -> v2,
-				() -> new EnumMap<EduCol, JsonNode>( EduCol.class ) ) );
+		return JsonUtil.stream( (ArrayNode) node )
+				.collect( Collectors.toMap( e -> EduCol.values()[e.getKey()],
+						e -> e.getValue(), ( v1, v2 ) -> v2,
+						() -> new EnumMap<EduCol, JsonNode>( EduCol.class ) ) );
 	}
 
 	public static <T> TreeMap<String, Map<T, ProbabilityDistribution<String>>>
 		parse( final InputStream is,
 			final ProbabilityDistribution.Factory distFact,
-			final BiFunction<String, EnumMap<EduCol, JsonNode>, T> classifier )
+			final BiFunction<String, EnumMap<EduCol, JsonNode>, Stream<T>> classifier )
 			throws IOException
 	{
 		final JsonNode root = JsonUtil.getJOM().readTree( is );
@@ -125,21 +125,27 @@ public class DuoPrimarySchool
 						// key1: zip
 						Map.Entry::getKey,
 						zipWvs -> JsonUtil.stream( zipWvs.getValue() )
+								.flatMap( wv -> classifier
+										.apply( wv.getKey(),
+												toEnumMap( schools
+														.get( wv.getKey() ) ) )
+										.map( cat -> org.aeonbits.owner.util.Collections
+												.entry( cat, wv ) ) )
 								// reclassify
 								.collect( Collectors.groupingBy(
-										wv -> classifier.apply( wv.getKey(),
-												toEnumMap( schools
-														.get( wv.getKey() ) ) ) ) )
+										catSchool -> catSchool.getKey() ) )
 								.entrySet().stream()
 								.collect( Collectors.toMap(
 										// key2: cat
-										Map.Entry::getKey,
+										catWvs -> catWvs.getKey(),
 										catWvs -> distFact.createCategorical(
-												catWvs.getValue().stream()
-														.map( wv -> WeightedValue
-																.of( wv.getKey(),
-																		wv.getValue()
-																				.asInt() ) ) ),
+												catWvs.getValue().stream().map(
+														wv -> WeightedValue.of(
+																wv.getValue()
+																		.getKey(),
+																wv.getValue()
+																		.getValue()
+																		.asInt() ) ) ),
 										( v1, v2 ) -> v2, HashMap::new ) ),
 						( v1, v2 ) -> v2, TreeMap::new ) );
 	}
@@ -239,7 +245,7 @@ public class DuoPrimarySchool
 			LOG.debug( "Aggregating into dist..." );
 
 			final String LUTHER = "po_luther", STEINER = "po_steiner",
-					SPECIAL = "po_special", REST = "po_rest";
+					SPECIAL = "po_special", ALL = "po_all";
 			final Map<String, EnumMap<EduCol, JsonNode>> schoolCache = new HashMap<>();
 			final Map<String, Map<String, ProbabilityDistribution<String>>> zipCultDists = parse(
 					is, distFact, ( id, arr ) ->
@@ -250,17 +256,16 @@ public class DuoPrimarySchool
 						if( denom.startsWith( "Prot" ) // 23.1%
 								|| denom.startsWith( "Geref" ) // 1.2%
 								|| denom.startsWith( "Evan" ) // 0.1%
-						) return LUTHER;
+						) return Stream.of( LUTHER, ALL );
 
 						if( denom.startsWith( "Antro" ) ) // 0.9%
-							return STEINER;
+							return Stream.of( STEINER, ALL );
 
-						final String type = arr.get( EduCol.PO_SOORT )
-								.asText();
+						final String type = arr.get( EduCol.PO_SOORT ).asText();
 						if( type.startsWith( "S" ) || type.contains( "s" ) )
-							return SPECIAL;
+							return Stream.of( SPECIAL, ALL );
 
-						return REST;
+						return Stream.of( ALL );
 					} );
 
 			final ConditionalDistribution<String, Object[]> pc4SchoolDist = ConditionalDistribution
@@ -269,16 +274,18 @@ public class DuoPrimarySchool
 									zip -> Collections.emptyMap() )
 							.computeIfAbsent( params[1].toString(),
 									cat -> zipCultDists.get( params[0] )
-											.get( REST ) ) );
+											.get( ALL ) ) );
 
 			LOG.debug( "Testing dist fallback..." );
 			zipCultDists.keySet().stream().sorted().limit( 10 )
-					.forEach( pc4 -> Arrays.asList( LUTHER, STEINER, SPECIAL )
-							.stream().forEach( cat -> LOG.debug(
-									"...draw for {} x {}: {}", pc4, cat,
-									schoolCache.get( pc4SchoolDist.draw(
-											new Object[]
-									{ pc4, cat } ) ) ) ) );
+					.forEach( pc4 -> Arrays
+							.asList( LUTHER, STEINER, SPECIAL, ALL ).stream()
+							.forEach( cat -> LOG.debug(
+									"...draw for {} x {}: {}", pc4, cat, schoolCache
+											.get( pc4SchoolDist
+													.draw( new Object[]
+									{ pc4,
+					cat } ) ) ) ) );
 		}
 	}
 }

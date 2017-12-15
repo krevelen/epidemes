@@ -517,7 +517,7 @@ public interface DemoModel
 			OTHERS,
 
 			/** unknown/all */
-//			ALL,
+			ALL,
 
 			;
 

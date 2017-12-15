@@ -250,9 +250,11 @@ public class SimpleSiteBroker implements SiteBroker
 			this.primarySchools = DuoPrimarySchool.parse( is, this.distFactory,
 					( id, values ) ->
 					{
-						// store school data and categorize by 'culture'
+						// cache school data
 						this.schoolCache.computeIfAbsent( id, k -> values );
-						return Pedagogy.resolveDuo( values );
+						// resolve school categories for assortative hh-sampling
+						return Stream.of( Pedagogy.resolveDuo( values ),
+								Pedagogy.ALL );
 					} );
 		}
 	}
@@ -391,13 +393,9 @@ public class SimpleSiteBroker implements SiteBroker
 		if( pedagogySchools != null ) // hh already has a pedagogy (for sibling)
 			schoolName = pedagogySchools.draw();
 		else if( hhPedagogy == null && !zipSchools.isEmpty() )
-			// apply local school/pedagogy distributions for first child
-			schoolName =
-//					zipSchools.containsKey( Pedagogy.OTHERS )
-//					? zipSchools.get( Pedagogy.OTHERS ).draw()
-//					: 
-					zipSchools.values().iterator().next().draw();
-		else
+		{
+			schoolName = zipSchools.get( Pedagogy.ALL ).draw();
+		} else
 		{
 			// search all schools for the nearest of the same pedagogy, if any
 			final Entry<Entry<String, EnumMap<EduCol, JsonNode>>, Double> nearest = selectNearest(

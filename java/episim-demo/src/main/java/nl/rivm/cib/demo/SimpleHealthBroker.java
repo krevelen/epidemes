@@ -635,7 +635,10 @@ public class SimpleHealthBroker implements HealthBroker
 		final Compartment status = this.sirStatusDist.draw( RegionPeriod.of(
 				(String) pp.get( Persons.HomeRegionRef.class ), birthDT ) );
 
-		pp.set( Persons.PathogenCompartment.class, status );
+		if( now().isZero() )
+			pp.set( Persons.PathogenCompartment.class, status );
+		else
+			pp.updateAndGet( Persons.PathogenCompartment.class, old -> status );
 		if( status == Compartment.SUSCEPTIBLE )
 		{
 			pp.set( Persons.PathogenResistance.class,
@@ -678,8 +681,8 @@ public class SimpleHealthBroker implements HealthBroker
 					if( this.regimen.isCompliant( status ) )
 					{
 						LOG.warn( "Already compliant {}", pp );
-						pp.updateAndGet( Persons.PathogenCompartment.class,
-								epi -> Compartment.VACCINATED );
+						pp.set( Persons.PathogenCompartment.class,
+								Compartment.VACCINATED );
 						return true; // remove from hesitant
 					}
 					final ComparableQuantity<Time> age = ageOf( pp );

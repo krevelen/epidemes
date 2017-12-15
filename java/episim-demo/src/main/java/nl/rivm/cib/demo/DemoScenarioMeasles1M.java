@@ -52,6 +52,7 @@ import org.ujmp.core.calculation.Calculation.Ret;
 import org.ujmp.core.enums.ValueType;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.bind.InjectConfig;
 import io.coala.bind.LocalBinder;
@@ -206,7 +207,7 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 						ev.pp.get( Persons.HomeRegionRef.class ).toString(),
 						k -> new EnumMap<>( Compartment.class ) )
 				.computeIfAbsent( sir, k -> new AtomicLong() )
-				.addAndGet( delta ) );
+				.addAndGet( Math.max( 0, delta ) ) );
 	}
 
 	private final AtomicLong logWalltime = new AtomicLong();
@@ -299,6 +300,26 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 								Collectors.counting() ) ) );
 	}
 
+//	@Override
+//	public Map<String, EnumMap<Compartment, Long>> exportRegionalSIRTotal()
+//	{
+//		final Matrix epicol = this.persons.selectColumns( Ret.LINK,
+//				Persons.PROPERTIES
+//						.indexOf( Persons.PathogenCompartment.class ) );
+//		final Matrix homecol = this.persons.selectColumns( Ret.LINK,
+//				Persons.PROPERTIES.indexOf( Persons.HomeRegionRef.class ) );
+//
+//		return MatrixUtil.streamAvailableCoordinates( epicol, true )
+//				// sequential? called from another thread
+//				.filter( x -> homecol.getAsObject( x ) != null )
+//				.collect( Collectors.groupingBy( homecol::getAsString,
+//						Collectors.groupingBy(
+//								x -> Compartment.values()[epicol.getAsInt( x )
+//										- 1],
+//								() -> new EnumMap<>( Compartment.class ),
+//								Collectors.counting() ) ) );
+//	}
+
 //	public Observable<? extends DemicFact> emitDemicEvents()
 //	{
 //		return this.deme.events();
@@ -339,11 +360,6 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 			{
 			}
 
-		final ZonedDateTime offset = config.offset()
-				.atStartOfDay( TimeUtil.NL_TZ );
-		final long durationDays = Duration
-				.between( offset, offset.plus( config.duration() ) ).toDays();
-
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.DEMOGRAPHY_BASE );
 //		LOG.debug( "Deme config: {}", JsonUtil.toJSON( demeConfig ) );
@@ -364,6 +380,10 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 				DemoConfig.MOTION_BASE );
 //		LOG.debug( "Society config: {}", JsonUtil.toJSON( societyConfig ) );
 
+		final ZonedDateTime offset = config.offset()
+				.atStartOfDay( TimeUtil.NL_TZ );
+		final long durationDays = Duration
+				.between( offset, offset.plus( config.duration() ) ).toDays();
 		final LocalConfig binderConfig = LocalConfig.builder().withProvider(
 				Scheduler.class, Dsol3Scheduler.class,
 				MapBuilder.unordered()
@@ -427,13 +447,19 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 				Compartment.SUSCEPTIBLE, Compartment.INFECTIVE,
 				Compartment.RECOVERED, Compartment.VACCINATED );
 		final Compartment sortLogCol = Compartment.INFECTIVE;
-		final CBSRegionType aggregationLevel = CBSRegionType.COROP;
+		final CBSRegionType aggregationLevel = CBSRegionType.HEALTH_SERVICES;
 
 		final Map<String, String> gmChanges = CbsRegionHistory.allChangesAsPer(
 				LocalDate.of( 2016, 1, 1 ), CbsRegionHistory.parse(
 						config.configBase(), "gm_changes_before_2018.csv" ) );
 		// TODO pick neighbor within region(s)
 		final String gmFallback = "GM0363";
+
+		final ObjectNode configTree = (ObjectNode) config
+				.toJSON( DemoConfig.SCENARIO_BASE );
+		configTree.with( DemoConfig.REPLICATION_BASE ).put(
+				DemoConfig.RANDOM_SEED_KEY,
+				model.distFactory.getStream().seed().longValue() );
 
 		final TreeMap<String, Set<String>> regNames = new TreeMap<>();
 		Observable.using( () -> new FileWriter( totalsFile, false ),
@@ -457,17 +483,8 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 										} ).get( aggregationLevel ),
 										TreeMap::new, Collectors.toCollection(
 												TreeSet::new ) ) ) );
-						try
-						{
-							synchronized( regNames )
-							{
-								regNames.notify();
-							}
-						} catch( final Exception ignore )
-						{
-
-						}
-						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
+						fw.write( DemoConfig.toHeader( configTree, sirCols,
+								regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
 							model.scheduler().nowDT().toLocalDate().toString(),
@@ -494,19 +511,9 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 							.exportRegionalSIRDelta();
 					if( first.get() )
 					{
-						while( regNames.isEmpty() )
-							try
-							{
-								synchronized( regNames )
-								{
-									regNames.wait();
-								}
-							} catch( final Exception ignore )
-							{
-
-							}
 						first.set( false );
-						fw.write( DemoConfig.toHeader( sirCols, regNames ) );
+						fw.write( DemoConfig.toHeader( configTree, sirCols,
+								regNames ) );
 					}
 					fw.write( DemoConfig.toLine( sirCols,
 							model.scheduler().nowDT().toLocalDate().toString(),

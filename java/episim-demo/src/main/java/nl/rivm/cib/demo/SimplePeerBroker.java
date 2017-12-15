@@ -396,20 +396,16 @@ public class SimplePeerBroker implements PeerBroker
 					{
 					case ALTERNATIVE:
 					case REFORMED:
-						hh.updateAndGet( Households.Confidence.class,
-								old -> BigDecimal.ZERO );
-						hh.updateAndGet( Households.Complacency.class,
-								old -> BigDecimal.ONE );
+						hh.set( Households.Confidence.class, BigDecimal.ZERO );
+						hh.set( Households.Complacency.class, BigDecimal.ONE );
 						LOG.debug( "HH re-positioned NEG: {}", hh );
 						break;
-						
+
 					case OTHERS:
 					case SPECIAL:
 					default:
-						hh.updateAndGet( Households.Confidence.class,
-								old -> BigDecimal.ONE );
-						hh.updateAndGet( Households.Complacency.class,
-								old -> BigDecimal.ZERO );
+						hh.set( Households.Confidence.class, BigDecimal.ONE );
+						hh.set( Households.Complacency.class, BigDecimal.ZERO );
 						LOG.debug( "HH re-positioned POS: {}", hh );
 					}
 				}, scheduler()::fail );
