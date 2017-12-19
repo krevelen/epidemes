@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.demo;
+package nl.rivm.cib.demo.module;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,10 +25,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.NavigableMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -59,26 +59,27 @@ import io.coala.time.Scheduler;
 import io.coala.util.Compare;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
-import nl.rivm.cib.demo.DemoModel.Persons;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.DemoConfig;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
-import nl.rivm.cib.demo.DemoModel.Sites;
-import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.demo.DemoModel.Social.GatherFact;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.demo.DemoModel.Social.TimedGatherer;
-import nl.rivm.cib.demo.DemoModel.Societies;
-import nl.rivm.cib.demo.DemoModel.Societies.SocietyTuple;
+import nl.rivm.cib.demo.Persons;
+import nl.rivm.cib.demo.Persons.PersonTuple;
+import nl.rivm.cib.demo.Sites;
+import nl.rivm.cib.demo.Sites.SiteTuple;
+import nl.rivm.cib.demo.Societies;
+import nl.rivm.cib.demo.Societies.SocietyTuple;
 import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link SimpleSocietyBroker}
+ * {@link SocietyBrokerSimple}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
 @Singleton
-public class SimpleSocietyBroker implements SocietyBroker
+public class SocietyBrokerSimple implements SocietyBroker
 {
 
 	public interface SocietyConfig extends YamlConfig
@@ -95,7 +96,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 
 	/** */
 	private static final Logger LOG = LogUtil
-			.getLogger( SimpleSocietyBroker.class );
+			.getLogger( SocietyBrokerSimple.class );
 
 	@InjectConfig
 	private SocietyConfig config;
@@ -151,7 +152,7 @@ public class SimpleSocietyBroker implements SocietyBroker
 	 *
 	 */
 	@Override
-	public SimpleSocietyBroker reset() throws Exception
+	public SocietyBrokerSimple reset() throws Exception
 	{
 		final JsonNode gathererConfig = this.config.toJSON( GOALS_KEY );
 		if( gathererConfig.size() == 0 )

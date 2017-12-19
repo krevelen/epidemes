@@ -402,9 +402,11 @@ public class Cbs37230json
 			final GroupedObservable<CBSRegionType, WeightedValue<Category>> g )
 		{
 			// Navigable TreeMap to resolve out-of-bounds conditions
-			return ConditionalDistribution.of( this.distFact::createCategorical,
-					g.toMultimap( wv -> wv.getValue().offset(), wv -> wv,
-							TreeMap::new ).blockingGet() );
+			return ConditionalDistribution
+					.of( this.distFact::createCategorical,
+							g.toMultimap( wv -> wv.getValue().offset(),
+									wv -> wv, () -> new TreeMap<>() )
+									.blockingGet() );
 		}
 
 		public Quantity<Time> nextDelay( final LocalDate dt,

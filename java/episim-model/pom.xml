@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
-		<version>0.2</version>
+		<version>0.2.0</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -35,7 +35,7 @@
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
 			</releases>
-  		</repository>
+		</repository>
 
 		<repository>
 			<name>DSOL Public Repository</name>
@@ -55,6 +55,12 @@
 		<dependency>
 			<groupId>io.coala</groupId>
 			<artifactId>coala-api-enterprise</artifactId>
+		</dependency>
+		<!-- AtomicDouble explicitly used in MSEIRS... -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>19.0</version>
 		</dependency>
 
 		<dependency>

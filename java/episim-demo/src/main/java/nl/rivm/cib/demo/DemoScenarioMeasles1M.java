@@ -60,6 +60,7 @@ import io.coala.bind.LocalConfig;
 import io.coala.config.ConfigUtil;
 import io.coala.config.YamlUtil;
 import io.coala.data.DataLayer;
+import io.coala.data.DataLayer.MapFactory;
 import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
@@ -83,16 +84,16 @@ import io.reactivex.schedulers.Schedulers;
 import nl.rivm.cib.csv.CbsRegionHistory;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
 import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
-import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
 import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
-import nl.rivm.cib.demo.DemoModel.Regions.RegionTuple;
-import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
 import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
-import nl.rivm.cib.demo.DemoModel.Societies.SocietyTuple;
+import nl.rivm.cib.demo.Households.HouseholdTuple;
+import nl.rivm.cib.demo.Persons.PersonTuple;
+import nl.rivm.cib.demo.Regions.RegionTuple;
+import nl.rivm.cib.demo.Sites.SiteTuple;
+import nl.rivm.cib.demo.Societies.SocietyTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 import nl.rivm.cib.episim.cbs.TimeUtil;
@@ -176,12 +177,14 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 						Households.PROPERTIES ), this.households )
 				.withSource(
 						map -> map.put( RegionTuple.class, Regions.PROPERTIES ),
-						HashMap::new )
-				.withSource( map -> map.put( SocietyTuple.class,
-						Societies.PROPERTIES ), HashMap::new )
+						(MapFactory<Long>) HashMap::new )
+				.withSource(
+						map -> map.put( SocietyTuple.class,
+								Societies.PROPERTIES ),
+						(MapFactory<Long>) HashMap::new )
 				.withSource(
 						map -> map.put( SiteTuple.class, Sites.PROPERTIES ),
-						HashMap::new );
+						(MapFactory<Long>) HashMap::new );
 
 		// reset brokers only AFTER data sources have been initialized
 		this.siteBroker.reset();
@@ -360,22 +363,29 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 			{
 			}
 
+		final Class<? extends PersonBroker> demeModule = config.demeModule();
 		final JsonNode demeConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.DEMOGRAPHY_BASE );
 //		LOG.debug( "Deme config: {}", JsonUtil.toJSON( demeConfig ) );
 
+		final Class<? extends HealthBroker> healthModule = config
+				.healthModule();
 		final JsonNode healthConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.EPIDEMIOLOGY_BASE );
 //		LOG.debug( "Health config: {}", JsonUtil.toJSON( healthConfig ) );
 
+		final Class<? extends PeerBroker> peerModule = config.peerModule();
 		final JsonNode peerConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.HESITANCY_BASE );
 //		LOG.debug( "Peer config: {}", JsonUtil.toJSON( peerConfig ) );
 
+		final Class<? extends SiteBroker> siteModule = config.siteModule();
 		final JsonNode siteConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.GEOGRAPHY_BASE );
 //		LOG.debug( "Site config: {}", JsonUtil.toJSON( siteConfig ) );
 
+		final Class<? extends SocietyBroker> societyModule = config
+				.societyModule();
 		final JsonNode societyConfig = config.toJSON( DemoConfig.SCENARIO_BASE,
 				DemoConfig.MOTION_BASE );
 //		LOG.debug( "Society config: {}", JsonUtil.toJSON( societyConfig ) );
@@ -396,33 +406,28 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 				// add data layer: static caching
 				.withProvider( DataLayer.class, DataLayer.StaticCaching.class )
 				// add deme to create households/persons
-				.withProvider( PersonBroker.class, SimplePersonBroker.class,
-						demeConfig )
+				.withProvider( PersonBroker.class, demeModule, demeConfig )
 				// add site broker for regions/sites/transmission
-				.withProvider( SiteBroker.class, SimpleSiteBroker.class,
-						siteConfig )
+				.withProvider( SiteBroker.class, siteModule, siteConfig )
 				// add society broker for groups/gatherings
-				.withProvider( SocietyBroker.class, SimpleSocietyBroker.class,
+				.withProvider( SocietyBroker.class, societyModule,
 						societyConfig )
-				.withProvider( PeerBroker.class, SimplePeerBroker.class,
-						peerConfig )
-				.withProvider( HealthBroker.class, SimpleHealthBroker.class,
-						healthConfig )
+				.withProvider( PeerBroker.class, peerModule, peerConfig )
+				.withProvider( HealthBroker.class, healthModule, healthConfig )
 
 				.build();
 
 		// FIXME workaround until seed becomes configurable from coala
-		final long seed = config.randomSeed();
-		final LocalBinder binder = binderConfig
-				.createBinder( MapBuilder.<Class<?>, Object>unordered()
-						.put( ProbabilityDistribution.Factory.class,
-								new Math3ProbabilityDistribution.Factory(
-										new Math3PseudoRandom.MersenneTwisterFactory()
-												.create( PseudoRandom.Config.NAME_DEFAULT,
-														seed ) ) )
-						.build() );
+		final PseudoRandom rng = new Math3PseudoRandom.MersenneTwisterFactory()
+				.create( PseudoRandom.Config.NAME_DEFAULT,
+						config.randomSeed() );
+		final LocalBinder binder = binderConfig.createBinder( MapBuilder
+				.<Class<?>, Object>unordered()
+				.put( ProbabilityDistribution.Factory.class,
+						new Math3ProbabilityDistribution.Factory( rng ) )
+				.build() );
 
-		LOG.debug( "Constructing model (seed: {}, config: {})...", seed,
+		LOG.debug( "Constructing model, seed: {}, config: {}", rng.seed(),
 				JsonUtil.toJSON( binderConfig.toJSON() ) );
 		final DemoScenarioMeasles1M model = binder
 				.inject( DemoScenarioMeasles1M.class );
@@ -438,9 +443,10 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 				.cityRegionsByType();
 
 		// TODO from config
-		final long timestamp = System.currentTimeMillis();
-		final String totalsFile = "daily-" + timestamp + "-sir-total.csv";
-		final String deltasFile = "daily-" + timestamp + "-sir-delta.csv";
+		final long seed = rng.seed().longValue();
+//		final long timestamp = System.currentTimeMillis();
+		final String totalsFile = "daily-" + seed + "-sir-total.csv";
+		final String deltasFile = "daily-" + seed + "-sir-delta.csv";
 		final String timing = "0 0 12 ? * *";
 		final int n = 10;
 		final List<Compartment> sirCols = Arrays.asList(
@@ -457,9 +463,8 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 
 		final ObjectNode configTree = (ObjectNode) config
 				.toJSON( DemoConfig.SCENARIO_BASE );
-		configTree.with( DemoConfig.REPLICATION_BASE ).put(
-				DemoConfig.RANDOM_SEED_KEY,
-				model.distFactory.getStream().seed().longValue() );
+		configTree.with( DemoConfig.REPLICATION_BASE )
+				.put( DemoConfig.RANDOM_SEED_KEY, seed );
 
 		final TreeMap<String, Set<String>> regNames = new TreeMap<>();
 		Observable.using( () -> new FileWriter( totalsFile, false ),
@@ -481,8 +486,9 @@ public class DemoScenarioMeasles1M implements DemoModel, Scenario
 													gmName, gmFallback );
 											return gmRegions.get( gmFallback );
 										} ).get( aggregationLevel ),
-										TreeMap::new, Collectors.toCollection(
-												TreeSet::new ) ) ) );
+										() -> new TreeMap<>(),
+										Collectors.toCollection(
+												() -> new TreeSet<>() ) ) ) );
 						fw.write( DemoConfig.toHeader( configTree, sirCols,
 								regNames ) );
 					}

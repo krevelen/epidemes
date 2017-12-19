@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.demo;
+package nl.rivm.cib.demo.module;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -76,13 +76,14 @@ import io.reactivex.Observable;
 import io.reactivex.internal.functions.Functions;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
+import nl.rivm.cib.demo.DemoConfig;
 import nl.rivm.cib.demo.DemoModel.Demical.DemicFact;
 import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
-import nl.rivm.cib.demo.DemoModel.Households;
-import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
-import nl.rivm.cib.demo.DemoModel.Persons;
-import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
+import nl.rivm.cib.demo.Households;
+import nl.rivm.cib.demo.Households.HouseholdTuple;
+import nl.rivm.cib.demo.Persons;
+import nl.rivm.cib.demo.Persons.HouseholdPosition;
+import nl.rivm.cib.demo.Persons.PersonTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
 import nl.rivm.cib.epidemes.cbs.json.CBSGender;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
@@ -97,12 +98,12 @@ import tec.uom.se.ComparableQuantity;
 
 /** organizes survival and reproduction (across households) */
 @Singleton
-public class SimplePersonBroker implements PersonBroker
+public class PersonBrokerSimple implements PersonBroker
 {
 
 	/** */
 	private static final Logger LOG = LogUtil
-			.getLogger( SimplePersonBroker.class );
+			.getLogger( PersonBrokerSimple.class );
 
 	public interface PersonConfig extends YamlConfig
 	{
@@ -158,7 +159,7 @@ public class SimplePersonBroker implements PersonBroker
 	}
 
 	@InjectConfig
-	private SimplePersonBroker.PersonConfig config;
+	private PersonBrokerSimple.PersonConfig config;
 
 	@Inject
 	private LocalBinder binder;
@@ -243,7 +244,7 @@ public class SimplePersonBroker implements PersonBroker
 
 	@SuppressWarnings( { "unchecked", "rawtypes" } )
 	@Override
-	public SimplePersonBroker reset() throws Exception
+	public PersonBrokerSimple reset() throws Exception
 	{
 		this.events.onComplete();
 
@@ -291,7 +292,7 @@ public class SimplePersonBroker implements PersonBroker
 				.filter( wv -> wv.getValue()
 						.regionType() == this.regionalResolution )
 				.toMultimap( wv -> wv.getValue().regionPeriod(),
-						Functions.identity(), TreeMap::new )
+						Functions.identity(), () -> new TreeMap<>() )
 				.blockingGet();
 		this.hhTypeDist = ConditionalDistribution
 				.of( this.distFactory::createCategorical, values );
@@ -440,7 +441,7 @@ public class SimplePersonBroker implements PersonBroker
 				.filter( wv -> wv.getValue()
 						.regionType() == this.regionalResolution )
 				.toMultimap( wv -> wv.getValue().regionPeriod().periodRef(),
-						Functions.identity(), TreeMap::new,
+						Functions.identity(), () -> new TreeMap<>(),
 						k -> new ArrayList<>() )
 				.blockingGet();
 		final LocalDate startDT = dt();
@@ -521,7 +522,7 @@ public class SimplePersonBroker implements PersonBroker
 								.regionType() == this.regionalResolution )
 						// <RegionPeriod, WeightedValue<Cbs37201json.Category>>
 						.toMultimap( wv -> wv.getValue().regionPeriod(),
-								Functions.identity(), TreeMap::new )
+								Functions.identity(), () -> new TreeMap<>() )
 						.blockingGet() );
 
 		// initialize birth space-time dist

@@ -19,20 +19,16 @@
  */
 package nl.rivm.cib.demo;
 
-import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -44,12 +40,9 @@ import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 
 import com.eaio.uuid.UUID;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.coala.bind.LocalBinder;
-import io.coala.data.Table.Property;
-import io.coala.data.Table.Tuple;
 import io.coala.log.LogUtil.Pretty;
 import io.coala.math.QuantityUtil;
 import io.coala.math.Range;
@@ -57,22 +50,17 @@ import io.coala.name.Identified;
 import io.coala.time.Instant;
 import io.coala.time.Proactive;
 import io.coala.time.TimeUnits;
-import io.coala.util.Compare;
 import io.coala.util.MapBuilder;
 import io.reactivex.Observable;
-import nl.rivm.cib.csv.DuoPrimarySchool.EduCol;
-import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
-import nl.rivm.cib.demo.DemoModel.Persons.HouseholdPosition;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
-import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
-import nl.rivm.cib.demo.DemoModel.Social.Pedagogy;
-import nl.rivm.cib.epidemes.cbs.json.CBSBirthRank;
+import nl.rivm.cib.demo.Households.HouseholdTuple;
+import nl.rivm.cib.demo.Persons.HouseholdPosition;
+import nl.rivm.cib.demo.Persons.PersonTuple;
+import nl.rivm.cib.demo.Sites.SiteTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSHousehold;
 import nl.rivm.cib.episim.model.SocialGatherer;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.episim.model.person.HouseholdComposition;
-import nl.rivm.cib.episim.model.vaccine.attitude.VaxHesitancy;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 import tec.uom.se.ComparableQuantity;
 
@@ -91,367 +79,6 @@ public interface DemoModel
 	Map<String, EnumMap<Compartment, Long>> exportRegionalSIRTotal();
 
 	Map<String, EnumMap<Compartment, Long>> exportRegionalSIRDelta();
-
-	@SuppressWarnings( "serial" )
-	interface Households
-	{
-		BigDecimal NO_MOM = BigDecimal.TEN.pow( 6 );
-
-		class HouseholdSeq extends AtomicReference<Long>
-			implements Property<Long>
-		{
-			// track households through time (index key is data source dependent)
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		class EduCulture extends AtomicReference<Pedagogy>
-			implements Property<Pedagogy>
-		{
-		}
-
-		class Complacency extends AtomicReference<BigDecimal>
-			implements Property<BigDecimal>
-		{
-		}
-
-		class Confidence extends AtomicReference<BigDecimal>
-			implements Property<BigDecimal>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		class HomeRegionRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		class HomeSiteRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
-
-		class Composition extends AtomicReference<CBSHousehold>
-			implements Property<CBSHousehold>
-		{
-		}
-
-		class KidRank extends AtomicReference<CBSBirthRank>
-			implements Property<CBSBirthRank>
-		{
-		}
-
-		class ReferentBirth extends AtomicReference<BigDecimal>
-			implements Property<BigDecimal>
-		{
-
-		}
-
-		class MomBirth extends AtomicReference<BigDecimal>
-			implements Property<BigDecimal>
-		{
-
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				HomeRegionRef.class, HomeSiteRef.class, Composition.class,
-				KidRank.class, ReferentBirth.class, MomBirth.class,
-				EduCulture.class, HouseholdSeq.class, Complacency.class,
-				Confidence.class );
-
-		class HouseholdTuple extends Tuple
-		{
-			@Override
-			@SuppressWarnings( "rawtypes" )
-			public List<Class<? extends Property>> properties()
-			{
-				return PROPERTIES;
-			}
-		}
-	}
-
-	@SuppressWarnings( "serial" )
-	interface Persons
-	{
-		enum HouseholdPosition
-		{
-			REFERENT, PARTNER, CHILD1, CHILD2, CHILD3, CHILDMORE;
-
-			public boolean isAdult()
-			{
-				return ordinal() < 2;
-			}
-
-			public static HouseholdPosition ofChildIndex( final int rank )
-			{
-				return rank < 3 ? values()[2 + rank] : CHILDMORE;
-			}
-
-			/**
-			 * @param ppPos
-			 * @return
-			 */
-			public HouseholdPosition shift( final HouseholdPosition missing )
-			{
-				return missing == REFERENT ? (this == PARTNER ? REFERENT : this)
-						: (!isAdult() && ordinal() > missing.ordinal()
-								? values()[ordinal() - 1] : this);
-			}
-		}
-
-		/** person's sequence/serial number */
-		class PersonSeq extends AtomicReference<Long> implements Property<Long>
-		{
-			// increases monotone at every new initiation/birth/immigration/...
-		}
-
-		/** reference of person's culture */
-		@SuppressWarnings( "rawtypes" )
-		class CultureRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
-
-		/** reference of person's household */
-		class HouseholdRef extends AtomicReference<Object>
-			implements Property<Object>
-		{
-		}
-
-		/** person's current household rank */
-		class HouseholdRank extends AtomicReference<HouseholdPosition>
-			implements Property<HouseholdPosition>
-		{
-		}
-
-		/** person's gender */
-		class Male extends AtomicReference<Boolean> implements Property<Boolean>
-		{
-		}
-
-		/** virtual absolute time of person's birth */
-		class Birth extends AtomicReference<BigDecimal>
-			implements Property<BigDecimal>
-		{
-		}
-
-//		@SuppressWarnings( "rawtypes" )
-//		class SiteRef extends AtomicReference<Comparable>
-//			implements Property<Comparable>
-//		{
-//		}
-
-		/** reference of person's current home region */
-		@SuppressWarnings( "rawtypes" )
-		class HomeRegionRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
-
-		/** reference of person's current home site */
-		@SuppressWarnings( "rawtypes" )
-		class HomeSiteRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
-
-		/** person's current epidemiological compartment for some pathogen */
-		class PathogenCompartment extends AtomicReference<MSEIRS.Compartment>
-			implements Property<MSEIRS.Compartment>
-		{
-		}
-
-		/** person's current remaining 'resistance' against some pathogen */
-		class PathogenResistance extends AtomicReference<Double>
-			implements Property<Double>
-		{
-		}
-
-		/**
-		 * person's current vaccination compliance (bitwise, see
-		 * https://stackoverflow.com/a/31921748)
-		 */
-		class VaxCompliance extends AtomicReference<Integer>
-			implements Property<Integer>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				// list frequently accessed fields first
-				PathogenCompartment.class, HouseholdRef.class,
-				HouseholdRank.class, Birth.class, HomeRegionRef.class,
-				HomeSiteRef.class, PathogenResistance.class, Male.class,
-				CultureRef.class, VaxCompliance.class, PersonSeq.class );
-
-		class PersonTuple extends Tuple
-		{
-			@Override
-			@SuppressWarnings( "rawtypes" )
-			public List<Class<? extends Property>> properties()
-			{
-				return PROPERTIES;
-			}
-		}
-	}
-
-	@SuppressWarnings( "serial" )
-	interface Regions
-	{
-		class RegionName extends AtomicReference<String>
-			implements Property<String>
-		{
-
-		}
-
-		class ParentRef extends AtomicReference<Object>
-			implements Property<Object>
-		{
-		}
-
-		class Population extends AtomicReference<Long> implements Property<Long>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		List<Class<? extends Property>> PROPERTIES = Arrays
-				.asList( RegionName.class, ParentRef.class, Population.class );
-
-		class RegionTuple extends Tuple
-		{
-			@Override
-			@SuppressWarnings( "rawtypes" )
-			public List<Class<? extends Property>> properties()
-			{
-				return PROPERTIES;
-			}
-		}
-	}
-
-	@SuppressWarnings( "serial" )
-	interface Sites
-	{
-
-		enum BuiltFunction
-		{
-			RESIDENCE, LARGE_ENTERPRISE, SMALL_ENTERPRISE, PRIMARY_EDUCATION,;
-		}
-
-		class SiteName extends AtomicReference<String>
-			implements Property<String>
-		{
-
-		}
-
-		class RegionRef extends AtomicReference<Object>
-			implements Property<Object>
-		{
-		}
-
-		class Latitude extends AtomicReference<Double>
-			implements Property<Double>
-		{
-		}
-
-		class Longitude extends AtomicReference<Double>
-			implements Property<Double>
-		{
-		}
-
-		class SiteFunction extends AtomicReference<BuiltFunction>
-			implements Property<BuiltFunction>
-		{
-		}
-
-		class EduCulture extends AtomicReference<Pedagogy>
-			implements Property<Pedagogy>
-		{
-		}
-
-		class Capacity extends AtomicReference<Integer>
-			implements Property<Integer>
-		{
-		}
-
-		class Occupancy extends AtomicReference<Integer>
-			implements Property<Integer>
-		{
-		}
-
-		class Pressure extends AtomicReference<Double>
-			implements Property<Double>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				Pressure.class, Occupancy.class, SiteName.class,
-				SiteFunction.class, EduCulture.class, RegionRef.class,
-				Latitude.class, Longitude.class, Capacity.class );
-
-		class SiteTuple extends Tuple
-		{
-			@Override
-			@SuppressWarnings( "rawtypes" )
-			public List<Class<? extends Property>> properties()
-			{
-				return PROPERTIES;
-			}
-
-		}
-	}
-
-	@SuppressWarnings( "serial" )
-	interface Societies
-	{
-
-		class SocietyName extends AtomicReference<String>
-			implements Property<String>
-		{
-		}
-
-		class Purpose extends AtomicReference<String>
-			implements Property<String>
-		{
-		}
-
-		class EduCulture extends AtomicReference<Pedagogy>
-			implements Property<Pedagogy>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		class SiteRef extends AtomicReference<Comparable>
-			implements Property<Comparable>
-		{
-		}
-
-		class Capacity extends AtomicReference<Integer>
-			implements Property<Integer>
-		{
-		}
-
-		class MemberCount extends AtomicReference<Integer>
-			implements Property<Integer>
-		{
-		}
-
-		@SuppressWarnings( "rawtypes" )
-		List<Class<? extends Property>> PROPERTIES = Arrays.asList(
-				EduCulture.class, MemberCount.class, Purpose.class,
-				Capacity.class, SocietyName.class, SiteRef.class );
-
-		class SocietyTuple extends Tuple
-		{
-			@Override
-			@SuppressWarnings( "rawtypes" )
-			public List<Class<? extends Property>> properties()
-			{
-				return PROPERTIES;
-			}
-		}
-	}
 
 	class EpiFact
 	{
@@ -498,56 +125,6 @@ public interface DemoModel
 	interface Social
 	{
 		// social/mental peer pressure networks, dynamics
-
-		enum Pedagogy
-		{
-			/**
-			 * Protestant (Luther), Gereformeerd/Vrijgemaakt/Evangelistisch
-			 * (Calvin)
-			 */
-			REFORMED,
-
-			/** Antroposofisch (Steiner/Waldorf) */
-			ALTERNATIVE,
-
-			/** speciaal onderwijs (special needs) */
-			SPECIAL,
-
-			/** public, catholic, islamic, mixed */
-			OTHERS,
-
-			/** unknown/all */
-			ALL,
-
-			;
-
-			private static final Map<String, Pedagogy> DUO_CACHE = new HashMap<>();
-
-			public static Pedagogy
-				resolveDuo( final EnumMap<EduCol, JsonNode> school )
-			{
-				final String type = school.get( EduCol.PO_SOORT ).asText();
-				final String denom = school.get( EduCol.DENOMINATIE ).asText();
-				final String key = type + denom;
-				final Pedagogy result = DUO_CACHE.computeIfAbsent( key, k ->
-				{
-					if( //denom.startsWith( "Prot" ) || // 23.1%
-					denom.startsWith( "Geref" ) // 1.2%
-							|| denom.startsWith( "Evan" ) // 0.1%
-					) return REFORMED;
-
-					if( denom.startsWith( "Antro" ) ) // 0.9%
-						return ALTERNATIVE;
-
-					if( type.startsWith( "S" ) || type.contains( "s" ) )
-						return SPECIAL;
-
-					return OTHERS;
-				} );
-//				System.err.println( type + " :: " + denom + " -> " + result );
-				return result;
-			}
-		}
 
 		interface TimedGatherer extends SocialGatherer
 		{
@@ -753,38 +330,6 @@ public interface DemoModel
 		interface VaxAcceptanceEvaluator
 			extends BiPredicate<HouseholdTuple, VaxOccasion>
 		{
-
-			/**
-			 * applied {@link VaxHesitancy#minimumConvenience} and
-			 * {@link VaxHesitancy#averageBarrier}
-			 */
-			VaxAcceptanceEvaluator MIN_CONVENIENCE_GE_AVG_ATTITUDE = ( hh,
-				occasion ) ->
-			{
-				final BigDecimal confidence = hh
-						.get( Households.Confidence.class ),
-						complacency = hh.get( Households.Complacency.class );
-
-				// no occasion, just return general attitude
-				if( occasion == null )
-					return Compare.gt( confidence, complacency );
-
-				final BigDecimal convenience = VaxHesitancy
-						.minimumConvenience( occasion );
-				final BigDecimal barrier = VaxHesitancy
-						.averageBarrier( confidence, complacency );
-				return Compare.ge( convenience, barrier );
-			};
-
-			class Average implements VaxAcceptanceEvaluator
-			{
-				@Override
-				public boolean test( final HouseholdTuple hh,
-					final VaxOccasion occasion )
-				{
-					return MIN_CONVENIENCE_GE_AVG_ATTITUDE.test( hh, occasion );
-				}
-			}
 		}
 	}
 

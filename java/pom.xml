@@ -5,7 +5,7 @@
 
 	<groupId>nl.rivm.cib</groupId>
 	<artifactId>epidemes</artifactId>
-	<version>0.2</version>
+	<version>0.2.0</version>
 	<packaging>pom</packaging>
 
 
@@ -62,8 +62,9 @@
 		<github.global.server>github</github.global.server>
 		<github.repository.name>epidemes</github.repository.name>
 		<github.repository.branch>mvn-repo</github.repository.branch>
-		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
+		<github.repository.owner>krevelen</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
+		<github.repository.tmpdir>${project.basedir}/../epidemes-local</github.repository.tmpdir>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
 		<!-- set dependency versions -->
@@ -202,7 +203,7 @@
 		<repository>
 			<id>${github.repository.localid}</id>
 			<name>Temporary Staging Repository</name>
-			<url>file://${project.basedir}/..</url>
+			<url>file://${github.repository.tmpdir}</url>
 		</repository>
 	</distributionManagement>
 

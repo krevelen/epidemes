@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.demo;
+package nl.rivm.cib.demo.module;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,32 +54,33 @@ import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import nl.rivm.cib.csv.DuoPrimarySchool;
 import nl.rivm.cib.csv.DuoPrimarySchool.EduCol;
+import nl.rivm.cib.demo.DemoConfig;
 import nl.rivm.cib.demo.DemoModel.EpiFact;
-import nl.rivm.cib.demo.DemoModel.Households;
-import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
-import nl.rivm.cib.demo.DemoModel.Persons;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
-import nl.rivm.cib.demo.DemoModel.Sites;
-import nl.rivm.cib.demo.DemoModel.Sites.BuiltFunction;
-import nl.rivm.cib.demo.DemoModel.Sites.SiteTuple;
-import nl.rivm.cib.demo.DemoModel.Social.Pedagogy;
+import nl.rivm.cib.demo.Households;
+import nl.rivm.cib.demo.Households.HouseholdTuple;
+import nl.rivm.cib.demo.Pedagogy;
+import nl.rivm.cib.demo.Persons;
+import nl.rivm.cib.demo.Persons.PersonTuple;
+import nl.rivm.cib.demo.Sites;
+import nl.rivm.cib.demo.Sites.BuiltFunction;
+import nl.rivm.cib.demo.Sites.SiteTuple;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.json.CbsRegionCentroidDensity;
 import nl.rivm.cib.json.CbsRegionCentroidDensity.ExportCol;
 
 /**
- * {@link SimpleSiteBroker}
+ * {@link SiteBrokerSimple}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
 @Singleton
-public class SimpleSiteBroker implements SiteBroker
+public class SiteBrokerSimple implements SiteBroker
 {
 	/** */
 	private static final Logger LOG = LogUtil
-			.getLogger( SimpleSiteBroker.class );
+			.getLogger( SiteBrokerSimple.class );
 
 	public interface SiteConfig extends YamlConfig
 	{
@@ -155,7 +156,7 @@ public class SimpleSiteBroker implements SiteBroker
 	private TreeMap<String, Map<Pedagogy, ProbabilityDistribution<String>>> primarySchools;
 
 	@Override
-	public SimpleSiteBroker reset() throws Exception
+	public SiteBrokerSimple reset() throws Exception
 	{
 		this.sites = this.data.getTable( SiteTuple.class );
 		this.households = this.data.getTable( HouseholdTuple.class )

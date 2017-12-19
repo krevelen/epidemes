@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.demo;
+package nl.rivm.cib.demo.module;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -70,28 +70,30 @@ import io.coala.util.Compare;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
-import nl.rivm.cib.demo.DemoModel.Households;
-import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
+import nl.rivm.cib.demo.DemoConfig;
 import nl.rivm.cib.demo.DemoModel.Medical.EpidemicFact;
 import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.demo.DemoModel.Medical.VaxAcceptanceEvaluator;
 import nl.rivm.cib.demo.DemoModel.Medical.VaxDose;
 import nl.rivm.cib.demo.DemoModel.Medical.VaxRegimen;
-import nl.rivm.cib.demo.DemoModel.Persons;
-import nl.rivm.cib.demo.DemoModel.Persons.PersonTuple;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
+import nl.rivm.cib.demo.Households;
+import nl.rivm.cib.demo.Households.HouseholdTuple;
+import nl.rivm.cib.demo.VaxRegimenSimpleMeaslesRVP;
+import nl.rivm.cib.demo.Persons;
+import nl.rivm.cib.demo.Persons.PersonTuple;
 import nl.rivm.cib.episim.cbs.RegionPeriod;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.episim.model.vaccine.attitude.VaxOccasion;
 import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link SimpleHealthBroker}
+ * {@link HealthBrokerSimple}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class SimpleHealthBroker implements HealthBroker
+public class HealthBrokerSimple implements HealthBroker
 {
 
 	public interface HealthConfig extends YamlConfig
@@ -128,10 +130,14 @@ public class SimpleHealthBroker implements HealthBroker
 //		@Key( "vaccination-degree" )
 //		@DefaultValue( ".9" )
 //		double overallVaccinationDegree();
+		
+		@Key( VACCINATION_PREFIX + "regimen" )
+		@DefaultValue( "nl.rivm.cib.demo.MeaslesRVP" )
+		Class<? extends VaxRegimen> regimenType();
 
 		@Key( VACCINATION_PREFIX + "acceptance-evaluator" )
 		@DefaultValue( "nl.rivm.cib.demo.DemoModel$Medical$VaxAcceptanceEvaluator$Average" )
-		Class<?> acceptanceEvaluatorType();
+		Class<? extends VaxAcceptanceEvaluator> acceptanceEvaluatorType();
 
 		// BMR2 reached, mean(sd): 14.2(0.5) months/61.5(1.9) weeks/425(13) days
 		/** typical treatment delay relative to the (arbitrary) decision age */
@@ -168,7 +174,7 @@ public class SimpleHealthBroker implements HealthBroker
 
 	/** */
 	private static final Logger LOG = LogUtil
-			.getLogger( SimpleHealthBroker.class );
+			.getLogger( HealthBrokerSimple.class );
 
 	@InjectConfig
 	private HealthConfig config;
@@ -209,10 +215,9 @@ public class SimpleHealthBroker implements HealthBroker
 	private Table<Households.HouseholdTuple> households;
 
 	// TODO from config
-	private VaxRegimen regimen = MeaslesRVP.instance();
+	private VaxRegimen regimen = VaxRegimenSimpleMeaslesRVP.instance();
 
-	// TODO from config
-	private VaxAcceptanceEvaluator vaxAcceptance = VaxAcceptanceEvaluator.MIN_CONVENIENCE_GE_AVG_ATTITUDE;
+	private VaxAcceptanceEvaluator vaxAcceptance;
 	/** */
 	private ConditionalDistribution<VaxOccasion, VaxDose> vaxOccasionConvenienceDist;
 	/** */
@@ -231,7 +236,7 @@ public class SimpleHealthBroker implements HealthBroker
 	private QuantityDistribution<Time> recoveryPeriodDist;
 
 	@Override
-	public SimpleHealthBroker reset() throws Exception
+	public HealthBrokerSimple reset() throws Exception
 	{
 		// schedule vaccination occasions
 		atEach( Timing.of( this.config.occasionRecurrence() )
@@ -266,6 +271,8 @@ public class SimpleHealthBroker implements HealthBroker
 //								.draw() ? Compartment.VACCINATED
 						: Compartment.SUSCEPTIBLE;
 
+		this.vaxAcceptance = this.config.acceptanceEvaluatorType()
+				.newInstance();
 		this.vaxTreatmentDelay = this.distParser.parseQuantity(
 				this.config.treatmentDelayDist(), TimeUnits.WEEK );
 

@@ -32,12 +32,12 @@ import nl.rivm.cib.demo.DemoModel.Medical.VaxRegimen;
 import tec.uom.se.ComparableQuantity;
 
 /**
- * {@link MeaslesRVP}
+ * {@link VaxRegimenSimpleMeaslesRVP}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class MeaslesRVP implements VaxRegimen
+public class VaxRegimenSimpleMeaslesRVP implements VaxRegimen
 {
 	/**
 	 * {@link BMR} doses vaccinate against measles, mumps and rubella (MMR)
@@ -111,14 +111,14 @@ public class MeaslesRVP implements VaxRegimen
 		}
 	}
 
-	private static final MeaslesRVP INSTANCE = new MeaslesRVP();
+	private static final VaxRegimenSimpleMeaslesRVP INSTANCE = new VaxRegimenSimpleMeaslesRVP();
 
-	public static final MeaslesRVP instance()
+	public static final VaxRegimenSimpleMeaslesRVP instance()
 	{
 		return INSTANCE;
 	}
 
-	private MeaslesRVP()
+	private VaxRegimenSimpleMeaslesRVP()
 	{
 		// singleton
 	}

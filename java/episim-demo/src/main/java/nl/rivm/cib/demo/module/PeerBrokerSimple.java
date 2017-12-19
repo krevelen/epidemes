@@ -17,7 +17,7 @@
  * 
  * Copyright (c) 2016 RIVM National Institute for Health and Environment 
  */
-package nl.rivm.cib.demo;
+package nl.rivm.cib.demo.module;
 
 import java.beans.PropertyChangeEvent;
 import java.math.BigDecimal;
@@ -36,18 +36,20 @@ import io.coala.time.Scheduler;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
-import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
+import nl.rivm.cib.demo.DemoConfig;
+import nl.rivm.cib.demo.DemoModel;
 import nl.rivm.cib.demo.DemoModel.EpiFact;
-import nl.rivm.cib.demo.DemoModel.Households;
-import nl.rivm.cib.demo.DemoModel.Households.HouseholdTuple;
+import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
+import nl.rivm.cib.demo.Households;
+import nl.rivm.cib.demo.Households.HouseholdTuple;
 
 /**
- * {@link SimplePeerBroker}
+ * {@link PeerBrokerSimple}
  * 
  * @version $Id$
  * @author Rick van Krevelen
  */
-public class SimplePeerBroker implements PeerBroker
+public class PeerBrokerSimple implements PeerBroker
 {
 
 	public interface PeerConfig extends YamlConfig
@@ -319,7 +321,7 @@ public class SimplePeerBroker implements PeerBroker
 
 	/** */
 	private static final Logger LOG = LogUtil
-			.getLogger( SimplePeerBroker.class );
+			.getLogger( PeerBrokerSimple.class );
 
 	@InjectConfig
 	private PeerConfig config;
@@ -378,7 +380,7 @@ public class SimplePeerBroker implements PeerBroker
 //	private transient ConditionalDistribution<Map<HHAttribute, BigDecimal>, HesitancyProfileJson> hesitancyDist;
 
 	@Override
-	public SimplePeerBroker reset() throws Exception
+	public PeerBrokerSimple reset() throws Exception
 	{
 		// TODO from CBS
 		this.regionalCultureDist = regName -> DemoModel.NA;

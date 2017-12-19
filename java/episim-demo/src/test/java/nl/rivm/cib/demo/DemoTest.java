@@ -67,6 +67,11 @@ import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
 import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
 import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
 import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
+import nl.rivm.cib.demo.module.HealthBrokerSimple;
+import nl.rivm.cib.demo.module.PeerBrokerSimple;
+import nl.rivm.cib.demo.module.PersonBrokerSimple;
+import nl.rivm.cib.demo.module.SiteBrokerSimple;
+import nl.rivm.cib.demo.module.SocietyBrokerSimple;
 import nl.rivm.cib.epidemes.cbs.json.CBSRegionType;
 import nl.rivm.cib.epidemes.cbs.json.CbsRegionHierarchy;
 import nl.rivm.cib.episim.cbs.TimeUtil;
@@ -139,17 +144,17 @@ public class DemoTest
 				// add data layer: static caching
 				.withProvider( DataLayer.class, DataLayer.StaticCaching.class )
 				// add deme to create households/persons
-				.withProvider( PersonBroker.class, SimplePersonBroker.class,
+				.withProvider( PersonBroker.class, PersonBrokerSimple.class,
 						demeConfig )
 				// add site broker for regions/sites/transmission
-				.withProvider( SiteBroker.class, SimpleSiteBroker.class,
+				.withProvider( SiteBroker.class, SiteBrokerSimple.class,
 						siteConfig )
 				// add society broker for groups/gatherings
-				.withProvider( SocietyBroker.class, SimpleSocietyBroker.class,
+				.withProvider( SocietyBroker.class, SocietyBrokerSimple.class,
 						societyConfig )
-				.withProvider( PeerBroker.class, SimplePeerBroker.class,
+				.withProvider( PeerBroker.class, PeerBrokerSimple.class,
 						peerConfig )
-				.withProvider( HealthBroker.class, SimpleHealthBroker.class,
+				.withProvider( HealthBroker.class, HealthBrokerSimple.class,
 						healthConfig )
 
 				.build();

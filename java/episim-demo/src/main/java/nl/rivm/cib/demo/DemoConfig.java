@@ -36,6 +36,11 @@ import io.coala.config.LocalDateConverter;
 import io.coala.config.PeriodConverter;
 import io.coala.config.YamlConfig;
 import io.coala.math.DecimalUtil;
+import nl.rivm.cib.demo.DemoModel.Demical.PersonBroker;
+import nl.rivm.cib.demo.DemoModel.Medical.HealthBroker;
+import nl.rivm.cib.demo.DemoModel.Regional.SiteBroker;
+import nl.rivm.cib.demo.DemoModel.Social.PeerBroker;
+import nl.rivm.cib.demo.DemoModel.Social.SocietyBroker;
 import nl.rivm.cib.episim.model.disease.infection.MSEIRS.Compartment;
 import nl.rivm.cib.pilot.PilotConfig.RandomSeedConverter;
 
@@ -51,6 +56,8 @@ import nl.rivm.cib.pilot.PilotConfig.RandomSeedConverter;
 		"classpath:" + DemoConfig.CONFIG_YAML_FILE } )
 public interface DemoConfig extends YamlConfig
 {
+
+	String CONF_ARG = "conf";
 
 	String CONFIG_YAML_FILE = "demo.yaml";
 
@@ -75,12 +82,18 @@ public interface DemoConfig extends YamlConfig
 	/** configuration key */
 	String SCENARIO_BASE = "scenario";
 
+	String RANDOM_SEED_KEY = "random-seed";
+
+	String sep = ";", eol = "\r\n";
+
 	/** configuration key */
 	String REPLICATION_BASE = "replication";
 
 	/** configuration key */
 	String REPLICATION_PREFIX = SCENARIO_BASE + KEY_SEP + REPLICATION_BASE
 			+ KEY_SEP;
+
+	String MODULE_KEY = "module";
 
 	/** configuration key */
 	String DEMOGRAPHY_BASE = "demography";
@@ -101,8 +114,6 @@ public interface DemoConfig extends YamlConfig
 	@DefaultValue( "pilot" )
 	String setupName();
 
-	String RANDOM_SEED_KEY = "random-seed";
-
 	@Key( REPLICATION_PREFIX + RANDOM_SEED_KEY )
 	@DefaultValue( "NaN" )
 	@ConverterClass( RandomSeedConverter.class )
@@ -118,9 +129,25 @@ public interface DemoConfig extends YamlConfig
 	@ConverterClass( LocalDateConverter.class )
 	LocalDate offset();
 
-	String CONF_ARG = "conf";
+	@Key( DEMOGRAPHY_BASE + KEY_SEP + MODULE_KEY )
+	@DefaultValue( "nl.rivm.cib.demo.module.PersonBrokerSimple" )
+	Class<? extends PersonBroker> demeModule();
 
-	String sep = ";", eol = "\r\n";
+	@Key( EPIDEMIOLOGY_BASE + KEY_SEP + MODULE_KEY )
+	@DefaultValue( "nl.rivm.cib.demo.module.HealthBrokerSimple" )
+	Class<? extends HealthBroker> healthModule();
+
+	@Key( HESITANCY_BASE + KEY_SEP + MODULE_KEY )
+	@DefaultValue( "nl.rivm.cib.demo.module.PeerBrokerSimple" )
+	Class<? extends PeerBroker> peerModule();
+
+	@Key( GEOGRAPHY_BASE + KEY_SEP + MODULE_KEY )
+	@DefaultValue( "nl.rivm.cib.demo.module.SiteBrokerSimple" )
+	Class<? extends SiteBroker> siteModule();
+
+	@Key( MOTION_BASE + KEY_SEP + MODULE_KEY )
+	@DefaultValue( "nl.rivm.cib.demo.module.SocietyBrokerSimple" )
+	Class<? extends SocietyBroker> societyModule();
 
 	static String toHeader( final Object config,
 		final List<Compartment> sirCols,
