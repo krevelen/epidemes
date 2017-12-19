@@ -32,23 +32,14 @@
 
 	<repositories>
 		<repository>
-			<name>COALA Public Maven Repository</name>
-			<id>coala-public</id>
-			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<name>COALA Local Maven Repository</name>
+			<id>coala-local</id>
+			<url>file:${project.basedir}/../coala-local</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
 			</releases>
-		</repository>
-		<repository>
-			<name>EPIDEMES Public Maven Repository</name>
-			<id>epidemes-public</id>
-			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>never</updatePolicy>
-			</releases>
-		</repository>
+  		</repository>
 		<repository>
 			<id>maven2-repository.dev.java.net</id>
 			<name>Java.net repository</name>

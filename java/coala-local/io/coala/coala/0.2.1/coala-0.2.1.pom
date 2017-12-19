@@ -1,0 +1,589 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>io.coala</groupId>
+	<artifactId>coala</artifactId>
+	<version>0.2.1</version>
+	<packaging>pom</packaging>
+
+	<name>${project.artifactId} ${project.version}</name>
+	<url>http://coala.io/</url>
+	<description> 
+		Binder for the Common Ontological Abstraction Layer for Agents (COALA)
+	</description>
+	<developers>
+		<developer>
+			<id>krevelen</id>
+			<name>Rick van Krevelen</name>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+
+	</developers>
+
+	<modules>
+
+		<module>coala-common</module>
+
+		<!-- Binder API and utilities -->
+		<module>coala-api</module>
+
+		<!-- Time API and utilities requires API -->
+		<module>coala-api-time</module>
+
+		<!-- Guice 4 adapter of the LocalBinder API -->
+		<module>adapters/guice4-coala-adapter</module>
+
+		<!-- DSOL3 adapter of the relevant APIs -->
+		<module>adapters/dsol3-coala-adapter</module>
+
+		<!-- Enterprise Ontology API requires Guice and DSOL -->
+		<module>coala-api-enterprise</module>
+
+		<!-- commons-math3 adapter of the relevant core APIs -->
+		<module>adapters/math3-coala-adapter</module>
+
+		<!-- Eve 3 adapter of the relevant (inter) APIs -->
+		<module>adapters/eve3-coala-adapter</module>
+
+		<!-- colt adapter of the relevant core APIs -->
+		<!-- <module>adapters/colt-coala-adapter</module> -->
+
+		<!-- Jason adapter of the relevant core APIs -->
+		<!-- <module>adapters/jason-coala-adapter</module> -->
+
+		<!-- Conway's game of life -->
+		<!-- <module>demos/coala-demo-conway</module> -->
+	</modules>
+
+	<properties>
+		<source>1.8</source>
+		<encoding>UTF-8</encoding>
+		<skipTests>false</skipTests>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
+		<m2e.jsf.activation>false</m2e.jsf.activation>
+		<m2e.cdi.activation>true</m2e.cdi.activation>
+		<m2e.jaxrs.activation>false</m2e.jaxrs.activation>
+
+		<maven.test.skip>${skipTests}</maven.test.skip>
+		<project.build.sourceLevel>${source}</project.build.sourceLevel>
+		<project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
+
+		<!-- set reporting versions (e.g. unit test code coverage) -->
+		<maven-project-info-reports-plugin.version>2.9</maven-project-info-reports-plugin.version>
+		<maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+
+		<!-- test coverage versions -->
+		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
+		<jacoco.covered-ratio>0.0</jacoco.covered-ratio>
+
+		<!-- set distribution versions -->
+		<wagon-ssh.version>1.0-beta-7</wagon-ssh.version>
+		<github.global.server>github</github.global.server>
+		<github.repository.name>coala</github.repository.name>
+		<github.repository.branch>mvn-repo</github.repository.branch>
+		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
+		<github.repository.localid>internal.repo</github.repository.localid>
+		<github.repository.tmpdir>${user.dir}</github.repository.tmpdir>
+		<github.repository.url>https://raw.github.com/krevelen/coala/mvn-repo/</github.repository.url>
+		<site-maven-plugin.version>0.9</site-maven-plugin.version>
+
+		<!-- JSR versions -->
+		<javaee-api.version>7.0</javaee-api.version>
+		<javax.servlet-api.version>3.0.1</javax.servlet-api.version>
+		<javax.inject.version>1</javax.inject.version>
+		<jta.version>1.1</jta.version>
+
+		<!-- set dependency versions -->
+		<junit.version>4.11</junit.version>
+		<concurrentunit.version>0.4.2</concurrentunit.version>
+		<hamcrest.version>1.3</hamcrest.version>
+		<ujmp.version>0.3.0</ujmp.version>
+		<uom-se.version>1.0.1</uom-se.version>
+		<apfloat.version>1.8.2</apfloat.version>
+		<log4j.version>2.8.2</log4j.version>
+		<jackson.version>2.8.8</jackson.version>
+		<hibernate.version>5.1.0.Final</hibernate.version>
+		<wildfly.version>10.1.1.Final</wildfly.version>
+		<tomcat.version>8.5.13</tomcat.version>
+
+		<!-- set maven mojo execution plugin versions -->
+		<!-- <xmlbeans-maven-plugin.version>2.3.3</xmlbeans-maven-plugin.version> -->
+		<lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
+		<maven-clean-plugin.version>3.0.0</maven-clean-plugin.version>
+		<maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
+		<maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
+		<maven-source-plugin.version>3.0.0</maven-source-plugin.version>
+		<maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
+		<maven-war-plugin.version>2.6</maven-war-plugin.version>
+		<maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+		<maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+		<maven-resources-plugin.version>3.0.1</maven-resources-plugin.version>
+		<maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
+		<exec-maven-plugin.version>1.5.0</exec-maven-plugin.version>
+		<maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
+		<build-helper-maven-plugin.version>1.10</build-helper-maven-plugin.version>
+		<!-- for JPA metamodel generation, see https://docs.jboss.org/hibernate/orm/5.0/topical/html/metamodelgen/MetamodelGenerator.html -->
+		<maven-processor-plugin.version>3.2.0</maven-processor-plugin.version>
+	</properties>
+
+	<distributionManagement>
+		<downloadUrl>https://github.com/krevelen/coala-binder/raw/mvn-repo/</downloadUrl>
+		<repository>
+			<id>${github.repository.localid}</id>
+			<name>Temporary Staging Repository</name>
+			<url>file://${github.repository.tmpdir}</url>
+		</repository>
+	</distributionManagement>
+
+	<dependencyManagement>
+		<dependencies>
+			<!-- project-related -->
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>coala-common</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>coala-api</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>coala-api-time</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+
+			<!-- JSR -->
+			<dependency>
+				<groupId>javax</groupId>
+				<artifactId>javaee-api</artifactId>
+				<version>${javaee-api.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax</groupId>
+				<artifactId>javaee-web-api</artifactId>
+				<version>${javaee-api.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.servlet</groupId>
+				<artifactId>javax.servlet-api</artifactId>
+				<version>${javax.servlet-api.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.inject</groupId>
+				<artifactId>javax.inject</artifactId>
+				<version>${javax.inject.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.transaction</groupId>
+				<artifactId>jta</artifactId>
+				<version>${jta.version}</version>
+			</dependency>
+
+			<!-- custom utilities -->
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>${junit.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.jodah</groupId>
+				<artifactId>concurrentunit</artifactId>
+				<version>${concurrentunit.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-all</artifactId>
+				<version>${hamcrest.version}</version>
+			</dependency>
+
+			<!-- JSON, YAML, XML de/serialization -->
+			<dependency>
+				<groupId>com.fasterxml.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>${jackson.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- reference implementation of javax.measurement JSR-363 -->
+			<dependency>
+				<groupId>tec.uom</groupId>
+				<artifactId>uom-se</artifactId>
+				<version>${uom-se.version}</version>
+			</dependency>
+
+			<!-- High performance arbitrary precision arithmetic library -->
+			<dependency>
+				<groupId>org.apfloat</groupId>
+				<artifactId>apfloat</artifactId>
+				<version>${apfloat.version}</version>
+			</dependency>
+
+			<!-- matrix calculations -->
+			<dependency>
+				<groupId>org.ujmp</groupId>
+				<artifactId>ujmp-core</artifactId>
+				<version>${ujmp.version}</version>
+			</dependency>
+
+			<!-- logging -->
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-bom</artifactId>
+				<version>${log4j.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- logging -->
+			<dependency>
+				<groupId>org.hibernate.ogm</groupId>
+				<artifactId>hibernate-ogm-bom</artifactId>
+				<version>${hibernate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- JPA provider for (classic) O/R and (noSQL) O/G mapping models -->
+			<dependency>
+				<groupId>org.hibernate</groupId>
+				<artifactId>hibernate-hikaricp</artifactId>
+				<version>${hibernate.version}</version>
+			</dependency>
+
+			<!-- servlets etc. -->
+			<dependency>
+				<groupId>org.wildfly.bom</groupId>
+				<artifactId>wildfly-javaee7</artifactId>
+				<version>${wildfly.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-catalina</artifactId>
+				<version>${tomcat.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-jdbc</artifactId>
+				<version>${tomcat.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat</groupId>
+				<artifactId>tomcat-servlet-api</artifactId>
+				<version>${tomcat.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<extensions>
+			<!-- Enabling the use of SFTP, e.g. for artifact deployment -->
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-ssh</artifactId>
+				<version>${wagon-ssh.version}</version>
+			</extension>
+		</extensions>
+
+		<pluginManagement>
+			<plugins>
+				<!-- generate JPA MetaModel classes and add to class path -->
+				<plugin>
+					<groupId>org.bsc.maven</groupId>
+					<artifactId>maven-processor-plugin</artifactId>
+					<version>${maven-processor-plugin.version}</version>
+					<configuration>
+						<processors>
+							<processor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</processor>
+						</processors>
+					</configuration>
+					<dependencies>
+						<dependency>
+							<groupId>org.hibernate</groupId>
+							<artifactId>hibernate-jpamodelgen</artifactId>
+							<version>${hibernate.version}</version>
+						</dependency>
+					</dependencies>
+				</plugin>
+
+				<plugin>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>${maven-compiler-plugin.version}</version>
+					<configuration>
+						<source>${project.build.sourceLevel}</source>
+						<target>${project.build.sourceLevel}</target>
+						<encoding>${project.build.sourceEncoding}</encoding>
+						<compilerArgument>-Xlint:deprecation</compilerArgument>
+						<compilerArgument>-Xlint:unchecked</compilerArgument>
+						<verbose>false</verbose>
+					</configuration>
+				</plugin>
+				<plugin>
+					<artifactId>maven-clean-plugin</artifactId>
+					<version>${maven-clean-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>${maven-surefire-plugin.version}</version>
+					<configuration>
+						<systemPropertyVariables>
+							<java.util.logging.manager>org.apache.logging.log4j.jul.LogManager</java.util.logging.manager>
+						</systemPropertyVariables>
+					</configuration>
+				</plugin>
+				<plugin>
+					<artifactId>maven-source-plugin</artifactId>
+					<version>${maven-source-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-war-plugin</artifactId>
+					<version>${maven-war-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>${maven-dependency-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-resources-plugin</artifactId>
+					<version>${maven-resources-plugin.version}</version>
+					<configuration>
+						<encoding>${project.build.sourceEncoding}</encoding>
+					</configuration>
+				</plugin>
+				<plugin>
+					<artifactId>maven-antrun-plugin</artifactId>
+					<version>${maven-antrun-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>${maven-jar-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-assembly-plugin</artifactId>
+					<version>${maven-assembly-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>${maven-deploy-plugin.version}</version>
+					<configuration>
+						<altDeploymentRepository>${github.repository.localid}::default::file://${github.repository.tmpdir}</altDeploymentRepository>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>com.github.github</groupId>
+					<artifactId>site-maven-plugin</artifactId>
+					<version>${site-maven-plugin.version}</version>
+					<configuration>
+						<message>Maven artifacts for ${project.version}</message>
+						<noJekyll>true</noJekyll> <!-- disable webpage processing -->
+						<outputDirectory>${github.repository.tmpdir}</outputDirectory>
+						<branch>refs/heads/${github.repository.branch}</branch>
+						<includes>
+							<include>**/*</include>
+						</includes>
+						<repositoryName>${github.repository.name}</repositoryName>
+						<repositoryOwner>${github.repository.owner}</repositoryOwner>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>build-helper-maven-plugin</artifactId>
+					<version>${build-helper-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>exec-maven-plugin</artifactId>
+					<version>${exec-maven-plugin.version}</version>
+				</plugin>
+
+				<plugin>
+					<!-- Configure the Maven2 Eclipse IDE Integration (m2e) for non-standard 
+						plug-in executions during the compile-test-run life-cycles by the IDE -->
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>${lifecycle-mapping.version}</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+
+								<!-- Configure "org.bsc.maven:maven-processor-plugin:process" goal 
+									execution in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.bsc.maven</groupId>
+										<artifactId>maven-processor-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>process</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnConfiguration>true</runOnConfiguration>
+											<runOnIncremental>false</runOnIncremental>
+										</execute>
+									</action>
+								</pluginExecution>
+
+								<!-- Configure "org.jacoco:jacoco-maven-plugin:{prepare-agent,report,check}" 
+									goal execution in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.jacoco</groupId>
+										<artifactId>jacoco-maven-plugin</artifactId>
+										<versionRange>[0.0.0,)</versionRange>
+										<goals>
+											<goal>prepare-agent</goal>
+											<goal>report</goal>
+											<goal>check</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+			<!-- Set Java compiler configuration -->
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${project.build.sourceLevel}</source>
+					<target>${project.build.sourceLevel}</target>
+					<encoding>${project.build.sourceEncoding}</encoding>
+					<compilerArguments>
+						<!-- <verbose /> <Xlint:deprecation/> <Xlint:-path/> -->
+						<Xmaxerrs>1000</Xmaxerrs>
+						<Averbose>true</Averbose>
+					</compilerArguments>
+				</configuration>
+			</plugin>
+
+			<!-- Set resources configuration <plugin> <groupId>org.apache.maven.plugins</groupId> 
+				<artifactId>maven-resources-plugin</artifactId> <configuration> <encoding>${encoding}</encoding> 
+				</configuration> </plugin> -->
+
+			<!-- Set testing configuration -->
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- <skipTests>true</skipTests> -->
+					<parallel>methods</parallel>
+					<threadCount>1</threadCount>
+					<skipTests>${maven.test.skip}</skipTests>
+				</configuration>
+			</plugin>
+
+			<!-- Attach sources -->
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- run site-maven-plugin's 'site' target as part of the build's normal 
+				'deploy' phase -->
+			<!-- <plugin> <groupId>com.github.github</groupId> <artifactId>site-maven-plugin</artifactId> 
+				<executions> <execution> <goals> <goal>site</goal> </goals> <phase>deploy</phase> 
+				</execution> </executions> </plugin> -->
+
+			<!-- <plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>default-prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>default-report</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>default-check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>COMPLEXITY</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>${jacoco.covered-ratio}</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin> -->
+		</plugins>
+	</build>
+
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>${maven-project-info-reports-plugin.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${maven-javadoc-plugin.version}</version>
+				<configuration>
+					<failOnError>false</failOnError>
+				</configuration>
+				<reportSets>
+					<reportSet>
+						<id>default</id>
+						<reports>
+							<report>javadoc</report>
+							<!-- <report>test-javadoc</report> -->
+						</reports>
+					</reportSet>
+					<reportSet>
+						<id>aggregate</id>
+						<reports>
+							<report>aggregate</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+		</plugins>
+	</reporting>
+</project>

@@ -29,7 +29,7 @@ import com.eaio.uuid.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import io.coala.dsol3.legacy.Dsol3Config;
+import io.coala.dsol3.Dsol3Scheduler;
 import io.coala.exception.Thrower;
 import io.coala.json.JsonUtil;
 import io.coala.log.LogUtil;
@@ -37,6 +37,7 @@ import io.coala.math.QuantityUtil;
 import io.coala.time.Duration;
 import io.coala.time.Instant;
 import io.coala.time.Scheduler;
+import io.coala.time.SchedulerConfig;
 import io.coala.time.TimeUnits;
 import io.coala.time.Timing;
 import io.coala.util.MapBuilder;
@@ -133,14 +134,15 @@ public class ReplicatorAgentImpl extends Agent implements ReplicatorAgent
 				TimeUnits.MILLIS );
 		this.pace.onNext( zeroPace );
 		this.myPace = zeroPace;
-		final Dsol3Config config = Dsol3Config.of( MapBuilder
-				.<String, Object>unordered().put( Dsol3Config.ID_KEY, getId() )
-				.put( Dsol3Config.START_TIME_KEY, "0 " + timeUnit )
-				.put( Dsol3Config.RUN_LENGTH_KEY, QuantityUtil
+		final SchedulerConfig config = SchedulerConfig.create( MapBuilder
+				.<String, Object>unordered().put( SchedulerConfig.ID_KEY, getId() )
+				.put( SchedulerConfig.OFFSET_KEY, "0 " + timeUnit )
+				.put( SchedulerConfig.DURATION_KEY, QuantityUtil
 						.decimalValue( this.myDuration, timeUnit ).toString() )
 				.build() );
 		LOG.info( "Starting replication, config: {}", config.toYAML() );
-		this.scheduler = config.create( s ->
+		this.scheduler = new Dsol3Scheduler(config);
+		this.scheduler.run( s ->
 		{
 //					Scenario.of( Store.of( s, Collections.emptySet() ) );
 			this.time.onNext( s.now() ); // emit start time

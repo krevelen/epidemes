@@ -1,0 +1,361 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.coala</groupId>
+		<artifactId>coala</artifactId>
+		<version>0.2.1</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>coala-api-enterprise</artifactId>
+
+	<name>${project.artifactId} ${project.version}</name>
+	<description>
+		Utility and demonstration code for a DEMO ontology API
+		$Id$
+	</description>
+	<url>https://demo.nl/</url>
+
+	<properties>
+		<!-- testing JPA -->
+		<jta.version>1.1</jta.version>
+		<hsqldb.version>2.3.4</hsqldb.version>
+		<hikari.version>2.4.7</hikari.version>
+
+		<!-- testing XML -->
+		<woodstox.version>4.4.1</woodstox.version>
+		<jaxb-api.version>2.2.12</jaxb-api.version>
+		<cxf-xjc-plugin.version>3.1.6</cxf-xjc-plugin.version>
+		<maven-jaxb2-plugin.version>0.13.1</maven-jaxb2-plugin.version>
+		<jaxb2-basics.version>0.6.5.1</jaxb2-basics.version>
+		<relaxng.version>1.1</relaxng.version>
+		<relaxng.sourcedir>${basedir}/src/main/relaxng</relaxng.sourcedir>
+		<relaxng.targetdir>${basedir}/src/main/relaxng</relaxng.targetdir>
+		<jaxb.sourcedir>${relaxng.targetdir}</jaxb.sourcedir>
+		<jaxb.targetdir>${project.build.directory}/generated-sources/xjc</jaxb.targetdir>
+	</properties>
+
+	<repositories>
+		<!-- COALA public Maven repository -->
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+
+		<!-- TU Delft simulation repository -->
+		<repository>
+			<name>DSOL Public Repository</name>
+			<id>dsol</id>
+			<!-- <url>http://sk-33.tbm.tudelft.nl/maven/</url> -->
+			<url>http://simulation.tudelft.nl/maven</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>coala-api-time</artifactId>
+		</dependency>
+
+		<dependency>
+			<!-- Java eXtension API for dependency injection -->
+			<groupId>javax.inject</groupId>
+			<artifactId>javax.inject</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<!-- Java Enterprise eXtension APIs, including JPA 2.1 -->
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>net.jodah</groupId>
+			<artifactId>concurrentunit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>guice4-coala-adapter</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>eve3-coala-adapter</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- incl. in-memory JDBC database -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Kundera JPA provider for RDMBS and No-SQL (Neo4J, Mongo, ...) -->
+		<!-- <dependency> <groupId>com.impetus.kundera.client</groupId> <artifactId>kundera-rdbms</artifactId> 
+			<version>${kundera.version}</version> <scope>test</scope> <exclusions> <exclusion> 
+			<artifactId>javassist</artifactId> <groupId>javassist</groupId> </exclusion> 
+			<exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-c3p0</artifactId> 
+			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-core</artifactId> 
+			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-validator</artifactId> 
+			</exclusion> </exclusions> </dependency> -->
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-hikaricp</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>HikariCP-java6</artifactId>
+					<groupId>com.zaxxer</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- replaces default Hibernate connection pool (C3P0) -->
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>${hikari.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Replace Java's StAX API with Woodstox -->
+		<!-- <dependency> <groupId>org.codehaus.woodstox</groupId> <artifactId>woodstox-core-asl</artifactId> 
+			<version>${woodstox.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- <dependency> <groupId>org.apache.xmlbeans</groupId> <artifactId>xmlbeans</artifactId> 
+			<exclusions> <exclusion> <groupId>stax</groupId> <artifactId>stax-api</artifactId> 
+			</exclusion> </exclusions> </dependency> -->
+
+		<!-- <dependency> <groupId>javax.xml.bind</groupId> <artifactId>jaxb-api</artifactId> 
+			<version>${jaxb-api.version}</version> <exclusions> <exclusion> <groupId>javax.xml.stream</groupId> 
+			<artifactId>stax-api</artifactId> </exclusion> </exclusions> <scope>test</scope> 
+			</dependency> -->
+
+		<!-- XML to JSON using JAXB and Jackson -->
+		<!-- <dependency> <groupId>com.fasterxml.jackson.module</groupId> <artifactId>jackson-module-jaxb-annotations</artifactId> 
+			<version>${jackson.version}</version> <scope>test</scope> </dependency> -->
+
+	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<!-- Configure the Maven2 Eclipse IDE Integration (m2e) for non-standard 
+						plug-in executions during the compile-test-run life-cycles by the IDE -->
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>${lifecycle-mapping.version}</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+
+								<!-- Configure "org.codehaus.mojo.build-helper-maven-plugin:add-source" 
+									goal execution in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.codehaus.mojo</groupId>
+										<artifactId>build-helper-maven-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>add-source</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnConfiguration>true</runOnConfiguration>
+											<runOnIncremental>false</runOnIncremental>
+										</execute>
+									</action>
+								</pluginExecution>
+
+								<!-- Configure "us.bryon.relaxng-maven-plugin:trang" goal execution 
+									in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>us.bryon</groupId>
+										<artifactId>relaxng-maven-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>trang</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+
+								<!-- Configure "org.apache.cxf.cxf-xjc-plugin:xsdtojava" goal execution 
+									in Eclipse IDE -->
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.cxf</groupId>
+										<artifactId>cxf-xjc-plugin</artifactId>
+										<versionRange>[0.0.1,)</versionRange>
+										<goals>
+											<goal>xsdtojava</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute>
+											<runOnConfiguration>true</runOnConfiguration>
+											<runOnIncremental>false</runOnIncremental>
+										</execute>
+									</action>
+								</pluginExecution>
+
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>jaxb2-maven-plugin</artifactId>
+					<version>${jaxb2-maven-plugin.version}</version>
+					<configuration>
+						<outputDirectory>${jaxb.targetdir}</outputDirectory>
+						<schemaDirectory>${jaxb.sourcedir}</schemaDirectory>
+						<packageName>io.coala.enterprise.agent</packageName>
+						<arguments>-disableXmlSecurity</arguments>
+						<clearOutputDir>true</clearOutputDir>
+					</configuration>
+				</plugin>
+
+				<plugin>
+					<groupId>us.bryon</groupId>
+					<artifactId>relaxng-maven-plugin</artifactId>
+					<version>${relaxng.version}</version>
+					<configuration>
+						<translations>
+							<translation>
+								<in>${relaxng.sourcedir}/enterprise-ontology.rnc</in>
+								<out>${relaxng.targetdir}/enterprise-ontology.xsd</out>
+							</translation>
+						</translations>
+					</configuration>
+				</plugin>
+
+				<!-- Used to generate source code based on XSD (schema) file -->
+				<!-- http://cxf.apache.org/cxf-xjc-plugin.html -->
+				<plugin>
+					<groupId>org.apache.cxf</groupId>
+					<artifactId>cxf-xjc-plugin</artifactId>
+					<version>${cxf-xjc-plugin.version}</version>
+					<configuration>
+						<extensions>
+							<extension>net.java.dev.jaxb2-commons:jaxb-fluent-api:2.1.8</extension>
+						</extensions>
+						<sourceRoot>${jaxb.targetdir}</sourceRoot>
+						<xsdOptions>
+							<xsdOption>
+								<xsd>${jaxb.sourcedir}/enterprise-ontology.xsd</xsd>
+								<packagename>io.coala.enterprise</packagename>
+								<extensionArgs>
+									<extensionArg>-Xfluent-api</extensionArg>
+								</extensionArgs>
+							</xsdOption>
+						</xsdOptions>
+					</configuration>
+				</plugin>
+			</plugins>
+
+		</pluginManagement>
+
+		<plugins>
+			<!-- generate JPA MetaModel classes and add to class path -->
+			<plugin>
+				<groupId>org.bsc.maven</groupId>
+				<artifactId>maven-processor-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>process</id>
+						<goals>
+							<goal>process</goal>
+						</goals>
+						<phase>generate-sources</phase>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<!-- include generated XMLBean sources in class path -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${jaxb.targetdir}</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Used to generate source code based on XSD (schema) file -->
+			<!-- <plugin> <groupId>org.apache.cxf</groupId> <artifactId>cxf-xjc-plugin</artifactId> 
+				<executions> <execution> <id>generate-enterprise-ontology</id> <phase>generate-sources</phase> 
+				<goals> <goal>xsdtojava</goal> </goals> </execution> </executions> </plugin> -->
+		</plugins>
+	</build>
+</project>

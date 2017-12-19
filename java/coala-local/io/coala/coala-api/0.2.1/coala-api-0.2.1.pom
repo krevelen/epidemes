@@ -1,0 +1,190 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.coala</groupId>
+		<artifactId>coala</artifactId>
+		<version>0.2.1</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>coala-api</artifactId>
+
+	<name>${project.artifactId} ${project.version}</name>
+	<url>http://coala.io/</url>
+	<description>
+		COALA binder API
+		$Id$
+	</description>
+
+	<properties>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
+
+		<!-- testing JPA -->
+		<jta.version>1.1</jta.version>
+		<hsqldb.version>2.3.4</hsqldb.version>
+		<hikari.version>2.4.7</hikari.version>
+		<!-- <hibernate.version>5.2.1.Final</hibernate.version> -->
+
+		<easymock.version>3.2</easymock.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Public Maven Repository</name>
+			<id>coala-public</id>
+			<url>https://github.com/krevelen/coala-binder/raw/mvn-repo/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>daily</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+				<updatePolicy>never</updatePolicy>
+			</snapshots>
+		</repository>
+		<repository>
+			<name>UUID Repository</name>
+			<id>eaio.com</id>
+			<url>http://eaio.com/maven2</url>
+		</repository>
+	</repositories>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>coala-common</artifactId>
+		</dependency>
+
+		<!-- reference implementation of javax.measurement JSR-363 -->
+		<dependency>
+			<groupId>tec.uom</groupId>
+			<artifactId>uom-se</artifactId>
+		</dependency>
+
+		<!-- High performance arbitrary precision arithmetic library -->
+		<dependency>
+			<groupId>org.apfloat</groupId>
+			<artifactId>apfloat</artifactId>
+		</dependency>
+
+		<!-- used by Table.Tuple -->
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+		</dependency>
+
+		<!-- matrix calculations (jar 1.2MB -->
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- <dependency> <groupId>org.ujmp</groupId> <artifactId>ujmp-gui</artifactId> 
+			<version>${ujmp.version}</version> <scope>test</scope> </dependency> -->
+
+		<!-- Java Enterprise eXtension APIs, incl JPA 2.1, used in DAOs -->
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- <dependency> <groupId>org.hdrhistogram</groupId> <artifactId>HdrHistogram</artifactId> 
+			<version>${HdrHistogram.version}</version> </dependency> -->
+
+		<dependency>
+			<!-- Used as unit testing framework, supports test-driven development -->
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ferstl</groupId>
+			<artifactId>parallel-stream-support</artifactId>
+			<version>1.0.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- used in unit testing to create mock dependency instances -->
+		<dependency>
+			<groupId>org.easymock</groupId>
+			<artifactId>easymock</artifactId>
+			<version>${easymock.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- javax.transaction needed BEFORE Hibernate (in Kundera RDBMS) -->
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- incl. in-memory JDBC database -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>${hsqldb.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- JPA provider for RDMBS and No-SQL (Neo4J, Mongo, ...) -->
+		<!-- <dependency> <groupId>com.impetus.kundera.client</groupId> <artifactId>kundera-rdbms</artifactId> 
+			<version>${kundera.version}</version> <scope>test</scope> <exclusions> <exclusion> 
+			<artifactId>javassist</artifactId> <groupId>javassist</groupId> </exclusion> 
+			<exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-c3p0</artifactId> 
+			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-core</artifactId> 
+			</exclusion> <exclusion> <groupId>org.hibernate</groupId> <artifactId>hibernate-validator</artifactId> 
+			</exclusion> </exclusions> </dependency> -->
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-hikaricp</artifactId>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>HikariCP-java6</artifactId>
+					<groupId>com.zaxxer</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- replaces default Hibernate connection pool (C3P0) by HikariCP -->
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>${hikari.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- generate JPA MetaModel classes and add to class path -->
+			<plugin>
+				<groupId>org.bsc.maven</groupId>
+				<artifactId>maven-processor-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>process</id>
+						<goals>
+							<goal>process</goal>
+						</goals>
+						<phase>generate-sources</phase>
+					</execution>
+				</executions>
+				<!-- <dependencies> <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-jpamodelgen</artifactId> 
+					<version>${hibernate.version}</version> </dependency> </dependencies> -->
+			</plugin>
+		</plugins>
+	</build>
+</project>

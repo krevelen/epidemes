@@ -30,14 +30,14 @@
 
 	<repositories>
 		<repository>
-			<name>EPIDEMES Public Maven Repository</name>
-			<id>epidemes-public</id>
-			<url>https://github.com/krevelen/rivm-episim/raw/mvn-repo/</url>
+			<name>COALA Local Maven Repository</name>
+			<id>coala-local</id>
+			<url>file:${project.basedir}/../coala-local</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>
 			</releases>
-		</repository>
+  		</repository>
 	</repositories>
 
 	<dependencyManagement>

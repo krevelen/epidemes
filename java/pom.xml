@@ -40,7 +40,7 @@
 		<!-- for JaCoCO java agent, as per http://stackoverflow.com/a/21633345/1418999 -->
 		<argLine />
 
-		<coala.version>0.2.0-b7-SNAPSHOT</coala.version>
+		<coala.version>0.2.1</coala.version>
 		<log4j.version>2.8.2</log4j.version>
 		<jackson.version>2.8.8</jackson.version>
 		<hibernate.version>5.1.0.Final</hibernate.version>
@@ -64,8 +64,6 @@
 		<github.repository.branch>mvn-repo</github.repository.branch>
 		<github.repository.owner>krevelen@gmail.com</github.repository.owner>
 		<github.repository.localid>internal.repo</github.repository.localid>
-		<github.repository.tmpdir>${user.dir}/..</github.repository.tmpdir>
-		<github.repository.url>https://raw.github.com/krevelen/epidemes/mvn-repo/</github.repository.url>
 		<site-maven-plugin.version>0.9</site-maven-plugin.version>
 
 		<!-- set dependency versions -->
@@ -204,7 +202,7 @@
 		<repository>
 			<id>${github.repository.localid}</id>
 			<name>Temporary Staging Repository</name>
-			<url>file://${github.repository.tmpdir}</url>
+			<url>file://${project.basedir}/..</url>
 		</repository>
 	</distributionManagement>
 
