@@ -1,4 +1,4 @@
-/* $Id: 19aeaa679d64e98c30f6e10b8f2c0377dba4f35e $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -44,7 +44,7 @@ import io.reactivex.schedulers.Schedulers;
  * (find a tutorial on OpenData operators etc. at
  * http://www.odata.org/getting-started/basic-tutorial/)
  * 
- * @version $Id: 19aeaa679d64e98c30f6e10b8f2c0377dba4f35e $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = true )

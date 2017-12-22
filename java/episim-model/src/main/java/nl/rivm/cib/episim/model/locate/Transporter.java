@@ -10,7 +10,7 @@ import io.coala.enterprise.FactKind;
  * <li>moving ({@link Destination#kind()} == {@link FactKind#REQUESTED}); or
  * <li>arrived ({@link Destination#kind()} == {@link FactKind#STATED})
  * 
- * @version $Id: 4f1dd68d7aee66104076eef90f27277a6f5deba7 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Transporter extends Actor<Transporter.Destination>

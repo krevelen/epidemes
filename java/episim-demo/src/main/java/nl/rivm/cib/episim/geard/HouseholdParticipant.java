@@ -1,4 +1,4 @@
-/* $Id: 3050d23e9fb7b87735fe68325328cd09edfdbfad $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import nl.rivm.cib.episim.geard.GeardHousehold.MoveHouse;
 /**
  * {@link HouseholdParticipant} TODO make recursive (Social) Participant
  * 
- * @version $Id: 3050d23e9fb7b87735fe68325328cd09edfdbfad $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Deprecated

@@ -1,4 +1,4 @@
-/* $Id: 719d0ecb2376e53b47d9c55c590aca84c79ad0f0 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -76,7 +76,7 @@ import io.reactivex.Observable;
 [[14]]	: *  Vrouwen (Topic:Double)
  * </pre>
  * 
- * @version $Id: 719d0ecb2376e53b47d9c55c590aca84c79ad0f0 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = true )
@@ -122,7 +122,7 @@ public class Cbs37713json
 	 * drawing individual ages)
 	 * </ol>
 	 * 
-	 * @version $Id: 719d0ecb2376e53b47d9c55c590aca84c79ad0f0 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	public static class Category extends Tuple

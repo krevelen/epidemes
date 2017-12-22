@@ -22,7 +22,7 @@ import nl.rivm.cib.episim.persist.AbstractDao;
  * {@link PlaceDao} is a data access object for a place (e.g. address, location
  * or position)
  * 
- * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Embeddable

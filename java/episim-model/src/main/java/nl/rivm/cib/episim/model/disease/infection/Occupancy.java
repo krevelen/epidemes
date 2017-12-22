@@ -1,4 +1,4 @@
-/* $Id: 14a474927d6edfc812c1107ca6057531008db526 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -45,7 +45,7 @@ import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
  * <li>{@link #timeAtRisk(}: (stated) {@link Duration time-at-risk} per
  * {@link Afflict.ID}
  * 
- * @version $Id: 14a474927d6edfc812c1107ca6057531008db526 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Occupancy extends Fact

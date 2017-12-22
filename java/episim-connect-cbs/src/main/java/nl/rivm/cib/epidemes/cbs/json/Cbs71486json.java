@@ -1,4 +1,4 @@
-/* $Id: 32f3379f81cf22f2539db49b33e6cbeef8aa74e0 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -60,7 +60,7 @@ import nl.rivm.cib.episim.cbs.TimeUtil;
  * (find a tutorial on OpenData operators etc. at
  * http://www.odata.org/getting-started/basic-tutorial/)
  * 
- * @version $Id: 32f3379f81cf22f2539db49b33e6cbeef8aa74e0 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = true )

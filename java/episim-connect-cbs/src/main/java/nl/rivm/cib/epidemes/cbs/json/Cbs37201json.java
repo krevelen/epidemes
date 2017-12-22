@@ -1,4 +1,4 @@
-/* $Id: 05b6ce8b9d1475149fa8866f8e92318183a552b1 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -93,7 +93,7 @@ CBS.37201 (see http://statline.cbs.nl/Statweb/publication/?PA=37201)
 [[26]]	: *  Moeder niet-gehuwd ("MoederNietGehuwd_23":Double), e.g. CBS.37201[1,26]="   18951"
  * </pre>
  * 
- * @version $Id: 05b6ce8b9d1475149fa8866f8e92318183a552b1 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = false )

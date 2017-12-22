@@ -5,7 +5,7 @@ import io.coala.time.Proactive;
 /**
  * {@link PopulationGenerator}
  * 
- * @version $Id: bcec9251efbae6d083213e672391a360753793d8 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface PopulationGenerator extends Proactive

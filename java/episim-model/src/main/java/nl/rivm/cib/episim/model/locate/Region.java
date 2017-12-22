@@ -14,7 +14,7 @@ import io.coala.name.Identified;
 /**
  * {@link Region} is an inert static entity
  * 
- * @version $Id: e6c9b6b9dc29f3775464a9a9e2400236f22ef50c $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Region extends Identified<Region.ID>

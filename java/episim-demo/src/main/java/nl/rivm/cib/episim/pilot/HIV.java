@@ -1,4 +1,4 @@
-/* $Id: 413968cc21facdcb91463bbe0c66b5bac05a8144 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -26,7 +26,7 @@ import nl.rivm.cib.episim.model.disease.infection.Pathogen;
  * <a href="http://www.who.int/mediacentre/factsheets/fs360/en/">WHO fact
  * sheet</a>
  * 
- * @version $Id: 413968cc21facdcb91463bbe0c66b5bac05a8144 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public abstract class HIV implements Pathogen

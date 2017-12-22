@@ -1,4 +1,4 @@
-/* $Id: 3094eaf6d7383e039ca225ab4497580167d3247e $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -105,7 +105,7 @@ import nl.rivm.cib.episim.cbs.TimeUtil;
 [[25]]	: *  COROP-gebied ("COROPGebied_22":String), e.g. CBS.37230ned[1,25]="NA"
  * </pre>
  * 
- * @version $Id: 3094eaf6d7383e039ca225ab4497580167d3247e $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 //@JsonIgnoreProperties( ignoreUnknown = false )

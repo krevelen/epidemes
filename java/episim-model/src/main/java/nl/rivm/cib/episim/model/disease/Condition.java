@@ -1,4 +1,4 @@
-/* $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -36,7 +36,7 @@ import nl.rivm.cib.episim.model.disease.infection.Serostatus;
  * <li>clinical phase: {@link ClinicalPhase.Attributable#getPhase()}
  * <li>serologic state: {@link Serostatus.Attributable#getState()}
  * 
- * @version $Id: 0d19d6801cb9fefc090fe46d46fc23c2d3afc275 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Condition extends Actor<Afflict>

@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.persist.AbstractDao;
 /**
  * {@link IsoTimeDimensionDao} is a data access object for the dimension of time
  * 
- * @version $Id: ccb850afe9da1c0e05dabbd3374aa241dfa9e0e2 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Entity

@@ -46,7 +46,7 @@ import nl.rivm.cib.episim.model.disease.infection.Transmission;
  * </tr>
  * </table>
  * 
- * @version $Id: 7aa57c407ea079fca3643e1dc055a7880ace72ed $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Deprecated

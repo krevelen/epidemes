@@ -46,7 +46,7 @@ import nl.rivm.cib.episim.model.disease.infection.Contagion.Contagium;
  * {@link Pathogen}'s <em>infection pressure</em> upon the executing
  * {@link Afflicted} host's immune system {@link Condition}
  * 
- * @version $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Transmission extends Afflict

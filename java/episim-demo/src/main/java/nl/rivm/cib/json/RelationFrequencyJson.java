@@ -1,4 +1,4 @@
-/* $Id: c39e899100411b91e2eba1647db63ae8268385d4 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -43,7 +43,7 @@ import io.coala.time.TimeUnits;
  * {@link RelationFrequencyJson} parses data originally from <a
  * href=http://statline.cbs.nl/Statweb/publication/?PA=82249NED>CBS 82249NED</a>
  * 
- * @version $Id: c39e899100411b91e2eba1647db63ae8268385d4 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @JsonIgnoreProperties( ignoreUnknown = true )

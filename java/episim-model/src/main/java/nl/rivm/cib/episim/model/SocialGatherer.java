@@ -1,4 +1,4 @@
-/* $Id: 6a6ef9b07ee21a4e4aee7b41427000aff8573c57 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -57,7 +57,7 @@ import tec.uom.se.ComparableQuantity;
  * {@link SocialGatherer} used to convene and adjourn members e.g. in
  * transmission spaces
  * 
- * @version $Id: 6a6ef9b07ee21a4e4aee7b41427000aff8573c57 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface SocialGatherer

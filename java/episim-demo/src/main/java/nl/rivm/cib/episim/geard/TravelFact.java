@@ -1,4 +1,4 @@
-/* $Id: bb24fc6585f8a2b1817cf8d2bf16b9fcefadd13f $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -29,7 +29,7 @@ import nl.rivm.cib.episim.model.locate.Transporter;
  * {@link Instant} of its departure from its origin {@link Place} and the
  * {@link Instant} of its arrival to its destination {@link Place}
  * 
- * @version $Id: bb24fc6585f8a2b1817cf8d2bf16b9fcefadd13f $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Deprecated

@@ -1,4 +1,4 @@
-/* $Id: 03a6f266df7741da3277d78567f9417b9d1459b7 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -25,7 +25,7 @@ import io.coala.time.Timed;
 /**
  * {@link TransitionEvent}
  * 
- * @version $Id: 03a6f266df7741da3277d78567f9417b9d1459b7 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Deprecated

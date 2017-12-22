@@ -1,4 +1,4 @@
-/* $Id: 1293d8982ef777d789749789be048f42852af586 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -28,7 +28,7 @@ import io.coala.json.Wrapper;
  * <a href="http://www.ncbi.nlm.nih.gov/books/NBK143061/">WHO pandemic
  * phases</a>
  * 
- * @version $Id: 1293d8982ef777d789749789be048f42852af586 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface OutbreakScale extends Wrapper<String>

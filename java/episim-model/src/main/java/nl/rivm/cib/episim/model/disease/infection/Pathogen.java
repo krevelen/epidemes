@@ -1,4 +1,4 @@
-/* $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -95,7 +95,7 @@ import nl.rivm.cib.episim.model.locate.Place;
  * immobilize - convalescent, removed (2-7y), susceptible - hospitalize -
  * convalescent, removed (2-7y), susceptible - death, removed
  * 
- * @version $Id: 73fcf100b37b9cebac2739e4bea14198b4e2e020 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Pathogen extends Actor<Transmission>
@@ -117,7 +117,7 @@ public interface Pathogen extends Actor<Transmission>
 	 * <li>[rq]: seroconversion &rArr; [st]: effective treatment/vaccination
 	 * </ul>
 	 * 
-	 * @version $Id: 0cf1c75df00a9cefc122aaec1f98d86596665550 $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	public interface Recovery extends Afflict

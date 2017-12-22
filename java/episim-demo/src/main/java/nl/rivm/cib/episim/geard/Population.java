@@ -1,4 +1,4 @@
-/* $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -55,7 +55,7 @@ import io.reactivex.subjects.Subject;
  * </tr>
  * </table>
  * 
- * @version $Id: 03628f399dba5f1c6bbb754d920e7a548cb38201 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 @Deprecated

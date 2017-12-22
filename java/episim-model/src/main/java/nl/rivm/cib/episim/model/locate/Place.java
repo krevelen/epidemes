@@ -1,4 +1,4 @@
-/* $Id: 7d10f131de96809298e2af9ae72b548a24a90817 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -28,7 +28,7 @@ import io.coala.name.Identified;
  * {@link Place} is a stationary inert space with a {@link ID} reference
  * 
  * 
- * @version $Id: 7d10f131de96809298e2af9ae72b548a24a90817 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Place extends Identified.Ordinal<Place.ID>

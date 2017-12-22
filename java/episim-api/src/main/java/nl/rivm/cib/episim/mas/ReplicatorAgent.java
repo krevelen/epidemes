@@ -1,4 +1,4 @@
-/* $Id: bd4a1bd2f9feaaaba7d8afa1d961ae91953ffd6c $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -44,7 +44,7 @@ import io.coala.time.Timing;
 /**
  * {@link ReplicatorAgent}
  * 
- * @version $Id: bd4a1bd2f9feaaaba7d8afa1d961ae91953ffd6c $
+ * @version $Id$
  * @author Rick van Krevelen
  *
  */
@@ -72,7 +72,7 @@ public interface ReplicatorAgent
 	/**
 	 * {@link StepRatio}
 	 * 
-	 * @version $Id: bd4a1bd2f9feaaaba7d8afa1d961ae91953ffd6c $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	interface ReplicationConfig extends GlobalConfig
@@ -113,7 +113,7 @@ public interface ReplicatorAgent
 	/**
 	 * {@link StepRatio} is a POJO for
 	 * 
-	 * @version $Id: bd4a1bd2f9feaaaba7d8afa1d961ae91953ffd6c $
+	 * @version $Id$
 	 * @author Rick van Krevelen
 	 */
 	class StepRatio implements Serializable

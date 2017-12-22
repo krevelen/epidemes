@@ -1,4 +1,4 @@
-/* $Id: 7c4f8baff3c6ddc96bb7fadbd6202abb0132f0e9 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,7 +27,7 @@ import io.reactivex.Observable;
  * {@link Serostatus} identifies the condition of the immune system's serum, see
  * https://www.wikiwand.com/en/Serostatus
  * 
- * @version $Id: 7c4f8baff3c6ddc96bb7fadbd6202abb0132f0e9 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class Serostatus extends Id.Ordinal<String>

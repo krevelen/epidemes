@@ -1,4 +1,4 @@
-/* $Id: a8bf68b6634dba22075c105a65ea77fc0d8ccf05 $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -27,7 +27,7 @@ import io.coala.enterprise.Actor;
  * {@link Afflicted} can be a carrier of multiple (infectious, chronic, ...)
  * {@link Afflict}s, each with their own {@link Condition} dynamics
  * 
- * @version $Id: a8bf68b6634dba22075c105a65ea77fc0d8ccf05 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public interface Afflicted //extends Actor<Disease>

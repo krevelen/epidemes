@@ -31,7 +31,7 @@ import nl.rivm.cib.epidemes.geodb.voorz.LRKEntryDao_;
  * <p>
  * TODO run tests only from within Campus network domain
  * 
- * @version $Id: dcf9db7e0a7189e6816afdd8169e0a38f7f0a740 $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public class GeoDBConnectorTest

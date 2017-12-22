@@ -1,4 +1,4 @@
-/* $Id: 8fa10df8d59e08e51d449f167712737ecf7a291f $
+/* $Id$
  * 
  * Part of ZonMW project no. 50-53000-98-156
  * 
@@ -40,7 +40,7 @@ import nl.rivm.cib.episim.model.disease.infection.Pathogen;
  * sequenced.&rdquo;</li>
  * </ul>
  * 
- * @version $Id: 8fa10df8d59e08e51d449f167712737ecf7a291f $
+ * @version $Id$
  * @author Rick van Krevelen
  */
 public abstract class HPV implements Pathogen
