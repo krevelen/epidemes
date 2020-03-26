@@ -6,11 +6,11 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
-		<version>0.1.1-SNAPSHOT</version>
+		<version>0.2.0</version>
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>epidemes-webapp</artifactId>
+	<artifactId>episim-webapp</artifactId>
 	<packaging>war</packaging>
 
 	<properties>
@@ -39,7 +39,7 @@
 		</repository>
 		<repository>
 			<name>EPIDEMES Public Maven Repository</name>
-			<id>epidemes-public</id>
+			<id>episim-public</id>
 			<url>https://github.com/krevelen/epidemes/raw/mvn-repo/</url>
 			<releases>
 				<enabled>true</enabled>
@@ -55,7 +55,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>epidemes-mas</artifactId>
+			<artifactId>episim-mas</artifactId>
 			<version>${project.version}</version>
 			<exclusions>
 				<!-- websocket dependency not inside a WAR file! -->

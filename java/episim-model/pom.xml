@@ -10,7 +10,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>epidemes-model</artifactId>
+	<artifactId>episim-model</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>

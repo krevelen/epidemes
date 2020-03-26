@@ -120,7 +120,7 @@
 
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>epidemes-demo</artifactId>
+			<artifactId>episim-demo</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

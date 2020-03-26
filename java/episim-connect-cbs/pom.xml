@@ -9,7 +9,7 @@
 		<version>0.2.0</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<artifactId>epidemes-connect-cbs</artifactId>
+	<artifactId>episim-connect-cbs</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
@@ -43,7 +43,7 @@
 			</dependency> -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>epidemes-model</artifactId>
+			<artifactId>episim-model</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

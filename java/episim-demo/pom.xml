@@ -10,7 +10,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>epidemes-demo</artifactId>
+	<artifactId>episim-demo</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
@@ -111,13 +111,13 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>epidemes-persist</artifactId>
+			<artifactId>episim-persist</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>epidemes-connect-cbs</artifactId>
+			<artifactId>episim-connect-cbs</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

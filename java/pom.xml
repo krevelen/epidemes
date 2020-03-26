@@ -8,6 +8,9 @@
 	<version>0.2.0</version>
 	<packaging>pom</packaging>
 
+	<modules>
+		<module>epidemes-core</module>
+	</modules>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<url>https://github.com/krevelen/epidemes</url>
@@ -211,12 +214,12 @@
 		<dependencies>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>epidemes-api</artifactId>
+				<artifactId>episim-api</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>epidemes-model</artifactId>
+				<artifactId>episim-model</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 

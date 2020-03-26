@@ -1,0 +1,33 @@
+Configuration:
+  status: warn
+  Appenders:
+    Console:
+      name: Console
+      target: SYSTEM_OUT
+      # see https://logging.apache.org/log4j/2.x/manual/layouts.html
+      # note: Eclipse IDE requires a console plug-in for highlight/ANSI coloring
+      PatternLayout:
+        Pattern: '%d{HH:mm:ss.SSS} %-5p [%-12.12t] %m%n'
+#        Pattern: '%highlight{%d{HH:mm:ss.SSS} %-5p [%-12.12t] %m [at %C.%M(%F:%L)]%n}'
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        ref: Console
+    Logger:
+    - name: nl.rivm.cib
+      level: debug
+    - name: io.coala
+      level: trace
+    - name: javax.management
+      level: warn
+    - name: com.google.inject
+      level: warn
+    - name: org.hibernate
+      level: warn
+#    # hide constraint warnings for 'create-drop' DDL and 'in-memory' database
+#    - name: org.hibernate.tool.schema.internal.ExceptionHandlerLoggedImpl
+#      level: error
+#    # show (unformatted) SQL
+#    - name: org.hibernate.SQL
+#      level: debug

@@ -1,0 +1,187 @@
+# $Id$
+#
+# DEMO scenario sample configuration file
+#
+# run with:
+#
+#   mvn exec:java -Dexec.mainClass="nl.rivm.cib.epidemes.demo.impl.Main" -Dexec.args="config.base=dist/"
+
+#javax:
+#  persistence:
+#    jdbc:
+#      url: jdbc:h2:~/epidat/h2_hhdb;AUTO_SERVER=TRUE
+#      user: sa
+#      password: sa
+
+# http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html
+# e.g.: 0 0 0 7 * ? *   = at midnight on each 7th day of the month
+      
+scenario:
+  # anything below is persisted, except for YAML comments
+  __stored_comment__: blabla
+  replication:
+    setup-name: run1
+    duration-period: P7M
+    offset-date: 2012-12-29
+  #
+  # PERSON BROKER / DOMESTIC MODULE
+  #
+  demography:
+    module: nl.rivm.cib.epidemes.demo.impl.PersonBrokerSimple
+    population-size: 100000
+    population-size-ref: 17000000
+    # regional level of congruence/fidelity: MUNICIPAL, COROP, PROVINCE, TERRITORY
+    regional-resolution: MUNICIPAL 
+    # TODO draw partner/child gender and age difference from CBS 37422?
+    pop-male-freq: 0.5
+    hh-partner-age-delta-range: "[-5 year; 1 year]"
+    hh-partner-age-delta-dist: normal(-2 year; 2 year)
+    hh-dynamics-timeseries: ${config.base}data/37230ned_TS_2012_2017.json
+    hh-birth-timeseries: ${config.base}data/37201_TS_2010_2015.json
+    hh-age-timeseries: ${config.base}data/71486ned-TS-2010-2016.json
+  #
+  # SITE BROKER / GEOGRAPHIC MODULE
+  #
+  geography:
+    module: nl.rivm.cib.epidemes.demo.impl.SiteBrokerSimple
+    hh-zip-density: ${config.base}data/gm_pc6_centroid_density.json
+    primary-school-densities: ${config.base}data/gm_pc4_po_pupils.json
+  #
+  # SOCIETY BROKER / MIXING MODULE
+  #
+  mobility:
+    module: nl.rivm.cib.epidemes.demo.impl.SocietyBrokerSimple
+    society-goals:
+      # sundays 2PM for nation-wide socializing (mall/church/outing/...)
+      consort: 
+        age-filter: "[0 year; +inf)"
+        convene-timing: 0 0 14 ? * SUN
+        duration-dist: const(3 hr)
+        site-scope-km: 400
+        capacity-dist: const( 200 ) 
+      # saturdays 11AM for sports/hobby at regional clubs
+      leisure: 
+        age-filter: "[4 year; 70 year]"
+        convene-timing: 0 0 11 ? * SAT
+        duration-dist: const(3 hr)
+        site-scope-km: 50
+        capacity-dist: tria( 50; 100; 200 ) 
+      # week days 8AM for school
+      junior: 
+        age-filter: "[.5 year; 12.5 year]"
+        convene-timing: 0 0 8 ? * MON-FRI
+        duration-dist: const(6 hr)
+      # week days 9AM for work @office
+      career: 
+        age-filter: "[12.5 year; 70 year]"
+        convene-timing: 0 0 9 ? * MON-FRI
+        duration-dist: const(8 hr)
+        site-scope-km: 100
+      # three days for elderly care/volunteer activities at regional centres
+      senior: 
+        age-filter: "[70 year; +inf)"
+        convene-timing: 0 0 10 ? * TUE-THU
+        duration-dist: const(5 hr)
+        site-scope-km: 20
+        capacity-dist: const( 100 ) 
+  #
+  # HEALTH BROKER / MEDICAL MODULE
+  #
+  epidemiology:
+    module: nl.rivm.cib.epidemes.demo.impl.HealthBrokerSimple
+    pathogen:
+      # measles
+      average-reproduction-period: 12 day
+      average-recovery-period: 14 day
+      # scale per subpop(i) time/pressure: Prod_i(N/size_i)^(time_i)/T e.g. (1000/1000)^(.25) * (1000/2)^(.75)
+      beta-factor: 100
+      # everyone born before this date is considered RECOVERED/REMOVED
+      last-outbreak-end-date: 2000-06-30
+      # pick patient zero with lowest resistance
+      next-outbreak-start-date: 2013-01-01T08:09:10
+    vaccination:
+      cohort-age-resolution: 1 week
+      regimen: nl.rivm.cib.epidemes.demo.impl.VaxRegimenSimpleMeaslesRVP
+      acceptance-evaluator: nl.rivm.cib.epidemes.demo.impl.VaxAcceptance4CSimple
+      # 48 weeks = 11 months = age of earliest dose (BMR0-1) or some preceding dose (eg. DKTP-Hib-HepB + Pneu)
+      # e.g. BMR2 reached, mean(sd): 14.2(0.5) months/61.5(1.9) weeks/425(13) days
+      treatment-delay-dist: normal(0.5 week; 1.85 week)
+#      invitation-age: "[.5 yr; 4 yr)"
+      occasion:
+        # vaccination occasions recur to hesitant (parents of) susceptible (children)
+        # vax every weekday at 10AM
+        recurrence: 0 0 10 ? * MON-FRI 2013-2020
+        # factors that determine CONVENIENCE 
+        utility-dist: const(0.5)
+        clarity-dist: const(0.5)
+        affinity-dist: const(0.5)
+        proximity-dist: const(0.5)
+  #
+  # PEER BROKER / SOCIAL MODULE
+  #
+  hesitancy:
+    module: nl.rivm.cib.epidemes.demo.impl.PeerBrokerSimple
+#    social-network:
+#      model: nl...$AssortativeWattsStrogatz
+#      # avg. no. family + friends + neighbors with persuasive (peer) pressure
+#      average-degree: 10
+#      # in [0,1]: 0 = symmetric lattice, 1 = fully random network
+#      beta: 0.5
+#      # fraction of 'similar' connections (i.e. having same profile and norm)
+#      social-assortativity: 0.85
+##    profiles: ${config.base}hesitancy-univariate.json
+#    attitudes: ${config.base}hesitancy-initial.json
+#    attitude-dynamics:
+#      defaults:
+#        propagation-recurrence: 0 0 0 ? * MON *
+#        activation-frequencies: ${config.base}relation-frequency.json
+#        propagator: nl.rivm.cib.demo.DemoModel$Social$AttitudePropagator$PeriodicScaledAverager
+##        skip-while-vaccinating: true
+#        calculation-filter: nl.rivm.cib.demo.DemoModel$Social$AppreciationFilter$Shifted
+#        # absolute impact per activated individual
+#        appreciation-weight-inpeer: 1
+#        appreciation-weight-outpeer: 1
+#        # relative impact, >1: outweigh activated impression weights
+#        appreciation-scale-self: 100
+#        appreciation-scale-norm: 1
+#      # local pressure, mainly from e.g. Health Services
+#      sec-reg:
+#        religious: 0
+#        alternative: 0
+#        norm: 
+#          confidence: 1
+#          complacency: 0
+#      # local pressure, mainly from e.g. Protestantists
+#      rel-reg:
+#        religious: 1
+#        alternative: 0
+#        norm: 
+#          confidence: .5
+#          complacency: 1
+#      # local pressure, mainly from e.g. Traditionalists
+#      sec-alt:
+#        religious: 0
+#        alternative: 1
+#        norm:
+#          confidence: 0
+#          complacency: 1
+#      # local pressure, mainly from e.g. Mixture
+#      rel-alt:
+#        religious: 1
+#        alternative: 1
+#        norm:
+#          confidence: .5
+#          complacency: .5
+##        schedule: 
+##        # spike monthly and adjust every 2 days 5x toward original values
+##        - occurrence: 0 0 0 1 * ? *
+##          period: P2D
+##          series:
+##            confidence:  [.5, .6, .7, .8, .9, 1]
+##            complacency: [.5, .4, .3, .2, .1, 0]
+##        # spike monthly and adjust every 2 days 5x toward original values
+##        - occurrence: 0 0 0 1 * ? *
+##          period: P2D
+##          series:
+##            confidence:  [1, .9, .8, .7, .6, .5]
+##            complacency: [0, .1, .2, .3, .4, .5]

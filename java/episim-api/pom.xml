@@ -13,7 +13,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>epidemes-api</artifactId>
+	<artifactId>episim-api</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Modeling Components for the RIVM Epidemics Simulator

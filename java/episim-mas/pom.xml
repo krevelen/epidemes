@@ -10,7 +10,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 
-	<artifactId>epidemes-mas</artifactId>
+	<artifactId>episim-mas</artifactId>
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
 		Multi-agent system for the RIVM Epidemics Simulator
@@ -55,12 +55,12 @@
 
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>epidemes-model</artifactId>
+			<artifactId>episim-model</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>epidemes-api</artifactId>
+			<artifactId>episim-api</artifactId>
 		</dependency>
 
 		<dependency>

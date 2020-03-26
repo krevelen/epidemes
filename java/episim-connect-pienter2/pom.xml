@@ -9,7 +9,7 @@
 		<version>0.2.0</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<artifactId>epidemes-connect-pienter2</artifactId>
+	<artifactId>episim-connect-pienter2</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>

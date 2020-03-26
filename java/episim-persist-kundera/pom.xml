@@ -6,10 +6,10 @@
 	<parent>
 		<groupId>nl.rivm.cib</groupId>
 		<artifactId>epidemes</artifactId>
-		<version>0.1.1-SNAPSHOT</version>
+		<version>0.2.0</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<artifactId>epidemes-persist-kundera</artifactId>
+	<artifactId>episim-persist-kundera</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>
@@ -65,7 +65,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>nl.rivm.cib</groupId>
-			<artifactId>epidemes-persist</artifactId>
+			<artifactId>episim-persist</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 

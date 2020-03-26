@@ -9,7 +9,7 @@
 		<version>0.2.0</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<artifactId>epidemes-connect-geodb</artifactId>
+	<artifactId>episim-connect-geodb</artifactId>
 
 	<name>${project.artifactId} ${project.version}</name>
 	<description>

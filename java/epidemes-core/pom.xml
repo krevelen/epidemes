@@ -1,0 +1,110 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>nl.rivm.cib</groupId>
+		<artifactId>epidemes</artifactId>
+		<version>0.2.0</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<artifactId>epidemes-core</artifactId>
+
+	<properties>
+		<ujmp.version>0.3.0</ujmp.version>
+
+		<!-- stand-alone runnable JAR config -->
+		<dist.dir>${basedir}/dist</dist.dir>
+		<main.class>nl.rivm.cib.epidemes.demo.impl.Main</main.class>
+
+		<!-- Eclipse JPA activation, see http://stackoverflow.com/a/37604836 -->
+		<m2e.jpa.activation>false</m2e.jpa.activation>
+	</properties>
+
+	<repositories>
+		<repository>
+			<name>COALA Local Maven Repository</name>
+			<id>coala-local</id>
+			<url>file:${project.basedir}/../coala-local</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>guice4-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>math3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>eve3-coala-adapter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.coala</groupId>
+			<artifactId>dsol3-coala-adapter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>vecmath</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>java3d</groupId>
+					<artifactId>j3d-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- matrix calculations -->
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-core</artifactId>
+			<version>${ujmp.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<finalName>${project.parent.artifactId}-full</finalName>
+							<outputDirectory>${dist.dir}</outputDirectory>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>${main.class}</mainClass>
+								</transformer>
+							</transformers>
+							<filters>
+								<filter>
+									<artifact>*:*:*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
