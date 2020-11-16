@@ -49,7 +49,7 @@
 		<hibernate.version>5.1.0.Final</hibernate.version>
 		<wildfly.version>10.1.1.Final</wildfly.version>
 		<tomcat.version>8.5.13</tomcat.version>
-		<jetty.version>9.3.9.v20160517</jetty.version>
+		<jetty.version>9.4.34.v20201102</jetty.version>
 		<httpcomponents.version>4.5.1</httpcomponents.version>
 
 		<!-- test coverage versions -->
