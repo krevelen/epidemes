@@ -50,7 +50,7 @@
 		<wildfly.version>10.1.1.Final</wildfly.version>
 		<tomcat.version>8.5.13</tomcat.version>
 		<jetty.version>9.3.9.v20160517</jetty.version>
-		<httpcomponents.version>4.5.1</httpcomponents.version>
+		<httpcomponents.version>4.5.13</httpcomponents.version>
 
 		<!-- test coverage versions -->
 		<jacoco-maven-plugin.version>0.7.7.201606060606</jacoco-maven-plugin.version>
