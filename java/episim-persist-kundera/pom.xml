@@ -20,7 +20,7 @@
 
 	<properties>
 		<kundera.version>3.5</kundera.version>
-		<neo4j.version>2.3.2</neo4j.version>
+		<neo4j.version>3.5.0</neo4j.version>
 		<hsqldb.version>2.3.4</hsqldb.version>
 	</properties>
 
